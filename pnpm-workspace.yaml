@@ -33,5 +33,8 @@ overrides:
   typescript: 'catalog:'
   react: 'catalog:'
   react-dom: 'catalog:'
+  # eslint-config-expo registers its own @typescript-eslint plugin; ESLint refuses two instances.
+  '@typescript-eslint/eslint-plugin': 8.72.2
+  '@typescript-eslint/parser': 8.72.2
 
 engineStrict: true
