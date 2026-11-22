@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { createApp } from './app.ts';
 import { buildOpenApiDocument, createDocDeps } from './openapi.ts';
+import { OPENAPI_FILE } from './scripts/gen-openapi.ts';
 
 type Operation = Record<string, unknown>;
 
@@ -98,6 +100,11 @@ describe('buildOpenApiDocument', () => {
   it('puts no machine path into the document', () => {
     const text = JSON.stringify(buildOpenApiDocument());
     expect(text).not.toContain(process.cwd());
+  });
+
+  it('the committed file is current', () => {
+    const committed: unknown = JSON.parse(readFileSync(OPENAPI_FILE, 'utf8'));
+    expect(committed).toEqual(JSON.parse(JSON.stringify(buildOpenApiDocument())));
   });
 });
 
