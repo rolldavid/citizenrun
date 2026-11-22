@@ -56,7 +56,7 @@ export class ApiError extends Error {
 }
 
 /** Ends an exhaustive switch; throws without the value, which may come from input. */
-export function assertNever(value: never): never {
-  void value;
+export function assertNever(value: never): never;
+export function assertNever(): never {
   throw new Error('Unexpected value');
 }

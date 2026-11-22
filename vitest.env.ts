@@ -18,5 +18,5 @@ for (const name of Object.keys(process.env)) {
   if (KEPT_NAMES.has(name) || KEPT_PREFIXES.some((prefix) => name.startsWith(prefix))) {
     continue;
   }
-  delete process.env[name];
+  Reflect.deleteProperty(process.env, name);
 }

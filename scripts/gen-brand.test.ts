@@ -45,7 +45,7 @@ function committedBrand(): Brand {
 /** Renders `brand` into a temporary module and imports it. */
 async function importRendered(brand: Brand): Promise<BrandModule> {
   rendered += 1;
-  const file = join(scratch, `brand-${rendered}.ts`);
+  const file = join(scratch, `brand-${String(rendered)}.ts`);
   writeFileSync(file, renderBrandModule(brand));
   return (await import(pathToFileURL(file).href)) as BrandModule; // the rendered text is the brand module
 }

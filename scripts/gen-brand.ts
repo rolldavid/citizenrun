@@ -204,7 +204,7 @@ async function main(): Promise<void> {
   const parsed = BrandSchema.safeParse(raw);
   if (!parsed.success) {
     for (const issue of parsed.error.issues) {
-      console.error(`brand.json ${issue.path.map(String).join('.')}: ${issue.message}`);
+      console.error(`brand.json ${issue.path.map(String).join('.')}:`, issue.message);
     }
     process.exit(1);
   }

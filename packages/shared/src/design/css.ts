@@ -40,13 +40,13 @@ function localSources(names: readonly string[]): string {
 /** A face under its family name and weight, swapped in behind the fallback: server CSS and SVG. */
 function familyRule(face: FontFace): string {
   const { family, weight } = FONT_CSS[face];
-  return `@font-face{font-family:"${family}";src:${fileSource(face)};font-weight:${weight};font-style:normal;font-display:swap}`;
+  return `@font-face{font-family:"${family}";src:${fileSource(face)};font-weight:${String(weight)};font-style:normal;font-display:swap}`;
 }
 
 /** Local Arial with metric overrides, so the swap to the real face does not move the layout. */
 function fallbackRule(face: FallbackFace): string {
   const { sizeAdjust, ascentOverride, descentOverride } = FONT_FALLBACK_METRICS[face];
-  return `@font-face{font-family:"${FALLBACK_FAMILY}";src:${localSources(FALLBACK_LOCALS[face])};font-weight:${FONT_CSS[face].weight};size-adjust:${sizeAdjust}%;ascent-override:${ascentOverride}%;descent-override:${descentOverride}%}`;
+  return `@font-face{font-family:"${FALLBACK_FAMILY}";src:${localSources(FALLBACK_LOCALS[face])};font-weight:${String(FONT_CSS[face].weight)};size-adjust:${String(sizeAdjust)}%;ascent-override:${String(ascentOverride)}%;descent-override:${String(descentOverride)}%}`;
 }
 
 /** A face under its file name, the one family string the app's own styles carry. */
@@ -118,8 +118,8 @@ export function tokensCss(): string {
     colorProperties('light'),
     `--font-sans:${compactStack(FONT_STACKS.sans)}`,
     `--font-mono:${compactStack(FONT_STACKS.mono)}`,
-    `--radius-tag:${radius.tag}px`,
-    `--radius-control:${radius.control}px`,
+    `--radius-tag:${String(radius.tag)}px`,
+    `--radius-control:${String(radius.control)}px`,
   ].join(';');
   const dark = ['color-scheme:dark', colorProperties('dark')].join(';');
   return [`:root{${light}}`, `@media (prefers-color-scheme:dark){:root{${dark}}}`].join('\n');
@@ -138,7 +138,7 @@ export const EMAIL_STYLES = {
   heading: 'margin:0 0 16px;font-size:20px;line-height:28px;font-weight:500',
   paragraph: 'margin:0 0 16px',
   code: `margin:0 0 16px;font-family:${EMAIL_MONO};font-size:28px;line-height:36px;font-weight:700;letter-spacing:2px`,
-  button: `display:inline-block;padding:12px 20px;background:${fixed.ink};color:${fixed.bone};text-decoration:none;font-weight:500;border-radius:${radius.control}px`,
+  button: `display:inline-block;padding:12px 20px;background:${fixed.ink};color:${fixed.bone};text-decoration:none;font-weight:500;border-radius:${String(radius.control)}px`,
   link: `color:${fixed.ink};text-decoration:underline`,
   rule: `border:0;border-top:1px solid ${color.light.rule};margin:24px 0`,
   footer: `margin:0;font-size:13px;line-height:20px;color:${color.light.textSecondary}`,
