@@ -1,0 +1,42 @@
+{
+  "name": "@citizenrun/shared",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api/index.ts",
+    "./storage": "./src/storage/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "gen:client": "orval --config orval.config.ts && tsx scripts/write-api-index.ts && prettier --write src/api"
+  },
+  "dependencies": {
+    "zod": "catalog:",
+    "uuid": "catalog:",
+    "i18next": "catalog:",
+    "@aws-sdk/client-s3": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "catalog:",
+    "@tanstack/react-query": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "@tanstack/react-query": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "react": "catalog:",
+    "@tanstack/react-query": "catalog:",
+    "orval": "8.48.0",
+    "@types/react": "catalog:"
+  }
+}

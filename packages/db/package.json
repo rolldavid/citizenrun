@@ -1,0 +1,31 @@
+{
+  "name": "@citizenrun/db",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "build": "tsx ../../scripts/build-service.ts src/migrate.ts dist/migrate.js --no-externals",
+    "migrate": "tsx --env-file-if-exists=.env src/migrate.ts",
+    "seed": "tsx --env-file-if-exists=.env src/seed/index.ts",
+    "reset": "tsx --env-file-if-exists=.env src/reset.ts",
+    "generate": "drizzle-kit generate",
+    "check": "tsx scripts/check.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "pg-boss": "catalog:",
+    "@citizenrun/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "drizzle-kit": "catalog:",
+    "@types/pg": "8.23.1"
+  }
+}

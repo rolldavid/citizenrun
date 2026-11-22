@@ -1,0 +1,18 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ttf binary
+*.woff2 binary
+*.pdf binary
+*.mov binary
+*.mp4 binary
+
+packages/shared/src/api/** linguist-generated=true
+packages/shared/src/brand.ts linguist-generated=true
+packages/shared/src/legal/source-credits.ts linguist-generated=true
+packages/cards/src/generated/** linguist-generated=true
+packages/cards/src/font-metrics.json linguist-generated=true
+apps/api/openapi.json linguist-generated=true
+apps/api/assets/map/** linguist-generated=true
+pnpm-lock.yaml linguist-generated=true

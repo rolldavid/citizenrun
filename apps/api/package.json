@@ -1,0 +1,26 @@
+{
+  "name": "@citizenrun/api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/server.ts",
+    "build": "tsx ../../scripts/build-service.ts src/server.ts dist/server.js",
+    "start": "node --enable-source-maps dist/server.js",
+    "gen:openapi": "tsx src/scripts/gen-openapi.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "hono": "4.13.19",
+    "@hono/node-server": "2.1.11",
+    "@hono/zod-openapi": "1.6.3",
+    "zod": "catalog:",
+    "drizzle-orm": "catalog:",
+    "pg": "catalog:",
+    "pg-boss": "catalog:",
+    "@citizenrun/shared": "workspace:*",
+    "@citizenrun/db": "workspace:*"
+  }
+}
