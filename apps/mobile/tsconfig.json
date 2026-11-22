@@ -1,0 +1,14 @@
+{
+  "extends": ["expo/tsconfig.base", "../../tsconfig.base.json"],
+  "compilerOptions": {
+    "module": "preserve",
+    "moduleResolution": "bundler",
+    "jsx": "react-native",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": [],
+    "paths": { "@/*": ["./src/*"] },
+    "moduleSuffixes": [".ios", ".android", ".native", ""],
+    "customConditions": ["react-native"]
+  },
+  "include": ["app", "src", "index.ts", "expo-env.d.ts", ".expo/types/**/*.ts"]
+}
