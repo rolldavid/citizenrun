@@ -1,0 +1,11 @@
+{
+  "ios": {
+    "NSCalendarsFullAccessUsageDescription": "Adds filing deadlines and election dates to your calendar.",
+    "NSCalendarsUsageDescription": "Adds filing deadlines and election dates to your calendar.",
+    "NSCalendarsWriteOnlyAccessUsageDescription": "Adds filing deadlines and election dates to your calendar.",
+    "NSCameraUsageDescription": "Lets you take photos and videos to post.",
+    "NSLocationWhenInUseUsageDescription": "Your location is used once to find your districts, then discarded.",
+    "NSMicrophoneUsageDescription": "Records sound with the videos you take to post.",
+    "NSPhotoLibraryUsageDescription": "Lets you choose photos and videos to post and a photo for your profile."
+  }
+}

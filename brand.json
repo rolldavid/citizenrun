@@ -1,0 +1,42 @@
+{
+  "displayName": "CitizenRun",
+  "slug": "citizenrun",
+  "domain": null,
+  "expo": { "owner": null, "projectId": null },
+  "github": { "repository": "rolldavid/citizenrun" },
+  "contacts": {
+    "supportEmail": null,
+    "postalAddress": null,
+    "dmcaAgent": { "name": null, "address": null, "phone": null, "email": null },
+    "childSafetyContact": { "name": null, "email": null }
+  },
+  "variants": {
+    "development": {
+      "displayName": "CitizenRun Dev",
+      "scheme": "citizenrun-dev",
+      "iosBundleId": "org.citizenrun.app.dev",
+      "androidPackage": "org.citizenrun.app.dev",
+      "host": null,
+      "adminHost": null,
+      "appleServicesId": null
+    },
+    "staging": {
+      "displayName": "CitizenRun Staging",
+      "scheme": "citizenrun-staging",
+      "iosBundleId": "org.citizenrun.app.staging",
+      "androidPackage": "org.citizenrun.app.staging",
+      "host": null,
+      "adminHost": null,
+      "appleServicesId": null
+    },
+    "production": {
+      "displayName": "CitizenRun",
+      "scheme": "citizenrun",
+      "iosBundleId": "org.citizenrun.app",
+      "androidPackage": "org.citizenrun.app",
+      "host": null,
+      "adminHost": null,
+      "appleServicesId": null
+    }
+  }
+}
