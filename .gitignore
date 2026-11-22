@@ -1,0 +1,55 @@
+# never committed (D-411)
+plans/
+CLAUDE.md
+.claude/
+.review-evidence/
+
+node_modules/
+dist/
+.expo/
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/expo-env.d.ts
+*.tsbuildinfo
+*.meta.json
+
+.env
+.env.*
+!.env.example
+
+coverage/
+playwright-report/
+test-results/
+blob-report/
+apps/mobile/e2e/.auth/
+apps/mobile/e2e/.stack/
+apps/mobile/public/fonts/
+
+# credentials and signing material
+*.pem
+*.p8
+*.p12
+*.key
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+credentials.json
+
+# large binaries that are never committed (D-279)
+*.onnx
+*.dump
+
+# tools and operating systems
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# pipeline and training working files
+pipeline/.cache/
+ml/.venv/
+ml/out/
+__pycache__/
+*.pyc
