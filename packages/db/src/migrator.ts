@@ -21,7 +21,7 @@ const DEFAULT_MIGRATIONS_FOLDER = fileURLToPath(new URL('../migrations', import.
 const DEFAULT_CONNECT_TIMEOUT_MS = 30_000; // D-141
 const CONNECT_RETRY_MS = 1_000;
 
-// No statement limit for the runner; a lock wait gives up after 5 seconds (R-153).
+// No statement limit for the runner; a lock wait gives up after 5 seconds.
 const SESSION_OPTIONS = '-c statement_timeout=0 -c lock_timeout=5s';
 const APPLICATION_NAME = 'os-migrate';
 
@@ -100,7 +100,7 @@ async function applyPgBossSchema(client: pg.Client): Promise<void> {
 
 /**
  * Applies every pending migration in `migrationsFolder` to `databaseUrl`, then pg-boss's schema,
- * under the advisory lock `hashtext('os_migrate')` (D-141, R-153). Retries the first connection
+ * under the advisory lock `hashtext('os_migrate')` (D-141). Retries the first connection
  * for `connectTimeoutMs` (default 30,000) before throwing MigrationConnectError. Resolves with the
  * number of migrations this run applied, 0 when there was nothing to do. Never logs the URL or SQL.
  */
