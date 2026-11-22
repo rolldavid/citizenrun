@@ -69,6 +69,7 @@ export default defineConfig([
   {
     files: ['**/*.cjs'],
     languageOptions: {
+      sourceType: 'commonjs',
       globals: { __dirname: 'readonly', __filename: 'readonly', process: 'readonly' },
     },
   },
