@@ -1,0 +1,13 @@
+{
+  "limitBytes": 500000,
+  "routes": ["index"],
+  "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/", "apps/mobile/app/admin/"],
+  "baseline": {
+    "index": {
+      "entry": 317147,
+      "common": 0,
+      "route": 271,
+      "total": 317418
+    }
+  }
+}
