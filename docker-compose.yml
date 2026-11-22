@@ -1,0 +1,58 @@
+name: citizenrun
+services:
+  postgres:
+    image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: citizenrun
+      POSTGRES_USER: citizenrun
+      POSTGRES_PASSWORD: citizenrun
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports: ['5432:5432']
+    shm_size: 512mb
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U citizenrun -d citizenrun']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+    command:
+      [
+        'server',
+        '-dir=/data',
+        '-ip.bind=0.0.0.0',
+        '-s3',
+        '-s3.port=8333',
+        '-volume.max=0',
+        '-master.volumeSizeLimitMB=128',
+      ]
+    environment:
+      AWS_ACCESS_KEY_ID: osdev
+      AWS_SECRET_ACCESS_KEY: osdev-secret-key
+    ports: ['8333:8333']
+    volumes: ['s3data:/data']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://localhost:9333/cluster/status']
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  seaweedfs-init:
+    image: amazon/aws-cli:2.42.1@sha256:b0102d2269f87d8531d931c1a59e248101ace586886e6c077058d94c1c37b846
+    depends_on:
+      seaweedfs: { condition: service_healthy }
+    environment:
+      AWS_ACCESS_KEY_ID: osdev
+      AWS_SECRET_ACCESS_KEY: osdev-secret-key
+      AWS_DEFAULT_REGION: us-east-1
+      S3_ENDPOINT: http://seaweedfs:8333
+    volumes: ['./docker/seaweedfs:/init:ro']
+    entrypoint: ['/bin/sh', '/init/init.sh']
+    restart: 'no'
+
+volumes:
+  pgdata: {}
+  s3data: {}

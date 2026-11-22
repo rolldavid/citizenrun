@@ -1,0 +1,6 @@
+{
+  "node": "node:24.22.3-trixie-slim@sha256:af02d57b57719b9657a45199a79264a9437940cd55b3c7b3fc99615654f124a0",
+  "postgis": "postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60",
+  "seaweedfs": "chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15",
+  "awscli": "amazon/aws-cli:2.42.1@sha256:b0102d2269f87d8531d931c1a59e248101ace586886e6c077058d94c1c37b846"
+}
