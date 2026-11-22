@@ -7,3 +7,6 @@ export * from './i18n/index.ts';
 export * from './brand.ts';
 export * from './policy/index.ts';
 export type * from './email/types.ts';
+export * from './schemas/index.ts';
+export * from './http/index.ts';
+export * from './design/index.ts';
