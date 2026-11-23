@@ -57,7 +57,11 @@ export const FORBIDDEN_LOG_FIELDS: readonly string[] = [
   'signedurl',
   'path',
   'payload',
-  // CTL-38's additions.
+  // CTL-38's additions, header-shaped names first (D-804).
+  'proxyauthorization',
+  'xapikey',
+  'xauthtoken',
+  'xamzsecuritytoken',
   'handle',
   'phone',
   'phonenumber',

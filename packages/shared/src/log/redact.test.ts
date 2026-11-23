@@ -32,7 +32,7 @@ function stackOf(value: unknown): string {
 describe('forbidden fields', () => {
   it('holds every name once, lower case, without separators, and no bare state', () => {
     expect(new Set(FORBIDDEN_LOG_FIELDS).size).toBe(FORBIDDEN_LOG_FIELDS.length);
-    expect(FORBIDDEN_LOG_FIELDS).toHaveLength(79);
+    expect(FORBIDDEN_LOG_FIELDS).toHaveLength(83);
     for (const name of FORBIDDEN_LOG_FIELDS) {
       expect(name).toMatch(/^[a-z]+$/);
     }
@@ -336,6 +336,107 @@ describe('redact', () => {
     }
     expect(JSON.stringify(redact(deep))).toContain('[depth]');
     expect(JSON.stringify(redact(deep))).not.toContain('leaf');
+  });
+
+  it('a binary value is logged as its length', () => {
+    const values = (): Record<string, unknown> => ({
+      buffer: Buffer.from('ab'),
+      bytes: new Uint8Array(3),
+      raw: new ArrayBuffer(4),
+      view: new DataView(new ArrayBuffer(5)),
+      wide: new Float64Array(2),
+    });
+    const expected = {
+      buffer: '[binary 2 bytes]',
+      bytes: '[binary 3 bytes]',
+      raw: '[binary 4 bytes]',
+      view: '[binary 5 bytes]',
+      wide: '[binary 16 bytes]',
+    };
+    expect(redact(values())).toEqual(expected);
+    expect(redact({ a: { b: { c: values() } } })).toEqual({ a: { b: { c: expected } } });
+    expect(redact({ list: [Buffer.from('abc')] })).toEqual({ list: ['[binary 3 bytes]'] });
+    expect(redact(Buffer.from('abcd'))).toBe('[binary 4 bytes]');
+    const secret = marker();
+    expect(JSON.stringify(redact({ a: { b: { c: Buffer.from(secret) } } }))).not.toContain(secret);
+  });
+
+  it('object keys are masked', () => {
+    expect(redact({ 'a@example.test': 1 })).toEqual({ '[email]': 1 });
+    expect(redact({ '203.0.113.7': 'seen' })).toEqual({ '[ip]': 'seen' });
+    expect(redact({ outer: { [`sent to a@example.test`]: true } })).toEqual({
+      outer: { 'sent to [email]': true },
+    });
+    expect(redact({ 'Bearer abc.def': 1, kept: 2 })).toEqual({ 'Bearer [token]': 1, kept: 2 });
+  });
+
+  it('keeps the later value when two keys mask to the same text', () => {
+    expect(redact({ 'a@example.test': 1, 'b@example.test': 2 })).toEqual({ '[email]': 2 });
+    expect(redact({ '203.0.113.7': 'first', '198.51.100.9': 'second' })).toEqual({
+      '[ip]': 'second',
+    });
+  });
+
+  it('a forbidden key is dropped by its original text before its key is masked', () => {
+    expect(redact({ email: 'x', token: 'y', kept: 1 })).toEqual({ kept: 1 });
+  });
+
+  it('a stack outside an error keeps only its frames', () => {
+    const secret = marker();
+    const frame = '    at f (/app/x.js:1:2)';
+    const shaped = {
+      name: 'E',
+      message: `marker-${secret}`,
+      stack: `E: marker-${secret}\n${frame}`,
+    };
+    const out = redact(shaped);
+    expect(out).toEqual({ name: 'E', stack: frame });
+    expect(JSON.stringify(out)).not.toContain(secret);
+
+    const spanning = {
+      stack: [
+        `E: first ${secret}`,
+        `second line ${secret}`,
+        `    at ${secret} (not a location)`,
+        '    at g (/app/y.js:3:4)',
+        `trailing ${secret}`,
+        '    at /app/z.js:5:6',
+      ].join('\n'),
+    };
+    const nested = redact({ a: { b: spanning } });
+    expect(nested).toEqual({
+      a: { b: { stack: '    at g (/app/y.js:3:4)\n    at /app/z.js:5:6' } },
+    });
+    expect(JSON.stringify(nested)).not.toContain(secret);
+  });
+
+  it('a stack outside an error masks its frames and keeps nothing without one', () => {
+    expect(redact({ stack: '    at f (/srv/a@b.example.test/x.js:1:2)' })).toEqual({
+      stack: '    at f (/srv/a@b.example.test/x.js:1:2)',
+    });
+    expect(redact({ stack: '    at f (203.0.113.7/x.js:1:2)' })).toEqual({
+      stack: '    at f ([ip]/x.js:1:2)',
+    });
+    expect(redact({ stack: 'no frames here' })).toEqual({ stack: '' });
+    expect(redact({ stack: 7 })).toEqual({ stack: 7 });
+  });
+
+  it('header-shaped names are dropped', () => {
+    const secret = marker();
+    for (const key of [
+      'x-api-key',
+      'Proxy-Authorization',
+      'x_auth_token',
+      'X-Amz-Security-Token',
+    ]) {
+      const input = {
+        [key]: secret,
+        a: { [key]: secret, b: { [key]: secret, c: { [key]: secret } } },
+      };
+      const out = redact(input);
+      expect(out).toEqual({ a: { b: { c: {} } } });
+      expect(JSON.stringify(out)).not.toContain(secret);
+    }
   });
 
   it('makes values JSON can write', () => {

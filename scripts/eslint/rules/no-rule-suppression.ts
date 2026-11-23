@@ -2,6 +2,11 @@ import type { AST, Rule, SourceCode } from 'eslint';
 import { locOf, report } from '../ast.ts';
 import type { Listener } from '../ast.ts';
 
+const DIRECTIVE_KINDS: ReadonlySet<string> = new Set([
+  'eslint-disable',
+  'eslint-disable-line',
+  'eslint-disable-next-line',
+]);
 const DIRECTIVE = /^\s*(eslint-disable(?:-line|-next-line)?)(?:\s+([\s\S]*))?$/;
 
 type Comment = ReturnType<SourceCode['getAllComments']>[number];
@@ -23,14 +28,12 @@ export function parseDirective(value: string): Directive | null {
   return { kind, rules };
 }
 
-/** True when the directive names no rule or a rule that may never be switched off in a file. */
+/**
+ * True for every directive the parser recognises: no rule is switched off in a file, whatever the
+ * directive names or if it names none (D-804).
+ */
 export function isForbiddenDirective(directive: Directive): boolean {
-  return (
-    directive.rules.length === 0 ||
-    directive.rules.some(
-      (rule) => rule.startsWith('citizenrun/') || rule.endsWith('no-restricted-imports'),
-    )
-  );
+  return DIRECTIVE_KINDS.has(directive.kind);
 }
 
 /**
@@ -62,12 +65,12 @@ export const noRuleSuppression: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Disable comments must name a rule, and never a project rule or an import rule.',
+      description: 'No disable comment: a rule is never switched off in a file.',
     },
     schema: [],
     messages: {
       suppression:
-        'Do not switch this rule off in a file: a disable comment must name a rule, and never a citizenrun rule or an import restriction. Fix the rule scope instead.',
+        'Do not switch a rule off in a file: no disable comment is allowed. Fix the code, or fix the rule scope instead.',
     },
   },
   create(context) {

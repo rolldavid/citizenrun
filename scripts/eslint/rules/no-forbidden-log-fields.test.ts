@@ -22,7 +22,15 @@ ruleTester().run('no-forbidden-log-fields', testable(noForbiddenLogFields), {
       filename: 'apps/mobile/app/index.tsx',
       code: `${HEAD}declare const email: string;\nlogger.info('x', { email });`,
     },
-    { filename: FILE, code: `${HEAD}declare const id: string;\nlogger.info(\`job \${id}\`);` },
+    { filename: FILE, code: `${HEAD}log.info('job.done', {});` },
+    { filename: FILE, code: `${HEAD}log.info(\`job.done\`);` },
+    { filename: FILE, code: `${HEAD}logger.warn('job.done' as const, { attempt: 2 });` },
+    { filename: FILE, code: 'declare const x: unknown;\nconsole.error(x);' },
+    { filename: FILE, code: 'declare const x: string;\nconsole.info(x);' },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const foo: Log;\ndeclare const eventName: string;\nfoo.info(eventName);`,
+    },
   ],
   invalid: [
     {
@@ -58,7 +66,37 @@ ruleTester().run('no-forbidden-log-fields', testable(noForbiddenLogFields), {
     {
       filename: 'packages/db/src/x.ts',
       code: `${HEAD}declare const deps: { logger: Log };\ndeclare const address: string;\ndeps.logger.warn('lookup ' + address);`,
-      errors: [{ messageId: 'interpolated' }],
+      errors: [{ messageId: 'event' }, { messageId: 'interpolated' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const state: string;\nlog.info(\`job.\${state}\`);`,
+      errors: [{ messageId: 'event' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const eventName: string;\nlogger.error(eventName, {});`,
+      errors: [{ messageId: 'event' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const b: string;\nlog.warn('a.' + b);`,
+      errors: [{ messageId: 'event' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const id: string;\nlogger.info(\`job \${id}\`);`,
+      errors: [{ messageId: 'event' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}declare const deps: { log: Log };\nconst EVENT = 'job.done';\ndeps.log.debug(EVENT);`,
+      errors: [{ messageId: 'event' }],
+    },
+    {
+      filename: FILE,
+      code: `${HEAD}log.info();`,
+      errors: [{ messageId: 'event' }],
     },
   ],
 });

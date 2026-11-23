@@ -9,7 +9,7 @@ const HEX_GROUP = '[0-9a-f]{1,4}';
 
 const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
-// The masks of CTL-38, applied to every string value in this order.
+// The masks of CTL-38, applied to every string value and every object key in this order.
 const MASKS: readonly (readonly [RegExp, string])[] = [
   [EMAIL, '[email]'],
   [/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, '[jwt]'],
@@ -151,8 +151,29 @@ function redactError(err: Error): RedactedError {
     : { errorClass, message, stack };
 }
 
+// The byte length of a binary value (D-804): a `Buffer`, any typed array, a `DataView` or an
+// `ArrayBuffer`. Null for every other value.
+function binaryLength(value: object): number | null {
+  if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
+    return value.byteLength;
+  }
+  return null;
+}
+
+// A string under the key `stack` in an object that is not an `Error` keeps only its lines that end
+// in a V8 location, each masked as a frame; every other line, the first included, is dropped
+// (D-804).
+function redactStackText(stack: string): string {
+  return stack
+    .split('\n')
+    .filter((line) => V8_LOCATED_FRAME.test(line))
+    .map(maskFrame)
+    .join('\n');
+}
+
 // One property of a logged object. A getter that throws must not take down the log call, which is
-// often reporting an error, so its key is logged with a fixed marker.
+// often reporting an error, so its key is logged with a fixed marker. A string under `stack` is
+// read as a stack.
 function walkProperty(
   value: object,
   key: string,
@@ -164,6 +185,9 @@ function walkProperty(
     item = Reflect.get(value, key);
   } catch {
     return UNREADABLE;
+  }
+  if (key === 'stack' && typeof item === 'string') {
+    return redactStackText(item);
   }
   return walk(item, depth + 1, ancestors);
 }
@@ -180,6 +204,10 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
   }
   if (value === null || typeof value !== 'object') {
     return value;
+  }
+  const bytes = binaryLength(value);
+  if (bytes !== null) {
+    return `[binary ${String(bytes)} bytes]`;
   }
   if (value instanceof Error) {
     return redactError(value);
@@ -198,11 +226,14 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
   if (Array.isArray(value)) {
     out = value.map((item: unknown) => walk(item, depth + 1, ancestors));
   } else {
+    // A key takes the masks of a string value; a forbidden key is dropped by its original text, and
+    // when two keys mask to the same text the later value is kept (D-804).
     const record: Record<string, unknown> = {};
     for (const key of Object.keys(value)) {
-      if (!isForbiddenLogField(key)) {
-        record[key] = walkProperty(value, key, depth, ancestors);
+      if (isForbiddenLogField(key)) {
+        continue;
       }
+      record[maskString(key)] = walkProperty(value, key, depth, ancestors);
     }
     out = record;
   }
@@ -212,8 +243,9 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
 
 /**
  * A copy of `value` safe to log (CTL-38): forbidden keys are dropped at any depth, shaped secrets
- * and personal data in strings are masked, and an error becomes its class, a static message and its
- * stack. Never mutates its input; null and other primitives come back unchanged.
+ * and personal data in strings and in object keys are masked, a binary value becomes its length, and
+ * an error becomes its class, a static message and its stack. Never mutates its input; null and
+ * other primitives come back unchanged.
  */
 export function redact(value: unknown): unknown {
   return walk(value, 0, new WeakSet());

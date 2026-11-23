@@ -8,6 +8,7 @@ import {
   memberName,
   nameOf,
   report,
+  stringValue,
   text,
   unwrap,
 } from '../ast.ts';
@@ -37,24 +38,29 @@ const WHOLE_OBJECTS: ReadonlySet<string> = new Set([
   'payload',
 ]);
 
-/** True for `console.<method>(...)` and `<log|logger>.<debug|info|warn|error>(...)`. */
-export function isLoggingCall(node: AstNode): boolean {
+/** True for `<log|logger>.<debug|info|warn|error>(...)`, on an identifier or a property. */
+export function isLoggerCall(node: AstNode): boolean {
   const callee = unwrap(child(node, 'callee'));
   if (callee?.type !== 'MemberExpression') {
     return false;
   }
-  const object = unwrap(child(callee, 'object'));
-  if (nameOf(object) === 'console') {
-    return true;
-  }
   const method = memberName(callee);
-  const objectName = lastName(object);
+  const objectName = lastName(unwrap(child(callee, 'object')));
   return (
     method !== null &&
     LOGGER_METHODS.has(method) &&
     objectName !== null &&
     LOGGER_NAMES.has(objectName)
   );
+}
+
+/** True for `console.<method>(...)` and `<log|logger>.<debug|info|warn|error>(...)`. */
+export function isLoggingCall(node: AstNode): boolean {
+  const callee = unwrap(child(node, 'callee'));
+  if (callee?.type !== 'MemberExpression') {
+    return false;
+  }
+  return nameOf(unwrap(child(callee, 'object'))) === 'console' || isLoggerCall(node);
 }
 
 /** Logs never carry tokens, emails, coordinates, addresses, message bodies or typed text (INV-36). */
@@ -70,6 +76,8 @@ export const noForbiddenLogFields: Rule.RuleModule = {
         'Do not log the whole {{name}} object: it carries private fields. Log the fields you need.',
       interpolated:
         'Do not put {{name}} into a log message: it may hold private data. Log a code or an id instead.',
+      event:
+        'The first argument of a logger call is its event and must be fixed in the source: use a string literal or a template literal without expressions, and log the changing parts as named fields.',
     },
   },
   create(context) {
@@ -168,7 +176,14 @@ export const noForbiddenLogFields: Rule.RuleModule = {
         if (!isLoggingCall(node)) {
           return;
         }
-        for (const argument of children(node, 'arguments')) {
+        const args = children(node, 'arguments');
+        if (isLoggerCall(node)) {
+          const first = args[0];
+          if (first === undefined || stringValue(unwrap(first)) === null) {
+            report(context, first ?? node, 'event');
+          }
+        }
+        for (const argument of args) {
           visitValue(argument);
         }
       },

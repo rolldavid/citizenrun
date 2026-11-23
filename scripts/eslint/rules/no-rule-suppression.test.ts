@@ -19,16 +19,37 @@ const tester = new RuleTester({
 
 tester.run('no-rule-suppression', testable(noRuleSuppression), {
   valid: [
-    {
-      filename: FILE,
-      code: '// eslint-disable-next-line @typescript-eslint/no-floating-promises\nexport const a = 1;',
-    },
     { filename: FILE, code: '// every file runs through eslint\nexport const a = 1;' },
     { filename: FILE, code: '// eslint-enable\nexport const a = 1;' },
     { filename: FILE, code: '/* the build may disable caching */\nexport const a = 1;' },
     { filename: FILE, code: 'export const a = 1;' },
   ],
   invalid: [
+    {
+      filename: FILE,
+      code: '// eslint-disable-next-line @typescript-eslint/no-floating-promises\nexport const a = 1;',
+      errors: [{ messageId: 'suppression', line: 1 }],
+    },
+    {
+      filename: FILE,
+      code: '// eslint-disable-next-line no-console\nexport const a = 1;',
+      errors: [{ messageId: 'suppression', line: 1 }],
+    },
+    {
+      filename: FILE,
+      code: '/* eslint-disable no-restricted-properties */\nexport const a = 1;',
+      errors: [{ messageId: 'suppression', line: 1 }],
+    },
+    {
+      filename: FILE,
+      code: 'export const a = 1; // eslint-disable-line no-restricted-globals, no-restricted-syntax',
+      errors: [{ messageId: 'suppression', line: 1 }],
+    },
+    {
+      filename: FILE,
+      code: '// eslint-disable-next-line no-console -- with a reason\nexport const a = 1;',
+      errors: [{ messageId: 'suppression', line: 1 }],
+    },
     {
       filename: FILE,
       code: '// eslint-disable-next-line\nexport const a = 1;',
@@ -82,7 +103,7 @@ describe('parseDirective', () => {
     expect(parseDirective(' eslint-disabled for now')).toBeNull();
   });
 
-  it('forbids a directive with no rule, a project rule or an import restriction', () => {
+  it('forbids every directive, whatever it names', () => {
     expect(isForbiddenDirective({ kind: 'eslint-disable', rules: [] })).toBe(true);
     expect(
       isForbiddenDirective({ kind: 'eslint-disable', rules: ['citizenrun/tokens-only'] }),
@@ -90,6 +111,27 @@ describe('parseDirective', () => {
     expect(
       isForbiddenDirective({ kind: 'eslint-disable', rules: ['ri-leave/no-restricted-imports'] }),
     ).toBe(true);
-    expect(isForbiddenDirective({ kind: 'eslint-disable', rules: ['no-console'] })).toBe(false);
+    expect(isForbiddenDirective({ kind: 'eslint-disable', rules: ['no-console'] })).toBe(true);
+    expect(
+      isForbiddenDirective({
+        kind: 'eslint-disable-next-line',
+        rules: ['@typescript-eslint/no-floating-promises'],
+      }),
+    ).toBe(true);
+    expect(
+      isForbiddenDirective({ kind: 'eslint-disable-line', rules: ['no-restricted-properties'] }),
+    ).toBe(true);
+    for (const value of [
+      ' eslint-disable',
+      ' eslint-disable no-console',
+      ' eslint-disable-line no-restricted-syntax -- because',
+      ' eslint-disable-next-line @typescript-eslint/no-explicit-any',
+    ]) {
+      const directive = parseDirective(value);
+      expect(directive).not.toBeNull();
+      if (directive !== null) {
+        expect(isForbiddenDirective(directive)).toBe(true);
+      }
+    }
   });
 });
