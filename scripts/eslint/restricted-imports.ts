@@ -1,4 +1,5 @@
 import { readdirSync } from 'node:fs';
+import { builtinModules } from 'node:module';
 import { join } from 'node:path';
 import type { ESLint, Linter, Rule } from 'eslint';
 import tseslint from 'typescript-eslint';
@@ -30,6 +31,11 @@ const PACKAGE_ROOTS = [
   'pipeline',
 ] as const;
 const LEAVE_DEPTHS = 12;
+
+/** The Node built-ins written without `node:` (`fs`, `path`); the `node:` form has rows of its own. */
+const BARE_BUILTINS = builtinModules.filter(
+  (name) => !name.startsWith('node:') && !name.includes('/'),
+);
 
 const OTHER_WORKSPACE = '^@citizenrun/(?!shared(?:/|$))';
 const PLATFORM_BOUND = [
@@ -77,6 +83,10 @@ export const ROWS: readonly RestrictedRow[] = [
         regex: mod('react-native', 'hono', 'drizzle-orm', 'pg', 'pg-boss'),
         message: '@citizenrun/shared runs everywhere: no React Native, Hono or database client.',
       },
+      {
+        regex: '^@hono/',
+        message: '@citizenrun/shared runs everywhere: no React Native, Hono or database client.',
+      },
       { regex: '^expo', message: '@citizenrun/shared runs everywhere: no Expo module.' },
     ],
   },
@@ -110,6 +120,10 @@ export const ROWS: readonly RestrictedRow[] = [
         regex: '^node:',
         message: 'The root entry of @citizenrun/shared runs in browsers too: no node: module.',
       },
+      {
+        regex: mod(...BARE_BUILTINS),
+        message: 'The root entry of @citizenrun/shared runs in browsers too: no Node built-in.',
+      },
     ],
   },
   {
@@ -119,6 +133,10 @@ export const ROWS: readonly RestrictedRow[] = [
       {
         regex: '^node:(?!crypto$)',
         message: 'The ./crypto entry uses node:crypto and no other node: module.',
+      },
+      {
+        regex: mod(...BARE_BUILTINS.filter((name) => name !== 'crypto')),
+        message: 'The ./crypto entry uses node:crypto and no other Node built-in.',
       },
     ],
   },
@@ -543,6 +561,18 @@ function featureFolders(): string[] {
 const LEAVE_MESSAGE =
   'Do not reach outside the package with a relative path; import another package by its name.';
 
+/** One `.` segment, as a path resolver reads it: any run of slashes ends a segment. */
+const DOT_SEGMENT = '\\.(?:/+|$)';
+/** One `..` segment followed by any `.` segments. */
+const UP_SEGMENT = `\\.\\.(?:/+|$)(?:${DOT_SEGMENT})*`;
+
+/** A path that climbs `levels` folders or more before it names one (`../..`, `./../`, `..//../`). */
+const climbs = (levels: number): string =>
+  `^(?:${DOT_SEGMENT})*(?:${UP_SEGMENT}){${String(levels)},}`;
+
+/** A path with a `..` after a folder name (`../a/../../`): it can leave the package unseen by `climbs`. */
+const CLIMB_AFTER_NAME = '^(?:\\.\\.?/+)*(?!\\.\\.?(?:/|$))[^/]+/(?:.*/)?\\.\\.(?:/|$)';
+
 function isRule(value: unknown): value is Rule.RuleModule {
   return (
     typeof value === 'object' && value !== null && typeof field(value, 'create') === 'function'
@@ -614,7 +644,13 @@ export function leaveRows(): RestrictedRow[] {
         id: `leave/${root}/${String(depth)}`,
         files: [`${root}/${'*/'.repeat(depth)}*.{ts,tsx,mts,cts}`],
         ignores: [`${root}/*.config.ts`, `${root}/scripts/**`],
-        patterns: [{ regex: `^(?:\\.\\./){${String(depth + 1)},}`, message: LEAVE_MESSAGE }],
+        patterns: [
+          { regex: climbs(depth + 1), message: LEAVE_MESSAGE },
+          {
+            regex: CLIMB_AFTER_NAME,
+            message: 'Write a relative path with no `..` after a folder name. ' + LEAVE_MESSAGE,
+          },
+        ],
       });
     }
   }

@@ -45,6 +45,12 @@ const CASES: Case[] = [
   {
     row: 'shared',
     file: 'packages/shared/src/ids.ts',
+    code: "import { z } from '@hono/zod-openapi';",
+    fails: true,
+  },
+  {
+    row: 'shared',
+    file: 'packages/shared/src/ids.ts',
     code: "import { z } from 'zod';",
     fails: false,
   },
@@ -68,6 +74,31 @@ const CASES: Case[] = [
   },
   {
     row: 'shared-node',
+    file: 'packages/shared/src/ids.ts',
+    code: "import { readFile } from 'fs';",
+    fails: true,
+  },
+  {
+    row: 'shared-node',
+    file: 'packages/shared/src/ids.ts',
+    code: "import { readFile } from 'fs/promises';",
+    fails: true,
+  },
+  { row: 'shared-node', file: 'packages/shared/src/ids.ts', code: "import 'path';", fails: true },
+  {
+    row: 'shared-node',
+    file: 'packages/shared/src/ids.ts',
+    code: "import { createHash } from 'crypto';",
+    fails: true,
+  },
+  {
+    row: 'shared-node',
+    file: 'packages/shared/src/storage/client.ts',
+    code: "import { readFile } from 'fs';",
+    fails: false,
+  },
+  {
+    row: 'shared-node',
     file: 'packages/shared/src/storage/client.ts',
     code: "import { readFile } from 'node:fs';",
     fails: false,
@@ -83,6 +114,18 @@ const CASES: Case[] = [
     file: 'packages/shared/src/crypto/keys.ts',
     code: "import 'node:fs';",
     fails: true,
+  },
+  {
+    row: 'shared-crypto',
+    file: 'packages/shared/src/crypto/keys.ts',
+    code: "import 'fs';",
+    fails: true,
+  },
+  {
+    row: 'shared-crypto',
+    file: 'packages/shared/src/crypto/keys.ts',
+    code: "import 'crypto';",
+    fails: false,
   },
   {
     row: 'shared-crypto',
@@ -338,6 +381,38 @@ const CASES: Case[] = [
     fails: true,
   },
   { row: 'leave', file: 'packages/shared/src/x.ts', code: "import './ids.ts';", fails: false },
+  {
+    row: 'leave',
+    file: 'packages/shared/src/x.ts',
+    code: "import './../../db/src/client.ts';",
+    fails: true,
+  },
+  {
+    row: 'leave',
+    file: 'pipeline/x.ts',
+    code: "import './../packages/db/src/client.ts';",
+    fails: true,
+  },
+  {
+    row: 'leave',
+    file: 'pipeline/lib/x.ts',
+    code: "import '../a/../../packages/db/src/client.ts';",
+    fails: true,
+  },
+  {
+    row: 'leave',
+    file: 'pipeline/lib/x.ts',
+    code: "import '.././../packages/db/src/client.ts';",
+    fails: true,
+  },
+  {
+    row: 'leave',
+    file: 'pipeline/lib/x.ts',
+    code: "import '..//../packages/db/src/client.ts';",
+    fails: true,
+  },
+  { row: 'leave', file: 'packages/shared/src/x.ts', code: "import '../..';", fails: true },
+  { row: 'leave', file: 'pipeline/lib/x.ts', code: "import '../fetch/x.ts';", fails: false },
   {
     row: 'leave',
     file: 'apps/api/src/routes/a.ts',
