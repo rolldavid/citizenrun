@@ -27,6 +27,11 @@ const ALLOWED_DATABASE_HOSTS: ReadonlySet<string> = new Set([
   'host.docker.internal',
 ]);
 
+// Query parameters with which `pg` replaces the URL's host or port (pg-connection-string), so a
+// URL carrying one is refused: the authority the guard reads would not be where it connects.
+const HOST_OVERRIDE_PARAMS: readonly string[] = ['host', 'hostaddr', 'port'];
+const DATABASE_PROTOCOLS: ReadonlySet<string> = new Set(['postgres:', 'postgresql:']);
+
 const setting = (name: string): string | undefined => {
   const value = process.env[name];
   return value === undefined || value === '' ? undefined : value;
@@ -35,7 +40,8 @@ const setting = (name: string): string | undefined => {
 /**
  * The harness's connection settings, from the `TEST_*` variables or their local defaults; never
  * from `DATABASE_URL`. `migrationsDir` is absolute (a relative `TEST_MIGRATIONS_DIR` is read from
- * the repository root). Throws HarnessRefusedError unless the database host is local or CI's.
+ * the repository root). Throws HarnessRefusedError unless the database host is local or CI's and
+ * no query parameter replaces that host or its port.
  */
 export function harnessSettings(): {
   databaseUrl: string;
@@ -43,13 +49,21 @@ export function harnessSettings(): {
   migrationsDir: string;
 } {
   const databaseUrl = setting('TEST_DATABASE_URL') ?? DEFAULT_DATABASE_URL;
-  let host: string;
+  let url: URL;
   try {
-    host = new URL(databaseUrl).hostname;
+    url = new URL(databaseUrl);
   } catch {
     throw new HarnessRefusedError('TEST_DATABASE_URL does not parse.');
   }
-  if (!ALLOWED_DATABASE_HOSTS.has(host)) {
+  if (!DATABASE_PROTOCOLS.has(url.protocol)) {
+    throw new HarnessRefusedError('TEST_DATABASE_URL must be a postgres:// or postgresql:// URL.');
+  }
+  if (HOST_OVERRIDE_PARAMS.some((name) => url.searchParams.has(name))) {
+    throw new HarnessRefusedError(
+      'TEST_DATABASE_URL must not carry a host, hostaddr or port query parameter.',
+    );
+  }
+  if (!ALLOWED_DATABASE_HOSTS.has(url.hostname)) {
     throw new HarnessRefusedError(
       'The test database host must be localhost, 127.0.0.1, postgres or host.docker.internal.',
     );
