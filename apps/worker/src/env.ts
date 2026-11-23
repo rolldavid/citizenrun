@@ -58,6 +58,10 @@ const EMAIL_FROM_MAX_LENGTH = 320;
 const EMAIL_FROM_PATTERN = /^([^<>\r\n]{1,100} <[^\s@<>]+@[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+)$/;
 const COMMIT_SHA_PATTERN = /^[0-9a-f]{7,40}$/;
 
+// Refused at any value, the empty one included: with it set, the email provider's library prints
+// the provider's raw error text outside the logger (D-807).
+const RESEND_DEBUG = 'RESEND_DEBUG';
+
 const AppEnvSchema = z.object({ APP_ENV: z.enum(['local', 'ci', 'staging', 'production']) });
 
 const booleanFlag = z
@@ -226,6 +230,18 @@ function parseOwnerInputs(
   };
 }
 
+// A deployed service serves its origin over https only (CTL-01, D-807); local and ci may use http.
+function isHttpsOnDeployed(appEnv: WorkerEnv['APP_ENV'], publicUrl: string): boolean {
+  if (appEnv !== 'staging' && appEnv !== 'production') {
+    return true;
+  }
+  try {
+    return new URL(publicUrl).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Parses the worker's environment. Throws EnvError naming each bad variable, never a value.
  * `source` defaults to the process environment, read only here. Unknown variables are ignored.
@@ -240,14 +256,20 @@ export function loadEnv(source: Source = process.env): WorkerEnv {
   }
 
   const problems = new Set<string>();
+  if (source[RESEND_DEBUG] !== undefined) {
+    problems.add(RESEND_DEBUG);
+  }
   const appEnvResult = collect(problems, () => parseEnv(AppEnvSchema, values));
-  if (appEnvResult === null) {
+  if (appEnvResult === null || problems.size > 0) {
     throw new EnvError([...problems].sort());
   }
   const appEnv = appEnvResult.APP_ENV;
 
   const infra = collect(problems, () => parseEnv(WorkerEnvSchema, values));
   const owner = parseOwnerInputs(appEnv, values, problems);
+  if (infra !== null && !isHttpsOnDeployed(appEnv, infra.PUBLIC_URL)) {
+    problems.add('PUBLIC_URL');
+  }
   if (infra === null || problems.size > 0) {
     throw new EnvError([...problems].sort());
   }

@@ -60,6 +60,9 @@ type Source = Readonly<Record<string, string | undefined>>;
 // Variables the API must never hold: the legal bucket (INV-53) and the AI key and budget (INV-16).
 const REFUSED_PREFIX = 'LEGAL_';
 const REFUSED_NAMES: ReadonlySet<string> = new Set(['ANTHROPIC_API_KEY', 'AI_BUDGET_USD']);
+// Refused at any value, the empty one included: with it set, the email provider's library prints
+// the provider's raw error text outside the logger (D-807).
+const RESEND_DEBUG = 'RESEND_DEBUG';
 
 // Bounds on raw values: every string has a maximum length.
 const MAX_URL_LENGTH = 2048;
@@ -265,6 +268,18 @@ function parseOwnerInputs(
   };
 }
 
+// A deployed service serves its origin over https only (CTL-01, D-807); local and ci may use http.
+function isHttpsOnDeployed(appEnv: ApiEnv['APP_ENV'], publicUrl: string): boolean {
+  if (appEnv !== 'staging' && appEnv !== 'production') {
+    return true;
+  }
+  try {
+    return new URL(publicUrl).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 /**
  * The variable a deployed service refuses when `PUBLIC_URL`'s host differs from the brand
  * variant's host, or null. Local and CI processes, and a variant whose host the
@@ -312,6 +327,9 @@ export function loadEnv(
       problems.add(name);
     }
   }
+  if (source[RESEND_DEBUG] !== undefined) {
+    problems.add(RESEND_DEBUG);
+  }
   const appEnvResult = collect(problems, () => parseEnv(AppEnvSchema, values));
   if (appEnvResult === null || problems.size > 0) {
     throw new EnvError([...problems].sort());
@@ -327,6 +345,9 @@ export function loadEnv(
   if (infra !== null) {
     if (infra.ENABLE_DEV_ROUTES && appEnv === 'production') {
       problems.add('ENABLE_DEV_ROUTES');
+    }
+    if (!isHttpsOnDeployed(appEnv, infra.PUBLIC_URL)) {
+      problems.add('PUBLIC_URL');
     }
     const badHost = checkPublicUrlHost(appEnv, infra.PUBLIC_URL, brandVariant(variant).host);
     if (badHost !== null) {

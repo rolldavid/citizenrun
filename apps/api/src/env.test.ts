@@ -361,4 +361,36 @@ describe('loadEnv', () => {
     ]);
     expect(refusal(infra('nowhere')).variables).toEqual(['APP_ENV']);
   });
+  it('RESEND_DEBUG stops the process by name', () => {
+    const value = marker();
+    for (const source of [
+      infra('local', { RESEND_DEBUG: '1' }),
+      infra('ci', { RESEND_DEBUG: '1' }),
+      deployed('staging', { RESEND_DEBUG: '1' }),
+      deployed('production', { RESEND_DEBUG: 'true' }),
+      infra('local', { RESEND_DEBUG: value }),
+      infra('local', { RESEND_DEBUG: '' }),
+    ]) {
+      const error = refusal(source);
+      expect(error.variables).toEqual(['RESEND_DEBUG']);
+      expect(error.message).toContain('RESEND_DEBUG');
+      expect(error.message).not.toContain(value);
+      expect(JSON.stringify(error)).not.toContain(value);
+    }
+    expect(() => load(infra('local'))).not.toThrow();
+  });
+
+  it('a deployed service needs an https PUBLIC_URL', () => {
+    for (const appEnv of ['staging', 'production'] as const) {
+      expect(
+        refusal(deployed(appEnv, { PUBLIC_URL: 'http://app.example.test' })).variables,
+      ).toEqual(['PUBLIC_URL']);
+      expect(load(deployed(appEnv)).PUBLIC_URL).toBe('https://app.example.test');
+    }
+    for (const appEnv of ['local', 'ci'] as const) {
+      expect(load(infra(appEnv, { PUBLIC_URL: 'http://localhost:8081' })).PUBLIC_URL).toBe(
+        'http://localhost:8081',
+      );
+    }
+  });
 });
