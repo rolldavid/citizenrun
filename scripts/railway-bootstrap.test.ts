@@ -481,7 +481,7 @@ describe('pure helpers', () => {
 });
 
 describe('the inputs file', () => {
-  it('the inputs file parses the milestone 0 keys', () => {
+  it('the inputs file parses the keys this version sets', () => {
     const parsed = parseInputsFile(
       [
         '# owner inputs for staging',
@@ -647,7 +647,7 @@ describe('environment', { timeout: 30_000 }, () => {
     );
   });
 
-  it('no environment is created without the four milestone 0 inputs', async () => {
+  it('no environment is created without the four required inputs', async () => {
     const result = await runCase(['--env', 'staging', '--only', 'environment'], {
       inputs: { RESEND_API_KEY: null },
       environments: '[{"name":"production"}]',

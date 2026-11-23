@@ -853,7 +853,7 @@ function readPublicKey(path: string): string | null {
   return text;
 }
 
-const MILESTONE_0_REQUIRED = [
+const REQUIRED_TO_CREATE = [
   'MAIL_HOST',
   'ADMIN_EMAILS',
   'RESEND_API_KEY',
@@ -989,7 +989,7 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
     out.line('ok', `${env} exists`);
     return;
   }
-  const missing = MILESTONE_0_REQUIRED.filter((key) => ctx.inputs[key] === undefined);
+  const missing = REQUIRED_TO_CREATE.filter((key) => ctx.inputs[key] === undefined);
   if (missing.length > 0) {
     const named = missing.map((key) => `${key} (${INPUT_KEYS[key].ownerInput})`).join(', ');
     out.line('fail', `environment not created: missing ${named}`);
