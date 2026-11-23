@@ -53,6 +53,7 @@
     "@aws-sdk/s3-request-presigner": "3.1175.0",
     "@citizenrun/shared": "workspace:*",
     "zod": "catalog:",
+    "yaml": "2.9.1",
     "railway": "3.17.0",
     "@railway/cli": "5.74.0"
   }
