@@ -22,10 +22,13 @@
     "drizzle-orm": "catalog:",
     "pg": "catalog:",
     "pg-boss": "catalog:",
+    "zod": "catalog:",
     "@citizenrun/shared": "workspace:*"
   },
   "devDependencies": {
     "drizzle-kit": "catalog:",
-    "@types/pg": "8.23.1"
+    "@types/pg": "8.23.1",
+    "@aws-sdk/client-s3": "catalog:",
+    "vitest": "catalog:"
   }
 }
