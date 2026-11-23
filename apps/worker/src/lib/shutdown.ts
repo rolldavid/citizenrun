@@ -62,12 +62,17 @@ export function createShutdown(deps: ShutdownDeps): { run(signal: ShutdownSignal
   };
 }
 
-/** Runs `shutdown` on the first SIGTERM and the first SIGINT. */
+/**
+ * Passes every SIGTERM and SIGINT to `shutdown.run`. The listeners stay registered, so a repeated
+ * signal (a watcher that relays Ctrl-C a second time, say) is ignored while the drain runs instead
+ * of taking Node's default action and ending the process mid-drain: `run` returns the first call's
+ * promise.
+ */
 export function installShutdown(shutdown: { run(signal: ShutdownSignal): Promise<void> }): void {
-  process.once('SIGTERM', () => {
+  process.on('SIGTERM', () => {
     void shutdown.run('SIGTERM');
   });
-  process.once('SIGINT', () => {
+  process.on('SIGINT', () => {
     void shutdown.run('SIGINT');
   });
 }

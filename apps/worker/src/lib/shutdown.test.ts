@@ -1,6 +1,6 @@
 import { createLogger } from '@citizenrun/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { WORKER_STOP_TIMEOUT_MS, createShutdown } from './shutdown.ts';
+import { WORKER_STOP_TIMEOUT_MS, createShutdown, installShutdown } from './shutdown.ts';
 
 function capture(order: string[]): ReturnType<typeof createLogger> {
   return createLogger({
@@ -174,4 +174,75 @@ describe('createShutdown', () => {
     });
     expect(lines.join('\n')).not.toContain('fixture refused');
   });
+});
+
+describe('installShutdown', () => {
+  const signals = ['SIGTERM', 'SIGINT'] as const;
+
+  for (const signal of signals) {
+    it(`a repeated ${signal} is ignored while the drain runs`, async () => {
+      // Listeners the test process already holds are taken off for the case so the emit cannot
+      // reach them, and put back afterwards.
+      const held = new Map(signals.map((name) => [name, process.listeners(name)] as const));
+      for (const [name, listeners] of held) {
+        for (const listener of listeners) {
+          process.removeListener(name, listener);
+        }
+      }
+      try {
+        const order: string[] = [];
+        let finishStop: () => void = () => undefined;
+        const stop = vi.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              finishStop = resolve;
+            }),
+        );
+        const exit = vi.fn<(code: number) => void>();
+        const shutdown = createShutdown({
+          boss: { stop },
+          pool: { end: () => Promise.resolve() },
+          abort: new AbortController(),
+          logger: capture(order),
+          exit,
+        });
+        const run = vi.spyOn(shutdown, 'run');
+        installShutdown(shutdown);
+
+        const before = process.listenerCount(signal);
+        expect(before).toBe(1);
+        // process.emit calls the listeners and sends no real signal.
+        process.emit(signal, signal);
+        // Still registered: a real repeat reaches the handler, not Node's default action.
+        expect(process.listenerCount(signal)).toBe(before);
+        process.emit(signal, signal);
+
+        expect(run).toHaveBeenCalledTimes(2);
+        expect(run).toHaveBeenNthCalledWith(1, signal);
+        expect(run).toHaveBeenNthCalledWith(2, signal);
+        expect(stop).toHaveBeenCalledTimes(1);
+        expect(exit).not.toHaveBeenCalled();
+
+        finishStop();
+        await shutdown.run(signal); // the first call's promise: the drain itself
+        expect(exit).toHaveBeenCalledTimes(1);
+        expect(exit).toHaveBeenCalledWith(0);
+        expect(order.filter((entry) => entry === 'log:worker.stopping')).toHaveLength(1);
+        expect(order.filter((entry) => entry === 'log:worker.stopped')).toHaveLength(1);
+      } finally {
+        for (const [name, listeners] of held) {
+          for (const listener of process.listeners(name)) {
+            if (!listeners.includes(listener)) {
+              process.removeListener(name, listener);
+            }
+          }
+          for (const listener of listeners) {
+            if (!process.listeners(name).includes(listener)) {
+              process.on(name, listener);
+            }
+          }
+        }
+      }
+    });
+  }
 });
