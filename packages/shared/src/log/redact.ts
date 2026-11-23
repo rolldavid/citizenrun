@@ -1,4 +1,5 @@
-import { ApiError } from '../errors.ts';
+import { ApiError, ERROR_CODES } from '../errors.ts';
+import type { ErrorCode } from '../errors.ts';
 import { isForbiddenLogField } from './forbidden-fields.ts';
 
 const MAX_DEPTH = 8;
@@ -28,6 +29,10 @@ const MASKS: readonly (readonly [RegExp, string])[] = [
 ];
 
 const V8_FRAME = /^\s+at\s/;
+
+// The name an error is logged under when its own is not an identifier.
+const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
+const WITHHELD = '(message withheld)';
 
 function maskString(value: string): string {
   let out = value;
@@ -64,17 +69,31 @@ function stackFrames(stack: string, message: unknown): string[] {
   return lines.slice(start);
 }
 
+function isErrorCode(value: unknown): value is ErrorCode {
+  return typeof value === 'string' && Object.hasOwn(ERROR_CODES, value);
+}
+
+// An ApiError is logged with its code's registry text, never its own message, which a subclass or
+// a later assignment can have replaced.
+function staticMessage(err: Error): string {
+  if (err instanceof ApiError && isErrorCode(err.code)) {
+    return ERROR_CODES[err.code].message;
+  }
+  return WITHHELD;
+}
+
 // An error keeps its class, a static message and its stack frames, and nothing else (no `detail`,
 // `cause`, `query` or `parameters`), because a database or provider message can hold the values.
 function redactError(err: Error): RedactedError {
-  const errorClass = maskString(err.name);
-  const message = err instanceof ApiError ? err.message : '(message withheld)';
+  const errorClass =
+    typeof err.name === 'string' && ERROR_CLASS_PATTERN.test(err.name) ? err.name : 'Error';
+  const message = staticMessage(err);
   const header = `${errorClass}: ${message}`;
   let stack = header;
   if (typeof err.stack === 'string') {
     stack = maskString([header, ...stackFrames(err.stack, err.message)].join('\n'));
   }
-  return err instanceof ApiError
+  return err instanceof ApiError && isErrorCode(err.code)
     ? { errorClass, errorCode: err.code, message, stack }
     : { errorClass, message, stack };
 }

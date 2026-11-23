@@ -19,6 +19,16 @@ function hasKeyDeep(value: unknown, key: string): boolean {
   return Object.entries(value).some(([k, v]) => k === key || hasKeyDeep(v, key));
 }
 
+// The stack of a redacted error.
+function stackOf(value: unknown): string {
+  const stack: unknown =
+    value !== null && typeof value === 'object' ? Reflect.get(value, 'stack') : undefined;
+  if (typeof stack !== 'string') {
+    throw new Error('The redacted value has no stack.');
+  }
+  return stack;
+}
+
 describe('forbidden fields', () => {
   it('holds every name once, lower case, without separators, and no bare state', () => {
     expect(new Set(FORBIDDEN_LOG_FIELDS).size).toBe(FORBIDDEN_LOG_FIELDS.length);
@@ -167,6 +177,61 @@ describe('redact', () => {
       errorCode: 'not_found',
       message: 'Not found.',
     });
+  });
+
+  it('logs the registry text of an ApiError whose message was replaced', () => {
+    const err = new ApiError('rate_limited');
+    err.message = 'Too many requests from 203.0.113.7 for fixture-private-value';
+    const out = redact(err);
+    expect(out).toMatchObject({
+      errorClass: 'ApiError',
+      errorCode: 'rate_limited',
+      message: 'Too many requests.',
+    });
+    expect(stackOf(out).split('\n')[0]).toBe('ApiError: Too many requests.');
+    expect(JSON.stringify(out)).not.toContain('fixture-private-value');
+  });
+
+  it('logs the registry text of an ApiError subclass that sets its own message', () => {
+    class FixtureApiError extends ApiError {
+      constructor() {
+        super('not_found');
+        this.message = 'No row for fixture-private-value';
+      }
+    }
+    const out = redact(new FixtureApiError());
+    expect(out).toMatchObject({
+      errorClass: 'ApiError',
+      errorCode: 'not_found',
+      message: 'Not found.',
+    });
+    expect(JSON.stringify(out)).not.toContain('fixture-private-value');
+  });
+
+  it('withholds the message and code of an ApiError whose code is not a registry key', () => {
+    const err = new ApiError('internal');
+    err.message = 'fixture-private-value';
+    Reflect.set(err, 'code', 'fixture-private-code');
+    const out = redact(err);
+    expect(out).toMatchObject({ errorClass: 'ApiError', message: '(message withheld)' });
+    expect(out).not.toHaveProperty('errorCode');
+    const text = JSON.stringify(out);
+    expect(text).not.toContain('fixture-private-value');
+    expect(text).not.toContain('fixture-private-code');
+  });
+
+  it('logs an error whose name is not an identifier as Error', () => {
+    class FixtureNamedError extends Error {}
+    Object.defineProperty(FixtureNamedError.prototype, 'name', {
+      value: 'Caller a@b.example.test at 203.0.113.7 typed SECRETWORD',
+    });
+    const out = redact(new FixtureNamedError('fixture failure'));
+    expect(out).toMatchObject({ errorClass: 'Error', message: '(message withheld)' });
+    expect(stackOf(out).split('\n')[0]).toBe('Error: (message withheld)');
+    const text = JSON.stringify(out);
+    for (const part of ['Caller', 'a@b.example.test', '203.0.113.7', 'typed', 'SECRETWORD']) {
+      expect(text).not.toContain(part);
+    }
   });
 
   it('does not mutate its input and survives a cycle', () => {
