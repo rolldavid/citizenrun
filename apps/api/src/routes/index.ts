@@ -1,7 +1,12 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { compress } from 'hono/compress';
 import type { Deps } from '../deps.ts';
+import { limit } from '../middleware/rate-limit.ts';
 import { createRouter } from '../router.ts';
 import type { ApiEnv, RouteContext } from '../router.ts';
+import { shellHandler } from '../web/catch-all.ts';
+import { robotsHandler } from '../web/robots.ts';
+import { staticFiles } from '../web/static.ts';
 import { registerHealthRoutes } from './health/index.ts';
 import { registerMetaRoutes } from './meta/index.ts';
 import { registerSafetyRoutes } from './safety/index.ts';
@@ -18,6 +23,15 @@ export function registerRoutes(app: OpenAPIHono<ApiEnv>, deps: Deps, ctx: RouteC
   registerSafetyRoutes(v1, deps, ctx);
   app.route('/v1', v1);
 
+  // D-163
+  app.get('/robots.txt', limit(deps, 'web_seo'), robotsHandler(deps));
+
   // D-163 row 8: /healthz and /readyz.
   registerHealthRoutes(app, deps);
+
+  // D-163
+  app.use('*', staticFiles(deps));
+
+  // D-163
+  app.get('*', limit(deps, 'web_page'), compress({ encoding: 'gzip' }), shellHandler(deps));
 }

@@ -8,6 +8,8 @@ import { createDeps } from './deps.ts';
 import { loadEnv, logMissingOwnerInputs } from './env.ts';
 import type { ApiEnv } from './env.ts';
 import { API_HARD_STOP_MS, drainServer } from './lib/lifecycle.ts';
+import { webAssetsFor } from './web/assets.ts';
+import { WebShellInvalidError } from './web/shell.ts';
 
 const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
 
@@ -36,6 +38,17 @@ async function start(env: ApiEnv, logger: Logger): Promise<void> {
   const runtime = await createDeps(env, logger);
   // No option: a running service strips undeclared response keys.
   const app = createApp(runtime);
+  // The web export is read once, before serving (D-163); without one the API still runs.
+  try {
+    await webAssetsFor(runtime);
+  } catch (error) {
+    if (error instanceof WebShellInvalidError) {
+      // A broken build must not serve.
+      logger.error('web.shell_invalid', { marker: error.marker });
+      process.exit(1);
+    }
+    throw error;
+  }
   const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' });
   logger.info('api.started', { port: env.PORT });
 
