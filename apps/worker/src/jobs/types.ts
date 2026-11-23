@@ -9,7 +9,7 @@ export type QueueOptions = {
   retryDelayMax: number; // seconds, cap on the backed-off delay
   expireInSeconds: number; // the job's time limit
   heartbeatSeconds: number | null;
-  deleteAfterSeconds: 86400; // finished jobs kept 24 hours (R-104, R-061)
+  deleteAfterSeconds: 86400; // finished jobs kept 24 hours
   deadLetter: 'ops.dead' | null; // null only for ops.dead itself
 };
 export type WorkOptions = { localConcurrency: number; pollingIntervalSeconds: number };

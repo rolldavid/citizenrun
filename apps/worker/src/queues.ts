@@ -154,7 +154,7 @@ function issuePathsOf(error: z.ZodError): string[] {
  * Runs one job's handler as the worker does: parses the payload with its schema (a failure is
  * permanent and logged with the issue paths only), calls `handle`, and logs `job.done` or
  * `job.failed` through `ctx.log`, which carries `job` and `jobId`. Never logs the payload or an
- * error message (R-104). Never throws.
+ * error message. Never throws.
  */
 export async function executeJob<N extends JobName>(
   definition: JobDefinition<N>,

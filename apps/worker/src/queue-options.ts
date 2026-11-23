@@ -2,7 +2,7 @@ import type { JobName } from '@citizenrun/shared';
 import type { QueueOptions, WorkOptions } from './jobs/types.ts';
 
 // Every queue: three attempts in all with backoff, finished jobs kept 24 hours, and a dead letter
-// to ops.dead except on ops.dead itself (D-238; R-061, R-104 for the 24 hours). The other values
+// to ops.dead except on ops.dead itself (D-238). The other values
 // are tunable constants of the queue's job; a job file reads its row here, never from queues.ts.
 
 /** Each queue's pg-boss queue options and work options. */
@@ -18,7 +18,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 600, // J-ops.dead
       expireInSeconds: 300, // J-ops.dead
       heartbeatSeconds: null, // J-ops.dead
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: null, // D-238: the dead-letter queue has none of its own
     },
     work: {
@@ -35,7 +35,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 900, // J-ops.alert
       expireInSeconds: 120, // J-ops.alert
       heartbeatSeconds: null, // J-ops.alert
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: 'ops.dead', // D-238
     },
     work: {
@@ -52,7 +52,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 30, // J-ops.heartbeat
       expireInSeconds: 30, // J-ops.heartbeat
       heartbeatSeconds: null, // J-ops.heartbeat
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: 'ops.dead', // D-238
     },
     work: {
@@ -69,7 +69,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 3600, // J-backup.check
       expireInSeconds: 300, // J-backup.check
       heartbeatSeconds: null, // J-backup.check
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: 'ops.dead', // D-238
     },
     work: {
@@ -86,7 +86,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 3600, // J-db.connections-check
       expireInSeconds: 120, // J-db.connections-check
       heartbeatSeconds: null, // J-db.connections-check
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: 'ops.dead', // D-238
     },
     work: {
@@ -103,7 +103,7 @@ export const QUEUE_OPTIONS: {
       retryDelayMax: 3600, // J-cost.check
       expireInSeconds: 1800, // J-cost.check
       heartbeatSeconds: 60, // J-cost.check
-      deleteAfterSeconds: 86400, // R-104
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
       deadLetter: 'ops.dead', // D-238
     },
     work: {
