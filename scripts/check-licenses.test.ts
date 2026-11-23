@@ -26,7 +26,7 @@ const EXCEPTION: LicenseException = {
 };
 
 describe('satisfies', () => {
-  it.each(['MIT', '(MIT OR GPL-3.0-only)', 'Apache-2.0 AND MIT', 'BlueOak-1.0.0'])(
+  it.each(['MIT', 'MIT-0', '(MIT OR GPL-3.0-only)', 'Apache-2.0 AND MIT', 'BlueOak-1.0.0'])(
     'passes %s',
     (expression) => {
       expect(satisfies(expression, ALLOWED)).toBe(true);

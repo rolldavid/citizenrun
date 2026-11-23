@@ -5,9 +5,10 @@ import { z } from 'zod';
 import { run } from './lib/exec.ts';
 import { repoRoot } from './lib/repo-root.ts';
 
-/** The licence allow-list (D-118). Adding to it needs a decision. */
+/** The licence allow-list (D-118, D-803). Adding to it needs a decision. */
 export const ALLOWED: ReadonlySet<string> = new Set([
   'MIT',
+  'MIT-0',
   'Apache-2.0',
   'BSD-2-Clause',
   'BSD-3-Clause',
