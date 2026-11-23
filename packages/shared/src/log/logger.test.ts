@@ -61,6 +61,20 @@ describe('createLogger', () => {
     expect(JSON.parse(lines[0] ?? '')).toMatchObject({ info: 'from [email]' });
   });
 
+  it('a log call survives a getter that throws', () => {
+    const { log, lines } = capture();
+    const fields = {
+      status: 500,
+      get broken(): string {
+        throw new Error('fixture getter failure');
+      },
+    };
+    log.error('request.error', fields);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toContain('[unreadable]');
+    expect(JSON.parse(lines[0] ?? '')).toMatchObject({ status: 500, broken: '[unreadable]' });
+  });
+
   it('cannot overwrite the required keys', () => {
     const { log, lines } = capture();
     log.child({ service: 'worker' }).info('x', { event: 'other', level: 'debug', time: 'then' });

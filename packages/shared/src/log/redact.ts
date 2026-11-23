@@ -38,6 +38,7 @@ const V8_LOCATED_FRAME = /^\s+at\s.*:\d+:\d+\)?$/;
 // The name an error is logged under when its own is not an identifier.
 const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
 const WITHHELD = '(message withheld)';
+const UNREADABLE = '[unreadable]';
 
 function maskString(value: string): string {
   let out = value;
@@ -150,6 +151,23 @@ function redactError(err: Error): RedactedError {
     : { errorClass, message, stack };
 }
 
+// One property of a logged object. A getter that throws must not take down the log call, which is
+// often reporting an error, so its key is logged with a fixed marker.
+function walkProperty(
+  value: object,
+  key: string,
+  depth: number,
+  ancestors: WeakSet<object>,
+): unknown {
+  let item: unknown;
+  try {
+    item = Reflect.get(value, key);
+  } catch {
+    return UNREADABLE;
+  }
+  return walk(item, depth + 1, ancestors);
+}
+
 function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknown {
   if (typeof value === 'string') {
     return maskString(value);
@@ -181,9 +199,9 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
     out = value.map((item: unknown) => walk(item, depth + 1, ancestors));
   } else {
     const record: Record<string, unknown> = {};
-    for (const [key, item] of Object.entries(value)) {
+    for (const key of Object.keys(value)) {
       if (!isForbiddenLogField(key)) {
-        record[key] = walk(item, depth + 1, ancestors);
+        record[key] = walkProperty(value, key, depth, ancestors);
       }
     }
     out = record;

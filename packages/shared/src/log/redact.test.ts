@@ -316,6 +316,19 @@ describe('redact', () => {
     expect(out).toEqual({ a: 1, nested: { b: [1, 2] }, self: '[circular]' });
   });
 
+  it('a getter that throws is logged as [unreadable]', () => {
+    const input = {
+      kept: 'yes',
+      get broken(): string {
+        throw new Error('fixture getter failure');
+      },
+      after: 2,
+    };
+    expect(redact({ outer: input })).toEqual({
+      outer: { kept: 'yes', broken: '[unreadable]', after: 2 },
+    });
+  });
+
   it('stops at depth eight', () => {
     let deep: Record<string, unknown> = { leaf: 'x' };
     for (let i = 0; i < 12; i += 1) {
