@@ -50,7 +50,7 @@ describe('createShutdown', () => {
       'log:worker.stopped',
       'exit:0',
     ]);
-    expect(stopOptions).toEqual([{ graceful: true, wait: true, timeout: 100_000 }]);
+    expect(stopOptions).toStrictEqual([{ graceful: true, timeout: 100_000 }]);
     expect(WORKER_STOP_TIMEOUT_MS).toBe(100_000);
     // The job signals are aborted once the boss has stopped, before the pool closes.
     expect(abort.signal.aborted).toBe(true);

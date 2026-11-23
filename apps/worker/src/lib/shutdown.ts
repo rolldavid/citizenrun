@@ -5,7 +5,7 @@ import { errorClassOf } from '../jobs/types.ts';
 export const WORKER_STOP_TIMEOUT_MS = 100_000;
 
 export type ShutdownDeps = {
-  boss: { stop(options: { graceful: boolean; wait: boolean; timeout: number }): Promise<void> };
+  boss: { stop(options: { graceful: boolean; timeout: number }): Promise<void> };
   pool: { end(): Promise<void> };
   abort: AbortController;
   logger: Logger;
@@ -38,7 +38,7 @@ export function createShutdown(deps: ShutdownDeps): { run(signal: ShutdownSignal
       deps.abort.abort();
     }, stopTimeoutMs);
     try {
-      await deps.boss.stop({ graceful: true, wait: true, timeout: stopTimeoutMs });
+      await deps.boss.stop({ graceful: true, timeout: stopTimeoutMs });
     } finally {
       clearTimer(timer);
     }
