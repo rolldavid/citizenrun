@@ -1,3 +1,4 @@
+import { waitForDatabase } from '@citizenrun/db';
 import type { Db, Enqueue } from '@citizenrun/db';
 import type { Clock, Logger, Mailer } from '@citizenrun/shared';
 import type { BucketHandle } from '@citizenrun/shared/storage';
@@ -32,13 +33,23 @@ export type ApiRuntime = Deps & { close(): Promise<void> };
 /**
  * Builds the running service's dependencies from its environment: the pool and database, the
  * send-only queue, the media bucket, the mailer, the clock, the given logger and the drain state.
+ * Waits for the database before the queue starts (D-140), for `databaseWaitMs` or the helper's own
+ * window; when it gives up, the pool is ended and DatabaseUnavailableError is rethrown.
  * `close()` stops the queue, then ends the pool.
  */
-export async function createDeps(env: ApiEnv, logger: Logger): Promise<ApiRuntime> {
+export async function createDeps(
+  env: ApiEnv,
+  logger: Logger,
+  options: { databaseWaitMs?: number } = {},
+): Promise<ApiRuntime> {
   const pool = createApiPool(env);
   const db = createApiDb(pool);
   let queue: Awaited<ReturnType<typeof createApiQueue>>;
   try {
+    await waitForDatabase(
+      pool,
+      options.databaseWaitMs === undefined ? {} : { timeoutMs: options.databaseWaitMs },
+    );
     queue = await createApiQueue(env, logger);
   } catch (error) {
     await pool.end().catch(() => undefined);
