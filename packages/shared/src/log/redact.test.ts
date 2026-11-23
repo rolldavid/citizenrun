@@ -126,6 +126,41 @@ describe('redact', () => {
     expect(text).not.toContain('first line');
   });
 
+  it('withholds a message line shaped like a stack frame', () => {
+    const error = new Error(
+      "Failed query: select id,\n  (created_at\n    at time zone 'UTC') as day\n" +
+        'from users where name = $1\nparams: Jane Fixture, 12 Elm Street',
+    );
+    const out = redact({ error }) as { error: { stack: string } }; // an error redacts to this shape
+    const text = JSON.stringify(out);
+    for (const part of ['time zone', 'from users', 'params', 'Jane Fixture', 'Elm Street']) {
+      expect(text).not.toContain(part);
+    }
+    const lines = out.error.stack.split('\n');
+    expect(lines[0]).toBe('Error: (message withheld)');
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines.slice(1)) {
+      expect(line).toMatch(/^\s+at\s/);
+    }
+  });
+
+  it('withholds a message whose last line is shaped like a frame', () => {
+    const out = redact(new Error("select now()\n    at time zone 'UTC'")) as { stack: string };
+    expect(JSON.stringify(out)).not.toContain('time zone');
+    const lines = out.stack.split('\n');
+    expect(lines[0]).toBe('Error: (message withheld)');
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines.slice(1)) {
+      expect(line).toMatch(/^\s+at\s/);
+    }
+  });
+
+  it('logs the header alone when the stack has no frames', () => {
+    const err = new Error('first line\nparams: fixture-private-value');
+    err.stack = 'Error: first line\nparams: fixture-private-value';
+    expect(redact(err)).toMatchObject({ stack: 'Error: (message withheld)' });
+  });
+
   it('keeps the message of an ApiError', () => {
     expect(redact(new ApiError('not_found'))).toMatchObject({
       errorClass: 'ApiError',

@@ -44,19 +44,35 @@ type RedactedError = {
   stack: string;
 };
 
-// An error keeps its class, a static message and its stack, and nothing else (no `detail`, `cause`,
-// `query` or `parameters`), because a database or provider message can hold the values.
+// The frame lines of a stack and nothing else. A message can span lines, and any of its lines can
+// look like a frame, so the stack is first cut after the message, and then only the trailing run of
+// frame lines is kept: whatever is left of the message (one changed after the stack was captured,
+// or a header that is not `name: message`) is never part of that run.
+function stackFrames(stack: string, message: unknown): string[] {
+  let rest = stack;
+  if (typeof message === 'string' && message !== '') {
+    const end = rest.indexOf(message);
+    if (end !== -1) {
+      rest = rest.slice(end + message.length);
+    }
+  }
+  const lines = rest.trimEnd().split('\n');
+  let start = lines.length;
+  while (start > 0 && V8_FRAME.test(lines[start - 1] ?? '')) {
+    start -= 1;
+  }
+  return lines.slice(start);
+}
+
+// An error keeps its class, a static message and its stack frames, and nothing else (no `detail`,
+// `cause`, `query` or `parameters`), because a database or provider message can hold the values.
 function redactError(err: Error): RedactedError {
   const errorClass = maskString(err.name);
   const message = err instanceof ApiError ? err.message : '(message withheld)';
   const header = `${errorClass}: ${message}`;
   let stack = header;
   if (typeof err.stack === 'string') {
-    const lines = err.stack.split('\n');
-    // The message can span several lines, so everything before the first frame is replaced.
-    const firstFrame = lines.findIndex((line, index) => index > 0 && V8_FRAME.test(line));
-    const frames = firstFrame === -1 ? lines.slice(1) : lines.slice(firstFrame);
-    stack = maskString([header, ...frames].join('\n'));
+    stack = maskString([header, ...stackFrames(err.stack, err.message)].join('\n'));
   }
   return err instanceof ApiError
     ? { errorClass, errorCode: err.code, message, stack }
