@@ -1,4 +1,5 @@
 import { readdirSync } from 'node:fs';
+import { setTimeout as sleep } from 'node:timers/promises';
 import { createLogger } from '@citizenrun/shared';
 import { describe, expect, inject, it, vi } from 'vitest';
 import { MigrationConnectError, runMigrations } from './migrator.ts';
@@ -11,6 +12,9 @@ import {
 
 const MIGRATIONS_DIR = new URL('../migrations', import.meta.url);
 const EXTENSIONS = 'citext,pg_trgm,postgis,unaccent';
+// A little longer than the session's 5-second lock_timeout, which would end a runner's wait on
+// the advisory lock if the runner did not exempt that wait.
+const LOCK_HELD_MS = 5_500;
 
 let scratchCount = 0;
 
@@ -104,8 +108,12 @@ describe('runMigrations', () => {
       try {
         await holder.query("select pg_advisory_lock(hashtext('os_migrate'))");
         let settled = false;
+        let failure: unknown = null;
         running = runMigrations(url).finally(() => {
           settled = true;
+        });
+        void running.catch((error: unknown) => {
+          failure = error;
         });
         // Only this scratch database's sessions: other runs on the server have runners of their own.
         await vi.waitFor(
@@ -120,6 +128,9 @@ describe('runMigrations', () => {
           },
           { timeout: 10_000, interval: 100 },
         );
+        // The runner must outwait the session's lock_timeout, not only start waiting.
+        await sleep(LOCK_HELD_MS);
+        expect(failure).toBeNull();
         expect(settled).toBe(false);
         await holder.query("select pg_advisory_unlock(hashtext('os_migrate'))");
         const result = await running;
