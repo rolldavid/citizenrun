@@ -15,12 +15,20 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createBoss, deadLetterSource } from './boss.ts';
 import type { DeadLetterSource } from './boss.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
+import { opsAlertJob } from './jobs/ops/alert.ts';
+import { opsDeadJob } from './jobs/ops/dead.ts';
 import { PermanentJobError, RetryableJobError } from './jobs/types.ts';
 import type { JobDefinition } from './jobs/types.ts';
 import { createWorkerPool } from './lib/db.ts';
 import { createShutdown } from './lib/shutdown.ts';
 import { QUEUE_OPTIONS } from './queue-options.ts';
-import { createQueues, registerQueues, registerSchedules } from './queues.ts';
+import {
+  QUEUE_REGISTRY,
+  SCHEDULE_REGISTRY,
+  createQueues,
+  registerQueues,
+  registerSchedules,
+} from './queues.ts';
 import type { RegisterOverrides } from './queues.ts';
 import { testWorkerEnv } from './testing/env.ts';
 import { CaptureMailer } from './testing/fakes/mailer.ts';
@@ -121,6 +129,34 @@ function lines(event: string): Record<string, unknown>[] {
 
 function anyLineHolds(text: string): boolean {
   return captureLogs().lines.some((line) => line.raw.includes(text));
+}
+
+// The one-hour throttle slots pg-boss aligns to the epoch (J-ops.dead's window).
+const HOUR_MS = 3_600_000;
+
+function hourSlot(ms: number): number {
+  return Math.floor(ms / HOUR_MS);
+}
+
+// Each ops.dead job's start and end, in epoch milliseconds: its handler sent the alert in between.
+async function deadLetterTimes(): Promise<{ startedMs: number; completedMs: number }[]> {
+  const rows = await getTestDb().execute<{ started_ms: number; completed_ms: number }>(
+    sql`select (extract(epoch from started_on) * 1000)::float8 as started_ms,
+          (extract(epoch from completed_on) * 1000)::float8 as completed_ms
+        from pgboss.job where name = 'ops.dead' and state = 'completed'
+        order by created_on`,
+    'objects',
+  );
+  return rows.map((row) => ({ startedMs: row.started_ms, completedMs: row.completed_ms }));
+}
+
+async function pendingCount(name: string): Promise<number> {
+  const rows = await getTestDb().execute<{ count: number }>(
+    sql`select count(*)::int as count from pgboss.job
+        where name = ${name} and state in ('created', 'retry', 'active')`,
+    'objects',
+  );
+  return rows[0]?.count ?? 0;
 }
 
 async function send(boss: PgBoss, name: string, data: object): Promise<string> {
@@ -484,6 +520,117 @@ describe('the queue registry', () => {
     expect(typeof after).toBe('number');
     expect(after ?? 0).toBeGreaterThan(before ?? Number.POSITIVE_INFINITY);
   });
+
+  it('every job name has a registry entry and every entry is a job name', () => {
+    expect(QUEUE_REGISTRY.map((definition) => definition.name).sort()).toEqual(
+      [...JOB_NAMES].sort(),
+    );
+  });
+
+  it('every schedule exists after boot with its cron, key and missed value', async () => {
+    const boss = await startBoss();
+    try {
+      await registerSchedules(boss, testLogger());
+      const schedules = await boss.getSchedules();
+      const byQueue = (left: { name: string }, right: { name: string }): number =>
+        left.name.localeCompare(right.name);
+      expect(
+        [...schedules].sort(byQueue).map((schedule) => ({
+          name: schedule.name,
+          cron: schedule.cron,
+          key: schedule.key,
+          timezone: schedule.timezone,
+          missed: schedule.options?.missed,
+          data: schedule.data,
+        })),
+      ).toEqual(
+        SCHEDULE_REGISTRY.map((entry) => ({
+          name: entry.queue,
+          cron: entry.cron,
+          key: entry.key,
+          timezone: 'UTC',
+          missed: entry.missed,
+          data: entry.data,
+        })).sort(byQueue),
+      );
+      expect(SCHEDULE_REGISTRY.map((entry) => [entry.id, entry.cron, entry.missed])).toEqual([
+        ['S-ops.heartbeat', '* * * * *', 'skip'],
+        ['S-backup.check', '30 9 * * *', 'once'],
+        ['S-db.connections-check', '40 9 * * *', 'once'],
+        ['S-cost.check', '50 9 * * *', 'once'],
+      ]);
+    } finally {
+      for (const entry of SCHEDULE_REGISTRY) {
+        await boss.unschedule(entry.queue, entry.key);
+      }
+    }
+  });
+
+  it('a job failing three times reaches ops.dead and mails the admin once', async () => {
+    const boss = await startBoss();
+    const mailer = new CaptureMailer();
+    const runtime: WorkerRuntime = { ...(await runtimeFor(boss)), mailer };
+    let runs = 0;
+    const failing = definitionOf('backup.check', () => {
+      runs += 1;
+      return Promise.reject(new FixtureFailure(`provider said ${marker()}`));
+    });
+    await registerQueues(boss, runtime, [failing, opsDeadJob, opsAlertJob], FAST);
+    const id = await send(boss, 'backup.check', {});
+
+    await vi.waitFor(() => {
+      expect(mailer.sent).toHaveLength(1);
+    }, WAIT);
+    expect(runs).toBe(3);
+    const [email] = mailer.sent;
+    expect(email?.to).toEqual(['admin@example.test']);
+    expect(email?.subject.endsWith('backup.check')).toBe(true);
+    expect(email?.text).toContain(id);
+    expect(email?.text).toContain('FixtureFailure');
+    expect(JSON.stringify(email)).not.toContain(marker());
+    expect(anyLineHolds(marker())).toBe(false);
+    await vi.waitFor(async () => {
+      expect(await pendingCount('ops.alert')).toBe(0);
+    }, WAIT);
+    expect(await jobCount('ops.alert')).toBe(1);
+    expect(mailer.sent).toHaveLength(1);
+  });
+
+  it('a second failure from the same queue within the hour sends no second email', async () => {
+    const boss = await startBoss();
+    const mailer = new CaptureMailer();
+    const runtime: WorkerRuntime = { ...(await runtimeFor(boss)), mailer };
+    const failing = definitionOf('backup.check', () => Promise.reject(new FixtureFailure()));
+    await registerQueues(boss, runtime, [failing, opsDeadJob, opsAlertJob], FAST);
+
+    // The queue may be stately: each job is sent once the one before it has failed for good.
+    for (let index = 0; index < 5; index += 1) {
+      const id = await send(boss, 'backup.check', {});
+      await vi.waitFor(async () => {
+        expect((await jobRow('backup.check', id))?.state).toBe('failed');
+      }, WAIT);
+    }
+    await vi.waitFor(async () => {
+      expect(await deadLetterTimes()).toHaveLength(5);
+      expect(await pendingCount('ops.dead')).toBe(0);
+      expect(await pendingCount('ops.alert')).toBe(0);
+    }, WAIT);
+
+    const times = await deadLetterTimes();
+    const slots = new Set(times.map((time) => hourSlot(time.startedMs)));
+    const straddled = times.some((time) => hourSlot(time.startedMs) !== hourSlot(time.completedMs));
+    if (straddled) {
+      // A handler that ran across the top of an hour sent in one of the two slots.
+      const reachable = new Set(
+        times.flatMap((time) => [hourSlot(time.startedMs), hourSlot(time.completedMs)]),
+      );
+      expect(mailer.sent.length).toBeGreaterThanOrEqual(slots.size);
+      expect(mailer.sent.length).toBeLessThanOrEqual(reachable.size);
+    } else {
+      expect(mailer.sent).toHaveLength(slots.size);
+    }
+    expect(mailer.sent.every((email) => email.subject.endsWith('backup.check'))).toBe(true);
+  }, 90_000);
 
   it('deadLetterSource needs the source queue and job id', () => {
     expect(deadLetterSource({ sourceName: null, sourceId: null, sourceOutput: null })).toBeNull();

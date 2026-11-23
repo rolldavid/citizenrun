@@ -5,6 +5,7 @@ import { createBoss } from './boss.ts';
 import type { WorkerRuntime } from './context.ts';
 import { loadEnv, logMissingOwnerInputs } from './env.ts';
 import type { WorkerEnv } from './env.ts';
+import { processStartedAt, writeHeartbeat } from './jobs/ops/heartbeat.ts';
 import { errorClassOf } from './jobs/types.ts';
 import { createWorkerDb, createWorkerPool } from './lib/db.ts';
 import { createMailer } from './lib/mailer.ts';
@@ -48,6 +49,12 @@ async function start(env: WorkerEnv, logger: Logger): Promise<void> {
     abort,
   };
   await registerQueues(boss, runtime);
+  // One beat at once, so `/readyz` reports the worker ready as soon as it is up (D-145).
+  await writeHeartbeat(db, {
+    beatAt: runtime.clock.now(),
+    startedAt: processStartedAt(),
+    version: env.RAILWAY_GIT_COMMIT_SHA,
+  });
   await registerSchedules(boss, logger);
 
   installShutdown(

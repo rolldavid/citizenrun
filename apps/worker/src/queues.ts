@@ -5,6 +5,12 @@ import type { z } from 'zod';
 import { deadLetterSource } from './boss.ts';
 import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
+import { opsAlertJob } from './jobs/ops/alert.ts';
+import { backupCheckJob } from './jobs/ops/backup-check.ts';
+import { connectionsCheckJob } from './jobs/ops/connections-check.ts';
+import { costCheckJob } from './jobs/ops/cost-check.ts';
+import { opsDeadJob } from './jobs/ops/dead.ts';
+import { opsHeartbeatJob } from './jobs/ops/heartbeat.ts';
 import { JobFailedError, PermanentJobError, errorClassOf } from './jobs/types.ts';
 import type { AnyJobDefinition, JobDefinition, QueueOptions } from './jobs/types.ts';
 import { QUEUE_OPTIONS } from './queue-options.ts';
@@ -20,10 +26,54 @@ export type ScheduleEntry = {
 };
 
 /** Every queue the worker works, one job definition each. */
-export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [];
+export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
+  opsDeadJob,
+  opsAlertJob,
+  opsHeartbeatJob,
+  backupCheckJob,
+  connectionsCheckJob,
+  costCheckJob,
+];
 
-/** Every schedule; nothing else calls pg-boss `schedule`. */
-export const SCHEDULE_REGISTRY: readonly ScheduleEntry[] = [];
+/** Every schedule, crons in UTC; nothing else calls pg-boss `schedule`. */
+export const SCHEDULE_REGISTRY: readonly ScheduleEntry[] = [
+  // Every 60 seconds (D-145).
+  {
+    id: 'S-ops.heartbeat',
+    queue: 'ops.heartbeat',
+    cron: '* * * * *',
+    data: {},
+    key: '',
+    missed: 'skip',
+  },
+  // After the 08:00 dump and its 30-minute limit (D-144, D-028).
+  {
+    id: 'S-backup.check',
+    queue: 'backup.check',
+    cron: '30 9 * * *',
+    data: {},
+    key: '',
+    missed: 'once',
+  },
+  // Daily (D-138).
+  {
+    id: 'S-db.connections-check',
+    queue: 'db.connections-check',
+    cron: '40 9 * * *',
+    data: {},
+    key: '',
+    missed: 'once',
+  },
+  // Daily (D-405).
+  {
+    id: 'S-cost.check',
+    queue: 'cost.check',
+    cron: '50 9 * * *',
+    data: {},
+    key: '',
+    missed: 'once',
+  },
+];
 
 /** Options only tests pass, so retries and polls finish in seconds. */
 export type RegisterOverrides = {

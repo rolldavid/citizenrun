@@ -4,10 +4,11 @@ import { BRAND } from '../brand.ts';
 import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
 import { native } from './en/native.ts';
+import { notifications } from './en/notifications.ts';
 
-export const RESOURCES = { en: { common, errors, native } } as const;
+export const RESOURCES = { en: { common, errors, native, notifications } } as const;
 
-export const NAMESPACES = ['common', 'errors', 'native'] as const;
+export const NAMESPACES = ['common', 'errors', 'native', 'notifications'] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
 
