@@ -1,0 +1,47 @@
+import { fileURLToPath } from 'node:url';
+import { loadEnv } from '../env.ts';
+import type { ApiEnv } from '../env.ts';
+
+// The fixture web export the web tests serve.
+const FIXTURE_WEB_DIST_DIR = fileURLToPath(new URL('../web/__fixtures__/dist', import.meta.url));
+// A URL no unit test connects to; createTestApp passes the worker's database instead.
+const UNIT_DATABASE_URL =
+  'postgres://citizenrun:citizenrun@localhost:5432/unit_tests_never_connect';
+// A bucket no unit test reaches; createTestApp passes the worker's media bucket instead.
+const UNIT_MEDIA_BUCKET = 'unit-tests-never-connect';
+
+// The harness's object-store settings and their local defaults.
+function testSetting(name: string, fallback: string): string {
+  const value = process.env[name];
+  return value === undefined || value === '' ? fallback : value;
+}
+
+/**
+ * The API environment of a test (TEST-harness-app's values), passed through loadEnv so
+ * every derived value comes from env.ts. An override replaces a value; `undefined` removes it.
+ */
+export function testApiEnv(overrides: Record<string, string | undefined> = {}): ApiEnv {
+  const source: Record<string, string | undefined> = {
+    NODE_ENV: 'test',
+    APP_ENV: 'ci',
+    PORT: '8080',
+    LOG_LEVEL: 'debug',
+    DATABASE_URL: UNIT_DATABASE_URL,
+    PUBLIC_URL: 'https://app.example.test',
+    WEB_DIST_DIR: FIXTURE_WEB_DIST_DIR,
+    ENABLE_DEV_ROUTES: 'false',
+    MIN_CLIENT_VERSION_IOS: '1.0.0',
+    MIN_CLIENT_VERSION_ANDROID: '1.0.0',
+    MIN_CLIENT_VERSION_WEB: '1.0.0',
+    MEDIA_BUCKET: UNIT_MEDIA_BUCKET,
+    MEDIA_ENDPOINT: testSetting('TEST_S3_ENDPOINT', 'http://localhost:8333'),
+    MEDIA_REGION: 'us-east-1',
+    MEDIA_ACCESS_KEY_ID: testSetting('TEST_S3_ACCESS_KEY_ID', 'osdev'),
+    MEDIA_SECRET_ACCESS_KEY: testSetting('TEST_S3_SECRET_ACCESS_KEY', 'osdev-secret-key'),
+    S3_FORCE_PATH_STYLE: 'true',
+    CLIENT_IP_HEADER: 'x-real-ip',
+    ADMIN_EMAILS: 'admin@example.test',
+    ...overrides,
+  };
+  return loadEnv({ defaultWebDistDir: FIXTURE_WEB_DIST_DIR }, source);
+}
