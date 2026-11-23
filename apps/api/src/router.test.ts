@@ -103,6 +103,36 @@ describe('fieldCodesOf', () => {
     expect(fieldCodesOf(result.error?.issues ?? [], input)).toEqual({ name: 'too_short' });
   });
 
+  it('a path named like an object member gets its field code', () => {
+    const schema = z.object({
+      constructor: z.string().min(2),
+      toString: z.string(),
+    });
+    const input = { constructor: 'x' };
+    const result = schema.safeParse(input);
+    expect(result.success).toBe(false);
+    expect(fieldCodesOf(result.error?.issues ?? [], input)).toEqual({
+      constructor: 'too_short',
+      toString: 'required',
+    });
+  });
+
+  it('keeps a path named __proto__ as a field of its own', () => {
+    // zod drops a `__proto__` key from an object shape, so the issue is written out by hand.
+    const issue: z.core.$ZodIssue = {
+      code: 'too_small',
+      origin: 'string',
+      minimum: 2,
+      inclusive: true,
+      path: ['__proto__'],
+      message: 'Too small',
+      input: 'x',
+    };
+    const fields = fieldCodesOf([issue], JSON.parse('{"__proto__":"x"}'));
+    expect(Object.entries(fields)).toEqual([['__proto__', 'too_short']]);
+    expect(JSON.stringify(fields)).toBe('{"__proto__":"too_short"}');
+  });
+
   it('gives invalid_type to an issue the table does not name', () => {
     const schema = z.object({ count: z.number().multipleOf(5) });
     const input = { count: 3 };

@@ -31,7 +31,7 @@ function isFieldCode(value: unknown): value is FieldCode {
 function valueAt(input: unknown, path: readonly PropertyKey[]): unknown {
   let current: unknown = input;
   for (const key of path) {
-    if (typeof current !== 'object' || current === null) {
+    if (typeof current !== 'object' || current === null || !Object.hasOwn(current, key)) {
       return undefined;
     }
     current = (current as Record<PropertyKey, unknown>)[key]; // an object of unknown shape, read by the issue's own path
@@ -88,14 +88,15 @@ export function fieldCodesOf(
   issues: readonly ZodIssue[],
   input: unknown,
 ): Record<string, FieldCode> {
-  const fields: Record<string, FieldCode> = {};
+  // A map, so a path named like an object member (`constructor`, `__proto__`) is a key like any other.
+  const fields = new Map<string, FieldCode>();
   for (const issue of issues) {
     const key = issue.path.map((segment) => String(segment)).join('.');
-    if (!(key in fields)) {
-      fields[key] = fieldCodeOf(issue, input);
+    if (!fields.has(key)) {
+      fields.set(key, fieldCodeOf(issue, input));
     }
   }
-  return fields;
+  return Object.fromEntries(fields);
 }
 
 /** Every router of the API: an `OpenAPIHono` whose validation failures become `invalid_request` (D-230). */
