@@ -1,0 +1,73 @@
+name: railway-config
+
+on:
+  pull_request:
+    branches: [main]
+    paths: ['.railway/**', 'packages/shared/src/brand.ts']
+  push:
+    branches: [main]
+    paths: ['.railway/**', 'packages/shared/src/brand.ts']
+  workflow_dispatch:
+    inputs:
+      environment: { type: choice, options: [staging, production], required: true }
+      mode: { type: choice, options: [plan, apply], required: true, default: plan }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railway-config-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan-staging:
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && vars.RAILWAY_STAGING_READY == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: staging
+    permissions: { contents: read, pull-requests: write }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup # installs the pinned railway SDK so railway/iac resolves
+      - uses: railwayapp/config@9e17d413dbe219f19d62538d9c06b5dbb5e9abf8 # v1.2.0
+        with:
+          command: plan
+          railway-token: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
+          cli-version: '5.74.0'
+          artifact-name: railway-plan-staging
+
+  apply-staging:
+    if: github.event_name == 'push' && vars.RAILWAY_STAGING_READY == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: staging
+    permissions: { contents: read, actions: read, pull-requests: read }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: railwayapp/config@9e17d413dbe219f19d62538d9c06b5dbb5e9abf8 # v1.2.0
+        with:
+          command: apply
+          railway-token: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
+          cli-version: '5.74.0'
+          artifact-name: railway-plan-staging
+          # The action's own default is true; a plan that deletes or replaces fails here instead.
+          confirm-destructive: 'false'
+
+  dispatch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Plan
+        run: pnpm exec railway config plan --detailed-exit-code || [ $? -eq 2 ]
+        env:
+          RAILWAY_TOKEN: "${{ inputs.environment == 'production' && secrets.RAILWAY_TOKEN_PRODUCTION || secrets.RAILWAY_TOKEN_STAGING }}"
+      - name: Apply
+        if: inputs.mode == 'apply'
+        run: pnpm exec railway config apply --yes
+        env:
+          RAILWAY_TOKEN: "${{ inputs.environment == 'production' && secrets.RAILWAY_TOKEN_PRODUCTION || secrets.RAILWAY_TOKEN_STAGING }}"

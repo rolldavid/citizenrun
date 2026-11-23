@@ -1,0 +1,24 @@
+name: railway-drift
+
+on:
+  schedule: [{ cron: '19 7 * * 1' }]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: railway-drift
+  cancel-in-progress: false
+
+jobs:
+  drift-staging:
+    if: vars.RAILWAY_STAGING_READY == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: staging
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm exec railway config plan --detailed-exit-code # 0 clean; 2 drift and 1 error both fail the job
+        env: { RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}' }

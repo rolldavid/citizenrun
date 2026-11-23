@@ -1,0 +1,27 @@
+name: worker-first
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment: { type: choice, options: [staging, production], required: true }
+      sha: { type: string, required: true, description: Full commit SHA to deploy to the worker }
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-first-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-worker:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: '${{ inputs.sha }}' }
+      - uses: ./.github/actions/setup
+      - run: pnpm exec railway up --ci --service worker --environment ${{ inputs.environment }}
+        env:
+          RAILWAY_TOKEN: ${{ inputs.environment == 'production' && secrets.RAILWAY_TOKEN_PRODUCTION || secrets.RAILWAY_TOKEN_STAGING }}
