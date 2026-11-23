@@ -1,0 +1,114 @@
+import type { JobName } from '@citizenrun/shared';
+import type { QueueOptions, WorkOptions } from './jobs/types.ts';
+
+// Every queue: three attempts in all with backoff, finished jobs kept 24 hours, and a dead letter
+// to ops.dead except on ops.dead itself (D-238; R-061, R-104 for the 24 hours). The other values
+// are tunable constants of the queue's job; a job file reads its row here, never from queues.ts.
+
+/** Each queue's pg-boss queue options and work options. */
+export const QUEUE_OPTIONS: {
+  readonly [N in JobName]: { readonly queue: QueueOptions; readonly work: WorkOptions };
+} = {
+  'ops.dead': {
+    queue: {
+      policy: 'standard', // J-ops.dead
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-ops.dead
+      retryBackoff: true, // D-238
+      retryDelayMax: 600, // J-ops.dead
+      expireInSeconds: 300, // J-ops.dead
+      heartbeatSeconds: null, // J-ops.dead
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: null, // D-238: the dead-letter queue has none of its own
+    },
+    work: {
+      localConcurrency: 1, // J-ops.dead
+      pollingIntervalSeconds: 5, // J-ops.dead
+    },
+  },
+  'ops.alert': {
+    queue: {
+      policy: 'standard', // J-ops.alert
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-ops.alert
+      retryBackoff: true, // D-238
+      retryDelayMax: 900, // J-ops.alert
+      expireInSeconds: 120, // J-ops.alert
+      heartbeatSeconds: null, // J-ops.alert
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-ops.alert
+      pollingIntervalSeconds: 5, // J-ops.alert
+    },
+  },
+  'ops.heartbeat': {
+    queue: {
+      policy: 'stately', // J-ops.heartbeat
+      retryLimit: 2, // D-238
+      retryDelay: 5, // J-ops.heartbeat
+      retryBackoff: true, // D-238
+      retryDelayMax: 30, // J-ops.heartbeat
+      expireInSeconds: 30, // J-ops.heartbeat
+      heartbeatSeconds: null, // J-ops.heartbeat
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-ops.heartbeat
+      pollingIntervalSeconds: 5, // J-ops.heartbeat
+    },
+  },
+  'backup.check': {
+    queue: {
+      policy: 'stately', // J-backup.check
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-backup.check
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-backup.check
+      expireInSeconds: 300, // J-backup.check
+      heartbeatSeconds: null, // J-backup.check
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-backup.check
+      pollingIntervalSeconds: 10, // J-backup.check
+    },
+  },
+  'db.connections-check': {
+    queue: {
+      policy: 'stately', // J-db.connections-check
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-db.connections-check
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-db.connections-check
+      expireInSeconds: 120, // J-db.connections-check
+      heartbeatSeconds: null, // J-db.connections-check
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-db.connections-check
+      pollingIntervalSeconds: 10, // J-db.connections-check
+    },
+  },
+  'cost.check': {
+    queue: {
+      policy: 'stately', // J-cost.check
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-cost.check
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-cost.check
+      expireInSeconds: 1800, // J-cost.check
+      heartbeatSeconds: 60, // J-cost.check
+      deleteAfterSeconds: 86400, // R-104
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-cost.check
+      pollingIntervalSeconds: 10, // J-cost.check
+    },
+  },
+};
