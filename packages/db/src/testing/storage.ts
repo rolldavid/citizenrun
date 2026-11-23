@@ -54,9 +54,15 @@ export async function getTestBucket(kind: BucketKind): Promise<BucketHandle> {
   return handle;
 }
 
-/** Deletes every object in the buckets this file has used. */
+const BUCKET_KINDS: readonly BucketKind[] = ['media', 'data', 'backups', 'legal'];
+
+/**
+ * Deletes every object in this worker's buckets, including those an earlier file on the same
+ * worker wrote into a bucket this file has not used yet.
+ */
 export async function resetStorage(): Promise<void> {
-  for (const handle of buckets.values()) {
+  for (const kind of BUCKET_KINDS) {
+    const handle = await getTestBucket(kind);
     await emptyBucket(handle.client, handle.bucket);
   }
 }

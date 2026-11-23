@@ -1,4 +1,5 @@
-import { GetBucketCorsCommand } from '@aws-sdk/client-s3';
+import { GetBucketCorsCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { createS3Client, ensureBucket } from '@citizenrun/shared/storage';
 import { marker } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import { describe, expect, inject, it } from 'vitest';
@@ -15,6 +16,7 @@ import {
 } from './index.ts';
 import { bucketName, workerDatabaseName } from './names.ts';
 import { PrivacyLeakError, scanForLeaks } from './scan.ts';
+import { harnessSettings } from './settings.ts';
 import { localCorsRules } from './storage.ts';
 
 const slot = (): string => {
@@ -87,6 +89,23 @@ describe('the database harness', () => {
 
     const cors = await handle.client.send(new GetBucketCorsCommand({ Bucket: handle.bucket }));
     expect(cors.CORSRules).toEqual(localCorsRules());
+  });
+
+  it('reset empties a bucket of this worker that this file has not used yet', async () => {
+    // An earlier file on the same worker leaves an object behind in its own module graph.
+    const { runId } = inject('harness');
+    const bucket = bucketName(runId, slot(), 'legal');
+    const client = createS3Client(harnessSettings().s3);
+    try {
+      await ensureBucket(client, bucket, { cors: { CORSRules: localCorsRules() } });
+      await client.send(
+        new PutObjectCommand({ Bucket: bucket, Key: 'left/behind.bin', Body: new Uint8Array([7]) }),
+      );
+    } finally {
+      client.destroy();
+    }
+    await resetStorage();
+    expect(await listTestKeys('legal', '')).toEqual([]);
   });
 
   it('the scan fails a test that logs the marker', async () => {
