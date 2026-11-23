@@ -29,15 +29,18 @@ export function stampOf(now: Date): string {
   );
 }
 
-const STAMPED = /^os_(?:tpl|t)_([0-9]{4})([0-9]{2})([0-9]{2})([0-9]{2})([0-9]{2})_/;
+const STAMPED = /^os_(?:tpl|t)_([0-9]{12})_/;
+const LAST_USED = /^last used ([0-9]{12})$/;
 
-/** The time stamped into a template or worker database name, or null for any other name. */
-export function parseStamp(name: string): Date | null {
-  const match = STAMPED.exec(name);
-  if (match === null) {
-    return null;
-  }
-  const [year, month, day, hour, minute] = match.slice(1).map(Number);
+// The instant of a `yyyymmddhhmm` stamp, or null when a field is out of range.
+function stampDate(digits: string): Date | null {
+  const [year, month, day, hour, minute] = [
+    digits.slice(0, 4),
+    digits.slice(4, 6),
+    digits.slice(6, 8),
+    digits.slice(8, 10),
+    digits.slice(10, 12),
+  ].map(Number);
   if (
     year === undefined ||
     month === undefined ||
@@ -48,6 +51,23 @@ export function parseStamp(name: string): Date | null {
     return null;
   }
   const at = new Date(Date.UTC(year, month - 1, day, hour, minute));
-  // Date.UTC rolls an out-of-range field over; a name whose fields do not survive is not a stamp.
-  return stampOf(at) === match.slice(1).join('') ? at : null;
+  // Date.UTC rolls an out-of-range field over; a stamp whose fields do not survive is not a stamp.
+  return stampOf(at) === digits ? at : null;
+}
+
+/** The time stamped into a template or worker database name, or null for any other name. */
+export function parseStamp(name: string): Date | null {
+  const digits = STAMPED.exec(name)?.[1];
+  return digits === undefined ? null : stampDate(digits);
+}
+
+/** The comment a run writes on the template it uses, so other runs age it by its last use. */
+export function lastUsedComment(stamp: string): string {
+  return `last used ${stamp}`;
+}
+
+/** The time in a template's last-used comment, or null for no comment or any other comment. */
+export function parseLastUsed(comment: string | null): Date | null {
+  const digits = comment === null ? undefined : LAST_USED.exec(comment)?.[1];
+  return digits === undefined ? null : stampDate(digits);
 }

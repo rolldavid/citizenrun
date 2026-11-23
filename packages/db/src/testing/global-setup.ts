@@ -8,7 +8,7 @@ import { createS3Client } from '@citizenrun/shared/storage';
 import type pg from 'pg';
 import type { TestProject } from 'vitest/node';
 import { runMigrations } from '../migrator.ts';
-import { parseStamp, stampOf, templateName } from './names.ts';
+import { lastUsedComment, parseLastUsed, parseStamp, stampOf, templateName } from './names.ts';
 import {
   connectHarnessClient,
   databaseUrlFor,
@@ -120,19 +120,34 @@ async function ensureTemplate(
   return name;
 }
 
-// Databases left by runs that crashed: worker clones after 6 hours, templates after 7 days.
-async function dropStale(admin: pg.Client, now: Date, keep: string): Promise<void> {
-  const result = await admin.query<{ datname: string }>(
-    "select datname from pg_database where datname like 'os\\_t\\_%' or datname like 'os\\_tpl\\_%'",
+// Records that this run uses `name`, so another run ages the template by its last use, not by
+// when it was built. Written under the template lock, like the reads of dropStale().
+async function markTemplateUsed(admin: pg.Client, name: string, stamp: string): Promise<void> {
+  await admin.query(
+    `comment on database ${admin.escapeIdentifier(name)} is ${admin.escapeLiteral(lastUsedComment(stamp))}`,
   );
-  for (const { datname } of result.rows) {
+}
+
+/**
+ * Drops the databases left by runs that crashed: worker clones whose name stamp is more than 6
+ * hours old, and templates other than `keep` that no run has used for 7 days (the later of the
+ * name stamp and the last-used comment). Called under the template lock.
+ */
+export async function dropStale(admin: pg.Client, now: Date, keep: string): Promise<void> {
+  const result = await admin.query<{ datname: string; comment: string | null }>(
+    `select datname, shobj_description(oid, 'pg_database') as comment from pg_database
+     where datname like 'os\\_t\\_%' or datname like 'os\\_tpl\\_%'`,
+  );
+  for (const { datname, comment } of result.rows) {
     const stampedAt = parseStamp(datname);
     if (stampedAt === null || datname === keep) {
       continue;
     }
-    const age = now.getTime() - stampedAt.getTime();
-    const maxAge = datname.startsWith('os_tpl_') ? TEMPLATE_MAX_AGE_MS : WORKER_DATABASE_MAX_AGE_MS;
-    if (age > maxAge) {
+    const isTemplate = datname.startsWith('os_tpl_');
+    const lastUsed = isTemplate ? parseLastUsed(comment) : null;
+    const since = Math.max(stampedAt.getTime(), lastUsed?.getTime() ?? 0);
+    const maxAge = isTemplate ? TEMPLATE_MAX_AGE_MS : WORKER_DATABASE_MAX_AGE_MS;
+    if (now.getTime() - since > maxAge) {
       await dropDatabase(admin, datname);
     }
   }
@@ -140,7 +155,8 @@ async function dropStale(admin: pg.Client, now: Date, keep: string): Promise<voi
 
 /**
  * Vitest global setup of the database harness: builds (once per migration hash, under an advisory
- * lock) the migrated template, drops what crashed runs left, picks this run's id and provides
+ * lock) the migrated template, marks it used and drops what crashed runs left (under the same
+ * lock), picks this run's id and provides
  * `{ templateName, runId, stamp }` to the workers.
  */
 export async function setup(project: TestProject): Promise<void> {
@@ -160,10 +176,11 @@ export async function setup(project: TestProject): Promise<void> {
         stamp,
         hash,
       );
+      await markTemplateUsed(admin, template, stamp);
+      await dropStale(admin, now, template);
     } finally {
       await admin.query(UNLOCK_SQL);
     }
-    await dropStale(admin, now, template);
   } finally {
     await admin.end().catch(() => undefined);
   }

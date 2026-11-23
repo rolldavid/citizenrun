@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { bucketName, parseStamp, stampOf, templateName, workerDatabaseName } from './names.ts';
+import {
+  bucketName,
+  lastUsedComment,
+  parseLastUsed,
+  parseStamp,
+  stampOf,
+  templateName,
+  workerDatabaseName,
+} from './names.ts';
 
 describe('harness names', () => {
   it('two slots get two databases', () => {
@@ -21,6 +29,16 @@ describe('harness names', () => {
     expect(parseStamp('citizenrun')).toBeNull();
     expect(parseStamp('os_mig_a1b2c3_1')).toBeNull();
     expect(parseStamp('os_tpl_202713052200_0123456789ab')).toBeNull();
+  });
+
+  it('reads the time of a last-used comment and nothing else', () => {
+    expect(parseLastUsed(lastUsedComment('202703052200'))).toEqual(
+      new Date('2027-03-05T22:00:00.000Z'),
+    );
+    expect(parseLastUsed(null)).toBeNull();
+    expect(parseLastUsed('a comment')).toBeNull();
+    expect(parseLastUsed('last used 202713052200')).toBeNull();
+    expect(parseLastUsed('last used 202703052200 and more')).toBeNull();
   });
 
   it('names a bucket by run, slot and kind', () => {
