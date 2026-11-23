@@ -17,6 +17,101 @@
       }
     },
     "schemas": {
+      "ClientErrorFrame": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^[A-Za-z0-9_\\-/.@]+$"
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          },
+          "column": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 10000000
+          }
+        },
+        "required": [
+          "file",
+          "line",
+          "column"
+        ]
+      },
+      "CreateClientErrorBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_$.]+$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.]{0,63}$"
+          },
+          "route": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "^\\/[A-Za-z0-9_\\-/[\\]().+]*$"
+          },
+          "component": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 100,
+            "pattern": "^[A-Za-z0-9_$.]+$"
+          },
+          "appVersion": {
+            "type": "string",
+            "pattern": "^\\d{1,4}\\.\\d{1,4}\\.\\d{1,4}$"
+          },
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ]
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ClientErrorFrame"
+            },
+            "maxItems": 20
+          },
+          "requestId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "route",
+          "component",
+          "appVersion",
+          "platform",
+          "frames",
+          "requestId"
+        ]
+      },
       "ErrorEnvelope": {
         "type": "object",
         "properties": {
@@ -71,14 +166,222 @@
           "error"
         ]
       },
+      "HealthzResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
       "OpenApiDocument": {
         "type": "object",
         "additionalProperties": {}
+      },
+      "ReadyzResponse": {
+        "type": "object",
+        "properties": {
+          "db": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "down"
+            ]
+          },
+          "worker": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "stale",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "db",
+          "worker"
+        ]
       }
     },
     "parameters": {}
   },
   "paths": {
+    "/healthz": {
+      "get": {
+        "operationId": "getHealthz",
+        "tags": [
+          "web"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "web_health"
+        },
+        "x-errors": [
+          "rate_limited"
+        ],
+        "responses": {
+          "200": {
+            "description": "The process can serve a request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthzResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "operationId": "getReadyz",
+        "tags": [
+          "web"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "web_health"
+        },
+        "x-errors": [
+          "unavailable",
+          "rate_limited"
+        ],
+        "responses": {
+          "200": {
+            "description": "The database answers; the worker heartbeat is fresh or stale.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyzResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The database does not answer, or the process is draining.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadyzResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/client-errors": {
+      "post": {
+        "operationId": "createClientError",
+        "tags": [
+          "safety"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "clientErrors",
+          "bodyLimitBytes": 4096,
+          "public": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "client_header_required",
+          "payload_too_large",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateClientErrorBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "The report was stored."
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "The body is over 4,096 bytes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/openapi.json": {
       "get": {
         "operationId": "getOpenApiDocument",
