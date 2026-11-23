@@ -30,7 +30,7 @@ export class QueueMissingError extends Error {
   readonly queue: string;
 
   constructor(queue: string) {
-    // The fixed text only: a pg-boss or Postgres message is never copied here (R-104).
+    // The fixed text only: a pg-boss or Postgres message is never copied here.
     super('queue missing');
     this.queue = queue;
   }
@@ -71,7 +71,7 @@ async function isQueueMissing(boss: PgBoss, name: string): Promise<boolean> {
 }
 
 /**
- * The one send helper over pg-boss (contract 04 section 1.6): parses the payload with its schema
+ * The one send helper over pg-boss, for the API and the worker: parses the payload with its schema
  * (a parse failure throws), sends it, and returns the job id, or null when pg-boss dropped the send
  * as a singleton, debounce or throttle collision. Throws QueueMissingError when the queue does not
  * exist yet.

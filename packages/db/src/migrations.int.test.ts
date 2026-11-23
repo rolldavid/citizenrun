@@ -17,8 +17,8 @@ import {
   harnessSettings,
 } from './testing/settings.ts';
 
-// TEST-migrations: the schema the migrations build, by name (02 A9). Later milestones extend the
-// table below with their own objects.
+// TEST-migrations: every named object the migrations build. A migration that adds a table adds
+// its objects here.
 const EXPECTED_OBJECTS = {
   extensions: ['citext', 'pg_trgm', 'postgis', 'unaccent'],
   tables: ['client_errors', 'worker_heartbeats'],
