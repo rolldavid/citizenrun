@@ -1,14 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   ALLOWED,
+  NO_DEPENDENCY_MESSAGE,
+  UnreadableLicensesListError,
   findFailures,
   firstPath,
   invalidExceptions,
   isExcepted,
+  main,
   parseLicensesList,
   satisfies,
 } from './check-licenses.ts';
-import type { LicenseEntry, LicenseException } from './check-licenses.ts';
+import type { LicenseEntry, LicenseException, PnpmRunner } from './check-licenses.ts';
+import type { RunResult } from './lib/exec.ts';
+
+const MIT_LIST = JSON.stringify({
+  MIT: [{ name: 'fixture-package', versions: ['1.0.0'], license: 'MIT' }],
+});
+
+// Outputs that are not a licence list: each must fail the check for its workspace.
+const UNREADABLE_OUTPUTS: readonly string[] = [
+  `Agent skills awaiting approval: fixture-package.\n${MIT_LIST}`,
+  [
+    '   ╭──────────────────────────────────────────╮',
+    '   │   Update available! 12.21.0 → 12.22.0.   │',
+    '   ╰──────────────────────────────────────────╯',
+    MIT_LIST,
+  ].join('\n'),
+  '',
+  '   \n',
+  'No licenses found',
+  '[]',
+  '{"MIT": "not a list"}',
+];
 
 const LGPL_ENTRY: LicenseEntry = {
   workspace: '@citizenrun/cards',
@@ -90,8 +114,59 @@ describe('parseLicensesList', () => {
     expect(satisfies('Unknown', ALLOWED)).toBe(false);
   });
 
-  it('reads no rows from output that is not JSON', () => {
-    expect(parseLicensesList('citizenrun', 'No licenses in packages found')).toEqual([]);
+  it('reads no rows only for the no-dependency message', () => {
+    expect(NO_DEPENDENCY_MESSAGE).toBe('No licenses in packages found');
+    expect(parseLicensesList('citizenrun', 'No licenses in packages found\n')).toEqual([]);
+    expect(parseLicensesList('citizenrun', '{}\n')).toEqual([]);
+    for (const stdout of UNREADABLE_OUTPUTS) {
+      expect(() => parseLicensesList('citizenrun', stdout)).toThrow(UnreadableLicensesListError);
+    }
+  });
+});
+
+describe('main', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // A runner standing in for pnpm: one workspace, whose licence list is `licenses`.
+  function fakePnpm(licenses: string): PnpmRunner {
+    return (args) => {
+      const ok = (stdout: string): Promise<RunResult> =>
+        Promise.resolve({ code: 0, stdout, stderr: '' });
+      if (args[0] === 'ls') {
+        return ok(JSON.stringify([{ name: '@citizenrun/fixture' }]));
+      }
+      if (args[0] === 'licenses') {
+        return ok(licenses);
+      }
+      return ok('');
+    };
+  }
+
+  async function runMain(licenses: string): Promise<{ code: number; printed: string[] }> {
+    const printed: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
+      printed.push(parts.map(String).join(' '));
+    });
+    const code = await main(fakePnpm(licenses));
+    return { code, printed };
+  }
+
+  it('passes the no-dependency message and an allowed list', async () => {
+    expect(await runMain('No licenses in packages found\n')).toEqual({ code: 0, printed: [] });
+    expect(await runMain('{}\n')).toEqual({ code: 0, printed: [] });
+    expect(await runMain(MIT_LIST)).toEqual({ code: 0, printed: [] });
+  });
+
+  it('fails a workspace whose list it cannot read', async () => {
+    for (const stdout of UNREADABLE_OUTPUTS) {
+      const { code, printed } = await runMain(stdout);
+      expect(code).toBe(1);
+      expect(printed).toHaveLength(1);
+      expect(printed[0]).toContain('@citizenrun/fixture');
+      vi.restoreAllMocks();
+    }
   });
 });
 

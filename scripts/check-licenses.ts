@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
 import { run } from './lib/exec.ts';
+import type { RunResult } from './lib/exec.ts';
 import { repoRoot } from './lib/repo-root.ts';
 
 /** The licence allow-list (D-118, D-803). Adding to it needs a decision. */
@@ -175,13 +176,47 @@ const ListedPackageSchema = z.object({
 const LicensesListSchema = z.record(z.string(), z.array(ListedPackageSchema));
 const WorkspacesSchema = z.array(z.object({ name: z.string() }));
 
-/** The rows of `pnpm licenses list --json` for one workspace. */
+/**
+ * The whole output of pnpm 12 (12.21.0, read from the installed pnpm) for a workspace with no
+ * dependency when it prints text instead of JSON. With `--json` that version prints `{}`, which
+ * reads as no rows like any other JSON list. No other text means "no rows".
+ */
+export const NO_DEPENDENCY_MESSAGE = 'No licenses in packages found';
+
+/** The output of `pnpm licenses list` was neither JSON of the expected shape nor the message. */
+export class UnreadableLicensesListError extends Error {
+  override readonly name = 'UnreadableLicensesListError';
+
+  constructor() {
+    super('the licence list is not JSON of the expected shape');
+  }
+}
+
+function parseListed(text: string): z.infer<typeof LicensesListSchema> {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    throw new UnreadableLicensesListError();
+  }
+  const listed = LicensesListSchema.safeParse(value);
+  if (!listed.success) {
+    throw new UnreadableLicensesListError();
+  }
+  return listed.data;
+}
+
+/**
+ * The rows of `pnpm licenses list --json` for one workspace. No rows only for JSON that lists none
+ * or for NO_DEPENDENCY_MESSAGE; any other output (empty, a notice before the JSON, text) throws
+ * UnreadableLicensesListError, because a list that cannot be read must fail the check.
+ */
 export function parseLicensesList(workspace: string, stdout: string): LicenseEntry[] {
   const text = stdout.trim();
-  if (!text.startsWith('{')) {
+  if (text === NO_DEPENDENCY_MESSAGE) {
     return [];
   }
-  const listed = LicensesListSchema.parse(JSON.parse(text));
+  const listed = parseListed(text);
   const entries: LicenseEntry[] = [];
   for (const [group, packages] of Object.entries(listed)) {
     for (const item of packages) {
@@ -209,8 +244,13 @@ export function firstPath(whyOutput: string): string {
   return names.join(' < ');
 }
 
-async function pnpm(args: readonly string[], cwd: string): Promise<string> {
-  const result = await run('pnpm', args, { cwd });
+/** Runs pnpm with an argument array in `cwd`; the check's one way out to the package manager. */
+export type PnpmRunner = (args: readonly string[], cwd: string) => Promise<RunResult>;
+
+const runPnpm: PnpmRunner = (args, cwd) => run('pnpm', args, { cwd });
+
+async function pnpm(runner: PnpmRunner, args: readonly string[], cwd: string): Promise<string> {
+  const result = await runner(args, cwd);
   if (result.code !== 0) {
     throw new Error(
       `pnpm ${args.join(' ')} exited with ${String(result.code)}: ${result.stderr.trim()}`,
@@ -219,23 +259,33 @@ async function pnpm(args: readonly string[], cwd: string): Promise<string> {
   return result.stdout;
 }
 
-/** Checks every workspace's dependency licences; prints one line per failure. */
-export async function main(): Promise<number> {
+/**
+ * Checks every workspace's dependency licences; prints one line per failure and one per workspace
+ * whose list cannot be read, and returns 1 when there is any.
+ */
+export async function main(runner: PnpmRunner = runPnpm): Promise<number> {
   const root = repoRoot();
   const exceptions = ExceptionsSchema.parse(
     JSON.parse(readFileSync(join(root, EXCEPTIONS_FILE), 'utf8')),
   );
   const problems = invalidExceptions(exceptions);
   const workspaces = WorkspacesSchema.parse(
-    JSON.parse(await pnpm(['ls', '-r', '--depth', '-1', '--json'], root)),
+    JSON.parse(await pnpm(runner, ['ls', '-r', '--depth', '-1', '--json'], root)),
   ).map((workspace) => workspace.name);
   for (const workspace of workspaces) {
-    const listed = parseLicensesList(
-      workspace,
-      await pnpm(['licenses', 'list', '--json', '--filter', workspace], root),
-    );
+    const stdout = await pnpm(runner, ['licenses', 'list', '--json', '--filter', workspace], root);
+    let listed: LicenseEntry[];
+    try {
+      listed = parseLicensesList(workspace, stdout);
+    } catch (error) {
+      if (error instanceof UnreadableLicensesListError) {
+        problems.push(`${workspace}: ${error.message}; its licences could not be checked`);
+        continue;
+      }
+      throw error;
+    }
     for (const failure of findFailures(listed, exceptions)) {
-      const why = await run('pnpm', ['why', failure.name, '--filter', workspace], { cwd: root });
+      const why = await runner(['why', failure.name, '--filter', workspace], root);
       problems.push(
         `${failure.name}@${failure.version} (${failure.license}) in ${workspace}: ${firstPath(why.stdout)}`,
       );
