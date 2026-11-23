@@ -7,9 +7,11 @@ const MAX_DEPTH = 8;
 const IPV4_OCTET = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
 const HEX_GROUP = '[0-9a-f]{1,4}';
 
+const EMAIL = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
+
 // The masks of CTL-38, applied to every string value in this order.
 const MASKS: readonly (readonly [RegExp, string])[] = [
-  [/[^\s@]+@[^\s@]+\.[^\s@]+/g, '[email]'],
+  [EMAIL, '[email]'],
   [/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, '[jwt]'],
   [/\bBearer\s+[\w.~+/-]+=*/gi, 'Bearer [token]'],
   [/[a-z][a-z0-9+.-]*:\/\/[^\s"'<>]*X-Amz-[^\s"'<>]*/gi, '[presigned-url]'],
@@ -41,6 +43,20 @@ function maskString(value: string): string {
   let out = value;
   for (const [pattern, replacement] of MASKS) {
     out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
+// A frame line takes every mask, except that the email mask leaves a match holding a `/`: every
+// installed package sits in a folder named `<name>@<version>`, and the frame must keep its file,
+// line and column.
+function maskFrame(line: string): string {
+  let out = line;
+  for (const [pattern, replacement] of MASKS) {
+    out =
+      pattern === EMAIL
+        ? out.replace(pattern, (match) => (match.includes('/') ? match : replacement))
+        : out.replace(pattern, replacement);
   }
   return out;
 }
@@ -127,7 +143,7 @@ function redactError(err: Error): RedactedError {
   const header = `${errorClass}: ${message}`;
   let stack = header;
   if (typeof err.stack === 'string') {
-    stack = maskString([header, ...stackFrames(err.stack, err.message)].join('\n'));
+    stack = [maskString(header), ...stackFrames(err.stack, err.message).map(maskFrame)].join('\n');
   }
   return err instanceof ApiError && isErrorCode(err.code)
     ? { errorClass, errorCode: err.code, message, stack }

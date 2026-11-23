@@ -227,6 +227,23 @@ describe('redact', () => {
     }
   });
 
+  it('keeps the file, line and column of a frame under the package store', () => {
+    const frame =
+      '    at parse (file:///app/node_modules/.pnpm/zod@4.6.7/node_modules/zod/v4/classic/schemas.js:1218:28)';
+    const err = new Error('fixture failure');
+    err.stack = `Error: fixture failure\n${frame}`;
+    expect(stackOf(redact(err))).toBe(`Error: (message withheld)\n${frame}`);
+  });
+
+  it('masks an address inside a frame line', () => {
+    const err = new Error('fixture failure');
+    err.stack =
+      'Error: fixture failure\n    at run (file:///app/x.js:1:2)\n    at handler (user@example.test)';
+    const stack = stackOf(redact(err));
+    expect(stack).not.toContain('user@example.test');
+    expect(stack.split('\n')[2]).toBe('    at handler [email]');
+  });
+
   it('keeps the message of an ApiError', () => {
     expect(redact(new ApiError('not_found'))).toMatchObject({
       errorClass: 'ApiError',
