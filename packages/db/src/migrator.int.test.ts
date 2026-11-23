@@ -1,8 +1,11 @@
+import { spawn } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 import { createLogger } from '@citizenrun/shared';
 import { describe, expect, inject, it, vi } from 'vitest';
 import { MigrationConnectError, runMigrations } from './migrator.ts';
+import { getTestDatabaseUrl } from './testing/index.ts';
 import {
   connectHarnessClient,
   databaseUrlFor,
@@ -11,6 +14,7 @@ import {
 } from './testing/settings.ts';
 
 const MIGRATIONS_DIR = new URL('../migrations', import.meta.url);
+const PACKAGE_DIR = fileURLToPath(new URL('..', import.meta.url));
 const EXTENSIONS = 'citext,pg_trgm,postgis,unaccent';
 // A little longer than the session's 5-second lock_timeout, which would end a runner's wait on
 // the advisory lock if the runner did not exempt that wait.
@@ -50,6 +54,52 @@ async function queryOne<T extends Record<string, unknown>>(url: string, text: st
   } finally {
     await client.end();
   }
+}
+
+// The MigrationConnectError a run rejects with; fails the case when it resolves or rejects with
+// anything else.
+async function connectFailure(run: Promise<unknown>): Promise<MigrationConnectError> {
+  const error: unknown = await run.then(
+    () => null,
+    (reason: unknown) => reason,
+  );
+  expect(error).toBeInstanceOf(MigrationConnectError);
+  if (!(error instanceof MigrationConnectError)) {
+    throw new Error('The run did not reject with MigrationConnectError.');
+  }
+  return error;
+}
+
+type Exit = { code: number | null; lines: Record<string, unknown>[]; output: string };
+
+// Runs the runner's command as the deploy does, with `variables` added to the test environment.
+function runCommand(variables: readonly string[]): Promise<Exit> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('env', [...variables, 'pnpm', 'exec', 'tsx', 'src/migrate.ts'], {
+      cwd: PACKAGE_DIR,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '';
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString('utf8');
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      output += chunk.toString('utf8');
+    });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      const lines = output
+        .split('\n')
+        .filter((line) => line.startsWith('{'))
+        .map((line) => {
+          const value: unknown = JSON.parse(line);
+          return typeof value === 'object' && value !== null
+            ? Object.fromEntries(Object.entries(value))
+            : {};
+        });
+      resolve({ code, lines, output });
+    });
+  });
 }
 
 function migrationCount(): number {
@@ -145,10 +195,50 @@ describe('runMigrations', () => {
 
   it('gives up connecting after its window', async () => {
     const startedAt = Date.now();
-    await expect(
+    const error = await connectFailure(
       runMigrations('postgres://citizenrun:citizenrun@localhost:1/x', { connectTimeoutMs: 2000 }),
-    ).rejects.toThrow(MigrationConnectError);
+    );
+    expect(error.sqlState).toBeNull();
     expect(Date.now() - startedAt).toBeLessThan(5_000);
+  });
+
+  it('stops at once on a refused password', async () => {
+    const url = new URL(getTestDatabaseUrl());
+    // A visibly fake password that the server refuses.
+    url.password = 'not-the-password-fixture';
+    const startedAt = Date.now();
+    const error = await connectFailure(runMigrations(url.href));
+    expect(error.sqlState).toBe('28P01');
+    expect(error.message).not.toContain(url.username);
+    expect(Date.now() - startedAt).toBeLessThan(5_000);
+  });
+
+  it('stops at once on a missing database', async () => {
+    const url = databaseUrlFor(
+      getTestDatabaseUrl(),
+      `os_mig_${inject('harness').runId}_missing_fixture`,
+    );
+    const startedAt = Date.now();
+    const error = await connectFailure(runMigrations(url));
+    expect(error.sqlState).toBe('3D000');
+    expect(Date.now() - startedAt).toBeLessThan(5_000);
+  });
+
+  it('the command logs the class and the code of a refused login only', async () => {
+    const url = new URL(getTestDatabaseUrl());
+    url.password = 'not-the-password-fixture';
+    const exit = await runCommand([`DATABASE_URL=${url.href}`]);
+    expect(exit.code).toBe(1);
+    const failed = exit.lines.filter((line) => line.event === 'migrate.failed');
+    expect(failed).toHaveLength(1);
+    const line = failed[0] ?? {};
+    expect(Object.keys(line).sort()).toEqual(
+      ['errorClass', 'event', 'level', 'service', 'sqlState', 'time'].sort(),
+    );
+    expect(line).toMatchObject({ errorClass: 'MigrationConnectError', sqlState: '28P01' });
+    expect(exit.output).not.toContain(url.password);
+    expect(exit.output).not.toContain(url.hostname);
+    expect(exit.output).not.toContain('password authentication failed');
   });
 
   it('applies the extensions migration as a non-superuser when the extensions exist', async () => {

@@ -6,12 +6,18 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import pg from 'pg';
 import { PgBoss } from 'pg-boss';
 
-/** The runner could not connect within its window. Holds no connection detail. */
+/**
+ * The runner could not connect: the server refused the role or the database, or nothing answered
+ * within the window. Holds no connection detail: `sqlState` is the SQLSTATE code of the server's
+ * answer to the last attempt, null when the failure carried none (a network error, a timeout).
+ */
 export class MigrationConnectError extends Error {
   override readonly name = 'MigrationConnectError';
+  readonly sqlState: string | null;
 
-  constructor() {
-    super('The migration runner could not connect to the database within its window.');
+  constructor(sqlState: string | null) {
+    super('The migration runner could not connect to the database.');
+    this.sqlState = sqlState;
   }
 }
 
@@ -34,8 +40,26 @@ const MIGRATIONS_TABLE = '__drizzle_migrations';
 
 const NO_LOGGER: Pick<Logger, 'info'> = { info: () => undefined };
 
+const SQLSTATE_PATTERN = /^[0-9A-Z]{5}$/;
+
+// The SQLSTATE code of a server's answer, null for any other failure: a network error carries a
+// Node code (`ECONNREFUSED`, `ENOTFOUND`), which is not one.
+function sqlStateOf(error: unknown): string | null {
+  if (error instanceof pg.DatabaseError && typeof error.code === 'string') {
+    return SQLSTATE_PATTERN.test(error.code) ? error.code : null;
+  }
+  return null;
+}
+
+// A refused role or password (class 28) or a missing database (3D000) is the same on every retry,
+// so it ends the window at once (D-806).
+function isFinalAnswer(sqlState: string | null): boolean {
+  return sqlState !== null && (sqlState.startsWith('28') || sqlState === '3D000');
+}
+
 async function connectWithRetry(databaseUrl: string, connectTimeoutMs: number): Promise<pg.Client> {
   const deadline = Date.now() + connectTimeoutMs;
+  let sqlState: string | null = null;
   for (;;) {
     const remaining = deadline - Date.now();
     const client = new pg.Client({
@@ -50,12 +74,13 @@ async function connectWithRetry(databaseUrl: string, connectTimeoutMs: number): 
     try {
       await client.connect();
       return client;
-    } catch {
-      // The error text can name the host or the user; it is dropped.
+    } catch (error) {
+      // The error text can name the host or the user; only its SQLSTATE code is kept.
+      sqlState = sqlStateOf(error);
       await client.end().catch(() => undefined);
     }
-    if (Date.now() + CONNECT_RETRY_MS > deadline) {
-      throw new MigrationConnectError();
+    if (isFinalAnswer(sqlState) || Date.now() + CONNECT_RETRY_MS > deadline) {
+      throw new MigrationConnectError(sqlState);
     }
     await sleep(CONNECT_RETRY_MS);
   }
@@ -101,7 +126,8 @@ async function applyPgBossSchema(client: pg.Client): Promise<void> {
 /**
  * Applies every pending migration in `migrationsFolder` to `databaseUrl`, then pg-boss's schema,
  * under the advisory lock `hashtext('os_migrate')` (D-141). Retries the first connection
- * for `connectTimeoutMs` (default 30,000) before throwing MigrationConnectError. Resolves with the
+ * for `connectTimeoutMs` (default 30,000) before throwing MigrationConnectError, and throws it at
+ * once on a refused role or password or a missing database (D-806). Resolves with the
  * number of migrations this run applied, 0 when there was nothing to do. Never logs the URL or SQL.
  */
 export async function runMigrations(

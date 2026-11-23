@@ -1,6 +1,12 @@
 import { EnvError, createLogger } from '@citizenrun/shared';
 import { loadDbEnv } from './env.ts';
-import { runMigrations } from './migrator.ts';
+import { MigrationConnectError, runMigrations } from './migrator.ts';
+
+const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
+
+function errorClassOf(error: unknown): string {
+  return error instanceof Error && ERROR_CLASS_PATTERN.test(error.name) ? error.name : 'Error';
+}
 
 // The command-line entry of the migration runner, and the pre-deploy command of both services
 // once bundled (D-141). It is part of both deploys; its lines are told apart by their migrate.*
@@ -23,7 +29,12 @@ async function main(): Promise<number> {
     await runMigrations(env.databaseUrl, { logger });
     return 0;
   } catch (error) {
-    logger.error('migrate.failed', { error });
+    // The class and the SQLSTATE code only: a driver's message or stack can name the host or the
+    // role (D-806).
+    logger.error('migrate.failed', {
+      errorClass: errorClassOf(error),
+      ...(error instanceof MigrationConnectError ? { sqlState: error.sqlState } : {}),
+    });
     return 1;
   }
 }
