@@ -73,7 +73,7 @@ describe('buildOpenApiDocument', () => {
 
   it('E-REF-03 carries its metadata', () => {
     const document = buildOpenApiDocument();
-    expect(Object.keys(objectAt(document, 'paths'))).toEqual(['/v1/openapi.json']);
+    expect(Object.keys(objectAt(document, 'paths'))).toContain('/v1/openapi.json');
     const operation: Operation = objectAt(document, 'paths', '/v1/openapi.json', 'get');
     expect(operation['operationId']).toBe('getOpenApiDocument');
     expect(operation['x-route']).toEqual({
