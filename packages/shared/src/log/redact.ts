@@ -29,6 +29,9 @@ const MASKS: readonly (readonly [RegExp, string])[] = [
 ];
 
 const V8_FRAME = /^\s+at\s/;
+// A frame line that ends in a V8 location: `:line:column`, closed by `)` when the frame names a
+// function.
+const V8_LOCATED_FRAME = /^\s+at\s.*:\d+:\d+\)?$/;
 
 // The name an error is logged under when its own is not an identifier.
 const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
@@ -49,24 +52,57 @@ type RedactedError = {
   stack: string;
 };
 
-// The frame lines of a stack and nothing else. A message can span lines, and any of its lines can
-// look like a frame, so the stack is first cut after the message, and then only the trailing run of
-// frame lines is kept: whatever is left of the message (one changed after the stack was captured,
-// or a header that is not `name: message`) is never part of that run.
-function stackFrames(stack: string, message: unknown): string[] {
-  let rest = stack;
-  if (typeof message === 'string' && message !== '') {
-    const end = rest.indexOf(message);
-    if (end !== -1) {
-      rest = rest.slice(end + message.length);
+// The text that follows the current message in the header V8 wrote when the error was built, one
+// entry per place the message can start: the header is `name: message`, the name alone for an empty
+// message, or the message alone for an empty name. Only the message is matched, never the name: a
+// class field sets `name` after the stack is captured. Empty when the message is not a string or is
+// not found closing the header.
+function afterMessage(stack: string, message: unknown): string[] {
+  if (typeof message !== 'string') {
+    return [];
+  }
+  const newline = stack.indexOf('\n');
+  const firstLineEnd = newline === -1 ? stack.length : newline;
+  if (message === '') {
+    return [stack.slice(firstLineEnd)];
+  }
+  const out: string[] = [];
+  for (let start = 0; start <= firstLineEnd; start += 1) {
+    const opensHere = start === 0 || stack.startsWith(': ', start - 2);
+    if (opensHere && stack.startsWith(message, start)) {
+      const rest = stack.slice(start + message.length);
+      if (rest === '' || rest.startsWith('\n')) {
+        out.push(rest);
+      }
     }
   }
-  const lines = rest.trimEnd().split('\n');
-  let start = lines.length;
-  while (start > 0 && V8_FRAME.test(lines[start - 1] ?? '')) {
-    start -= 1;
+  return out;
+}
+
+// The frame lines of a stack and nothing else. V8 fixes the stack text when the error is built, and
+// a message can span lines, any of which can look like a frame. Where the current message closes the
+// header and is followed only by frame lines, the first of them ending in a location, those lines
+// are the frames. Otherwise (the message was replaced, prefixed or cut short after the stack was
+// captured, or is not a string) the header cannot be told from the frames, so of the lines after
+// the first only those that end in a V8 location are kept: a leftover line of an earlier message is
+// dropped unless it ends in `:line:column` itself.
+function stackFrames(stack: string, message: unknown): string[] {
+  for (const rest of afterMessage(stack, message)) {
+    const lines = rest.trimEnd().split('\n').slice(1);
+    const first = lines[0];
+    if (
+      first !== undefined &&
+      V8_LOCATED_FRAME.test(first) &&
+      lines.every((line) => V8_FRAME.test(line))
+    ) {
+      return lines;
+    }
   }
-  return lines.slice(start);
+  return stack
+    .trimEnd()
+    .split('\n')
+    .slice(1)
+    .filter((line) => V8_LOCATED_FRAME.test(line));
 }
 
 function isErrorCode(value: unknown): value is ErrorCode {

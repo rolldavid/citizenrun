@@ -171,6 +171,62 @@ describe('redact', () => {
     expect(redact(err)).toMatchObject({ stack: 'Error: (message withheld)' });
   });
 
+  describe('a message changed after the stack was captured', () => {
+    const MESSAGE_TEXT = ['select', 'now()', 'time zone', 'SECRET', 'fixture-replacement'];
+
+    function capturedError(): Error {
+      const err = new Error("select now()\n    at time zone 'SECRET'");
+      expect(err.stack).toContain('SECRET'); // reading the stack fixes its text
+      return err;
+    }
+
+    function expectFramesOnly(out: unknown): void {
+      const text = JSON.stringify(out);
+      for (const part of MESSAGE_TEXT) {
+        expect(text).not.toContain(part);
+      }
+      const lines = stackOf(out).split('\n');
+      expect(lines[0]).toBe('Error: (message withheld)');
+      expect(lines.length).toBeGreaterThan(1);
+      for (const line of lines.slice(1)) {
+        expect(line).toMatch(/^\s+at\s/);
+      }
+    }
+
+    it('stack read, then message replaced', () => {
+      const err = capturedError();
+      err.message = 'fixture-replacement';
+      expectFramesOnly(redact(err));
+    });
+
+    it('stack read, then message prefixed', () => {
+      const err = capturedError();
+      err.message = `fixture-replacement: ${err.message}`;
+      expectFramesOnly(redact(err));
+    });
+
+    it('stack read, then message cut short', () => {
+      const err = capturedError();
+      err.message = 'select now()';
+      expectFramesOnly(redact(err));
+    });
+
+    it('a message that is not a string', () => {
+      const err = capturedError();
+      Reflect.set(err, 'message', 42);
+      expectFramesOnly(redact(err));
+    });
+  });
+
+  it('an error with an empty message keeps its frames', () => {
+    const lines = stackOf(redact(new Error())).split('\n');
+    expect(lines[0]).toBe('Error: (message withheld)');
+    expect(lines.length).toBeGreaterThan(1);
+    for (const line of lines.slice(1)) {
+      expect(line).toMatch(/^\s+at\s/);
+    }
+  });
+
   it('keeps the message of an ApiError', () => {
     expect(redact(new ApiError('not_found'))).toMatchObject({
       errorClass: 'ApiError',
