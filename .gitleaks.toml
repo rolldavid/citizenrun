@@ -1,0 +1,18 @@
+# Secret scanning for the CI `web` and `secrets` jobs and their local forms (CTL-25, INV-13).
+# The default rules apply; the allow-list holds only the fixed local development values and paths.
+title = "gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Local development values and saved fixtures"
+condition = "OR"
+regexes = [
+  '''osdev-secret-key''',
+  '''^0{64}$''',
+]
+paths = [
+  '''(^|/)pnpm-lock\.yaml$''',
+  '''(^|/)__fixtures__/''',
+]

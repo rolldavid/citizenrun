@@ -1,0 +1,53 @@
+name: nightly
+
+on:
+  schedule:
+    - cron: '17 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+      - run: sudo apt-get install -y --no-install-recommends postgresql-client-17
+      - run: echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - run: pnpm verify
+        env:
+          TEST_SHUFFLE: '1'
+
+  bucket-smoke:
+    # Runs only once staging exists (PC9-42, D-561).
+    if: vars.RAILWAY_STAGING_READY == 'true'
+    environment: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm exec railway run --service api --environment staging -- pnpm exec tsx scripts/smoke-bucket.ts
+        env:
+          RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}'

@@ -1,0 +1,284 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, staging, production]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 'ci-${{ github.ref }}'
+  # Branch pushes are never cancelled: Railway's Wait for CI reads those runs (D-134).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  static:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm check:gen
+      - run: pnpm check:db
+      - run: pnpm check:i18n
+      - run: pnpm check:licenses
+      - run: pnpm --filter @citizenrun/mobile run doctor
+      - run: pnpm exec tsx scripts/check-workflows.ts
+
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm test
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+      - run: sudo apt-get install -y --no-install-recommends postgresql-client-17
+      - run: echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - run: pnpm test:integration
+
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm build:web
+      - run: pnpm check:bundle
+      - name: Download gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(jq -r '.assets["linux-x64"].url' scripts/gitleaks.json)"
+          sha256="$(jq -r '.assets["linux-x64"].sha256' scripts/gitleaks.json)"
+          echo "gitleaks $(jq -r '.version' scripts/gitleaks.json)"
+          curl -fsSL -o gitleaks.tar.gz "$url"
+          echo "$sha256  gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p .gitleaks-bin && tar -xzf gitleaks.tar.gz -C .gitleaks-bin gitleaks
+      - run: ./.gitleaks-bin/gitleaks dir --redact --no-banner --config .gitleaks.toml apps/mobile/dist
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-dist
+          path: apps/mobile/dist
+          retention-days: 3
+
+  images:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          file: docker/api.Dockerfile
+          context: .
+          load: true
+          push: false
+          tags: citizenrun-api:ci
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          file: docker/worker.Dockerfile
+          context: .
+          load: true
+          push: false
+          tags: citizenrun-worker:ci
+          cache-from: type=gha,scope=worker
+          cache-to: type=gha,mode=max,scope=worker
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          file: docker/backup.Dockerfile
+          context: .
+          load: true
+          push: false
+          tags: citizenrun-backup:ci
+          cache-from: type=gha,scope=backup
+          cache-to: type=gha,mode=max,scope=backup
+      - name: API smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          db=postgresql://citizenrun:citizenrun@localhost:5432/citizenrun
+          docker run --rm --network host -e DATABASE_URL="$db" citizenrun-api:ci node packages/db/dist/migrate.js
+          docker run -d --name ci-api --network host \
+            -e APP_ENV=ci -e LOG_LEVEL=info -e PORT=8080 -e DATABASE_URL="$db" \
+            -e PUBLIC_URL=http://localhost:8080 -e MEDIA_BUCKET=media \
+            -e MEDIA_ENDPOINT=http://localhost:8333 -e MEDIA_REGION=us-east-1 \
+            -e MEDIA_ACCESS_KEY_ID=osdev -e MEDIA_SECRET_ACCESS_KEY=osdev-secret-key \
+            -e S3_FORCE_PATH_STYLE=true citizenrun-api:ci
+          ready=""
+          for _ in $(seq 1 60); do
+            if ready="$(curl -fsS http://localhost:8080/readyz)"; then break; fi
+            ready=""
+            sleep 1
+          done
+          if [ -z "$ready" ]; then echo "the API was not ready within 60 seconds"; exit 1; fi
+          echo "$ready" | jq -e '.db == "ok"'
+          curl -fsS -D headers.txt -o shell.html http://localhost:8080/
+          grep -qi '^cache-control: no-cache' headers.txt
+          grep -q '<style id="os-shell">' shell.html
+      - name: API logs
+        if: always()
+        shell: bash
+        run: |
+          docker logs ci-api || true
+          docker rm -f ci-api || true
+      - name: Backup smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/backup-smoke"
+          cd "$RUNNER_TEMP/backup-smoke"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:4096 -out key.pem
+          openssl pkey -in key.pem -pubout -out pub.pem
+          aws() {
+            docker run --rm --network host --user "$(id -u):$(id -g)" -e HOME=/tmp \
+              -v "$PWD:/work" -w /work \
+              -e AWS_ACCESS_KEY_ID=osdev -e AWS_SECRET_ACCESS_KEY=osdev-secret-key \
+              -e AWS_DEFAULT_REGION=us-east-1 \
+              amazon/aws-cli:2.42.1@sha256:b0102d2269f87d8531d931c1a59e248101ace586886e6c077058d94c1c37b846 \
+              --endpoint-url http://localhost:8333 "$@"
+          }
+          aws s3api create-bucket --bucket ci-backups
+          docker run --rm --network host \
+            -e APP_ENV=ci \
+            -e DATABASE_URL=postgresql://citizenrun:citizenrun@localhost:5432/citizenrun \
+            -e BACKUPS_BUCKET=ci-backups -e BACKUPS_ENDPOINT=http://localhost:8333 \
+            -e BACKUPS_REGION=us-east-1 -e BACKUPS_ACCESS_KEY_ID=osdev \
+            -e BACKUPS_SECRET_ACCESS_KEY=osdev-secret-key -e S3_FORCE_PATH_STYLE=true \
+            -e BACKUP_PUBLIC_KEY="$(cat pub.pem)" \
+            citizenrun-backup:ci
+          key="$(aws s3api list-objects-v2 --bucket ci-backups --prefix pg/ --query "Contents[?ends_with(Key, '.dump.enc')].Key | [0]" --output text)"
+          aws s3 cp "s3://ci-backups/$key" backup.dump.enc
+          pnpm --filter @citizenrun/worker exec tsx src/backup/decrypt.ts --in "$PWD/backup.dump.enc" --out "$PWD/backup.dump" --key "$PWD/key.pem"
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" citizenrun-backup:ci pg_restore --list /data/backup.dump > list.txt
+          grep -q ' TABLE DATA ' list.txt
+
+  e2e:
+    needs: web
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    env:
+      CI: 'true'
+      TEST_DATABASE_URL: 'postgres://citizenrun:citizenrun@postgres:5432/postgres'
+      TEST_S3_ENDPOINT: 'http://seaweedfs:8333'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: web-dist
+          path: apps/mobile/dist
+      - run: pnpm build:api
+      - run: pnpm build:worker
+      - run: pnpm e2e:web
+      - if: always()
+        run: pnpm exec tsx scripts/flake-report.ts --report apps/mobile/test-results/results.json
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-results
+          path: |
+            apps/mobile/playwright-report
+            apps/mobile/test-results
+          retention-days: 7
+
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm audit --prod --audit-level=high
+
+  secrets:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Download gitleaks
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$(jq -r '.assets["linux-x64"].url' scripts/gitleaks.json)"
+          sha256="$(jq -r '.assets["linux-x64"].sha256' scripts/gitleaks.json)"
+          echo "gitleaks $(jq -r '.version' scripts/gitleaks.json)"
+          curl -fsSL -o gitleaks.tar.gz "$url"
+          echo "$sha256  gitleaks.tar.gz" | sha256sum -c -
+          mkdir -p .gitleaks-bin && tar -xzf gitleaks.tar.gz -C .gitleaks-bin gitleaks
+      - name: Scan the commit range
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          HEAD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          zeros=0000000000000000000000000000000000000000
+          if [ "$EVENT_NAME" = pull_request ]; then
+            range="$PR_BASE_SHA..$PR_HEAD_SHA"
+          elif [ "$EVENT_NAME" = push ] && [ -n "$PUSH_BEFORE" ] && [ "$PUSH_BEFORE" != "$zeros" ]; then
+            range="$PUSH_BEFORE..$HEAD_SHA"
+          else
+            range="$HEAD_SHA"
+          fi
+          echo "range $range"
+          ./.gitleaks-bin/gitleaks git --redact --no-banner --config .gitleaks.toml --log-opts="$range"

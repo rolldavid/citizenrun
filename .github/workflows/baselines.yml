@@ -1,0 +1,46 @@
+name: baselines
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  baselines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    env:
+      CI: 'true'
+      TEST_DATABASE_URL: 'postgres://citizenrun:citizenrun@postgres:5432/postgres'
+      TEST_S3_ENDPOINT: 'http://seaweedfs:8333'
+    steps:
+      - name: Refuse any branch but stage/* and wp/*
+        shell: bash
+        run: |
+          case "$GITHUB_REF_NAME" in stage/*|wp/*) ;; *) echo "baselines runs only on stage/* and wp/* branches"; exit 1 ;; esac
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm build:web
+      - run: pnpm build:api
+      - run: pnpm build:worker
+      - run: pnpm --filter @citizenrun/mobile exec playwright test --update-snapshots
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: web-baselines
+          path: apps/mobile/e2e/web/__screenshots__/
+          retention-days: 7

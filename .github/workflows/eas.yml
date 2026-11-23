@@ -1,0 +1,68 @@
+name: eas
+
+on:
+  push:
+    tags: ['v*.*.*', 'preview-*']
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Build profile
+        type: choice
+        required: true
+        options: [development, preview, production]
+      platform:
+        description: Platform
+        type: choice
+        default: all
+        options: [ios, android, all]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: 'eas-${{ github.ref }}'
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: "${{ startsWith(github.ref, 'refs/tags/v') && 'production' || 'staging' }}"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Check the tag against the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_version="$(pnpm --silent --filter @citizenrun/mobile exec expo config --type public --json | jq -r .version)"
+          if [ "${GITHUB_REF_NAME#v}" != "$app_version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match app version $app_version"
+            exit 1
+          fi
+      - uses: expo/expo-github-action@5273c2136bd09c2a341fe3340d3e767ce5a13015 # v9.0.2
+        with:
+          eas-version: 27.11.0
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Start the EAS build
+        working-directory: apps/mobile
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_PROFILE: ${{ inputs.profile }}
+          INPUT_PLATFORM: ${{ inputs.platform }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = workflow_dispatch ]; then
+            PROFILE="$INPUT_PROFILE"
+            PLATFORM="$INPUT_PLATFORM"
+          else
+            case "$GITHUB_REF_NAME" in
+              v*) PROFILE=production ;;
+              preview-*) PROFILE=preview ;;
+              *) echo "eas runs on a v*.*.* or preview-* tag, or by dispatch"; exit 1 ;;
+            esac
+            PLATFORM=all
+          fi
+          eas build --profile "$PROFILE" --platform "$PLATFORM" --non-interactive --no-wait
