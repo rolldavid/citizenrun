@@ -59,10 +59,22 @@ describe('J-db.connections-check', () => {
     expect(alerts.length).toBeLessThanOrEqual(slotsSpanned(started, ended, DAY_SECONDS));
   });
 
-  it('the real counter reads client backends', async () => {
+  it('the real count includes its own session', async () => {
     const count = await countClientConnections(getTestDb());
     expect(Number.isInteger(count)).toBe(true);
-    expect(count).toBeGreaterThan(0);
+    expect(count).toBeGreaterThanOrEqual(1);
+  });
+
+  it('a count below 1 fails the job', async () => {
+    const result = await runJob(
+      createConnectionsCheckJob(() => Promise.resolve(0)),
+      {},
+    );
+    expect(result.outcome).toBe('failed');
+    expect(await peekQueue('ops.alert')).toEqual([]);
+    expect(
+      captureLogs().lines.find((line) => line.parsed.event === 'connections.check.done'),
+    ).toBeUndefined();
   });
 
   it('the retry path', async () => {
