@@ -21,4 +21,5 @@ export type { CapturedLine } from './logs.ts';
 export { idAt, uuidFloorAt } from './ids.ts';
 export { registerScanValue, registerScanSource } from './scan.ts';
 export { KEEP_TABLES } from './keep-tables.ts';
+export * from './factories/index.ts';
 export type { BucketKind } from './names.ts';

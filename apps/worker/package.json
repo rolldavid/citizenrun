@@ -1,0 +1,24 @@
+{
+  "name": "@citizenrun/worker",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/main.ts",
+    "build": "tsx ../../scripts/build-service.ts src/main.ts dist/main.js && tsx ../../scripts/build-service.ts src/backup/main.ts dist/backup.js --no-externals",
+    "start": "node --enable-source-maps dist/main.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "pg-boss": "catalog:",
+    "pg": "catalog:",
+    "drizzle-orm": "catalog:",
+    "zod": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
+    "resend": "6.38.1",
+    "@citizenrun/shared": "workspace:*",
+    "@citizenrun/db": "workspace:*"
+  }
+}

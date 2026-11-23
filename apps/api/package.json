@@ -20,6 +20,7 @@
     "drizzle-orm": "catalog:",
     "pg": "catalog:",
     "pg-boss": "catalog:",
+    "resend": "6.38.1",
     "@citizenrun/shared": "workspace:*",
     "@citizenrun/db": "workspace:*"
   }
