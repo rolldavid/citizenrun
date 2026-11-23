@@ -29,12 +29,45 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup # installs the pinned railway SDK so railway/iac resolves
-      - uses: railwayapp/config@9e17d413dbe219f19d62538d9c06b5dbb5e9abf8 # v1.2.0
+      - name: Plan
+        env:
+          RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
+        run: |
+          set -o pipefail
+          pnpm exec railway config plan --out railway-plan.json | tee "$RUNNER_TEMP/railway-plan.txt"
+      # The apply job's action downloads the newest artifact of this name planned on the pull request's head.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          command: plan
-          railway-token: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
-          cli-version: '5.74.0'
-          artifact-name: railway-plan-staging
+          name: railway-plan-staging
+          path: railway-plan.json
+          if-no-files-found: error
+      - name: Comment the plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          [[ "$PR_NUMBER" =~ ^[0-9]+$ ]] || { echo "not a pull request number" >&2; exit 1; }
+          marker='<!-- railway-config-plan -->'
+          plan="$(sed -e 's/\x1b\[[0-9;]*[A-Za-z]//g' "$RUNNER_TEMP/railway-plan.txt")"
+          # A comment body holds at most 65,536 characters.
+          if [ "${#plan}" -gt 60000 ]; then
+            plan="${plan:0:60000}"$'\n'"... (cut; the full plan is the railway-plan-staging artifact)"
+          fi
+          body="$RUNNER_TEMP/railway-plan-comment.md"
+          printf '%s\n' "$marker" '### Railway config plan: staging' '' \
+            "Planned on \`$HEAD_SHA\`. Merging applies exactly this plan." '' '````text' "$plan" '````' > "$body"
+          ids="$(gh api --paginate "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
+            --jq '.[] | select(.user.login == "github-actions[bot]" and (.body | startswith("<!-- railway-config-plan -->"))) | .id')"
+          existing="${ids%%$'\n'*}"
+          if [ -n "$existing" ]; then
+            jq -n --rawfile body "$body" '{body: $body}' |
+              gh api --method PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$existing" --input - > /dev/null
+          else
+            jq -n --rawfile body "$body" '{body: $body}' |
+              gh api --method POST "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" --input - > /dev/null
+          fi
 
   apply-staging:
     if: github.event_name == 'push' && vars.RAILWAY_STAGING_READY == 'true'
