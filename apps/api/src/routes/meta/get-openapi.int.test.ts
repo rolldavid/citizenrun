@@ -1,8 +1,9 @@
 import { readFile } from 'node:fs/promises';
-import { describe, expect, it } from 'vitest';
-import { createApp } from '../../app.ts';
-import { createDocDeps } from '../../openapi.ts';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { OPENAPI_FILE } from '../../scripts/gen-openapi.ts';
+import { createTestApp } from '../../testing/app.ts';
+import type { TestApp } from '../../testing/app.ts';
+import type { TestResponse } from '../../testing/request.ts';
 
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
 
@@ -10,10 +11,14 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-// E-REF-03 reads no dependency, so the app is built over the throwing document dependencies.
-function request(): Promise<Response> {
-  const app = createApp(createDocDeps(), { strictResponses: true });
-  return Promise.resolve(app.request('/v1/openapi.json'));
+let testApp: TestApp;
+
+beforeAll(async () => {
+  testApp = await createTestApp();
+});
+
+function request(): Promise<TestResponse> {
+  return testApp.request.get('/v1/openapi.json');
 }
 
 async function committedDocument(): Promise<unknown> {
@@ -29,8 +34,7 @@ describe('GET /v1/openapi.json', () => {
   });
 
   it('needs no client header', async () => {
-    const app = createApp(createDocDeps(), { strictResponses: true });
-    const response = await app.request('/v1/openapi.json', { headers: {} });
+    const response = await testApp.request.get('/v1/openapi.json', { client: null });
     expect(response.status).not.toBe(400);
     expect(response.status).not.toBe(426);
     expect(response.status).toBe(200);

@@ -1,66 +1,61 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
-import type { ErrorHandler, NotFoundHandler } from 'hono';
-import { ApiError, ERROR_CODES } from '@citizenrun/shared';
-import type { ErrorCode, ErrorEnvelope, FieldCode } from '@citizenrun/shared';
+import { RATE_LIMIT_POLICIES } from './config/rate-limits.ts';
 import type { Deps } from './deps.ts';
+import { bodyLimit } from './middleware/body-limit.ts';
+import { cacheHeaders } from './middleware/cache-headers.ts';
+import { clientVersion } from './middleware/client-version.ts';
+import { handleError, notFound } from './middleware/handle-error.ts';
+import { httpsRedirect } from './middleware/https-redirect.ts';
+import { logRequest } from './middleware/log-request.ts';
+import { addressHash, rateLimitV1 } from './middleware/rate-limit.ts';
+import { requestId } from './middleware/request-id.ts';
+import { createRouteMetaIndex } from './middleware/route-meta.ts';
+import { secureHeaders } from './middleware/secure-headers.ts';
+import { requestVariables } from './middleware/variables.ts';
 import { documentFor } from './openapi.ts';
 import type { OpenApiDocument } from './openapi.ts';
-import { JSON_CONTENT_TYPE } from './respond.ts';
 import { createRouter } from './router.ts';
-import type { ApiEnv } from './router.ts';
+import type { ApiEnv as RouterEnv } from './router.ts';
 import { registerRoutes } from './routes/index.ts';
 
 /** Options of `createApp`; every member is optional. */
-export type AppOptions = { strictResponses?: boolean };
+export type AppOptions = {
+  /** Mounts test routes after the route registry; they never enter the served document. */
+  extraRoutes?: (app: OpenAPIHono<RouterEnv>) => void;
+};
 
 // The session cookie's wire name on HTTPS origins, as the document's `cookie` security scheme names it (D-231).
 const SESSION_COOKIE_WIRE_NAME = '__Host-os_session';
 
-function envelope(code: ErrorCode, fields: Readonly<Record<string, FieldCode>>): ErrorEnvelope {
-  return { error: { code, message: ERROR_CODES[code].message, fields: { ...fields } } };
-}
-
-/** Answers an `ApiError` with its registry status and envelope; anything else is 500 `internal`. */
-export const apiErrorHandler: ErrorHandler<ApiEnv> = (err, c) => {
-  if (err instanceof ApiError) {
-    const headers: Record<string, string> = { 'Content-Type': JSON_CONTENT_TYPE };
-    if (err.retryAfterSeconds !== null) {
-      headers['Retry-After'] = String(err.retryAfterSeconds);
-    }
-    return c.json(envelope(err.code, err.fields), ERROR_CODES[err.code].status, headers);
-  }
-  return c.json(envelope('internal', {}), ERROR_CODES.internal.status, {
-    'Content-Type': JSON_CONTENT_TYPE,
-  });
-};
-
-/** Answers a path no route matches with 404 `not_found`. */
-export const notFoundHandler: NotFoundHandler<ApiEnv> = (c) =>
-  c.json(envelope('not_found', {}), ERROR_CODES.not_found.status, {
-    'Content-Type': JSON_CONTENT_TYPE,
-  });
-
 /**
- * Builds the API app over `deps`. Building it reads nothing from `deps`, opens no connection and
- * starts no timer, so the OpenAPI document can be built from it alone.
+ * Builds the API app over `deps` with the middleware chain of L-middleware-chain (D-163). Building
+ * it reads nothing from `deps`, opens no connection and starts no timer, so the OpenAPI document can
+ * be built from it alone; every middleware reads `deps` per request.
  */
-export function createApp(deps: Deps, options: AppOptions = {}): OpenAPIHono<ApiEnv> {
-  const root = createRouter();
-  root.openAPIRegistry.registerComponent('securitySchemes', 'bearer', {
+export function createApp(deps: Deps, options: AppOptions = {}): OpenAPIHono<RouterEnv> {
+  const app = createRouter();
+  app.openAPIRegistry.registerComponent('securitySchemes', 'bearer', {
     type: 'http',
     scheme: 'bearer',
   });
-  root.openAPIRegistry.registerComponent('securitySchemes', 'cookie', {
+  app.openAPIRegistry.registerComponent('securitySchemes', 'cookie', {
     type: 'apiKey',
     in: 'cookie',
     name: SESSION_COOKIE_WIRE_NAME,
   });
 
-  const respondMode = options.strictResponses === true ? 'strict' : 'strip';
-  root.use(async (c, next) => {
-    c.set('respondMode', respondMode);
-    await next();
-  });
+  const index = createRouteMetaIndex();
+  app.use('*', requestVariables(deps));
+  app.use('*', requestId());
+  app.use('*', logRequest(deps));
+  app.use('*', addressHash(deps));
+  app.use('*', secureHeaders(deps));
+  app.use('*', httpsRedirect(deps));
+  app.use('/v1/*', clientVersion(deps, index));
+  app.use('/v1/*', bodyLimit(deps, index));
+  // The session, the request-forgery check and the gates join here, in that order (L-middleware-chain).
+  app.use('/v1/*', rateLimitV1(deps, index, RATE_LIMIT_POLICIES));
+  app.use('/v1/*', cacheHeaders(index));
 
   let document: OpenApiDocument | null = null;
   const getOpenApiDocument = (): OpenApiDocument => {
@@ -69,10 +64,12 @@ export function createApp(deps: Deps, options: AppOptions = {}): OpenAPIHono<Api
     }
     return document;
   };
-  registerRoutes(root, deps, { routeMiddleware: [], getOpenApiDocument });
+  registerRoutes(app, deps, { routeMiddleware: [], getOpenApiDocument });
+  document = documentFor(app);
+  options.extraRoutes?.(app);
 
-  root.onError(apiErrorHandler);
-  root.notFound(notFoundHandler);
-  document = documentFor(root);
-  return root;
+  index.load(app);
+  app.onError(handleError(deps));
+  app.notFound(notFound(deps));
+  return app;
 }

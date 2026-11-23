@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from './app.ts';
 import { buildOpenApiDocument, createDocDeps } from './openapi.ts';
 import { OPENAPI_FILE } from './scripts/gen-openapi.ts';
+import { createUnitDeps } from './testing/unit-deps.ts';
 
 type Operation = Record<string, unknown>;
 
@@ -110,7 +111,7 @@ describe('buildOpenApiDocument', () => {
 
 describe('createApp', () => {
   it('serves the same document at /v1/openapi.json', async () => {
-    const app = createApp(createDocDeps(), { strictResponses: true });
+    const app = createApp(createUnitDeps());
     const response = await app.request('/v1/openapi.json');
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('public, max-age=300');
@@ -119,7 +120,7 @@ describe('createApp', () => {
   });
 
   it('answers an unknown path with 404 not_found', async () => {
-    const app = createApp(createDocDeps(), { strictResponses: true });
+    const app = createApp(createUnitDeps());
     const response = await app.request('/v1/nothing');
     expect(response.status).toBe(404);
     expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8');

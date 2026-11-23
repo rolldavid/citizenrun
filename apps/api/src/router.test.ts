@@ -1,9 +1,10 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
 import { ApiError, ErrorEnvelopeSchema } from '@citizenrun/shared';
-import { apiErrorHandler } from './app.ts';
+import { handleError } from './middleware/handle-error.ts';
 import { createRouter, defineRoute, fieldCodesOf, registerRoute } from './router.ts';
 import type { RouteContext } from './router.ts';
+import { createUnitDeps } from './testing/unit-deps.ts';
 
 const BodySchema = z.object({
   name: z.string().min(2).max(5),
@@ -115,7 +116,7 @@ describe('createRouter', () => {
     const router = createRouter();
     const route = defineRoute({
       method: 'post',
-      path: '/things',
+      path: '/v1/things',
       operationId: 'createThing',
       request: {
         body: { content: { 'application/json': { schema: BodySchema } }, required: true },
@@ -131,9 +132,9 @@ describe('createRouter', () => {
       errors: ['invalid_request'],
     });
     registerRoute(router, route, (c) => c.body(null, 200), NO_CONTEXT);
-    router.onError(apiErrorHandler);
+    router.onError(handleError(createUnitDeps()));
 
-    const response = await router.request('/things', {
+    const response = await router.request('/v1/things', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ ...VALID, name: 'a', tags: [] }),
@@ -213,20 +214,20 @@ describe('defineRoute', () => {
   });
 });
 
-describe('apiErrorHandler', () => {
+describe('handleError', () => {
   function routerThrowing(error: unknown) {
     const router = createRouter();
-    router.get('/boom', () => {
+    router.get('/v1/boom', () => {
       throw error;
     });
-    router.onError(apiErrorHandler);
+    router.onError(handleError(createUnitDeps()));
     return router;
   }
 
   it('answers an ApiError with its status, envelope and Retry-After', async () => {
     const response = await routerThrowing(
       new ApiError('rate_limited', { retryAfterSeconds: 12 }),
-    ).request('/boom');
+    ).request('/v1/boom');
     expect(response.status).toBe(429);
     expect(response.headers.get('retry-after')).toBe('12');
     expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8');
@@ -236,13 +237,13 @@ describe('apiErrorHandler', () => {
   });
 
   it('sends no Retry-After when the error has none', async () => {
-    const response = await routerThrowing(new ApiError('not_found')).request('/boom');
+    const response = await routerThrowing(new ApiError('not_found')).request('/v1/boom');
     expect(response.status).toBe(404);
     expect(response.headers.get('retry-after')).toBeNull();
   });
 
   it('answers anything else with 500 internal and the fixed message', async () => {
-    const response = await routerThrowing(new Error('db said MARKER_ERR_91c2')).request('/boom');
+    const response = await routerThrowing(new Error('db said MARKER_ERR_91c2')).request('/v1/boom');
     expect(response.status).toBe(500);
     const text = await response.text();
     expect(text).not.toContain('MARKER_ERR_91c2');
