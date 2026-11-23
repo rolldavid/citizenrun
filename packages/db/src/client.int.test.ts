@@ -1,3 +1,5 @@
+import { createServer } from 'node:net';
+import type { AddressInfo, Socket } from 'node:net';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { DatabaseUnavailableError, createPool, waitForDatabase } from './client.ts';
@@ -30,6 +32,40 @@ describe('client', () => {
       );
       expect(Date.now() - startedAt).toBeLessThan(5_000);
     } finally {
+      await pool.end();
+    }
+  });
+
+  it('gives up after its window when the server accepts and never answers', async () => {
+    // A listener that takes the connection and stays silent: no startup reply, no error.
+    const sockets = new Set<Socket>();
+    const server = createServer((socket) => {
+      sockets.add(socket);
+      socket.on('error', () => undefined);
+    });
+    await new Promise<void>((resolve) => {
+      server.listen(0, '127.0.0.1', resolve);
+    });
+    const { port } = server.address() as AddressInfo;
+    const pool = createPool(`postgres://citizenrun:citizenrun@127.0.0.1:${String(port)}/x`, {
+      max: 1,
+    });
+    const startedAt = Date.now();
+    try {
+      await expect(waitForDatabase(pool, { timeoutMs: 1_500, intervalMs: 250 })).rejects.toThrow(
+        DatabaseUnavailableError,
+      );
+      expect(Date.now() - startedAt).toBeLessThan(3_000);
+    } finally {
+      // Closing the silent sockets fails the abandoned attempt, so the pool can end.
+      for (const socket of sockets) {
+        socket.destroy();
+      }
+      await new Promise<void>((resolve) => {
+        server.close(() => {
+          resolve();
+        });
+      });
       await pool.end();
     }
   });

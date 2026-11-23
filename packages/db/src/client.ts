@@ -51,9 +51,32 @@ export function createPool(
   return pool;
 }
 
+// One `select 1`, given at most `withinMs`: true when it answered in time. An attempt that hangs
+// (a server that accepts and never replies) is abandoned, and its later rejection is handled here,
+// so it never surfaces as an unhandled rejection. The error text can name the host or the user;
+// it is dropped.
+async function answersWithin(pool: Pool, withinMs: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => {
+      resolve(false);
+    }, withinMs);
+  });
+  const answered = pool.query('select 1').then(
+    () => true,
+    () => false,
+  );
+  try {
+    return await Promise.race([answered, timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Runs `select 1` every `intervalMs` (default 1,000) until it succeeds; throws
- * DatabaseUnavailableError once `timeoutMs` (default 30,000) has passed without an answer.
+ * DatabaseUnavailableError once `timeoutMs` (default 30,000) has passed without an answer, also
+ * when an attempt hangs.
  */
 export async function waitForDatabase(
   pool: Pool,
@@ -63,11 +86,8 @@ export async function waitForDatabase(
   const intervalMs = options.intervalMs ?? DEFAULT_WAIT_INTERVAL_MS;
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    try {
-      await pool.query('select 1');
+    if (await answersWithin(pool, Math.max(deadline - Date.now(), 0))) {
       return;
-    } catch {
-      // The error text can name the host or the user; it is dropped, and the wait goes on.
     }
     if (Date.now() + intervalMs > deadline) {
       throw new DatabaseUnavailableError();
