@@ -41,18 +41,30 @@ export function clearScanRegistrations(): void {
   registeredSources.clear();
 }
 
-// The marker's base64 form, cut to its whole 3-byte groups: the characters that stay the same
-// whatever follows the marker in the encoded text.
-function base64Groups(value: string): string {
-  const encoded = Buffer.from(value, 'utf8').toString('base64');
-  return encoded.slice(0, Math.floor(Buffer.byteLength(value, 'utf8') / 3) * 4);
+// The marker's base64 forms, one per byte alignment of the marker inside the encoded text (0, 1 or
+// 2 bytes after a 3-byte group starts): each is the run of characters that stays the same whatever
+// comes before and after the marker, that is the groups made of marker bytes only.
+export function base64Forms(value: string): [string, string, string] {
+  const bytes = Buffer.from(value, 'utf8');
+  const form = (offset: number): string => {
+    const shifted = Buffer.concat([Buffer.alloc(offset), bytes]);
+    const encoded = shifted.toString('base64');
+    // Skip the group that holds filler bytes, then keep the whole groups that follow.
+    const skipGroups = offset === 0 ? 0 : 1;
+    const wholeGroups = Math.floor(shifted.length / 3) - skipGroups;
+    return encoded.slice(skipGroups * 4, (skipGroups + wholeGroups) * 4);
+  };
+  return [form(0), form(1), form(2)];
 }
 
-/** The patterns of the always-on scan (TC-48): the marker, its base64 form, the fixed four and every registered value. */
+/** The patterns of the always-on scan (TC-48): the marker, its three base64 forms, the fixed four and every registered value. */
 export function scanPatterns(markerValue: string, registered: readonly string[]): Pattern[] {
+  const [aligned, shiftedOne, shiftedTwo] = base64Forms(markerValue);
   return [
     { name: 'marker', value: markerValue },
-    { name: 'marker-base64', value: base64Groups(markerValue) },
+    { name: 'marker-base64', value: aligned },
+    { name: 'marker-base64-1', value: shiftedOne },
+    { name: 'marker-base64-2', value: shiftedTwo },
     { name: 'email', value: '@example.test' },
     { name: 'presigned-url', value: 'X-Amz-Signature' },
     { name: 'bearer', value: 'Bearer ' },

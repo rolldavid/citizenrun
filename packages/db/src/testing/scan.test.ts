@@ -33,6 +33,31 @@ describe('scanTexts', () => {
     ]);
   });
 
+  it('finds the base64 form of the marker one byte into a group', () => {
+    const m = marker();
+    const encoded = Buffer.from(`x${m} and more`).toString('base64');
+    expect(scanTexts([{ source: 'job 1', text: encoded }], scanPatterns(m, []))).toEqual([
+      { source: 'job 1', pattern: 'marker-base64-1' },
+    ]);
+  });
+
+  it('finds the base64 form of the marker two bytes into a group', () => {
+    const m = marker();
+    const encoded = Buffer.from(`{"${m}"}`).toString('base64');
+    expect(scanTexts([{ source: 'job 1', text: encoded }], scanPatterns(m, []))).toEqual([
+      { source: 'job 1', pattern: 'marker-base64-2' },
+    ]);
+  });
+
+  it('finds the base64 form of the marker after any prefix length', () => {
+    const m = marker();
+    for (const prefix of ['', 'a', 'ab', 'abc', 'abcd', 'abcde', 'abcdef']) {
+      const encoded = Buffer.from(`${prefix}${m}tail`).toString('base64');
+      const found = scanTexts([{ source: 'job', text: encoded }], scanPatterns(m, []));
+      expect(found, `prefix of ${String(prefix.length)} bytes`).toHaveLength(1);
+    }
+  });
+
   it('finds a registered value', () => {
     const found = scanTexts(
       [{ source: 'log line 1', text: 'token tok_fixture_123 issued' }],
