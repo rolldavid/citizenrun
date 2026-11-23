@@ -9,6 +9,7 @@ import { processStartedAt, writeHeartbeat } from './jobs/ops/heartbeat.ts';
 import { errorClassOf } from './jobs/types.ts';
 import { createWorkerDb, createWorkerPool } from './lib/db.ts';
 import { createMailer } from './lib/mailer.ts';
+import { installProcessErrorHandlers } from './lib/process-errors.ts';
 import { createShutdown, installShutdown } from './lib/shutdown.ts';
 import { createWorkerBuckets } from './lib/storage.ts';
 import { QUEUE_REGISTRY, registerQueues, registerSchedules } from './queues.ts';
@@ -74,6 +75,7 @@ async function start(env: WorkerEnv, logger: Logger): Promise<void> {
 
 const env = readEnv();
 const logger = createLogger({ service: 'worker', level: env.LOG_LEVEL });
+installProcessErrorHandlers(logger, 'worker.crashed');
 logMissingOwnerInputs(env, logger);
 start(env, logger).catch((error: unknown) => {
   // The class only: a driver's message can name a host or a user.

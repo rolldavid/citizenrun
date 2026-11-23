@@ -8,14 +8,13 @@ import { createDeps } from './deps.ts';
 import { loadEnv, logMissingOwnerInputs } from './env.ts';
 import type { ApiEnv } from './env.ts';
 import { API_HARD_STOP_MS, drainServer } from './lib/lifecycle.ts';
+import {
+  errorClassOf,
+  installProcessErrorHandlers,
+  serverErrorHandler,
+} from './lib/process-errors.ts';
 import { webAssetsFor } from './web/assets.ts';
 import { WebShellInvalidError } from './web/shell.ts';
-
-const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
-
-function errorClassOf(error: unknown): string {
-  return error instanceof Error && ERROR_CLASS_PATTERN.test(error.name) ? error.name : 'Error';
-}
 
 // This file sits two folders below the repository's apps folder, in src/ and in dist/ alike.
 const here = dirname(fileURLToPath(import.meta.url));
@@ -49,8 +48,17 @@ async function start(env: ApiEnv, logger: Logger): Promise<void> {
     }
     throw error;
   }
-  const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' });
-  logger.info('api.started', { port: env.PORT });
+  // Started means listening (D-807): the line is written once the port is bound, and a failed
+  // bind ends in `api.start_failed`.
+  const server = serve({ fetch: app.fetch, port: env.PORT, hostname: '0.0.0.0' }, () => {
+    logger.info('api.started', { port: env.PORT });
+  });
+  server.on(
+    'error',
+    serverErrorHandler(logger, (code) => {
+      process.exit(code);
+    }),
+  );
 
   let stopping = false;
   const stop = async (signal: NodeJS.Signals): Promise<void> => {
@@ -77,6 +85,7 @@ async function start(env: ApiEnv, logger: Logger): Promise<void> {
 
 const env = readEnv();
 const logger = createLogger({ service: 'api', level: env.LOG_LEVEL });
+installProcessErrorHandlers(logger, 'api.crashed');
 logMissingOwnerInputs(env, logger);
 start(env, logger).catch((error: unknown) => {
   // The class only: a driver's message can name a host or a user.
