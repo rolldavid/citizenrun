@@ -6,6 +6,7 @@ CLAUDE.md
 
 node_modules/
 dist/
+!apps/api/src/web/__fixtures__/dist/
 .expo/
 apps/mobile/ios/
 apps/mobile/android/
