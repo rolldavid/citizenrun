@@ -8,3 +8,4 @@ export * from './shortcuts';
 export * from './haptic';
 export * from './tone';
 export * from './shells/use-breakpoint';
+export * from './components';
