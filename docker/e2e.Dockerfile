@@ -11,6 +11,8 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && 
 ARG PNPM_VERSION=12.21.0
 ENV CI=true
 RUN npm install -g pnpm@${PNPM_VERSION}
+# scripts/e2e-stack.ts drops and creates the stack's database with psql, which the Playwright image lacks.
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm fetch
