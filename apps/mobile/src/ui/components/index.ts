@@ -21,5 +21,11 @@ export * from './screen';
 export { List, useIsActiveVideo } from './list';
 export type { ListProps } from './list';
 export * from './system-screen';
+export * from './sheet';
+// C-Dialog's file also exports the frame it shares with C-Sheet; `@/ui` takes the dialog alone.
+export { Dialog } from './dialog';
+export type { DialogProps } from './dialog';
+export * from './tooltip';
+export * from './toast';
 export { ICONS, ICON_NAMES } from '@/ui/icons';
 export type { IconName } from '@/ui/icons';

@@ -38,6 +38,8 @@ type Registry = {
   register: (registration: Registration) => () => void;
   /** Counts one more open overlay; the returned function counts it out. */
   block: () => () => void;
+  /** Adds a listener for every Escape key event; the returned function removes it. */
+  listenEscape: (handler: { current: () => void }) => () => void;
   subscribe: (listener: () => void) => () => void;
   getActive: () => readonly ActiveShortcut[];
 };
@@ -54,6 +56,8 @@ function createRegistry(): Registry {
   const listeners = new Set<() => void>();
   let blockers = 0;
   let active: readonly ActiveShortcut[] = [];
+  // Not registrations: they hear Escape whatever else holds the key, and are never listed.
+  const escapeListeners = new Set<{ current: () => void }>();
 
   const holderOf = (key: string): Registration | undefined =>
     registrations.find((registration) => sameKey(registration.key, key));
@@ -69,6 +73,11 @@ function createRegistry(): Registry {
 
   return {
     onKeyDown: (event) => {
+      if (event.key === 'Escape') {
+        for (const listener of [...escapeListeners]) {
+          listener.current();
+        }
+      }
       if (event.inTextField || event.altKey || event.ctrlKey || event.metaKey || blockers > 0) {
         return;
       }
@@ -94,6 +103,12 @@ function createRegistry(): Registry {
       blockers += 1;
       return () => {
         blockers -= 1;
+      };
+    },
+    listenEscape: (handler) => {
+      escapeListeners.add(handler);
+      return () => {
+        escapeListeners.delete(handler);
       };
     },
     subscribe: (listener) => {
@@ -171,4 +186,19 @@ export function useShortcutBlocker(active: boolean): void {
     if (registry === null || !active) return undefined;
     return registry.block();
   }, [registry, active]);
+}
+
+/** Calls the handler on every Escape key event while `enabled` is true. Not a registry shortcut. */
+export function useEscapeListener(handler: () => void, enabled: boolean): void {
+  const registry = useContext(RegistryContext);
+  const latest = useRef(handler);
+
+  useEffect(() => {
+    latest.current = handler;
+  }, [handler]);
+
+  useEffect(() => {
+    if (registry === null || !enabled) return undefined;
+    return registry.listenEscape(latest);
+  }, [registry, enabled]);
 }

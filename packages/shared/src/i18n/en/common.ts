@@ -6,6 +6,8 @@ export const common = {
     loading: 'Loading',
     retry: 'Try again',
     offline: 'No connection. This may be out of date.',
+    close: 'Close',
+    sheet: { close: 'Close' },
     link: { external: '{{label}}, opens in your browser' },
     avatar: { label: 'Photo of {{name}}' },
     badge: { overflow: '99+' },

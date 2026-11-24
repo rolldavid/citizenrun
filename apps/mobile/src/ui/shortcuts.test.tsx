@@ -6,7 +6,13 @@ import type { Mock } from 'vitest';
 
 import { links, linksFake } from '@/test/platform/links';
 
-import { ShortcutProvider, useActiveShortcuts, useShortcut, useShortcutBlocker } from './shortcuts';
+import {
+  ShortcutProvider,
+  useActiveShortcuts,
+  useEscapeListener,
+  useShortcut,
+  useShortcutBlocker,
+} from './shortcuts';
 import type { KeyEventLike } from './shortcuts';
 
 type KeyEvent = KeyEventLike & { preventDefault: Mock<() => void> };
@@ -44,6 +50,11 @@ function Shortcut(props: {
 
 function Blocker({ active }: { active: boolean }): null {
   useShortcutBlocker(active);
+  return null;
+}
+
+function EscapeListener(props: { onEscape: () => void; enabled: boolean }): null {
+  useEscapeListener(props.onEscape, props.enabled);
   return null;
 }
 
@@ -262,5 +273,70 @@ describe('the shortcut registry', () => {
     emit(key('j'));
     emit(key('/'));
     expect(onKey).not.toHaveBeenCalled();
+  });
+
+  it('an escape listener hears Escape while enabled', () => {
+    const lists: ActiveList[] = [];
+    const record = (list: ActiveList): void => {
+      lists.push(list);
+    };
+    const enabled = vi.fn();
+    const disabled = vi.fn();
+    const view = render(
+      <Provider>
+        <Shortcut k="j" onKey={() => undefined} />
+        <EscapeListener onEscape={enabled} enabled={true} />
+        <EscapeListener onEscape={disabled} enabled={false} />
+        <ActiveListProbe onList={record} />
+      </Provider>,
+    );
+    const event = key('Escape');
+    emit(event);
+    expect(enabled).toHaveBeenCalledTimes(1);
+    expect(disabled).not.toHaveBeenCalled();
+    // The registry holds no Escape of its own: the key keeps its default and is never listed.
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    expect(lists.at(-1)).toEqual([{ key: 'j', description: 'fixture j' }]);
+    expect(subscriptions()).toBe(1);
+
+    // Every other key passes it by.
+    emit(key('j'));
+    emit(key('Enter'));
+    expect(enabled).toHaveBeenCalledTimes(1);
+
+    // It hears Escape in a text field, with a modifier down and behind a blocker.
+    view.rerender(
+      <Provider>
+        <Shortcut k="j" onKey={() => undefined} />
+        <EscapeListener onEscape={enabled} enabled={true} />
+        <EscapeListener onEscape={disabled} enabled={false} />
+        <ActiveListProbe onList={record} />
+        <Blocker active={true} />
+      </Provider>,
+    );
+    emit(key('Escape', { inTextField: true }));
+    emit(key('Escape', { ctrlKey: true }));
+    expect(enabled).toHaveBeenCalledTimes(3);
+
+    // The latest handler runs, and a listener that is switched off or unmounted hears nothing.
+    const later = vi.fn();
+    view.rerender(
+      <Provider>
+        <EscapeListener onEscape={later} enabled={true} />
+        <EscapeListener onEscape={disabled} enabled={false} />
+      </Provider>,
+    );
+    emit(key('Escape'));
+    expect(later).toHaveBeenCalledTimes(1);
+    expect(enabled).toHaveBeenCalledTimes(3);
+    view.rerender(
+      <Provider>
+        <EscapeListener onEscape={later} enabled={false} />
+      </Provider>,
+    );
+    emit(key('Escape'));
+    expect(later).toHaveBeenCalledTimes(1);
+    expect(disabled).not.toHaveBeenCalled();
+    expect(subscriptions()).toBe(1);
   });
 });
