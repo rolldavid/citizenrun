@@ -1,9 +1,28 @@
 const http = require('node:http');
 const https = require('node:https');
+const path = require('node:path');
 const { URL } = require('node:url');
 const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
+
+// zod's entry modules (`zod/v4/core/index.js`, `zod/v4/classic/external.js`) re-export all of its
+// locales, about 40 KB gzipped that no screen reads. Their import resolves to a module that exports
+// English alone, the one locale zod registers by default (D-164).
+const ZOD_LOCALES_REQUEST = '../locales/index.js';
+const ZOD_ENTRY_FOLDER = /[\\/]node_modules[\\/]zod[\\/]v4[\\/](?:core|classic|mini)[\\/][^\\/]+$/;
+const ZOD_LOCALES = path.join(__dirname, 'src', 'lib', 'zod-locales.ts');
+
+const upstreamResolve = config.resolver.resolveRequest;
+
+config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === ZOD_LOCALES_REQUEST && ZOD_ENTRY_FOLDER.test(context.originModulePath)) {
+    return { type: 'sourceFile', filePath: ZOD_LOCALES };
+  }
+  return upstreamResolve
+    ? upstreamResolve(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+};
 
 // The web app and the API share one origin in development: these paths go to the local API.
 const FORWARDED_PREFIXES = ['/v1/', '/og/', '/m/', '/map/', '/tiles/', '/.well-known/'];
