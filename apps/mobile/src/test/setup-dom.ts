@@ -20,6 +20,7 @@ vi.mock('@/platform/storage', () => import('./platform/storage'));
 vi.mock('@/platform/links', () => import('./platform/links'));
 vi.mock('@/platform/age-assurance', () => import('./platform/age-assurance'));
 vi.mock('@/platform/query-client', () => import('./platform/query-client'));
+vi.mock('@/platform/head', () => import('./platform/head'));
 vi.mock('expo-router/head', () => ({ default: () => null }));
 // expo-status-bar and expo-localization load the expo package, which jsdom cannot import. The status
 // bar draws nothing on the web; the device is English.

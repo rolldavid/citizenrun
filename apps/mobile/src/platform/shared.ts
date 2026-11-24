@@ -1,4 +1,4 @@
-/** The fifteen module names, in the form used in error codes' first segment. */
+/** The sixteen module names, in the form used in error codes' first segment. */
 export type PlatformModuleName =
   | 'session'
   | 'map'
@@ -14,7 +14,8 @@ export type PlatformModuleName =
   | 'storage'
   | 'links'
   | 'age_assurance'
-  | 'query_client';
+  | 'query_client'
+  | 'head';
 
 /**
  * A permission as the caller must treat it.

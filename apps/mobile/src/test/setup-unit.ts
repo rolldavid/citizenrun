@@ -19,6 +19,7 @@ vi.mock('@/platform/storage', () => import('./platform/storage'));
 vi.mock('@/platform/links', () => import('./platform/links'));
 vi.mock('@/platform/age-assurance', () => import('./platform/age-assurance'));
 vi.mock('@/platform/query-client', () => import('./platform/query-client'));
+vi.mock('@/platform/head', () => import('./platform/head'));
 
 beforeEach(() => {
   resetPlatformFakes();

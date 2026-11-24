@@ -373,8 +373,8 @@ export const ROWS: readonly RestrictedRow[] = [
         message: 'Visual code gets its data from the view-model, not the API client.',
       },
       {
-        regex: '^@/platform/(?!(?:haptics|map|video)(?:/|$))',
-        message: 'Visual code uses only the haptics, map and video platform modules.',
+        regex: '^@/platform/(?!(?:haptics|head|map|video)(?:/|$))',
+        message: 'Visual code uses only the haptics, head, map and video platform modules.',
       },
     ],
     globals: [

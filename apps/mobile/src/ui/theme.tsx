@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useMemo } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useColorScheme, View } from 'react-native';
 
+import { head } from '@/platform/head';
+
 import { color, isIssueId, issue } from './tokens';
 import type { ThemeColors, ThemeName } from './tokens';
 
@@ -38,8 +40,9 @@ async function paintSystemBackground(ground: string): Promise<void> {
 }
 
 /**
- * Publishes the theme and paints the ground under its children: the root view, the status bar and
- * the system background follow it. A theme change is a cut. The innermost provider wins.
+ * Publishes the theme and paints the ground under its children: the root view, the status bar, the
+ * system background and, on the web, the theme-color meta tag follow it. A theme change is a cut.
+ * The innermost provider wins.
  */
 export function ThemeProvider({
   choice,
@@ -67,6 +70,7 @@ export function ThemeProvider({
   return (
     <ThemeContext.Provider value={theme}>
       <StatusBar style={name === 'light' ? 'dark' : 'light'} />
+      <head.ThemeColor color={ground} />
       <View style={{ flex: 1, backgroundColor: ground }}>{children}</View>
     </ThemeContext.Provider>
   );

@@ -2,6 +2,7 @@ import { ageAssuranceFake } from './age-assurance';
 import { authFake } from './auth';
 import { calendarFake } from './calendar';
 import { hapticsFake } from './haptics';
+import { headFake } from './head';
 import { linksFake } from './links';
 import { locationFake } from './location';
 import { mapFake } from './map';
@@ -31,4 +32,5 @@ export function resetPlatformFakes(): void {
   linksFake.reset();
   ageAssuranceFake.reset();
   queryClientFake.reset();
+  headFake.reset();
 }

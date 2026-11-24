@@ -315,6 +315,18 @@ const CASES: Case[] = [
     fails: false,
   },
   {
+    row: 'mobile-visual',
+    file: 'apps/mobile/src/ui/theme.tsx',
+    code: "import { storage } from '@/platform/storage';",
+    fails: true,
+  },
+  {
+    row: 'mobile-visual',
+    file: 'apps/mobile/src/ui/theme.tsx',
+    code: "import { head } from '@/platform/head';",
+    fails: false,
+  },
+  {
     row: 'mobile-ui',
     file: 'apps/mobile/src/ui/a.ts',
     code: "import '@/features/office';",

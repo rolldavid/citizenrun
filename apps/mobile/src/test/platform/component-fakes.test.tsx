@@ -9,6 +9,7 @@ import type { MapHandle, MapLayerSpec, MapStatus, MapSurfaceProps } from '@/plat
 import type { VideoSurfaceProps } from '@/platform/video/types';
 import { resetPlatformFakes } from '@/test/platform';
 import { auth, authFake } from '@/test/platform/auth';
+import { head, headFake } from '@/test/platform/head';
 import { links, linksFake } from '@/test/platform/links';
 import { map, mapFake } from '@/test/platform/map';
 import { video, videoFake } from '@/test/platform/video';
@@ -219,6 +220,19 @@ describe('the component fakes', () => {
     expect(videoFake.calls.at(-1)).toEqual({ op: 'setMuted', muted: false });
   });
 
+  it('the head fake records the theme color', () => {
+    const { rerender, unmount } = render(<head.ThemeColor color="#F1EFE7" />);
+    expect(headFake.themeColor()).toBe('#F1EFE7');
+    rerender(<head.ThemeColor color="#121210" />);
+    expect(headFake.themeColor()).toBe('#121210');
+    unmount();
+    expect(headFake.themeColor()).toBeNull();
+    expect(headFake.calls).toEqual([
+      { op: 'themeColor', color: '#F1EFE7' },
+      { op: 'themeColor', color: '#121210' },
+    ]);
+  });
+
   it('the auth fake drives a sign-in result', () => {
     const seen: string[] = [];
     const results: AppleSignInResult[] = [];
@@ -307,17 +321,22 @@ describe('the component fakes', () => {
   it('resetPlatformFakes forgets a component that is still mounted', () => {
     const statuses: MapStatus[] = [];
     render(
-      <map.Surface
-        {...surfaceProps({
-          onStatus: (status) => {
-            statuses.push(status);
-          },
-        })}
-      />,
+      <>
+        <map.Surface
+          {...surfaceProps({
+            onStatus: (status) => {
+              statuses.push(status);
+            },
+          })}
+        />
+        <head.ThemeColor color="#F1EFE7" />
+      </>,
     );
     mapFake.emitStatus({ kind: 'loading' });
     resetPlatformFakes();
     mapFake.emitStatus({ kind: 'ready', styleErrors: 0 });
     expect(statuses).toEqual([{ kind: 'loading' }]);
+    expect(headFake.themeColor()).toBeNull();
+    expect(headFake.calls).toEqual([]);
   });
 });

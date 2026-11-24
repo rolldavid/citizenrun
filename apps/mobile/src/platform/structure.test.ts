@@ -53,6 +53,7 @@ const MODULES: readonly ModuleRow[] = [
   { folder: 'links', runtimeExport: 'links', extension: 'ts' },
   { folder: 'age-assurance', runtimeExport: 'ageAssurance', extension: 'ts' },
   { folder: 'query-client', runtimeExport: 'queryClient', extension: 'ts' },
+  { folder: 'head', runtimeExport: 'head', extension: 'tsx' },
 ];
 
 const RUNTIME_EXPORT = /^export const ([A-Za-z]+)\b/gm;
@@ -70,10 +71,10 @@ function indexFiles(platform: 'native' | 'web', folder: string): string[] {
 }
 
 describe('the platform folder', () => {
-  it('fifteen folders', () => {
+  it('sixteen folders', () => {
     const folders = new Set(Object.keys(typesFiles).map(folderOf));
     expect(folders).toEqual(new Set(MODULES.map((row) => row.folder)));
-    expect(folders.size).toBe(15);
+    expect(folders.size).toBe(16);
   });
 
   it('three files each', () => {
@@ -92,7 +93,7 @@ describe('the platform folder', () => {
   it('one runtime export', () => {
     const expected = new Map(MODULES.map((row) => [row.folder, row.runtimeExport]));
     const sources = Object.entries({ ...nativeTs, ...nativeTsx, ...webTs, ...webTsx });
-    expect(sources).toHaveLength(30);
+    expect(sources).toHaveLength(32);
     for (const [key, source] of sources) {
       const names = [...source.matchAll(RUNTIME_EXPORT)].map((match) => match[1]);
       expect(names, key).toEqual([expected.get(folderOf(key))]);
@@ -107,7 +108,7 @@ describe('the platform folder', () => {
   });
 
   it('types files import only types', () => {
-    expect(Object.keys(typesFiles)).toHaveLength(15);
+    expect(Object.keys(typesFiles)).toHaveLength(16);
     for (const [key, source] of Object.entries(typesFiles)) {
       expect(/^import (?!type )/m.test(source), key).toBe(false);
     }

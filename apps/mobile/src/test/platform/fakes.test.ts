@@ -5,6 +5,7 @@ import * as realAgeAssurance from '@/platform/age-assurance';
 import * as realAuth from '@/platform/auth';
 import * as realCalendar from '@/platform/calendar';
 import * as realHaptics from '@/platform/haptics';
+import * as realHead from '@/platform/head';
 import * as realLinks from '@/platform/links';
 import * as realLocation from '@/platform/location';
 import * as realMap from '@/platform/map';
@@ -23,6 +24,7 @@ import { ageAssurance, ageAssuranceFake } from '@/test/platform/age-assurance';
 import { auth, authFake } from '@/test/platform/auth';
 import { calendar, calendarFake } from '@/test/platform/calendar';
 import { haptics, hapticsFake } from '@/test/platform/haptics';
+import { head } from '@/test/platform/head';
 import { links, linksFake } from '@/test/platform/links';
 import { location, locationFake } from '@/test/platform/location';
 import { map, mapFake } from '@/test/platform/map';
@@ -70,6 +72,7 @@ describe('the platform fakes', () => {
     expect(realLinks.links).toBe(links);
     expect(realAgeAssurance.ageAssurance).toBe(ageAssurance);
     expect(realQueryClient.queryClient).toBe(queryClient);
+    expect(realHead.head).toBe(head);
   });
 
   it('resetPlatformFakes restores every default', async () => {
