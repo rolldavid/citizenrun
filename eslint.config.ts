@@ -38,6 +38,7 @@ export default defineConfig([
     'apps/api/openapi.json',
     'apps/api/assets/**',
     'plans/**',
+    'admin/**',
     'ml/**',
     '.review-evidence/**',
     '.claude/**',

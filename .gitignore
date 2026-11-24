@@ -1,8 +1,9 @@
-# never committed (D-411)
+# never committed (D-411, D-801)
 plans/
 CLAUDE.md
 .claude/
 .review-evidence/
+admin/
 
 node_modules/
 dist/

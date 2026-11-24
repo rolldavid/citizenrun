@@ -16,5 +16,6 @@ apps/api/assets
 **/__fixtures__
 **/__golden__
 plans
+admin/
 ml
 .review-evidence
