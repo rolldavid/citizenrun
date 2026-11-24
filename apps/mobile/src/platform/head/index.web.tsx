@@ -1,7 +1,7 @@
 import Head from 'expo-router/head';
 import type { JSX } from 'react';
 
-import type { HeadModule, ThemeColorProps } from './types';
+import type { HeadModule, ThemeColorProps, TitleProps } from './types';
 
 function ThemeColor({ color }: ThemeColorProps): JSX.Element {
   return (
@@ -11,6 +11,14 @@ function ThemeColor({ color }: ThemeColorProps): JSX.Element {
   );
 }
 
-export const head: HeadModule = { ThemeColor };
+function Title({ children }: TitleProps): JSX.Element {
+  return (
+    <Head>
+      <title>{children}</title>
+    </Head>
+  );
+}
+
+export const head: HeadModule = { ThemeColor, Title };
 
 export type * from './types';

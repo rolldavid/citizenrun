@@ -46,6 +46,8 @@ vi.mock('@/platform/head', async () => {
       ) : (
         <native.head.ThemeColor {...props} />
       ),
+    Title: (props) =>
+      headForm.current === 'web' ? <web.head.Title {...props} /> : <native.head.Title {...props} />,
   };
   return { head };
 });

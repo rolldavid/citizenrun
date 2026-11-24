@@ -279,6 +279,24 @@ const CASES: Case[] = [
     fails: false,
   },
   {
+    row: 'mobile-platform-bound',
+    file: 'apps/mobile/src/features/x/screens/a.tsx',
+    code: "import Head from 'expo-router/head';",
+    fails: true,
+  },
+  {
+    row: 'mobile-platform-bound',
+    file: 'apps/mobile/src/platform/head/index.web.tsx',
+    code: "import Head from 'expo-router/head';",
+    fails: false,
+  },
+  {
+    row: 'mobile-platform-bound',
+    file: 'apps/mobile/app/_layout.tsx',
+    code: "import { Stack } from 'expo-router';",
+    fails: false,
+  },
+  {
     row: 'mobile-controls',
     file: 'apps/mobile/src/features/x/screens/a.tsx',
     code: "import { Pressable } from 'react-native';",
@@ -323,6 +341,12 @@ const CASES: Case[] = [
   {
     row: 'mobile-visual',
     file: 'apps/mobile/src/ui/theme.tsx',
+    code: "import { head } from '@/platform/head';",
+    fails: false,
+  },
+  {
+    row: 'mobile-visual',
+    file: 'apps/mobile/src/features/x/screens/a.tsx',
     code: "import { head } from '@/platform/head';",
     fails: false,
   },

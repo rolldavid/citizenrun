@@ -233,6 +233,19 @@ describe('the component fakes', () => {
     ]);
   });
 
+  it('the head fake records the document title', () => {
+    const { rerender, unmount } = render(<head.Title>Status · Fixture</head.Title>);
+    expect(headFake.title()).toBe('Status · Fixture');
+    rerender(<head.Title>Sign in · Fixture</head.Title>);
+    expect(headFake.title()).toBe('Sign in · Fixture');
+    unmount();
+    expect(headFake.title()).toBeNull();
+    expect(headFake.calls).toEqual([
+      { op: 'title', title: 'Status · Fixture' },
+      { op: 'title', title: 'Sign in · Fixture' },
+    ]);
+  });
+
   it('the auth fake drives a sign-in result', () => {
     const seen: string[] = [];
     const results: AppleSignInResult[] = [];
@@ -330,6 +343,7 @@ describe('the component fakes', () => {
           })}
         />
         <head.ThemeColor color="#F1EFE7" />
+        <head.Title>Status · Fixture</head.Title>
       </>,
     );
     mapFake.emitStatus({ kind: 'loading' });
@@ -337,6 +351,7 @@ describe('the component fakes', () => {
     mapFake.emitStatus({ kind: 'ready', styleErrors: 0 });
     expect(statuses).toEqual([{ kind: 'loading' }]);
     expect(headFake.themeColor()).toBeNull();
+    expect(headFake.title()).toBeNull();
     expect(headFake.calls).toEqual([]);
   });
 });

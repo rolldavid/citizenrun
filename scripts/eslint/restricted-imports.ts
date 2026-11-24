@@ -61,6 +61,7 @@ const PLATFORM_BOUND = [
   'expo-web-browser',
   'expo-crypto',
   'expo-video',
+  'expo-router/head',
   '@maplibre/maplibre-react-native',
   'maplibre-gl',
   '@cantoo/pdf-lib',
