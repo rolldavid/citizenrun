@@ -7,13 +7,30 @@ import { renderWithProviders } from '@/test/render';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
+import * as dialogFixtures from '@/ui/components/dialog.fixtures';
+import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
+import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
+import * as listFixtures from '@/ui/components/list.fixtures';
+import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
+import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as sheetFixtures from '@/ui/components/sheet.fixtures';
+import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
+import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
+import * as toastFixtures from '@/ui/components/toast.fixtures';
+import * as tooltipFixtures from '@/ui/components/tooltip.fixtures';
+import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
+import * as appBarFixtures from '@/ui/shells/app-bar.fixtures';
+import * as appShellFixtures from '@/ui/shells/app-shell.fixtures';
+import * as railFixtures from '@/ui/shells/rail.fixtures';
+import * as rightColumnFixtures from '@/ui/shells/right-column.fixtures';
+import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
 
 import { GalleryScreen } from './gallery-screen';
 import type { GalleryScreenProps } from './gallery-screen';
@@ -30,8 +47,23 @@ vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
   },
 }));
 
-/** The ten components in the order of the design system: id, kebab name and the states of its fixtures. */
+/** Every state of C-AppShell through each of its three layouts: `signedOutHome` at compact is `compactSignedOutHome`. */
+const SHELL_STATES: readonly string[] = ['compact', 'medium', 'expanded'].flatMap((layout) =>
+  Object.keys(appShellFixtures.STATES).map(
+    (state) => `${layout}${state.charAt(0).toUpperCase()}${state.slice(1)}`,
+  ),
+);
+
+/**
+ * Every section in the order of the design system, the shells before the components: id, kebab name
+ * and the states of its fixtures.
+ */
 const COMPONENTS: readonly { id: string; slug: string; states: readonly string[] }[] = [
+  { id: 'Shells', slug: 'shells', states: SHELL_STATES },
+  { id: 'C-TabBar', slug: 'tab-bar', states: Object.keys(tabBarFixtures.STATES) },
+  { id: 'C-Rail', slug: 'rail', states: Object.keys(railFixtures.STATES) },
+  { id: 'C-AppBar', slug: 'app-bar', states: Object.keys(appBarFixtures.STATES) },
+  { id: 'C-RightColumn', slug: 'right-column', states: Object.keys(rightColumnFixtures.STATES) },
   { id: 'C-Text', slug: 'text', states: Object.keys(textFixtures.STATES) },
   { id: 'C-Pressable', slug: 'pressable', states: Object.keys(pressableFixtures.STATES) },
   { id: 'C-Icon', slug: 'icon', states: Object.keys(iconFixtures.STATES) },
@@ -42,6 +74,18 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-IconButton', slug: 'icon-button', states: Object.keys(iconButtonFixtures.STATES) },
   { id: 'C-Avatar', slug: 'avatar', states: Object.keys(avatarFixtures.STATES) },
   { id: 'C-CountBadge', slug: 'count-badge', states: Object.keys(countBadgeFixtures.STATES) },
+  { id: 'C-Wordmark', slug: 'wordmark', states: Object.keys(wordmarkFixtures.STATES) },
+  { id: 'C-EmptyChair', slug: 'empty-chair', states: Object.keys(emptyChairFixtures.STATES) },
+  { id: 'C-Notice', slug: 'notice', states: Object.keys(noticeFixtures.STATES) },
+  { id: 'C-Skeleton', slug: 'skeleton', states: Object.keys(skeletonFixtures.STATES) },
+  { id: 'C-EmptyState', slug: 'empty-state', states: Object.keys(emptyStateFixtures.STATES) },
+  { id: 'C-Screen', slug: 'screen', states: Object.keys(screenFixtures.STATES) },
+  { id: 'C-List', slug: 'list', states: Object.keys(listFixtures.STATES) },
+  { id: 'C-SystemScreen', slug: 'system-screen', states: Object.keys(systemScreenFixtures.STATES) },
+  { id: 'C-Sheet', slug: 'sheet', states: Object.keys(sheetFixtures.STATES) },
+  { id: 'C-Dialog', slug: 'dialog', states: Object.keys(dialogFixtures.STATES) },
+  { id: 'C-Tooltip', slug: 'tooltip', states: Object.keys(tooltipFixtures.STATES) },
+  { id: 'C-Toast', slug: 'toast', states: Object.keys(toastFixtures.STATES) },
 ];
 
 const DEFAULTS: GalleryScreenProps = {
@@ -72,13 +116,29 @@ function draw(props: Partial<GalleryScreenProps> = {}): void {
   renderWithProviders(<GalleryScreen {...DEFAULTS} {...props} />);
 }
 
-/** The text of the level 2 headings, in the order they are drawn. */
+/** What a specimen draws: everything inside a cell, under the state's name. */
+const CELL = '[data-testid^="gallery.cell-"]';
+
+/** True for an element the gallery draws itself, outside every specimen. */
+function ownElement(element: HTMLElement): boolean {
+  return element.closest(CELL) === null;
+}
+
+/**
+ * The gallery's own level 2 headings, one for each section, in the order they are drawn. A specimen
+ * may draw headings of its own, which are not the gallery's.
+ */
+function sectionHeadingElements(): HTMLElement[] {
+  return screen.queryAllByRole('heading', { level: 2 }).filter(ownElement);
+}
+
+/** The text of the gallery's own level 2 headings, in the order they are drawn. */
 function sectionHeadings(): (string | null)[] {
-  return screen.queryAllByRole('heading', { level: 2 }).map((heading) => heading.textContent);
+  return sectionHeadingElements().map((heading) => heading.textContent);
 }
 
 function cells(): HTMLElement[] {
-  return [...document.querySelectorAll<HTMLElement>('[data-testid^="gallery.cell-"]')];
+  return [...document.querySelectorAll<HTMLElement>(CELL)];
 }
 
 /** The box a cell draws its specimen in: the cell's second child, under the state's name. */
@@ -122,6 +182,11 @@ describe('GalleryScreen', () => {
   it('draws every component in order', () => {
     draw();
     expect(sectionHeadings()).toEqual([
+      'Shells',
+      'C-TabBar',
+      'C-Rail',
+      'C-AppBar',
+      'C-RightColumn',
       'C-Text',
       'C-Pressable',
       'C-Icon',
@@ -132,11 +197,28 @@ describe('GalleryScreen', () => {
       'C-IconButton',
       'C-Avatar',
       'C-CountBadge',
+      'C-Wordmark',
+      'C-EmptyChair',
+      'C-Notice',
+      'C-Skeleton',
+      'C-EmptyState',
+      'C-Screen',
+      'C-List',
+      'C-SystemScreen',
+      'C-Sheet',
+      'C-Dialog',
+      'C-Tooltip',
+      'C-Toast',
     ]);
     expect(COMPONENTS.map((component) => component.id)).toEqual(sectionHeadings());
-    // The gallery's own heading is the page's.
+    // The gallery's own heading is the page's, and the page has one main landmark of its own, which
+    // holds every specimen. A specimen of a shell or a screen draws its own landmark, as it ships.
     expect(screen.getByRole('heading', { level: 1, name: 'Gallery' })).toBeDefined();
-    expect(screen.getAllByRole('main')).toHaveLength(1);
+    const main = screen.getAllByRole('main').filter(ownElement);
+    expect(main).toHaveLength(1);
+    for (const cell of cells()) {
+      expect(main[0]?.contains(cell), cell.dataset.testid).toBe(true);
+    }
   });
 
   it('draws every state', () => {
@@ -162,7 +244,7 @@ describe('GalleryScreen', () => {
 
   it('says how many states each component has', () => {
     draw();
-    const headings = screen.getAllByRole('heading', { level: 2 });
+    const headings = sectionHeadingElements();
     expect(headings.map((heading) => heading.nextElementSibling?.textContent)).toEqual(
       COMPONENTS.map(({ states }) =>
         states.length === 1 ? '1 state' : `${String(states.length)} states`,
