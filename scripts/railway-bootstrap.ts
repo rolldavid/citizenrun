@@ -966,10 +966,18 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
     ctx.stopRun = true;
     return;
   }
-  const link = await cli(ctx, 'railway', ['link', '--project', projectId], { mutating: false });
-  if (link.code !== 0) {
-    out.line('fail', `railway link: exit ${String(link.code)} (OI-railway)`);
-    return;
+  // Linked by environment name: outside a terminal the CLI refuses a plain link once the project
+  // holds two environments. The plain link answers while the project holds only one, which is the
+  // case when the environment this run creates does not exist yet.
+  const byName = await cli(ctx, 'railway', ['link', '--project', projectId, '--environment', env], {
+    mutating: false,
+  });
+  if (byName.code !== 0) {
+    const plain = await cli(ctx, 'railway', ['link', '--project', projectId], { mutating: false });
+    if (plain.code !== 0) {
+      out.line('fail', `railway link: exit ${String(plain.code)} (OI-railway)`);
+      return;
+    }
   }
   const listResult = await cli(ctx, 'railway', ['environment', 'list', '--json'], {
     mutating: false,
@@ -1517,6 +1525,21 @@ async function stepBucketCors(ctx: Ctx, out: StepPrinter): Promise<void> {
   out.line('ok', 'media CORS set and verified');
 }
 
+// Workspace limits are whole dollars; the agent limit is in cents. A null limit is one not set.
+const UsageLimitStatus = z.looseObject({
+  workspaceUsage: z
+    .looseObject({
+      usageLimit: z
+        .looseObject({
+          softLimit: z.number().nullable(),
+          hardLimit: z.number().nullable(),
+        })
+        .nullable(),
+    })
+    .nullable(),
+  agentUsage: z.looseObject({ hardLimitCents: z.number().nullable() }),
+});
+
 async function stepUsageLimits(ctx: Ctx, out: StepPrinter): Promise<void> {
   const commands = [
     ['usage', 'limit', 'set', '--target', 'workspace', '--soft', '80', '--hard', '110'],
@@ -1533,12 +1556,20 @@ async function stepUsageLimits(ctx: Ctx, out: StepPrinter): Promise<void> {
     out.line('skip', 'dry-run: usage limit status');
     return;
   }
-  const status = await cli(ctx, 'railway', ['usage', 'limit', 'status'], { mutating: false });
-  const text = status.stdout;
-  const agentZero = text
-    .split('\n')
-    .some((line) => /agent/i.test(line) && /(^|[^0-9.])\$?0(\.0+)?([^0-9.]|$)/.test(line));
-  if (status.code !== 0 || !/\b80\b/.test(text) || !/\b110\b/.test(text) || !agentZero) {
+  const status = await cli(ctx, 'railway', ['usage', 'limit', 'status', '--json'], {
+    mutating: false,
+  });
+  const limits = status.code === 0 ? parseJson(UsageLimitStatus, status.stdout) : null;
+  if (limits === null) {
+    out.line('fail', 'usage limit status: unexpected output');
+    return;
+  }
+  const workspace = limits.workspaceUsage?.usageLimit ?? null;
+  if (
+    workspace?.softLimit !== 80 ||
+    workspace.hardLimit !== 110 ||
+    limits.agentUsage.hardLimitCents !== 0
+  ) {
     out.line('fail', 'usage limit status does not show 80, 110 and the agent limit 0');
     return;
   }

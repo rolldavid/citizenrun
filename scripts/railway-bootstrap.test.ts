@@ -191,6 +191,32 @@ function inputsFile(overrides: Readonly<Record<string, string | null>> = {}): st
     .join('\n');
 }
 
+type UsageStatusOptions = {
+  usageLimit?: { softLimit: number; hardLimit: number | null; isOverLimit: boolean } | null;
+  hardLimitCents?: number | null;
+};
+
+/** The JSON `railway usage limit status --json` prints at the pinned version. */
+function usageStatus(options: UsageStatusOptions = {}): string {
+  return JSON.stringify({
+    action: 'status',
+    workspace: { id: 'fixture-workspace', name: 'fixture' },
+    customer: null,
+    workspaceUsage: {
+      currentUsageDollars: 3.5,
+      usageLimit:
+        options.usageLimit === undefined
+          ? { softLimit: 80, hardLimit: 110, isOverLimit: false }
+          : options.usageLimit,
+    },
+    agentUsage: {
+      totalUsedCents: 0,
+      hardLimitCents: options.hardLimitCents === undefined ? 0 : options.hardLimitCents,
+      softLimitCents: null,
+    },
+  });
+}
+
 function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh: FakeRule[] } {
   const listRules: FakeRule[] = (['postgres', 'api', 'worker', 'backup', 'admin'] as const).map(
     (service) => ({
@@ -216,6 +242,7 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
         args: ['init', '--name', BRAND.slug, '--json'],
         stdout: JSON.stringify({ id: NEW_PROJECT_ID, name: BRAND.slug }),
       },
+      { args: ['link', '--project', PROJECT_ID, '--environment', env] },
       { args: ['link', '--project', PROJECT_ID] },
       {
         args: ['environment', 'list', '--json'],
@@ -270,10 +297,7 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
       },
       { args: ['usage', 'limit', 'set', '--target', 'workspace', '--soft', '80', '--hard', '110'] },
       { args: ['usage', 'limit', 'set', '--target', 'agent', '--hard', '0'] },
-      {
-        args: ['usage', 'limit', 'status'],
-        stdout: 'Workspace: soft $80.00, hard $110.00\nAgent: hard $0.00\n',
-      },
+      { args: ['usage', 'limit', 'status', '--json'], stdout: usageStatus() },
     ],
     gh: [
       ...(options.gh ?? []),
@@ -702,6 +726,51 @@ describe('environment', { timeout: 30_000 }, () => {
     expect(result.calls.some((call) => joined(call).includes('environment delete'))).toBe(false);
   });
 
+  it('a project with two environments is linked by environment name', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'environment'], {
+      railway: [{ args: ['link', '--project', PROJECT_ID], exitCode: 1 }],
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('environment ok staging exists');
+    const calls = result.calls.map(joined);
+    expect(calls).toContain(`railway link --project ${PROJECT_ID} --environment staging`);
+    expect(calls).not.toContain(`railway link --project ${PROJECT_ID}`);
+  });
+
+  it('a first run falls back to the plain link while the project holds one environment', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'environment'], {
+      environments: '[{"name":"production"}]',
+      railway: [
+        { args: ['link', '--project', PROJECT_ID, '--environment', 'staging'], exitCode: 1 },
+      ],
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    const byName = calls.indexOf(`railway link --project ${PROJECT_ID} --environment staging`);
+    const plain = calls.indexOf(`railway link --project ${PROJECT_ID}`);
+    expect(byName).toBeGreaterThan(-1);
+    expect(plain).toBeGreaterThan(byName);
+    expect(calls).toContain('railway environment new staging');
+  });
+
+  it('a link that fails in both forms stops the step', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'environment'], {
+      environments: '[{"name":"production"}]',
+      railway: [
+        { args: ['link', '--project', PROJECT_ID, '--environment', 'staging'], exitCode: 1 },
+        { args: ['link', '--project', PROJECT_ID], exitCode: 3 },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('environment fail railway link: exit 3 (OI-railway)');
+    expect(result.calls.some((call) => joined(call).startsWith('railway environment new'))).toBe(
+      false,
+    );
+    expect(result.calls.some((call) => joined(call).startsWith('railway environment list'))).toBe(
+      false,
+    );
+  });
+
   it('a production run never deletes an environment', async () => {
     const result = await runCase(['--env', 'production', '--only', 'environment'], {
       environments: '[{"name":"staging","serviceInstances":[]}]',
@@ -803,6 +872,7 @@ describe('a full run', { timeout: 60_000 }, () => {
     expect(result.lines).toContain('report cors verified');
     expect(result.lines).toContain('report limits verified');
     expect(result.lines).toContain('report ready-variable not set');
+    expect(result.calls.map(joined)).toContain('railway usage limit status --json');
   });
 
   it('the database step pipes verifiers, never passwords', async () => {
@@ -1267,12 +1337,42 @@ describe('buckets, tokens, redeploy and report', { timeout: 30_000 }, () => {
   });
 
   it('usage limits that do not show the three values fail', async () => {
-    const result = await runCase(['--env', 'staging', '--only', 'usage-limits'], {
-      railway: [{ args: ['usage', 'limit', 'status'], stdout: 'Workspace: soft $80.00\n' }],
-    });
-    expect(result.code).toBe(1);
-    expect(result.lines).toContain(
-      'usage-limits fail usage limit status does not show 80, 110 and the agent limit 0',
-    );
+    const differing: UsageStatusOptions[] = [
+      { hardLimitCents: null },
+      { hardLimitCents: 500 },
+      { usageLimit: null },
+      { usageLimit: { softLimit: 80, hardLimit: null, isOverLimit: false } },
+    ];
+    for (const options of differing) {
+      const stdout = usageStatus(options);
+      const result = await runCase(['--env', 'staging', '--only', 'usage-limits'], {
+        railway: [{ args: ['usage', 'limit', 'status', '--json'], stdout }],
+      });
+      expect(result.code).toBe(1);
+      expect(result.lines).toContain(
+        'usage-limits fail usage limit status does not show 80, 110 and the agent limit 0',
+      );
+      expect(result.output).not.toContain(stdout);
+    }
+  });
+
+  it('usage limit status that is not the expected JSON is unexpected output', async () => {
+    const text =
+      'Usage limits\nWorkspace: fixture\n\nWorkspace\n  Soft limit:  $80.00\n  Hard limit:  $110.00\n' +
+      '\nAgent\n  Soft limit:  not set\n  Hard limit:  $0.00 (blocked)\n';
+    const answers: FakeRule[] = [
+      { args: ['usage', 'limit', 'status', '--json'], stdout: text },
+      { args: ['usage', 'limit', 'status', '--json'], stdout: '{"action":"status"}' },
+      { args: ['usage', 'limit', 'status', '--json'], stdout: usageStatus(), exitCode: 1 },
+    ];
+    for (const answer of answers) {
+      const result = await runCase(['--env', 'staging', '--only', 'usage-limits'], {
+        railway: [answer],
+      });
+      expect(result.code).toBe(1);
+      expect(result.lines).toContain('usage-limits fail usage limit status: unexpected output');
+      expect(result.output).not.toContain('Hard limit');
+      expect(result.lines.some((line) => line.includes('limits verified'))).toBe(false);
+    }
   });
 });
