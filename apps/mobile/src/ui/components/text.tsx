@@ -1,8 +1,8 @@
 import { fontCovers, typeRoles } from '@citizenrun/shared';
 import { createContext, useContext } from 'react';
-import type { JSX, ReactNode } from 'react';
+import type { JSX, ReactNode, Ref } from 'react';
 import { Text as NativeText } from 'react-native';
-import type { TextStyle } from 'react-native';
+import type { TextInstance, TextStyle } from 'react-native';
 
 import { useTheme } from '@/ui/theme';
 import { ToneContext, toneColor } from '@/ui/tone';
@@ -29,6 +29,8 @@ export type TextProps = {
   hidden?: boolean;
   accessibilityLabel?: string;
   testID?: string;
+  /** Reaches the text itself, so a caller can move focus to a heading. */
+  ref?: Ref<TextInstance>;
   /** Strings, numbers and nested C-Text. */
   children: ReactNode;
 };
@@ -104,6 +106,7 @@ export function Text({
   hidden = false,
   accessibilityLabel,
   testID,
+  ref,
   children,
 }: TextProps): JSX.Element {
   const theme = useTheme();
@@ -130,6 +133,7 @@ export function Text({
   return (
     <ToneContext.Provider value={resolved}>
       <NativeText
+        ref={ref}
         {...headingProps(heading)}
         role={heading === undefined ? undefined : 'heading'}
         style={style}

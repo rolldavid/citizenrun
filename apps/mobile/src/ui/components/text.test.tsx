@@ -1,12 +1,13 @@
 import { fontCovers } from '@citizenrun/shared';
 import { cleanup, screen } from '@testing-library/react';
-import { createElement } from 'react';
-import type { ReactElement } from 'react';
+import { createElement, createRef } from 'react';
+import type { ReactElement, RefObject } from 'react';
 import type * as ReactNative from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import { useFocusOnMount } from '@/ui/focus';
 import { color } from '@/ui/tokens';
 import type { ColorToken } from '@/ui/tokens';
 
@@ -390,6 +391,54 @@ describe('Text', () => {
     const plain = draw(STATES.title);
     expect(plain.getAttribute('aria-level')).toBeNull();
     expect(plain.getAttribute('tabindex')).toBeNull();
+  });
+
+  it('passes its ref to the heading', () => {
+    /** A screen's title as a screen draws it: the level 1 heading, focused once it is mounted. */
+    function Title({
+      titleRef,
+    }: {
+      titleRef: RefObject<ReactNative.TextInstance | null>;
+    }): ReactElement {
+      useFocusOnMount(titleRef);
+      return (
+        <Text role="title" heading={1} ref={titleRef} testID={PROBE}>
+          Wren County clerk
+        </Text>
+      );
+    }
+    const titleRef = createRef<ReactNative.TextInstance>();
+    cleanup();
+    renderWithProviders(
+      <>
+        <Text role="body" testID="probe.text-before">
+          Alder
+        </Text>
+        <Title titleRef={titleRef} />
+      </>,
+    );
+    const heading = screen.getByRole('heading', { level: 1, name: 'Wren County clerk' });
+    expect(titleRef.current).toBe(heading);
+    expect(heading.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(heading);
+
+    // A callback ref gets the same element, and text without a ref still draws.
+    const seen: unknown[] = [];
+    cleanup();
+    renderWithProviders(
+      <Text
+        role="body"
+        testID={PROBE}
+        ref={(node) => {
+          seen.push(node);
+        }}
+      >
+        Alder
+      </Text>,
+    );
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toBe(screen.getByTestId(PROBE));
+    expect(draw(STATES.body).textContent).not.toBe('');
   });
 
   it('hidden text is hidden from screen readers', () => {
