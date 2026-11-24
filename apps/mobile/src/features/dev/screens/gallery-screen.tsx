@@ -10,33 +10,45 @@ import {
   CompactShell,
   CountBadge,
   EmptyChair,
+  EmptyState,
   ExpandedShell,
   FeedRule,
   Icon,
   IconButton,
   InteractionPreview,
   Link,
+  List,
   MediumShell,
+  Notice,
   Pressable,
   Rail,
   RightColumn,
   Rule,
+  Screen,
+  Skeleton,
+  SystemScreen,
   TabBar,
   Text,
   Wordmark,
   useBreakpoint,
 } from '@/ui';
-import type { InteractionPreviewState } from '@/ui';
+import type { InteractionPreviewState, ListProps } from '@/ui';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
+import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
+import * as listFixtures from '@/ui/components/list.fixtures';
+import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
+import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
+import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
 import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
 import { ReducedMotionOverride } from '@/ui/motion';
@@ -111,8 +123,10 @@ function section<P extends object>(
   };
 }
 
-/** The height of the frame a shell is drawn in. */
+/** The height of the frame a shell, a screen or a system screen is drawn in. */
 const SHELL_FRAME = size.listRowMin * 8;
+/** The height of the frame a list is drawn in: a list fills a parent that has a height. */
+const LIST_FRAME = size.listRowMin * 6;
 /** The height of the frame a labeled rail is drawn in, so its foot sits at the bottom. */
 const RAIL_FRAME = size.listRowMin * 10;
 
@@ -152,6 +166,14 @@ function shellsSection(): GallerySection {
   };
 }
 
+/** A row of the specimen lists. */
+type ListSpecimenItem = (typeof listFixtures.STATES)['ready']['items'][number];
+
+/** C-List over the rows of its fixtures: the gallery draws a component of one props type. */
+function SpecimenList(props: ListProps<ListSpecimenItem>): JSX.Element {
+  return <List {...props} />;
+}
+
 /** Every component built so far, in the order of the design system (DS-gallery). */
 const GALLERY_SECTIONS: readonly GallerySection[] = [
   shellsSection(),
@@ -173,6 +195,19 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   section('C-CountBadge', 'count-badge', 'narrow', CountBadge, countBadgeFixtures),
   section('C-Wordmark', 'wordmark', 'wide', Wordmark, wordmarkFixtures),
   section('C-EmptyChair', 'empty-chair', 'wide', EmptyChair, emptyChairFixtures),
+  section('C-Notice', 'notice', 'wide', Notice, noticeFixtures),
+  section('C-Skeleton', 'skeleton', 'wide', Skeleton, skeletonFixtures),
+  section('C-EmptyState', 'empty-state', 'wide', EmptyState, emptyStateFixtures),
+  section('C-Screen', 'screen', 'full', Screen, screenFixtures, () => SHELL_FRAME),
+  section('C-List', 'list', 'wide', SpecimenList, listFixtures, () => LIST_FRAME),
+  section(
+    'C-SystemScreen',
+    'system-screen',
+    'full',
+    SystemScreen,
+    systemScreenFixtures,
+    () => SHELL_FRAME,
+  ),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };
