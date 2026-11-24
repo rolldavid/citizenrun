@@ -1,20 +1,27 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ComponentType, JSX, ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import type { TextInstance, ViewStyle } from 'react-native';
 
 import {
+  AppBar,
   Avatar,
   Button,
+  CompactShell,
   CountBadge,
   EmptyChair,
+  ExpandedShell,
   FeedRule,
   Icon,
   IconButton,
   InteractionPreview,
   Link,
+  MediumShell,
   Pressable,
+  Rail,
+  RightColumn,
   Rule,
+  TabBar,
   Text,
   Wordmark,
   useBreakpoint,
@@ -33,9 +40,14 @@ import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
 import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
 import { ReducedMotionOverride } from '@/ui/motion';
+import * as appBarFixtures from '@/ui/shells/app-bar.fixtures';
+import * as appShellFixtures from '@/ui/shells/app-shell.fixtures';
+import * as railFixtures from '@/ui/shells/rail.fixtures';
+import * as rightColumnFixtures from '@/ui/shells/right-column.fixtures';
+import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
 import { ThemeProvider, useTheme } from '@/ui/theme';
 import type { ThemeChoice } from '@/ui/theme';
-import { size, space } from '@/ui/tokens';
+import { rule, size, space } from '@/ui/tokens';
 import type { ColorToken } from '@/ui/tokens';
 
 export type GalleryScreenProps = {
@@ -63,11 +75,14 @@ type GallerySection = {
   id: string;
   /** The component's kebab name: the value `only` takes, and a part of each cell's testID. */
   slug: string;
-  cell: 'wide' | 'narrow';
+  /** 'full': as wide as the gallery's content column. */
+  cell: 'wide' | 'narrow' | 'full';
   /** The state names, in the order of the fixtures. */
   states: readonly string[];
   preview: Readonly<Partial<Record<string, InteractionPreviewState>>>;
   ground: Readonly<Partial<Record<string, ColorToken>>>;
+  /** The height of the frame a state is drawn in, for a specimen that fills its parent; null draws it at its own height. */
+  frame: (state: string) => number | null;
   /** The component drawn with one state's props. */
   render: (state: string) => ReactNode;
 };
@@ -79,6 +94,7 @@ function section<P extends object>(
   cell: GallerySection['cell'],
   Component: ComponentType<P>,
   fixtures: Fixtures<P>,
+  frame: GallerySection['frame'] = () => null,
 ): GallerySection {
   return {
     id,
@@ -87,6 +103,7 @@ function section<P extends object>(
     states: Object.keys(fixtures.STATES),
     preview: fixtures.PREVIEW,
     ground: fixtures.GROUND,
+    frame,
     render: (state) => {
       const props = fixtures.STATES[state];
       return props === undefined ? null : <Component {...props} />;
@@ -94,8 +111,56 @@ function section<P extends object>(
   };
 }
 
+/** The height of the frame a shell is drawn in. */
+const SHELL_FRAME = size.listRowMin * 8;
+/** The height of the frame a labeled rail is drawn in, so its foot sits at the bottom. */
+const RAIL_FRAME = size.listRowMin * 10;
+
+/** The three layouts C-AppShell chooses between, each drawn whatever the window's width. */
+const SHELL_LAYOUTS = [
+  { name: 'compact', Shell: CompactShell },
+  { name: 'medium', Shell: MediumShell },
+  { name: 'expanded', Shell: ExpandedShell },
+] as const;
+
+/** The name of a shell state drawn through one layout: `signedOutHome` at compact is `compactSignedOutHome`. */
+function shellStateName(layout: string, state: string): string {
+  return `${layout}${state.charAt(0).toUpperCase()}${state.slice(1)}`;
+}
+
+/** The shells: every state of C-AppShell through each of the three layouts, around a placeholder. */
+function shellsSection(): GallerySection {
+  const specimens = new Map<string, () => ReactNode>();
+  for (const { name, Shell } of SHELL_LAYOUTS) {
+    for (const [state, props] of Object.entries(appShellFixtures.STATES)) {
+      specimens.set(shellStateName(name, state), () => (
+        <Shell {...props}>
+          <Text role="body">Content</Text>
+        </Shell>
+      ));
+    }
+  }
+  return {
+    id: 'Shells',
+    slug: 'shells',
+    cell: 'full',
+    states: [...specimens.keys()],
+    preview: {},
+    ground: {},
+    frame: () => SHELL_FRAME,
+    render: (state) => specimens.get(state)?.() ?? null,
+  };
+}
+
 /** Every component built so far, in the order of the design system (DS-gallery). */
 const GALLERY_SECTIONS: readonly GallerySection[] = [
+  shellsSection(),
+  section('C-TabBar', 'tab-bar', 'wide', TabBar, tabBarFixtures),
+  section('C-Rail', 'rail', 'wide', Rail, railFixtures, (state) =>
+    state.startsWith('labeled') ? RAIL_FRAME : null,
+  ),
+  section('C-AppBar', 'app-bar', 'wide', AppBar, appBarFixtures),
+  section('C-RightColumn', 'right-column', 'full', RightColumn, rightColumnFixtures),
   section('C-Text', 'text', 'wide', Text, textFixtures),
   section('C-Pressable', 'pressable', 'wide', Pressable, pressableFixtures),
   section('C-Icon', 'icon', 'narrow', Icon, iconFixtures),
@@ -193,23 +258,41 @@ function Cell({ entry, state }: { entry: GallerySection; state: string }): JSX.E
   const layout = useBreakpoint();
   const preview = entry.preview[state];
   const specimen = entry.render(state);
+  const frame = entry.frame(state);
   const wide = layout.breakpoint === 'compact' ? '100%' : size.rightColumn;
+  const ground = theme.color[entry.ground[state] ?? 'bg'];
   return (
     <View
-      style={{ width: entry.cell === 'narrow' ? size.rightColumn / 2 : wide }}
+      style={{
+        width:
+          entry.cell === 'full' ? '100%' : entry.cell === 'narrow' ? size.rightColumn / 2 : wide,
+      }}
       testID={`gallery.cell-${entry.slug}-${kebab(state)}`}
     >
       <Text role="mono" tone="secondary">
         {state}
       </Text>
       <View
-        style={{
-          marginTop: space.x2,
-          padding: space.x3,
-          minHeight: size.target,
-          justifyContent: 'center',
-          backgroundColor: theme.color[entry.ground[state] ?? 'bg'],
-        }}
+        style={
+          frame === null
+            ? {
+                marginTop: space.x2,
+                padding: space.x3,
+                minHeight: size.target,
+                justifyContent: 'center',
+                backgroundColor: ground,
+              }
+            : {
+                // A frame stands in for the window: a row of the given height, outlined so its
+                // edges show, with no room of its own around the specimen.
+                marginTop: space.x2,
+                height: frame,
+                flexDirection: 'row',
+                borderWidth: rule.hairline,
+                borderColor: theme.color.rule,
+                backgroundColor: ground,
+              }
+        }
       >
         {preview === undefined ? (
           specimen
@@ -262,6 +345,17 @@ function GalleryPage({
   onReducedMotion,
 }: GalleryPageProps): JSX.Element {
   const layout = useBreakpoint();
+  const headingRef = useRef<TextInstance>(null);
+  // A specimen that focuses its title when it mounts would keep the focus and leave the page
+  // scrolled down to it. The page's heading takes the focus from it, which brings the top back
+  // into view, and lets it go, so the page opens as it does without such a specimen.
+  useEffect(() => {
+    // Neither member is on every platform's implementation, whatever the types say.
+    const heading: { focus?: () => void; blur?: () => void } | null = headingRef.current;
+    if (heading === null) return;
+    if (typeof heading.focus === 'function') heading.focus();
+    if (typeof heading.blur === 'function') heading.blur();
+  }, []);
   const sections =
     only === null ? GALLERY_SECTIONS : GALLERY_SECTIONS.filter((entry) => entry.slug === only);
   return (
@@ -277,7 +371,7 @@ function GalleryPage({
       }}
     >
       <View role="main">
-        <Text role="title" heading={1}>
+        <Text ref={headingRef} role="title" heading={1}>
           Gallery
         </Text>
         <View style={CONTROLS}>
