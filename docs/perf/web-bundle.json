@@ -1,7 +1,7 @@
 {
   "limitBytes": 500000,
   "routes": ["index"],
-  "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/", "apps/mobile/app/admin/"],
+  "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/"],
   "baseline": {
     "index": {
       "entry": 317148,
