@@ -1,5 +1,5 @@
 import { BRAND } from '@citizenrun/shared';
-import { cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -491,5 +491,41 @@ describe('Rail', () => {
       // The only transition in the rail is the press, on transform.
       expect(['', 'transform']).toContain(part.style.transitionProperty);
     }
+  });
+
+  it('the icon rail shows a tooltip on focus', async () => {
+    const rail = drawState('iconsHome');
+    // The icons rail draws no word, so nothing names an icon for the eye until it has the focus.
+    expect(within(rail).queryByText('Explore')).toBeNull();
+    fireEvent.focus(item('explore'));
+    // The page says where the cell is on the next turn.
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    const words = within(rail).getByText('Explore');
+    expect(words.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(item('explore').contains(words)).toBe(false);
+    // The item keeps its one name, and the other icons show nothing.
+    expect(within(rail).getAllByRole('link', { name: 'Explore' })).toEqual([item('explore')]);
+    expect(within(rail).queryByText('Home')).toBeNull();
+    fireEvent.blur(item('explore'));
+    expect(within(rail).queryByText('Explore')).toBeNull();
+
+    // The count is in the item's name; the tooltip says the word alone.
+    drawState('iconsUnread');
+    fireEvent.focus(item('messages'));
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    expect(screen.getByText('Messages').closest('[aria-hidden="true"]')).not.toBeNull();
+
+    // The labeled rail shows its words already, so it has no tooltip.
+    drawState('labeledHome');
+    fireEvent.focus(item('explore'));
+    expect(screen.getAllByText('Explore')).toHaveLength(1);
   });
 });

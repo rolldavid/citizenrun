@@ -8,11 +8,12 @@ import { CountBadge } from '@/ui/components/count-badge';
 import { Icon } from '@/ui/components/icon';
 import { Pressable } from '@/ui/components/pressable';
 import { Text } from '@/ui/components/text';
+import { Tooltip } from '@/ui/components/tooltip';
 import { Wordmark } from '@/ui/components/wordmark';
 import { playHaptic } from '@/ui/haptic';
 import type { IconName } from '@/ui/icons';
 import { useTheme } from '@/ui/theme';
-import { radius, rule, size, space } from '@/ui/tokens';
+import { radius, rule, size, space, z } from '@/ui/tokens';
 
 import type { AppShellProps, NavItemId } from './app-shell';
 
@@ -38,10 +39,12 @@ const RAIL_ITEMS: readonly NavItemId[] = [
   'profile',
 ];
 
+// Above the content beside it, so a tooltip that is wider than the rail is not drawn under it.
 const RAIL: ViewStyle = {
   paddingTop: space.x6,
   paddingBottom: space.x6,
   borderRightWidth: rule.hairline,
+  zIndex: z.sticky,
 };
 const RAIL_ICONS: ViewStyle = { ...RAIL, width: size.railIcon };
 const RAIL_LABELED: ViewStyle = { ...RAIL, width: size.rail, paddingHorizontal: space.x3 };
@@ -64,7 +67,9 @@ const BAR_ICONS: ViewStyle = { ...BAR, left: 0 };
 // The labeled rail keeps its rows clear of its edge: the bar reaches back to it.
 const BAR_LABELED: ViewStyle = { ...BAR, left: -space.x3 };
 
-const SLOT_ICONS: ViewStyle = { alignItems: 'center' };
+// As wide as the rail inside its rule. The width is its own: the tooltip round a cell is as large
+// as the cell, and does not stretch it.
+const SLOT_ICONS: ViewStyle = { width: size.railIcon - rule.hairline, alignItems: 'center' };
 // The box keeps the press target, and with it the fill and the focus ring, to the square.
 const SQUARE_BOX: ViewStyle = { width: size.target };
 const SQUARE: ViewStyle = {
@@ -114,7 +119,7 @@ type RailItemProps = {
   item: NavItemId;
   variant: RailProps['variant'];
   isActive: boolean;
-  /** The word the labeled rail shows. */
+  /** The word the labeled rail shows, and the tooltip of a cell of the icons rail. */
   label: string;
   /** The accessible name: the label, with the unread count when there is one. */
   name: string;
@@ -167,43 +172,46 @@ function RailItem({
   }
 
   return (
-    <View style={SLOT_ICONS}>
-      {isActive ? (
-        <View style={[BAR_ICONS, { backgroundColor: theme.color.text }]} pointerEvents="none" />
-      ) : null}
-      <View style={SQUARE_BOX}>
-        <Pressable
-          role={role}
-          current={isActive}
-          label={name}
-          testID={testID}
-          feedback="move"
-          hover="fill"
-          onPress={onPress}
-        >
-          {({ swapsFill }) => (
-            <View
-              style={[
-                SQUARE,
-                // Under reduced motion the press shows as a fill (PC6A-21).
-                swapsFill
-                  ? { backgroundColor: theme.color.pressedBg, borderRadius: radius.control }
-                  : null,
-              ]}
-            >
-              <View>
-                {icon}
-                {count > 0 ? (
-                  <View style={CORNER} pointerEvents="none">
-                    <CountBadge count={count} size="corner" />
-                  </View>
-                ) : null}
+    // The icons rail shows no word, so a tooltip names each cell.
+    <Tooltip text={label}>
+      <View style={SLOT_ICONS}>
+        {isActive ? (
+          <View style={[BAR_ICONS, { backgroundColor: theme.color.text }]} pointerEvents="none" />
+        ) : null}
+        <View style={SQUARE_BOX}>
+          <Pressable
+            role={role}
+            current={isActive}
+            label={name}
+            testID={testID}
+            feedback="move"
+            hover="fill"
+            onPress={onPress}
+          >
+            {({ swapsFill }) => (
+              <View
+                style={[
+                  SQUARE,
+                  // Under reduced motion the press shows as a fill (PC6A-21).
+                  swapsFill
+                    ? { backgroundColor: theme.color.pressedBg, borderRadius: radius.control }
+                    : null,
+                ]}
+              >
+                <View>
+                  {icon}
+                  {count > 0 ? (
+                    <View style={CORNER} pointerEvents="none">
+                      <CountBadge count={count} size="corner" />
+                    </View>
+                  ) : null}
+                </View>
               </View>
-            </View>
-          )}
-        </Pressable>
+            )}
+          </Pressable>
+        </View>
       </View>
-    </View>
+    </Tooltip>
   );
 }
 

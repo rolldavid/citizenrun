@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import type * as ReactNative from 'react-native';
@@ -455,5 +455,25 @@ describe('IconButton', () => {
     expect(target.tagName).toBe('A');
     expect(target.getAttribute('href')).toBe('/dev/gallery');
     expect(screen.getByRole('link', { name: 'Open the gallery' })).toBe(target);
+  });
+
+  it('names itself in a tooltip on focus', async () => {
+    const { target } = draw({ label: 'Bookmark' });
+    // At rest the name is a label alone: no words are drawn.
+    expect(screen.queryByText('Bookmark')).toBeNull();
+    fireEvent.focus(target);
+    // The page says where the button is on the next turn.
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
+    });
+    const words = screen.getByText('Bookmark');
+    expect(words.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(target.contains(words)).toBe(false);
+    // The button keeps its one name, said once.
+    expect(screen.getAllByRole('button', { name: 'Bookmark' })).toEqual([target]);
+    fireEvent.blur(target);
+    expect(screen.queryByText('Bookmark')).toBeNull();
   });
 });

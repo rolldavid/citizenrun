@@ -10,6 +10,7 @@ import type { ResolvedTone } from '@/ui/tone';
 import { CountBadge } from './count-badge';
 import { Icon } from './icon';
 import { Pressable } from './pressable';
+import { Tooltip } from './tooltip';
 
 export type IconButtonProps = {
   icon: IconName;
@@ -33,7 +34,7 @@ export type IconButtonProps = {
 
 /**
  * C-IconButton: an action shown as an icon. A toggled button swaps its icon for the selected one
- * and never changes color.
+ * and never changes color. Its label is its name, and a C-Tooltip shows the same words.
  */
 export function IconButton({
   icon,
@@ -68,62 +69,65 @@ export function IconButton({
   };
 
   return (
-    // The box keeps the press target, and with it the fills and the focus ring, to the drawing.
-    <View style={{ width: side, height: side }}>
-      <Pressable
-        role={href === undefined ? 'button' : 'link'}
-        label={label}
-        disabled={disabled}
-        testID={testID}
-        radius={radius.control}
-        feedback={variant === 'framed' ? 'moveAndFill' : 'move'}
-        hover={variant === 'primary' ? 'none' : 'fill'}
-        {...(selectedIcon === undefined ? {} : { state: { selected } })}
-        {...(small ? { drawn: { width: side, height: side } } : {})}
-        {...(onPress === undefined ? {} : { onPress })}
-        {...(href === undefined ? {} : { href })}
-        {...(haptic === undefined ? {} : { haptic })}
-      >
-        {({ hovered, swapsFill }) => {
-          const fill = fillFor(hovered, swapsFill);
-          return (
-            <View
-              style={[
-                {
-                  width: side,
-                  height: side,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: radius.control,
-                },
-                // Disabled, the framed button gives up its outline for the disabled fill.
-                variant === 'framed' && !disabled
-                  ? { borderWidth: rule.hairline, borderColor: theme.color.rule }
-                  : null,
-                fill === null ? null : { backgroundColor: fill },
-              ]}
-            >
-              <Icon
-                name={selected ? (selectedIcon ?? icon) : icon}
-                size={small ? 'medium' : 'standard'}
-                tone={tone}
-              />
-              {badge === undefined ? null : (
-                <View
-                  style={{
-                    position: 'absolute',
-                    top: small ? 0 : space.x1,
-                    right: small ? 0 : space.x1,
-                  }}
-                  pointerEvents="none"
-                >
-                  <CountBadge count={badge} size="corner" />
-                </View>
-              )}
-            </View>
-          );
-        }}
-      </Pressable>
-    </View>
+    // The tooltip names the icon for a pointer and a keyboard. The box inside it keeps the press
+    // target, and with it the fills and the focus ring, to the drawing.
+    <Tooltip text={label}>
+      <View style={{ width: side, height: side }}>
+        <Pressable
+          role={href === undefined ? 'button' : 'link'}
+          label={label}
+          disabled={disabled}
+          testID={testID}
+          radius={radius.control}
+          feedback={variant === 'framed' ? 'moveAndFill' : 'move'}
+          hover={variant === 'primary' ? 'none' : 'fill'}
+          {...(selectedIcon === undefined ? {} : { state: { selected } })}
+          {...(small ? { drawn: { width: side, height: side } } : {})}
+          {...(onPress === undefined ? {} : { onPress })}
+          {...(href === undefined ? {} : { href })}
+          {...(haptic === undefined ? {} : { haptic })}
+        >
+          {({ hovered, swapsFill }) => {
+            const fill = fillFor(hovered, swapsFill);
+            return (
+              <View
+                style={[
+                  {
+                    width: side,
+                    height: side,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: radius.control,
+                  },
+                  // Disabled, the framed button gives up its outline for the disabled fill.
+                  variant === 'framed' && !disabled
+                    ? { borderWidth: rule.hairline, borderColor: theme.color.rule }
+                    : null,
+                  fill === null ? null : { backgroundColor: fill },
+                ]}
+              >
+                <Icon
+                  name={selected ? (selectedIcon ?? icon) : icon}
+                  size={small ? 'medium' : 'standard'}
+                  tone={tone}
+                />
+                {badge === undefined ? null : (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: small ? 0 : space.x1,
+                      right: small ? 0 : space.x1,
+                    }}
+                    pointerEvents="none"
+                  >
+                    <CountBadge count={badge} size="corner" />
+                  </View>
+                )}
+              </View>
+            );
+          }}
+        </Pressable>
+      </View>
+    </Tooltip>
   );
 }
