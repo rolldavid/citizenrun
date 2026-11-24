@@ -1,6 +1,5 @@
 import { ApiError, lastRequestId } from '@citizenrun/shared';
 import type * as Shared from '@citizenrun/shared';
-import { createClientError } from '@citizenrun/shared/api';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { session } from '@/platform/session';
@@ -20,9 +19,25 @@ import {
   routePattern,
 } from './client-errors';
 
-vi.mock('@citizenrun/shared/api', () => ({
-  createClientError: vi.fn(() => Promise.resolve()),
-}));
+// A plain recording function, not vi.fn: a Vitest spy observes the promises it returns, so a
+// rejection from a spy can never be unhandled and the rejection clause below could not fail.
+const api = vi.hoisted(() => {
+  type Call = [body: unknown, options: unknown];
+  const state: { mode: 'resolve' | 'reject'; calls: Call[] } = { mode: 'resolve', calls: [] };
+  return { state };
+});
+
+vi.mock('@citizenrun/shared/api', async () => {
+  const { ApiError } = await vi.importActual<typeof Shared>('@citizenrun/shared');
+  return {
+    createClientError: (body: unknown, options: unknown): Promise<void> => {
+      api.state.calls.push([body, options]);
+      return api.state.mode === 'reject'
+        ? Promise.reject(new ApiError('unavailable'))
+        : Promise.resolve();
+    },
+  };
+});
 vi.mock('@citizenrun/shared', async (importOriginal) => {
   const actual = await importOriginal<typeof Shared>();
   return { ...actual, lastRequestId: vi.fn(() => null) };
@@ -42,12 +57,12 @@ function errorWithStack(stack: string): Error {
 }
 
 function sentBodies(): unknown[] {
-  return vi.mocked(createClientError).mock.calls.map((call) => call[0]);
+  return api.state.calls.map(([body]) => body);
 }
 
 beforeEach(() => {
-  vi.mocked(createClientError).mockReset();
-  vi.mocked(createClientError).mockResolvedValue(undefined);
+  api.state.mode = 'resolve';
+  api.state.calls = [];
   vi.mocked(lastRequestId).mockReset();
   vi.mocked(lastRequestId).mockReturnValue(null);
 });
@@ -271,8 +286,8 @@ describe('codes and names', () => {
 describe('reportClientError', () => {
   it('the report goes through the generated client with keepalive', async () => {
     reportClientError(new Error('x'), { route: '/', component: null }, 'app.render_failed');
-    expect(createClientError).toHaveBeenCalledTimes(1);
-    const [body, options] = vi.mocked(createClientError).mock.calls[0] ?? [];
+    expect(api.state.calls).toHaveLength(1);
+    const [body, options] = api.state.calls[0] ?? [];
     expect(options).toEqual({ keepalive: true });
     expect(body).toMatchObject({
       appVersion: '1.0.0',
@@ -281,13 +296,23 @@ describe('reportClientError', () => {
       code: 'app.render_failed',
     });
 
-    vi.mocked(createClientError).mockRejectedValueOnce(new ApiError('unavailable'));
-    const report = vi.fn(reportClientError);
-    report(new Error('x'), { route: '/', component: null }, 'app.render_failed');
-    expect(report).toHaveReturnedWith(undefined);
-    // Let the rejection settle; an unhandled one fails the run.
-    await new Promise((resolve) => setTimeout(resolve, 0));
-    expect(createClientError).toHaveBeenCalledTimes(2);
+    // A rejected report is swallowed: no unhandled rejection reaches the process.
+    const rejections: unknown[] = [];
+    const onRejection = (reason: unknown): void => {
+      rejections.push(reason);
+    };
+    process.on('unhandledRejection', onRejection);
+    try {
+      api.state.mode = 'reject';
+      const report = vi.fn(reportClientError);
+      report(new Error('x'), { route: '/', component: null }, 'app.render_failed');
+      expect(report).toHaveReturnedWith(undefined);
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      expect(api.state.calls).toHaveLength(2);
+      expect(rejections).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onRejection);
+    }
   });
 
   it('reporting never throws', () => {
@@ -300,6 +325,6 @@ describe('reportClientError', () => {
     reportStatic(new Error('x'), 'app.render_failed');
     expect(report).toHaveReturnedWith(undefined);
     expect(reportStatic).toHaveReturnedWith(undefined);
-    expect(createClientError).not.toHaveBeenCalled();
+    expect(api.state.calls).toHaveLength(0);
   });
 });
