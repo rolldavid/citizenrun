@@ -66,11 +66,24 @@ export const FONT_FACE_CSS = [
 ].join('\n');
 
 /**
- * The whole text of the web shell's style element: the font faces, then the one rule that hides
- * the focus ring from a pointer and leaves it for the keyboard.
+ * The page's ground before the app's first paint, one line per system color scheme: the theme the
+ * person chose is known only once JavaScript runs, so the shell follows the system until then.
+ */
+const SHELL_GROUND_CSS = [
+  `html,body{background-color:${color.light.bg}}`,
+  `@media (prefers-color-scheme:dark){html,body{background-color:${color.dark.bg}}}`,
+].join('\n');
+
+/**
+ * The whole text of the web shell's style element: the font faces, the ground, then the one rule
+ * that hides the focus ring from a pointer and leaves it for the keyboard.
  */
 export const SHELL_CSS =
-  FONT_FACE_CSS + '\n' + ':focus:not(:focus-visible){outline:none!important}';
+  FONT_FACE_CSS +
+  '\n' +
+  SHELL_GROUND_CSS +
+  '\n' +
+  ':focus:not(:focus-visible){outline:none!important}';
 
 /** The color tokens a server page uses, in the order its custom properties are written. */
 const CSS_COLOR_TOKENS = [

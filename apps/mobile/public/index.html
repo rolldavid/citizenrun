@@ -2,7 +2,6 @@
 <html lang="%LANG_ISO_CODE%">
   <head>
     <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
     <title>%WEB_TITLE%</title>
     <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
@@ -49,14 +48,14 @@
 @font-face{font-family:"SpecialGothic-Medium";src:url(/fonts/1/SpecialGothic-Medium.woff2) format("woff2"),local("Helvetica Neue Medium"),local("Arial");font-display:block}
 @font-face{font-family:"SpecialGothic-Bold";src:url(/fonts/1/SpecialGothic-Bold.woff2) format("woff2"),local("Helvetica Neue Bold"),local("Arial Bold"),local("Arial");font-display:block}
 @font-face{font-family:"ChivoMono-Medium";src:url(/fonts/1/ChivoMono-Medium.woff2) format("woff2"),local("Menlo"),local("Consolas"),local("Courier New");font-display:block}
+html,body{background-color:#F1EFE7}
+@media (prefers-color-scheme:dark){html,body{background-color:#121210}}
 :focus:not(:focus-visible){outline:none!important}</style>
     <!--os:head-->
   </head>
 
   <body>
     <!--os:body-->
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript> You need to enable JavaScript to run this app. </noscript>
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
   </body>

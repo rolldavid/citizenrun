@@ -62,10 +62,19 @@ describe('server CSS from tokens', () => {
     expect(FONT_FACE_CSS.split('\n')).toEqual(FONT_FACE_LINES);
   });
 
-  it('SHELL_CSS is the fonts plus the focus rule', () => {
+  it('SHELL_CSS is the fonts, the ground and the focus rule', () => {
     expect(SHELL_CSS.startsWith(FONT_FACE_CSS)).toBe(true);
-    expect(SHELL_CSS.slice(FONT_FACE_CSS.length).trim()).toBe(
+    expect(SHELL_CSS.slice(FONT_FACE_CSS.length).trim().split('\n')).toEqual([
+      'html,body{background-color:#F1EFE7}',
+      '@media (prefers-color-scheme:dark){html,body{background-color:#121210}}',
       ':focus:not(:focus-visible){outline:none!important}',
+    ]);
+  });
+
+  it("the shell's ground is each theme's bg token", () => {
+    expect(SHELL_CSS).toContain(`html,body{background-color:${color.light.bg}}`);
+    expect(SHELL_CSS).toContain(
+      `@media (prefers-color-scheme:dark){html,body{background-color:${color.dark.bg}}}`,
     );
   });
 
