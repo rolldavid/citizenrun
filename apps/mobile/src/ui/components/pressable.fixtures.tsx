@@ -84,6 +84,14 @@ export const STATES = {
     href: '/dev/gallery',
     children: line,
   },
+  linkCurrent: {
+    role: 'link',
+    label: 'Open the office',
+    testID: 'gallery.pressable-link-current',
+    href: '/dev/gallery',
+    current: true,
+    children: line,
+  },
 } as const satisfies Readonly<Record<string, PressableProps>>;
 
 export const PREVIEW: Readonly<Partial<Record<keyof typeof STATES, InteractionPreviewState>>> = {

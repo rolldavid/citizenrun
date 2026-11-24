@@ -62,6 +62,7 @@ const STATE_NAMES = [
   'fillHovered',
   'small',
   'link',
+  'linkCurrent',
 ] as const;
 
 const TEST_ID = /^[a-z0-9-]+\.[a-z0-9-]+$/;
@@ -189,7 +190,7 @@ describe('Pressable', () => {
     expect(warnings).not.toHaveBeenCalled();
   });
 
-  it('the fixtures hold the ten states', () => {
+  it('the fixtures hold the eleven states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     expect(PREVIEW).toEqual({
       pressed: { pressed: true },
@@ -656,6 +657,61 @@ describe('Pressable', () => {
     for (const name of ['aria-selected', 'aria-checked', 'aria-expanded', 'aria-busy']) {
       expect(plain.getAttribute(name), name).toBeNull();
     }
+  });
+
+  it('marks the current link with aria-current and never aria-selected', () => {
+    const current = drawState('linkCurrent');
+    expect(current.tagName).toBe('A');
+    expect(current.getAttribute('role')).toBe('link');
+    expect(current.getAttribute('aria-current')).toBe('page');
+    // A link may not carry aria-selected: the selected state a phone reads stays off the page.
+    expect(current.hasAttribute('aria-selected')).toBe(false);
+
+    // Whatever state comes with it, the current item never writes aria-selected.
+    for (const selected of [true, false]) {
+      const stated = draw({
+        role: 'link',
+        href: '/dev/gallery',
+        current: true,
+        state: { selected },
+      });
+      expect(stated.getAttribute('aria-current'), String(selected)).toBe('page');
+      expect(stated.hasAttribute('aria-selected'), String(selected)).toBe(false);
+    }
+
+    // A link that is not the current one has neither attribute.
+    const other = drawState('link');
+    expect(other.hasAttribute('aria-current')).toBe(false);
+    expect(other.hasAttribute('aria-selected')).toBe(false);
+    expect(
+      draw({ role: 'link', href: '/dev/gallery', current: false }).hasAttribute('aria-current'),
+    ).toBe(false);
+  });
+
+  it('gives the current link the selected state on phones', () => {
+    // A phone has no aria-current: its screen reader announces the selected state.
+    drawState('linkCurrent');
+    expect(nativeProps().accessibilityState).toEqual({ selected: true });
+    expect(nativeProps()['aria-current']).toBe('page');
+    // A phone lets aria-selected win over the selected state, so it is undefined, never false.
+    expect(nativeProps()['aria-selected']).toBeUndefined();
+    draw({ role: 'link', href: '/dev/gallery', current: true, state: { selected: false } });
+    expect(nativeProps().accessibilityState).toEqual({ selected: true });
+    expect(nativeProps()['aria-selected']).toBeUndefined();
+
+    // The same link when it is not the current one is not selected.
+    for (const props of [{}, { current: false }]) {
+      draw({ role: 'link', href: '/dev/gallery', ...props });
+      expect(nativeProps().accessibilityState).toBeUndefined();
+      expect(nativeProps()['aria-current']).toBeUndefined();
+      expect(nativeProps()['aria-selected']).toBeUndefined();
+    }
+
+    // The roles that take a selected state still get it from `state`, on the page and on a phone.
+    const tab = draw({ role: 'tab', state: { selected: true } });
+    expect(tab.getAttribute('aria-selected')).toBe('true');
+    expect(nativeProps()['aria-selected']).toBe(true);
+    expect(nativeProps().accessibilityState).toBeUndefined();
   });
 
   it('an empty label leaves the name to the text inside', () => {

@@ -31,6 +31,8 @@ export type PressableProps = {
   haptic?: HapticName;
   /** Default radius.control: the corner radius of the control's box; the focus ring and the fills follow it. */
   radius?: number;
+  /** The active item of a navigation list (C-TabBar, C-Rail). */
+  current?: boolean;
   role: 'button' | 'link' | 'checkbox' | 'radio' | 'switch' | 'tab' | 'menuitem' | 'option';
   /** The accessible name. */
   label: string;
@@ -106,6 +108,12 @@ const EXTERNAL_REL = 'noopener noreferrer nofollow';
 const EXTERNAL_ANCHOR = { hrefAttrs: { target: EXTERNAL_TARGET, rel: EXTERNAL_REL } };
 
 /**
+ * What marks the active item of a navigation list: the web reads `aria-current`, and a phone, which
+ * has no such attribute, reads the selected state. Never `aria-selected`, which a link may not carry.
+ */
+const CURRENT_ITEM = { 'aria-current': 'page', accessibilityState: { selected: true } } as const;
+
+/**
  * C-Pressable: the one press target. Pressed runs MO-press on its content, paints pressedBg, or
  * both; a pointer paints hoverBg where asked; focus draws the ring. A C-Pressable never holds another.
  */
@@ -120,6 +128,7 @@ export function Pressable({
   drawn,
   haptic,
   radius: corner = radius.control,
+  current = false,
   role,
   label,
   hint,
@@ -183,14 +192,17 @@ export function Pressable({
       : children;
   const slop = hitSlopFor(drawn);
   const reach = reachFor(slop);
+  // A phone lets `aria-selected` win over the selected state, so the current item never sends it.
+  const selected = current ? undefined : state?.selected;
 
   const target = (
     <NativePressable
       {...(external ? EXTERNAL_ANCHOR : {})}
+      {...(current ? CURRENT_ITEM : {})}
       role={role}
       aria-label={label === '' ? undefined : label}
       accessibilityHint={hint}
-      aria-selected={state?.selected}
+      aria-selected={selected}
       aria-checked={state?.checked}
       aria-expanded={state?.expanded}
       aria-busy={state?.busy}
