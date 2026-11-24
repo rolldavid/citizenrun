@@ -51,6 +51,18 @@ export default defineConfig([
     linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: 'error' },
   },
   { files: [...APP, ...CARDS], extends: [expo] },
+  {
+    // The app's `@/` alias and its platform pairs resolve through the app's own tsconfig.
+    files: APP,
+    settings: {
+      'import/resolver': {
+        typescript: {
+          project: `${import.meta.dirname}/apps/mobile/tsconfig.json`,
+          extensions: ['.native.ts', '.native.tsx', '.ts', '.tsx', '.d.ts', '.js', '.jsx', '.json'],
+        },
+      },
+    },
+  },
   ...baseline,
   { plugins: { citizenrun }, rules: citizenrun.configs.all },
   ...restrictedImports,
