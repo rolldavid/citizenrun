@@ -5,6 +5,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { FixtureScreen } from '@/features/dev/screens/fixture-screen';
 
 export default function FixtureRoute() {
-  const { screen, fixture } = useLocalSearchParams<{ screen: string; fixture: string }>();
-  return <FixtureScreen screen={screen} fixture={fixture} />;
+  const { screen, fixture, textScale } = useLocalSearchParams<{
+    screen: string;
+    fixture: string;
+    textScale?: string;
+  }>();
+  return <FixtureScreen screen={screen} fixture={fixture} textScale={textScale} />;
 }

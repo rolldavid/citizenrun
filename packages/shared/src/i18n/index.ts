@@ -5,10 +5,21 @@ import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
 import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
+import { system } from './en/system.ts';
+import { hello } from './en/hello.ts';
 
-export const RESOURCES = { en: { common, errors, native, notifications } } as const;
+export const RESOURCES = {
+  en: { common, errors, native, notifications, system, hello },
+} as const;
 
-export const NAMESPACES = ['common', 'errors', 'native', 'notifications'] as const;
+export const NAMESPACES = [
+  'common',
+  'errors',
+  'native',
+  'notifications',
+  'system',
+  'hello',
+] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
 
@@ -16,6 +27,8 @@ declare module 'i18next' {
   interface CustomTypeOptions {
     defaultNS: 'common';
     resources: (typeof RESOURCES)['en'];
+    // createI18n fills this one in, so a call may leave it out.
+    defaultVariables: { appName: string };
   }
 }
 

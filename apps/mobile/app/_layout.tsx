@@ -1,97 +1,67 @@
-import { onlineManager, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
-import type { ReactNode } from 'react';
+import * as SplashScreen from 'expo-splash-screen';
 import { I18nextProvider } from 'react-i18next';
 
+import {
+  RootLayoutScreenView,
+  SystemErrorScreenView,
+  SystemUpdateScreen,
+  useRootViewModel,
+} from '@/features/system';
 import { routePattern } from '@/lib/client-errors';
 import { getI18n } from '@/lib/i18n';
 import { RootErrorBoundary } from '@/lib/root-error-boundary';
-import { useStartup } from '@/lib/startup';
 import { links } from '@/platform/links';
 import type { PageKeyEvent } from '@/platform/links';
 import { queryClient } from '@/platform/query-client';
-import { storage } from '@/platform/storage';
 import { ToastHost } from '@/ui/components/toast';
-import { FONT_FACES, FontsProvider } from '@/ui/fonts';
+import { FontsProvider } from '@/ui/fonts';
 import { ShortcutProvider } from '@/ui/shortcuts';
 import { ThemeProvider } from '@/ui/theme';
-import type { ThemeChoice } from '@/ui/theme';
+
+// The native splash stays up until the root view-model hides it.
+void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const segments = useSegments();
-  const { booted, updateRequired } = useStartup();
-  if (!booted) return null; // storage has not hydrated
+  const vm = useRootViewModel();
   return (
-    <RootErrorBoundary route={routePattern(segments)} fallback={renderNothing}>
+    <RootErrorBoundary
+      route={routePattern(segments)}
+      fallback={({ onRetry }) => <ErrorFallback onRetry={onRetry} />}
+    >
       <I18nextProvider i18n={getI18n()}>
         <QueryClientProvider client={queryClient.get()}>
-          <DesignProviders>
-            {updateRequired ? null : <Stack screenOptions={{ headerShown: false }} />}
-          </DesignProviders>
+          <ThemeProvider choice={vm.themeChoice}>
+            <FontsProvider ready={vm.fontsReady}>
+              <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>
+                <ToastHost>
+                  <RootLayoutScreenView vm={vm} systemScreen={<SystemUpdateScreen />}>
+                    <Stack screenOptions={{ headerShown: false, animation: 'default' }} />
+                  </RootLayoutScreenView>
+                </ToastHost>
+              </ShortcutProvider>
+            </FontsProvider>
+          </ThemeProvider>
         </QueryClientProvider>
       </I18nextProvider>
     </RootErrorBoundary>
   );
 }
 
-/** The theme, fonts and shortcut providers. Rendered only after storage has hydrated. */
-function DesignProviders({ children }: { children: ReactNode }) {
-  const [themeChoice] = useState<ThemeChoice>(() => storage.get('theme') ?? 'system');
-  const fontsReady = useFontsReadyAnswer();
+/** SCR-system-error. The boundary stands outside every provider, so this brings the two it reads. */
+function ErrorFallback({ onRetry }: { onRetry: () => void }) {
   return (
-    <ThemeProvider choice={themeChoice}>
-      <FontsProvider ready={fontsReady}>
-        <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>
-          <ToastHost>{children}</ToastHost>
-        </ShortcutProvider>
-      </FontsProvider>
-    </ThemeProvider>
+    <I18nextProvider i18n={getI18n()}>
+      <ThemeProvider choice="system">
+        <SystemErrorScreenView vm={{ onRetry }} />
+      </ThemeProvider>
+    </I18nextProvider>
   );
-}
-
-/**
- * Asks the platform once whether the four faces have loaded, and again each time the network comes
- * back after a false answer, until one answer is true. No timeout: a face that never loads stays false.
- */
-function useFontsReadyAnswer(): boolean {
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    let active = true;
-    let done = false;
-    let unsubscribe: (() => void) | null = null;
-    const stopListening = (): void => {
-      unsubscribe?.();
-      unsubscribe = null;
-    };
-    const ask = (): void => {
-      void links.fontsReady(FONT_FACES).then((answer) => {
-        if (!active || done) return;
-        if (answer) {
-          done = true;
-          setReady(true);
-          stopListening();
-        } else {
-          unsubscribe ??= onlineManager.subscribe((isOnline) => {
-            if (isOnline) ask();
-          });
-        }
-      });
-    };
-    ask();
-    return () => {
-      active = false;
-      stopListening();
-    };
-  }, []);
-  return ready;
 }
 
 /** The platform's key subscription, as a stable function the shortcut provider can hold. */
 function subscribeKeyDown(listener: (event: PageKeyEvent) => void): () => void {
   return links.subscribeKeyDown(listener);
-}
-
-function renderNothing(): null {
-  return null;
 }

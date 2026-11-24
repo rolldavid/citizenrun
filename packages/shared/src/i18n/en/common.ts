@@ -2,6 +2,12 @@ export const common = {
   notKnownYet: 'not known yet',
   about: 'about',
   aboutValue: 'about {{value}}',
+  documentTitle: '{{title}} · {{appName}}',
+  notFound: { title: 'Page not found | {{appName}}' },
+  states: {
+    offlineTitle: 'No connection.',
+    offlineBody: 'This screen needs a connection the first time.',
+  },
   ui: {
     loading: 'Loading',
     retry: 'Try again',

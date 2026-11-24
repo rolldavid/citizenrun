@@ -1,13 +1,38 @@
 import { cleanup, screen } from '@testing-library/react';
 import type { JSX } from 'react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { defineScreen, defineStaticScreen } from '@/features/dev/screen-fixtures';
+import { SCREEN_FIXTURES, defineScreen, defineStaticScreen } from '@/features/dev/screen-fixtures';
 import type { ScreenRegistryEntry } from '@/features/dev/screen-fixtures';
-import { renderWithProviders } from '@/test/render';
+import { helloFixtures } from '@/features/hello';
+import {
+  notFoundFixtures,
+  rootFixtures,
+  systemErrorFixtures,
+  systemUpdateFixtures,
+} from '@/features/system';
+import { renderWithProviders, setViewport } from '@/test/render';
 import { Text } from '@/ui/components/text';
 
-import { FixtureScreen } from './fixture-screen';
+import { FixtureScreen, FixtureView } from './fixture-screen';
+
+// react-native-safe-area-context 5.11.1 names its CommonJS build as `main`. The test resolver picks
+// that build, and it loads the phone's React Native; the module build is the one that runs on the web:
+// https://github.com/AppAndFlow/react-native-safe-area-context/blob/v5.11.1/package.json
+vi.mock('react-native-safe-area-context', () =>
+  vi.importActual('react-native-safe-area-context/lib/module/index.js'),
+);
+// react-native-svg 15.16.0 names its CommonJS build as `main`. The test resolver picks that build,
+// and it loads the phone files; the module build is the one that draws real svg elements on the web.
+vi.mock('react-native-svg', () => vi.importActual('react-native-svg/lib/module/index.js'));
+// The module build looks an asset up through a module that only the app's bundler provides on the web:
+// https://github.com/software-mansion/react-native-svg/blob/v15.16.0/src/lib/resolveAssetUri.web.ts
+// A drawing of the app loads no asset, so a call fails the test.
+vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
+  resolveAssetUri: (): never => {
+    throw new Error('a drawing of the app loads no asset');
+  },
+}));
 
 type StubVm = { label: string };
 
@@ -32,11 +57,22 @@ const STUB_FIXTURES = { stubReady: { label: 'Ready' }, stubLong: { label: 'Long'
 const REGISTRY: Readonly<Record<string, ScreenRegistryEntry>> = {
   stub: defineScreen(StubView, STUB_FIXTURES),
   static: defineStaticScreen(StaticView, ['staticDefault']),
+  inApp: defineScreen(StubView, STUB_FIXTURES, { mode: 'app', active: 'explore' }),
+  bare: defineScreen(StubView, STUB_FIXTURES, { mode: 'bare' }),
+  own: defineScreen(StubView, STUB_FIXTURES, { mode: 'own' }),
 };
 
-/** The text of the unknown-pair line, or null when it is not drawn. */
-function unknownLine(): string | null {
-  return screen.queryByTestId('dev.fixture-unknown')?.textContent ?? null;
+const COMPACT = [390, 844] as const;
+const EXPANDED = [1440, 900] as const;
+
+/** The not-found content, or null when it is not drawn. */
+function notFound(): HTMLElement | null {
+  return screen.queryByTestId('system.not-found');
+}
+
+/** The size the stub's text is drawn at. */
+function stubFontSize(): string {
+  return screen.getByTestId('stub.label').style.fontSize;
 }
 
 afterEach(() => {
@@ -44,15 +80,16 @@ afterEach(() => {
 });
 
 describe('FixtureScreen', () => {
-  it('shows the unknown line for a pair the default registry does not hold', () => {
+  it('shows not found for a pair the default registry does not hold', () => {
     renderWithProviders(<FixtureScreen screen="hello" fixture="nope" />);
-    expect(unknownLine()).toBe('No fixture "nope" for screen "hello".');
+    expect(notFound()).not.toBeNull();
+    expect(screen.queryByTestId('hello.screen')).toBeNull();
   });
 
   it('renders a known pair through defineScreen with that fixture', () => {
     renderWithProviders(<FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />);
     expect(screen.getByTestId('stub.label').textContent).toBe('Ready');
-    expect(unknownLine()).toBeNull();
+    expect(notFound()).toBeNull();
   });
 
   it('renders another fixture of the same screen with its own view-model', () => {
@@ -60,9 +97,9 @@ describe('FixtureScreen', () => {
     expect(screen.getByTestId('stub.label').textContent).toBe('Long');
   });
 
-  it('shows the unknown line for a fixture the screen does not list', () => {
+  it('shows not found for a fixture the screen does not list', () => {
     renderWithProviders(<FixtureScreen screen="stub" fixture="other" registry={REGISTRY} />);
-    expect(unknownLine()).toBe('No fixture "other" for screen "stub".');
+    expect(notFound()).not.toBeNull();
     expect(screen.queryByTestId('stub.label')).toBeNull();
   });
 
@@ -76,17 +113,135 @@ describe('FixtureScreen', () => {
       <FixtureScreen screen="static" fixture="staticOther" registry={REGISTRY} />,
     );
     expect(screen.queryByTestId('static.body')).toBeNull();
-    expect(unknownLine()).toBe('No fixture "staticOther" for screen "static".');
+    expect(notFound()).not.toBeNull();
   });
 
   it('treats inherited object keys as unknown screens and fixtures', () => {
     renderWithProviders(
       <FixtureScreen screen="constructor" fixture="stubReady" registry={REGISTRY} />,
     );
-    expect(unknownLine()).toBe('No fixture "stubReady" for screen "constructor".');
+    expect(notFound()).not.toBeNull();
     cleanup();
     renderWithProviders(<FixtureScreen screen="stub" fixture="toString" registry={REGISTRY} />);
-    expect(unknownLine()).toBe('No fixture "toString" for screen "stub".');
+    expect(notFound()).not.toBeNull();
+    expect(screen.queryByTestId('stub.label')).toBeNull();
+  });
+
+  it('a text scale of 1.3 reaches the theme', () => {
+    renderWithProviders(
+      <FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} textScale="1.3" />,
+    );
+    expect(stubFontSize()).toBe('20.8px');
+    for (const refused of ['9', 'x', '0.5', '']) {
+      cleanup();
+      renderWithProviders(
+        <FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} textScale={refused} />,
+      );
+      expect(stubFontSize()).toBe('16px');
+    }
+    cleanup();
+    renderWithProviders(<FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />);
+    expect(stubFontSize()).toBe('16px');
+  });
+
+  it('keeps the theme it is drawn in when it scales the text', () => {
+    renderWithProviders(
+      <FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} textScale="1.3" />,
+      { theme: 'dark' },
+    );
+    const scaled = screen.getByTestId('stub.label').style.color;
+    cleanup();
+    renderWithProviders(<FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />, {
+      theme: 'dark',
+    });
+    expect(scaled).toBe(screen.getByTestId('stub.label').style.color);
+    cleanup();
+    renderWithProviders(<FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />);
+    expect(scaled).not.toBe(screen.getByTestId('stub.label').style.color);
+  });
+});
+
+describe('FixtureView', () => {
+  it('draws an app entry inside the shell of the app, with its item active', () => {
+    setViewport(...EXPANDED);
+    renderWithProviders(<FixtureView screen="inApp" fixture="stubReady" registry={REGISTRY} />);
+    expect(screen.getByTestId('shell.rail')).toBeTruthy();
+    expect(screen.getByTestId('shell.rail-explore').getAttribute('aria-current')).toBe('page');
+    expect(screen.getByTestId('shell.rail-home').getAttribute('aria-current')).toBeNull();
+    expect(screen.getByRole('main').contains(screen.getByTestId('stub.label'))).toBe(true);
+  });
+
+  it('draws a bare entry, an own entry and an entry that names no shell alone', () => {
+    setViewport(...EXPANDED);
+    for (const id of ['bare', 'own', 'stub']) {
+      cleanup();
+      renderWithProviders(<FixtureView screen={id} fixture="stubReady" registry={REGISTRY} />);
+      expect(screen.getByTestId('stub.label').textContent).toBe('Ready');
+      expect(screen.queryByTestId('shell.rail')).toBeNull();
+      expect(screen.queryByTestId('shell.skip-link')).toBeNull();
+    }
+  });
+
+  it('draws a hello fixture of the default registry inside the shell, with Home active', () => {
+    setViewport(...EXPANDED);
+    renderWithProviders(<FixtureView screen="hello" fixture="helloReady" />);
+    expect(screen.getByTestId('hello.title')).toBeTruthy();
+    expect(screen.getByTestId('shell.rail-home').getAttribute('aria-current')).toBe('page');
+    cleanup();
+    setViewport(...COMPACT);
+    renderWithProviders(<FixtureView screen="hello" fixture="helloReady" />);
+    expect(screen.getByTestId('hello.title')).toBeTruthy();
+    expect(screen.queryByTestId('shell.rail')).toBeNull();
+  });
+
+  it('draws the system screens of the default registry with no shell', () => {
+    setViewport(...EXPANDED);
+    renderWithProviders(<FixtureView screen="system-update" fixture="updateWithStore" />);
+    expect(screen.getByTestId('system.update')).toBeTruthy();
+    expect(screen.queryByTestId('shell.rail')).toBeNull();
+    cleanup();
+    renderWithProviders(<FixtureView screen="system-error" fixture="systemError" />);
+    expect(screen.getByTestId('system.error')).toBeTruthy();
+    cleanup();
+    renderWithProviders(<FixtureView screen="not-found" fixture="notFoundDefault" />);
+    expect(notFound()).not.toBeNull();
+  });
+
+  it('draws the root layout fixture with the one shell it brings', () => {
+    setViewport(...EXPANDED);
+    renderWithProviders(<FixtureView screen="root-layout" fixture="rootSignedOut" />);
+    expect(screen.getAllByTestId('shell.rail')).toHaveLength(1);
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(screen.getByTestId('hello.screen')).toBeTruthy();
+  });
+});
+
+describe('the registry', () => {
+  it('holds every screen with every fixture of its view-model', () => {
+    const listed = Object.fromEntries(
+      Object.entries(SCREEN_FIXTURES).map(([id, entry]) => [id, [...entry.fixtures].sort()]),
+    );
+    expect(listed).toEqual({
+      hello: Object.keys(helloFixtures).sort(),
+      'root-layout': Object.keys(rootFixtures).sort(),
+      'not-found': Object.keys(notFoundFixtures).sort(),
+      'system-update': Object.keys(systemUpdateFixtures).sort(),
+      'system-error': Object.keys(systemErrorFixtures).sort(),
+    });
+    for (const entry of Object.values(SCREEN_FIXTURES)) {
+      expect(entry.fixtures.length).toBeGreaterThan(0);
+      for (const fixture of entry.fixtures) {
+        expect(entry.render(fixture)).not.toBeNull();
+      }
+    }
+  });
+
+  it('names the shell of each screen', () => {
+    expect(SCREEN_FIXTURES.hello?.shell).toEqual({ mode: 'app', active: 'home' });
+    expect(SCREEN_FIXTURES['root-layout']?.shell).toEqual({ mode: 'own' });
+    expect(SCREEN_FIXTURES['not-found']?.shell).toBeUndefined();
+    expect(SCREEN_FIXTURES['system-update']?.shell).toBeUndefined();
+    expect(SCREEN_FIXTURES['system-error']?.shell).toBeUndefined();
   });
 });
 
@@ -103,11 +258,26 @@ describe('the registry helpers', () => {
     expect(REGISTRY.static?.render('missing')).toBeNull();
   });
 
+  it('a key a fixtures module only carries is not a fixture', () => {
+    // A module compiled to CommonJS carries this marker beside its exports.
+    const carried: Record<string, StubVm> = { ...STUB_FIXTURES };
+    Object.defineProperty(carried, '__esModule', { value: true });
+    const entry = defineScreen(StubView, carried);
+    expect(entry.fixtures).toEqual(['stubReady', 'stubLong']);
+    expect(entry.render('__esModule')).toBeNull();
+  });
+
   it('a static entry keeps its names when the caller changes its own list', () => {
     const names = ['first'];
     const entry = defineStaticScreen(StaticView, names);
     names.push('second');
     expect(entry.fixtures).toEqual(['first']);
     expect(entry.render('second')).toBeNull();
+  });
+
+  it('an entry carries the shell it is given, and none when it is given none', () => {
+    expect(REGISTRY.inApp?.shell).toEqual({ mode: 'app', active: 'explore' });
+    expect(REGISTRY.stub).not.toHaveProperty('shell');
+    expect(defineStaticScreen(StaticView, ['one'], { mode: 'own' }).shell).toEqual({ mode: 'own' });
   });
 });

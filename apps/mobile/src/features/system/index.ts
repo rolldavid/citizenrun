@@ -8,3 +8,8 @@ export * as rootFixtures from './view-models/root.fixtures';
 export * as systemUpdateFixtures from './view-models/system-update.fixtures';
 export * as systemErrorFixtures from './view-models/system-error.fixtures';
 export * as notFoundFixtures from './view-models/not-found.fixtures';
+export { RootLayoutScreenView } from './screens/root-layout-screen';
+export type { RootLayoutScreenViewProps } from './screens/root-layout-screen';
+export { NotFoundScreen, NotFoundScreenView } from './screens/not-found-screen';
+export { SystemUpdateScreen, SystemUpdateScreenView } from './screens/system-update-screen';
+export { SystemErrorScreenView } from './screens/system-error-screen';
