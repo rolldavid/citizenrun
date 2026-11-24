@@ -30,7 +30,7 @@ function metafileImporting(...paths: string[]): Metafile {
 }
 
 describe('packageNameOf', () => {
-  it('reads package names from import paths', () => {
+  it('package names from import paths', () => {
     expect(packageNameOf('sharp')).toBe('sharp');
     expect(packageNameOf('@resvg/resvg-js/index.js')).toBe('@resvg/resvg-js');
     expect(packageNameOf('pg-native')).toBe('pg-native');
@@ -40,7 +40,7 @@ describe('packageNameOf', () => {
 });
 
 describe('checkExternals', () => {
-  it('reports a native external that is not a dependency', () => {
+  it('a native external that is not a dependency is a problem', () => {
     const problems = checkExternals(metafileImporting('sharp'), new Set(), false);
     expect(problems).toEqual(['sharp is imported but is not a dependency of the package']);
   });
@@ -49,7 +49,7 @@ describe('checkExternals', () => {
     expect(checkExternals(metafileImporting('sharp'), new Set(['sharp']), false)).toEqual([]);
   });
 
-  it('reports a native external when --no-externals is given', () => {
+  it('a native external is a problem with --no-externals', () => {
     const problems = checkExternals(metafileImporting('sharp'), new Set(['sharp']), true);
     expect(problems).toEqual(['sharp is imported but --no-externals was given']);
   });
@@ -65,7 +65,7 @@ describe('checkExternals', () => {
     ]);
   });
 
-  it('never reports an optional external', () => {
+  it('optional externals are never a problem', () => {
     expect(checkExternals(metafileImporting(...OPTIONAL_EXTERNALS), new Set(), true)).toEqual([]);
     expect(checkExternals(metafileImporting('pg-native'), new Set(), false)).toEqual([]);
   });
@@ -89,7 +89,7 @@ describe('checkExternals', () => {
 });
 
 describe('parseBuildArgs', () => {
-  it('parses an entry and an outfile, with and without --no-externals', () => {
+  it('arguments parse', () => {
     expect(parseBuildArgs(['src/server.ts', 'dist/server.js'])).toEqual({
       entry: 'src/server.ts',
       outfile: 'dist/server.js',
@@ -127,7 +127,7 @@ describe('buildService', () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it('writes a bundle that starts with the banner and inlines a local module', async () => {
+  it('a bundle of a small entry starts with the banner and keeps no import of a workspace package', async () => {
     writeFileSync(join(dir, 'package.json'), '{ "name": "fixture", "type": "module" }\n');
     writeFileSync(join(dir, 'b.ts'), "export const joined = (a: string): string => a + '/b';\n");
     writeFileSync(

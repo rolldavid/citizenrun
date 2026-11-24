@@ -91,7 +91,7 @@ function staleReferences(files: readonly SourceFile[], pinned: Pins): string[] {
 }
 
 describe('image pins', () => {
-  it('keeps the node version equal in images.json, .nvmrc and eas.json', () => {
+  it('node versions agree', () => {
     const version = nodeVersionOf(pins().node);
     expect(version).not.toBeNull();
     expect(read('.nvmrc').trim()).toBe(version);
@@ -101,20 +101,20 @@ describe('image pins', () => {
     expect(eas.build.base.node).toBe(version);
   });
 
-  it('sets every NODE_IMAGE argument to the node pin', () => {
+  it('every NODE_IMAGE argument equals the node pin', () => {
     const values = argValues(dockerfiles(), 'NODE_IMAGE');
     expect(values.length).toBeGreaterThanOrEqual(3);
     const node = pins().node;
     expect(values.filter((entry) => entry.value !== node)).toEqual([]);
   });
 
-  it('sets every PLAYWRIGHT_IMAGE argument to the playwright pin', () => {
+  it('every PLAYWRIGHT_IMAGE argument equals the playwright pin', () => {
     const playwright = pins().playwright;
     const values = argValues(dockerfiles(), 'PLAYWRIGHT_IMAGE');
     expect(values.filter((entry) => entry.value !== playwright)).toEqual([]);
   });
 
-  it('sets every PNPM_VERSION argument to the packageManager version', () => {
+  it('every PNPM_VERSION argument equals packageManager', () => {
     const manifest = z
       .object({ packageManager: z.string() })
       .parse(JSON.parse(read('package.json')));
@@ -125,7 +125,7 @@ describe('image pins', () => {
     expect(values.filter((entry) => entry.value !== version)).toEqual([]);
   });
 
-  it('keeps image references in compose, workflows and the Railway file equal to their pins', () => {
+  it('image references equal their pins', () => {
     const files = sources([
       'docker-compose.yml',
       ...filesIn('.github/workflows', '.yml'),
@@ -154,7 +154,7 @@ describe('image pins', () => {
     ]);
   });
 
-  it('keeps the playwright tag equal to the installed @playwright/test', () => {
+  it('the playwright tag equals the installed @playwright/test', () => {
     const resolver = createRequire(join(ROOT, 'apps/mobile/package.json'));
     const manifest = resolver.resolve('@playwright/test/package.json');
     const installed = z
@@ -163,7 +163,7 @@ describe('image pins', () => {
     expect(pins().playwright).toBe(`mcr.microsoft.com/playwright:v${installed.version}-noble`);
   });
 
-  it('pins every image but playwright by digest', () => {
+  it('every pinned image has a digest except playwright', () => {
     const pinned = pins();
     for (const key of ['node', 'postgis', 'seaweedfs', 'awscli'] as const) {
       expect(pinned[key], key).toMatch(/@sha256:[0-9a-f]{64}$/);
