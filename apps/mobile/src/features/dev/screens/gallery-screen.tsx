@@ -7,6 +7,7 @@ import {
   Avatar,
   Button,
   CountBadge,
+  EmptyChair,
   FeedRule,
   Icon,
   IconButton,
@@ -15,12 +16,14 @@ import {
   Pressable,
   Rule,
   Text,
+  Wordmark,
   useBreakpoint,
 } from '@/ui';
 import type { InteractionPreviewState } from '@/ui';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
+import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
@@ -28,6 +31,7 @@ import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
+import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
 import { ReducedMotionOverride } from '@/ui/motion';
 import { ThemeProvider, useTheme } from '@/ui/theme';
 import type { ThemeChoice } from '@/ui/theme';
@@ -102,6 +106,8 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   section('C-IconButton', 'icon-button', 'wide', IconButton, iconButtonFixtures),
   section('C-Avatar', 'avatar', 'narrow', Avatar, avatarFixtures),
   section('C-CountBadge', 'count-badge', 'narrow', CountBadge, countBadgeFixtures),
+  section('C-Wordmark', 'wordmark', 'wide', Wordmark, wordmarkFixtures),
+  section('C-EmptyChair', 'empty-chair', 'wide', EmptyChair, emptyChairFixtures),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };
