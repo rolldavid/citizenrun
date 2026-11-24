@@ -1,0 +1,1138 @@
+{
+  "generated": "2026-11-15",
+  "note": "Reference token values; aliases are resolved to values.",
+  "themes": {
+    "light": {
+      "bg": "#F1EFE7",
+      "surface": "#FDFCF9",
+      "well": "#E3E0D5",
+      "text": "#141412",
+      "textSecondary": "#535148",
+      "rule": "#141412",
+      "ruleSoft": "#D5D2C7",
+      "accent": "#F04E14",
+      "accentHover": "#E84603",
+      "onAccent": "#141412",
+      "highlight": "#D9F23E",
+      "onHighlight": "#141412",
+      "success": "#17683A",
+      "danger": "#B3202A",
+      "inverseBg": "#141412",
+      "inverseText": "#F3F1EA",
+      "inverseTextSecondary": "#A9A69B",
+      "inverseHover": "#2A2A26",
+      "posterBg": "#141412",
+      "posterText": "#F3F1EA",
+      "posterTextSecondary": "#A9A69B",
+      "scrim": "rgba(20,20,18,0.48)",
+      "mediaControlBg": "rgba(20,20,18,0.80)",
+      "onMediaControl": "#F3F1EA",
+      "mapNoData": "#FDFCF9",
+      "hoverBg": "#E3E0D5",
+      "pressedBg": "#E3E0D5",
+      "disabledBg": "#E3E0D5",
+      "disabledText": "#535148",
+      "skeleton": "#E3E0D5",
+      "selectedBg": "#141412",
+      "selectedText": "#F3F1EA",
+      "focusRing": "#141412",
+      "noticeBg": "#E3E0D5",
+      "noticeText": "#141412",
+      "linkText": "#141412",
+      "posterRule": "#F3F1EA",
+      "mapLand": "#F1EFE7",
+      "mapMask": "#F1EFE7",
+      "mapWater": "#E3E0D5",
+      "mapRoad": "#D5D2C7",
+      "mapNoDataLine": "#535148",
+      "mapLabel": "#141412",
+      "mapLabelSecondary": "#535148",
+      "mapLabelHalo": "#F1EFE7",
+      "mapDistrictLine": "#F1EFE7",
+      "mapLevelLine": "#141412",
+      "mapSelection": "#141412",
+      "mapLineCasing": "#F1EFE7",
+      "mapYou": "#141412",
+      "pinBg": "#141412",
+      "pinGlyph": "#F1EFE7",
+      "pinKeyline": "#F1EFE7",
+      "bubbleBg": "#F1EFE7",
+      "bubbleText": "#141412",
+      "bubbleKeyline": "#141412",
+      "mapPulse": "#141412",
+      "mapPark": "#EAE7DE"
+    },
+    "dark": {
+      "bg": "#121210",
+      "surface": "#1F1F1C",
+      "well": "#2A2A26",
+      "text": "#F3F1EA",
+      "textSecondary": "#A9A69B",
+      "rule": "#A9A69B",
+      "ruleSoft": "#33332E",
+      "accent": "#F04E14",
+      "accentHover": "#FA5824",
+      "onAccent": "#141412",
+      "highlight": "#D9F23E",
+      "onHighlight": "#141412",
+      "success": "#6FD08C",
+      "danger": "#FD8692",
+      "inverseBg": "#F3F1EA",
+      "inverseText": "#141412",
+      "inverseTextSecondary": "#535148",
+      "inverseHover": "#E3E0D5",
+      "posterBg": "#1F1F1C",
+      "posterText": "#F3F1EA",
+      "posterTextSecondary": "#A9A69B",
+      "scrim": "rgba(0,0,0,0.60)",
+      "mediaControlBg": "rgba(20,20,18,0.80)",
+      "onMediaControl": "#F3F1EA",
+      "mapNoData": "#121210",
+      "hoverBg": "#2A2A26",
+      "pressedBg": "#2A2A26",
+      "disabledBg": "#2A2A26",
+      "disabledText": "#A9A69B",
+      "skeleton": "#2A2A26",
+      "selectedBg": "#F3F1EA",
+      "selectedText": "#141412",
+      "focusRing": "#F3F1EA",
+      "noticeBg": "#2A2A26",
+      "noticeText": "#F3F1EA",
+      "linkText": "#F3F1EA",
+      "posterRule": "#F3F1EA",
+      "mapLand": "#121210",
+      "mapMask": "#121210",
+      "mapWater": "#2A2A26",
+      "mapRoad": "#33332E",
+      "mapNoDataLine": "#A9A69B",
+      "mapLabel": "#F3F1EA",
+      "mapLabelSecondary": "#A9A69B",
+      "mapLabelHalo": "#121210",
+      "mapDistrictLine": "#121210",
+      "mapLevelLine": "#F3F1EA",
+      "mapSelection": "#F3F1EA",
+      "mapLineCasing": "#121210",
+      "mapYou": "#F3F1EA",
+      "pinBg": "#F3F1EA",
+      "pinGlyph": "#121210",
+      "pinKeyline": "#121210",
+      "bubbleBg": "#121210",
+      "bubbleText": "#F3F1EA",
+      "bubbleKeyline": "#F3F1EA",
+      "mapPulse": "#F3F1EA",
+      "mapPark": "#1E1E1B"
+    }
+  },
+  "aliases": {
+    "hoverBg": "well",
+    "pressedBg": "well",
+    "disabledBg": "well",
+    "disabledText": "textSecondary",
+    "skeleton": "well",
+    "selectedBg": "inverseBg",
+    "selectedText": "inverseText",
+    "focusRing": "text",
+    "noticeBg": "well",
+    "noticeText": "text",
+    "linkText": "text",
+    "posterRule": "posterText",
+    "mapLand": "bg",
+    "mapMask": "bg",
+    "mapWater": "well",
+    "mapRoad": "ruleSoft",
+    "mapNoDataLine": "textSecondary",
+    "mapLabel": "text",
+    "mapLabelSecondary": "textSecondary",
+    "mapLabelHalo": "bg",
+    "mapDistrictLine": "bg",
+    "mapLevelLine": "text",
+    "mapSelection": "text",
+    "mapLineCasing": "bg",
+    "mapYou": "text",
+    "pinBg": "text",
+    "pinGlyph": "bg",
+    "pinKeyline": "bg",
+    "bubbleBg": "bg",
+    "bubbleText": "text",
+    "bubbleKeyline": "text",
+    "mapPulse": "text"
+  },
+  "opacity": {
+    "mapDim": 0.4,
+    "skeletonLow": 0.55,
+    "pulseLow": 0.25,
+    "scrimLight": 0.48,
+    "scrimDark": 0.6,
+    "mediaControl": 0.8
+  },
+  "issueTones": {
+    "bright": {
+      "y": [
+        0.205,
+        0.3
+      ],
+      "on": "#141412"
+    },
+    "mid": {
+      "y": [
+        0.13,
+        0.225
+      ],
+      "on": "#F3F1EA"
+    },
+    "deep": {
+      "y": [
+        0.07,
+        0.16
+      ],
+      "on": "#F3F1EA"
+    }
+  },
+  "issues": [
+    {
+      "id": "rent-housing",
+      "name": "Rent and housing costs",
+      "short": "Rent",
+      "pigment": "rose",
+      "tone": "bright",
+      "chroma": 0.16,
+      "hue": 2,
+      "light": "#CD527C",
+      "dark": "#E96B94",
+      "on": "#141412",
+      "rampLight": [
+        "#EDCDCE",
+        "#E8B2BB",
+        "#E193A5",
+        "#D87490",
+        "#CD527C"
+      ],
+      "rampDark": [
+        "#3B2529",
+        "#603540",
+        "#8B465A",
+        "#B95877",
+        "#E96B94"
+      ]
+    },
+    {
+      "id": "utility-bills",
+      "name": "Power and utility bills",
+      "short": "Utility bills",
+      "pigment": "ochre",
+      "tone": "bright",
+      "chroma": 0.13,
+      "hue": 86,
+      "light": "#9D7806",
+      "dark": "#B98E1C",
+      "on": "#141412",
+      "rampLight": [
+        "#DED4BC",
+        "#CFBF99",
+        "#BEA771",
+        "#AE8F48",
+        "#9D7806"
+      ],
+      "rampDark": [
+        "#322A18",
+        "#4E3F1D",
+        "#705820",
+        "#947320",
+        "#B98E1C"
+      ]
+    },
+    {
+      "id": "data-centers-ai",
+      "name": "Data centers and AI",
+      "short": "Data centers",
+      "pigment": "violet",
+      "tone": "bright",
+      "chroma": 0.16,
+      "hue": 296,
+      "light": "#8C6AD5",
+      "dark": "#A382F0",
+      "on": "#141412",
+      "rampLight": [
+        "#D9D2E5",
+        "#C6BBE3",
+        "#B2A0DF",
+        "#9E86DB",
+        "#8C6AD5"
+      ],
+      "rampDark": [
+        "#2D293A",
+        "#463C60",
+        "#63528D",
+        "#826ABE",
+        "#A382F0"
+      ]
+    },
+    {
+      "id": "climate",
+      "name": "Climate",
+      "short": "Climate",
+      "pigment": "green",
+      "tone": "bright",
+      "chroma": 0.15,
+      "hue": 148,
+      "light": "#248F41",
+      "dark": "#42A859",
+      "on": "#141412",
+      "rampLight": [
+        "#C8DAC2",
+        "#A6C9A4",
+        "#80B683",
+        "#58A262",
+        "#248F41"
+      ],
+      "rampDark": [
+        "#1F2F1F",
+        "#28482C",
+        "#32673B",
+        "#3A874A",
+        "#42A859"
+      ]
+    },
+    {
+      "id": "corporate-subsidies",
+      "name": "Corporate tax breaks and subsidies",
+      "short": "Corporate subsidies",
+      "pigment": "maroon",
+      "tone": "deep",
+      "chroma": 0.13,
+      "hue": 14,
+      "light": "#882739",
+      "dark": "#B34F5D",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#DDC2BE",
+        "#CC9F9D",
+        "#B7787A",
+        "#A05159",
+        "#882739"
+      ],
+      "rampDark": [
+        "#321F1F",
+        "#4D2A2D",
+        "#6E373C",
+        "#90434C",
+        "#B34F5D"
+      ]
+    },
+    {
+      "id": "property-taxes",
+      "name": "Property taxes and fair assessment",
+      "short": "Property taxes",
+      "pigment": "olive",
+      "tone": "mid",
+      "chroma": 0.115,
+      "hue": 104,
+      "light": "#6F6601",
+      "dark": "#8D8522",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#D3D0B8",
+        "#BAB793",
+        "#A09B6A",
+        "#878040",
+        "#6F6601"
+      ],
+      "rampDark": [
+        "#2A2818",
+        "#3F3C1D",
+        "#575320",
+        "#726C22",
+        "#8D8522"
+      ]
+    },
+    {
+      "id": "wages-workers",
+      "name": "Wages and worker power",
+      "short": "Wages",
+      "pigment": "cobalt",
+      "tone": "bright",
+      "chroma": 0.16,
+      "hue": 264,
+      "light": "#4D79DD",
+      "dark": "#6392F8",
+      "on": "#141412",
+      "rampLight": [
+        "#CBD6E8",
+        "#ADC1E7",
+        "#8CAAE5",
+        "#6C92E1",
+        "#4D79DD"
+      ],
+      "rampDark": [
+        "#222B3C",
+        "#304163",
+        "#415B92",
+        "#5276C4",
+        "#6392F8"
+      ]
+    },
+    {
+      "id": "policing-justice",
+      "name": "Policing, prosecution and jails",
+      "short": "Policing",
+      "pigment": "navy",
+      "tone": "deep",
+      "chroma": 0.14,
+      "hue": 272,
+      "light": "#354298",
+      "dark": "#5669C2",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#C3C8D8",
+        "#9FA9CB",
+        "#7987BB",
+        "#5565AA",
+        "#354298"
+      ],
+      "rampDark": [
+        "#1F2432",
+        "#2B3351",
+        "#394575",
+        "#47579A",
+        "#5669C2"
+      ]
+    },
+    {
+      "id": "healthcare",
+      "name": "Healthcare costs and access",
+      "short": "Healthcare",
+      "pigment": "teal",
+      "tone": "bright",
+      "chroma": 0.115,
+      "hue": 192,
+      "light": "#098B88",
+      "dark": "#11A6A2",
+      "on": "#141412",
+      "rampLight": [
+        "#C7D9D1",
+        "#A4C7C0",
+        "#7CB3AD",
+        "#519F9A",
+        "#098B88"
+      ],
+      "rampDark": [
+        "#1C2E2C",
+        "#214845",
+        "#236662",
+        "#208581",
+        "#11A6A2"
+      ]
+    },
+    {
+      "id": "medicare-for-all",
+      "name": "Medicare for All",
+      "short": "Medicare for All",
+      "pigment": "mulberry",
+      "tone": "mid",
+      "chroma": 0.15,
+      "hue": 322,
+      "light": "#91489D",
+      "dark": "#B166BD",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#DCCAD8",
+        "#CBACCB",
+        "#B88BBC",
+        "#A56AAD",
+        "#91489D"
+      ],
+      "rampDark": [
+        "#312431",
+        "#4C324E",
+        "#6C4371",
+        "#8E5496",
+        "#B166BD"
+      ]
+    },
+    {
+      "id": "schools",
+      "name": "Schools",
+      "short": "Schools",
+      "pigment": "azure",
+      "tone": "bright",
+      "chroma": 0.14,
+      "hue": 236,
+      "light": "#0985BB",
+      "dark": "#0F9EDD",
+      "on": "#141412",
+      "rampLight": [
+        "#C6D8DF",
+        "#A3C5D7",
+        "#7BB0CE",
+        "#4F9BC5",
+        "#0985BB"
+      ],
+      "rampDark": [
+        "#1B2D37",
+        "#204559",
+        "#226283",
+        "#1E7FAF",
+        "#0F9EDD"
+      ]
+    },
+    {
+      "id": "water-land",
+      "name": "Water, land and environment",
+      "short": "Water and land",
+      "pigment": "lake",
+      "tone": "mid",
+      "chroma": 0.12,
+      "hue": 250,
+      "light": "#2368A6",
+      "dark": "#4486C7",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#C4D1DA",
+        "#A0B9CF",
+        "#789EC2",
+        "#5083B4",
+        "#2368A6"
+      ],
+      "rampDark": [
+        "#1E2933",
+        "#273D52",
+        "#315477",
+        "#3B6D9E",
+        "#4486C7"
+      ]
+    },
+    {
+      "id": "transit",
+      "name": "Transit",
+      "short": "Transit",
+      "pigment": "walnut",
+      "tone": "deep",
+      "chroma": 0.085,
+      "hue": 58,
+      "light": "#6F4016",
+      "dark": "#97643D",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#D4C6B7",
+        "#BDA691",
+        "#A38368",
+        "#896140",
+        "#6F4016"
+      ],
+      "rampDark": [
+        "#2C231A",
+        "#433122",
+        "#5E412B",
+        "#7A5234",
+        "#97643D"
+      ]
+    },
+    {
+      "id": "voting-access",
+      "name": "Elections and voting access",
+      "short": "Voting access",
+      "pigment": "bronze",
+      "tone": "mid",
+      "chroma": 0.12,
+      "hue": 66,
+      "light": "#915809",
+      "dark": "#B57528",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#DDCDB9",
+        "#CCB194",
+        "#B8936B",
+        "#A57542",
+        "#915809"
+      ],
+      "rampDark": [
+        "#312618",
+        "#4D371E",
+        "#6E4B23",
+        "#916026",
+        "#B57528"
+      ]
+    },
+    {
+      "id": "money-in-politics",
+      "name": "Money in politics",
+      "short": "Money in politics",
+      "pigment": "petrol",
+      "tone": "deep",
+      "chroma": 0.09,
+      "hue": 218,
+      "light": "#005264",
+      "dark": "#187A90",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#BFCBC9",
+        "#96AEB1",
+        "#6B8E97",
+        "#3E707D",
+        "#005264"
+      ],
+      "rampDark": [
+        "#192729",
+        "#1D383F",
+        "#1F4D59",
+        "#1E6374",
+        "#187A90"
+      ]
+    },
+    {
+      "id": "nominations",
+      "name": "Who gets nominated, up to Congress",
+      "short": "Nominations",
+      "pigment": "jade",
+      "tone": "mid",
+      "chroma": 0.12,
+      "hue": 174,
+      "light": "#00735D",
+      "dark": "#0E9479",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#C3D3C7",
+        "#9EBCAD",
+        "#74A491",
+        "#488B77",
+        "#00735D"
+      ],
+      "rampDark": [
+        "#1A2B24",
+        "#1F4136",
+        "#205C4C",
+        "#1C7762",
+        "#0E9479"
+      ]
+    },
+    {
+      "id": "public-money",
+      "name": "Public money and divestment",
+      "short": "Public money",
+      "pigment": "forest",
+      "tone": "deep",
+      "chroma": 0.12,
+      "hue": 160,
+      "light": "#025637",
+      "dark": "#008053",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#BFCCBD",
+        "#97AF9C",
+        "#6B9179",
+        "#3F7357",
+        "#025637"
+      ],
+      "rampDark": [
+        "#18281E",
+        "#1B3B29",
+        "#1B5137",
+        "#156845",
+        "#008053"
+      ]
+    },
+    {
+      "id": "defund-israel",
+      "name": "Defunding Israel",
+      "short": "Defunding Israel",
+      "pigment": "plum",
+      "tone": "deep",
+      "chroma": 0.13,
+      "hue": 339,
+      "light": "#7B2C67",
+      "dark": "#A4538D",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#D8C3CA",
+        "#C49FB2",
+        "#AC7999",
+        "#945380",
+        "#7B2C67"
+      ],
+      "rampDark": [
+        "#2F2028",
+        "#482B3E",
+        "#653857",
+        "#844671",
+        "#A4538D"
+      ]
+    },
+    {
+      "id": "foreign-wars",
+      "name": "Foreign wars and military spending",
+      "short": "Foreign wars",
+      "pigment": "drab",
+      "tone": "deep",
+      "chroma": 0.075,
+      "hue": 112,
+      "light": "#4B4E17",
+      "dark": "#70733E",
+      "on": "#F3F1EA",
+      "rampLight": [
+        "#CAC9B7",
+        "#AAAB91",
+        "#898B68",
+        "#696C41",
+        "#4B4E17"
+      ],
+      "rampDark": [
+        "#24251A",
+        "#353622",
+        "#47492C",
+        "#5B5E35",
+        "#70733E"
+      ]
+    }
+  ],
+  "neutralRamp": {
+    "light": [
+      "#D3D1CA",
+      "#B5B4AD",
+      "#94938D",
+      "#706F6A",
+      "#4D4D49"
+    ],
+    "dark": [
+      "#282825",
+      "#403F3C",
+      "#5D5D59",
+      "#81807C",
+      "#A7A6A1"
+    ]
+  },
+  "mapRampStops": [
+    0.22,
+    0.4,
+    0.6,
+    0.8,
+    1
+  ],
+  "mapNeutralStops": [
+    0.12,
+    0.24,
+    0.38,
+    0.54,
+    0.7
+  ],
+  "notificationTint": "#7C7A72",
+  "type": {
+    "families": {
+      "sans": "Special Gothic",
+      "mono": "Chivo Mono"
+    },
+    "stacks": {
+      "sans": "\"Special Gothic\", \"Special Gothic Fallback\", \"Helvetica Neue\", Arial, sans-serif",
+      "mono": "\"Chivo Mono\", ui-monospace, Menlo, Consolas, monospace"
+    },
+    "roles": {
+      "display": [
+        40,
+        44,
+        500,
+        -0.02,
+        "sentence",
+        "sans",
+        true
+      ],
+      "title": [
+        28,
+        32,
+        500,
+        -0.015,
+        "sentence",
+        "sans",
+        true
+      ],
+      "heading": [
+        20,
+        26,
+        500,
+        -0.01,
+        "sentence",
+        "sans",
+        false
+      ],
+      "body": [
+        16,
+        22,
+        400,
+        0,
+        "sentence",
+        "sans",
+        false
+      ],
+      "bodyStrong": [
+        16,
+        22,
+        500,
+        0,
+        "sentence",
+        "sans",
+        false
+      ],
+      "label": [
+        14,
+        18,
+        500,
+        0,
+        "sentence",
+        "sans",
+        false
+      ],
+      "caption": [
+        13,
+        18,
+        400,
+        0,
+        "sentence",
+        "sans",
+        false
+      ],
+      "monoLabel": [
+        12,
+        16,
+        500,
+        0.04,
+        "capitals",
+        "mono",
+        false
+      ],
+      "mono": [
+        12,
+        16,
+        500,
+        0,
+        "sentence",
+        "mono",
+        false
+      ],
+      "numeralHero": [
+        56,
+        56,
+        700,
+        -0.03,
+        "figures",
+        "sans",
+        true
+      ],
+      "numeralDisplay": [
+        40,
+        44,
+        700,
+        -0.03,
+        "figures",
+        "sans",
+        true
+      ],
+      "numeralTitle": [
+        28,
+        32,
+        700,
+        -0.03,
+        "figures",
+        "sans",
+        true
+      ],
+      "numeralHeading": [
+        20,
+        26,
+        700,
+        -0.03,
+        "figures",
+        "sans",
+        false
+      ],
+      "initialsSm": [
+        14,
+        18,
+        500,
+        0,
+        "capitals",
+        "sans",
+        false
+      ],
+      "initialsMd": [
+        20,
+        26,
+        500,
+        0,
+        "capitals",
+        "sans",
+        false
+      ],
+      "initialsLg": [
+        28,
+        32,
+        500,
+        0,
+        "capitals",
+        "sans",
+        false
+      ]
+    },
+    "maxFontSizeMultiplier": 1.3
+  },
+  "radius": {
+    "none": 0,
+    "tag": 2,
+    "control": 4,
+    "full": 9999
+  },
+  "rule": {
+    "hairline": 1,
+    "tab": 2,
+    "focus": 2,
+    "focusGap": 2,
+    "active": 4,
+    "dottedSquare": 2,
+    "dottedPitch": 6,
+    "canvasMain": 4,
+    "canvasDivider": 3
+  },
+  "space": {
+    "step": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48
+    ],
+    "gutter": 24,
+    "gutterNarrow": 16,
+    "narrowBelow": 380,
+    "sectionGap": 24,
+    "columnGap": 48,
+    "dialogPadding": 24,
+    "tagPadding": [
+      4,
+      8
+    ],
+    "issueGridGap": [
+      8,
+      4
+    ]
+  },
+  "size": {
+    "appBar": 48,
+    "cardHeaderMin": 52,
+    "actionRow": 60,
+    "listRowMin": 56,
+    "tabBar": 56,
+    "getAppBar": 44,
+    "button": 44,
+    "buttonSmall": 36,
+    "input": 48,
+    "chip": 44,
+    "chipSmall": 32,
+    "segmented": 36,
+    "railItem": 44,
+    "target": 44,
+    "avatar": [
+      36,
+      56,
+      80
+    ],
+    "officeTile": [
+      28,
+      36,
+      48
+    ],
+    "issueTile": 28,
+    "icon": {
+      "small": 16,
+      "medium": 20,
+      "standard": 24
+    },
+    "iconStroke": 2,
+    "pin": [
+      36,
+      28,
+      20
+    ],
+    "pinGlyphShare": 0.6,
+    "pinGlyphFrom": 28,
+    "countBubble": 24,
+    "pinHitRadius": 22,
+    "rail": 220,
+    "railIcon": 72,
+    "feedColumn": 600,
+    "rightColumn": 320,
+    "contentMax": 1280,
+    "exploreResults": 488,
+    "drawingEmpty": 200,
+    "deadlineRingMin": 96
+  },
+  "breakpoints": {
+    "medium": 600,
+    "expanded": 1024
+  },
+  "motion": {
+    "springs": {
+      "standard": {
+        "damping": 18,
+        "stiffness": 220,
+        "mass": 1
+      },
+      "snap": {
+        "damping": 26,
+        "stiffness": 420,
+        "mass": 1
+      },
+      "stamp": {
+        "damping": 44,
+        "stiffness": 1000,
+        "mass": 1
+      }
+    },
+    "easeOut": [
+      0.2,
+      0,
+      0,
+      1
+    ],
+    "duration": {
+      "press": 90,
+      "rise": 180,
+      "burst": 240,
+      "sheet": 240,
+      "cardToPage": 280,
+      "fade": 120,
+      "photoFade": 150,
+      "pipStagger": 40,
+      "ringStagger": 20,
+      "pinStagger": 30,
+      "pulse": 1200,
+      "mapPulse": 1400,
+      "levelCrossfade": 300,
+      "cameraFly": 1200,
+      "heartHold": 400,
+      "flagDip": 600,
+      "toastHold": 4000,
+      "revealStep": 240
+    },
+    "scale": {
+      "press": 0.98,
+      "like": 1.15,
+      "done": 1.06,
+      "run": 1.08
+    },
+    "rotate": {
+      "run": 2
+    },
+    "distance": {
+      "press": 1,
+      "riseNumber": 6,
+      "risePin": 6,
+      "riseSent": 12,
+      "riseIncoming": 8,
+      "burst": 12
+    }
+  },
+  "canvas": {
+    "width": 1080,
+    "height": 1350,
+    "margin": 66,
+    "type": {
+      "hero": {
+        "min": 168,
+        "max": 330
+      },
+      "heroThumb": {
+        "min": 164,
+        "max": 264
+      },
+      "statement": [
+        [
+          150,
+          3
+        ],
+        [
+          124,
+          3
+        ],
+        [
+          104,
+          4
+        ]
+      ],
+      "headline": [
+        [
+          112,
+          4
+        ],
+        [
+          96,
+          4
+        ],
+        [
+          84,
+          5
+        ]
+      ],
+      "titlePage": [
+        [
+          96,
+          3
+        ],
+        [
+          84,
+          3
+        ],
+        [
+          72,
+          4
+        ]
+      ],
+      "title": [
+        [
+          92,
+          2
+        ],
+        [
+          76,
+          3
+        ],
+        [
+          64,
+          3
+        ],
+        [
+          64,
+          4
+        ]
+      ],
+      "fact": 100,
+      "unknown": [
+        56,
+        48
+      ],
+      "caption": 44,
+      "text": 42,
+      "mono": 40,
+      "trackNum": -0.03,
+      "trackTitle": -0.015,
+      "trackStatement": -0.02,
+      "trackCaps": 0.04,
+      "art": 540,
+      "wordmarkCap": 44,
+      "minimum": 40,
+      "thumbnailMinimum": 72
+    },
+    "budget": {
+      "kicker": 30,
+      "factLabel": 17,
+      "factLabelFlag": 16,
+      "dateLine": 20,
+      "source": 39,
+      "sticker": 18,
+      "aboutWord": 6,
+      "unknown": 18,
+      "caption": 40,
+      "districtLabelLine": 22,
+      "link": 22
+    }
+  }
+}
