@@ -1,5 +1,6 @@
 import { act, render } from '@testing-library/react';
 import type { RenderResult } from '@testing-library/react';
+import type { i18n as I18n } from 'i18next';
 import type { JSX, ReactElement, ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -38,6 +39,8 @@ export type RenderWithProvidersOptions = {
   textScale?: number;
   /** Default false. */
   reducedMotion?: boolean;
+  /** Default the app's own instance; given, it serves this render only. */
+  i18n?: I18n;
 };
 
 /**
@@ -49,8 +52,8 @@ export function renderWithProviders(
   options: RenderWithProvidersOptions = {},
 ): RenderResult {
   const { theme = 'light', textScale = 1, reducedMotion = false } = options;
-  const i18n = getI18n();
-  if (i18n.language !== 'en') {
+  const i18n = options.i18n ?? getI18n();
+  if (options.i18n === undefined && i18n.language !== 'en') {
     void i18n.changeLanguage('en');
   }
   function Wrapper({ children }: { children: ReactNode }): JSX.Element {

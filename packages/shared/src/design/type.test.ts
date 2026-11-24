@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { RESOURCES } from '../i18n/index.ts';
+import { RESOURCES, createI18n } from '../i18n/index.ts';
 import { fontCovers } from './type.ts';
 import type { FontFace } from './type.ts';
 
@@ -73,5 +73,53 @@ describe('font coverage', () => {
       .filter(([, value]) => !fontCovers('mono', drawn(value)))
       .map(([key]) => key);
     expect(undrawable).toEqual([]);
+  });
+});
+
+/**
+ * Every value that writes the product's name in any form, the right one included, once the
+ * identifier forms are left out: a catalog names the product only as {{appName}} (D-016).
+ */
+function findNameMisspellings(values: readonly string[]): string[] {
+  const identifiers = ['@citizenrun/', '.citizenrun', 'citizenrun.', 'citizenrun/'];
+  return values.filter((value) => {
+    let checked = value;
+    for (const identifier of identifiers) {
+      checked = checked.split(identifier).join(' ');
+    }
+    return /citizen\s*run|open\s*seats/iu.test(checked);
+  });
+}
+
+describe('the product name in the catalogs', () => {
+  it('no catalog value spells the name', () => {
+    const instance = createI18n();
+    const { ns } = instance.options;
+    const namespaces = ns === undefined ? [] : typeof ns === 'string' ? [ns] : ns;
+    expect(namespaces.length).toBeGreaterThan(0);
+    const values = namespaces.flatMap((namespace) =>
+      strings(instance.getResourceBundle('en', namespace), namespace).map(([, value]) => value),
+    );
+    expect(values.length).toBeGreaterThan(0);
+    expect(findNameMisspellings(values)).toEqual([]);
+  });
+
+  it('the checker finds every misspelling', () => {
+    // Each form is built from two parts, so this file spells none of them.
+    const named = [
+      `Welcome to ${'Open' + 'Seats'} today.`,
+      `Welcome to ${'Open' + ' Seats'} today.`,
+      `Welcome to ${'Citizen' + ' Run'} today.`,
+      `Welcome to ${'CITIZEN' + 'RUN'} today.`,
+      `Welcome to ${'Citizen' + 'run'} today.`,
+      `Welcome to ${'citizen' + 'run'} today.`,
+      `Welcome to ${'Citizen' + 'Run'} today.`,
+    ];
+    const clean = [
+      '{{appName}} is running.',
+      '@citizenrun/shared',
+      'https://example.test/citizenrun/x',
+    ];
+    expect(findNameMisspellings([...named, ...clean])).toEqual(named);
   });
 });
