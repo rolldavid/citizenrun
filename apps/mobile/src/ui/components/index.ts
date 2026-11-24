@@ -11,5 +11,7 @@ export * from './button';
 export * from './icon-button';
 export * from './avatar';
 export * from './count-badge';
+export * from './wordmark';
+export * from './empty-chair';
 export { ICONS, ICON_NAMES } from '@/ui/icons';
 export type { IconName } from '@/ui/icons';
