@@ -11,6 +11,7 @@ dist/
 apps/mobile/ios/
 apps/mobile/android/
 apps/mobile/expo-env.d.ts
+apps/mobile/.gitignore
 *.tsbuildinfo
 *.meta.json
 
