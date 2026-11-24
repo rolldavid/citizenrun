@@ -14,6 +14,7 @@ import {
   measureBundle,
   normaliseSource,
   readChunks,
+  sizeGroups,
   sourcesOf,
   writeBaseline,
 } from './check-bundle.ts';
@@ -112,12 +113,12 @@ describe('check-bundle', () => {
       routeFile: 'apps/mobile/app/index.tsx',
       entry: ['entry-aaa.js'],
       routeChunk: 'index-bbb.js',
-      common: ['shared-ccc.js'],
+      common: ['_layout-fff.js', 'shared-ccc.js'],
       lazyModules: [],
     });
     const [measured] = measureBundle(distDir, root, CONFIG);
     const entry = gzipped('entry-aaa.js');
-    const common = gzipped('shared-ccc.js');
+    const common = gzipped('_layout-fff.js') + gzipped('shared-ccc.js');
     const route = gzipped('index-bbb.js');
     expect(measured).toEqual({
       route: 'index',
@@ -164,9 +165,105 @@ describe('check-bundle', () => {
     writeFixtureExport();
     const html = readFileSync(join(distDir, 'index.html'), 'utf8');
     const groups = groupChunks('index', readChunks(distDir, root), entryChunkNames(html), LAZY);
-    expect(groups.common).toEqual(['shared-ccc.js']);
+    expect(groups.common).toEqual(['_layout-fff.js', 'shared-ccc.js']);
     const [measured] = measureBundle(distDir, root, CONFIG);
-    expect(measured?.sizes.common).toBe(gzipped('shared-ccc.js'));
+    expect(measured?.sizes.common).toBe(gzipped('_layout-fff.js') + gzipped('shared-ccc.js'));
+  });
+
+  it("the layout chunks of a route's ancestors count as common", () => {
+    const chunks = [
+      {
+        name: 'entry.js',
+        modules: ['apps/mobile/index.ts'],
+        text: '"_layout-root.js","_layout-office.js","_layout-slug.js","_layout-explore.js"',
+      },
+      {
+        name: '_layout-root.js',
+        modules: ['apps/mobile/app/_layout.tsx'],
+        text: 'var root="_layout-explore.js";',
+      },
+      { name: '_layout-office.js', modules: ['apps/mobile/app/office/_layout.tsx'], text: '' },
+      { name: '_layout-slug.js', modules: ['apps/mobile/app/office/[slug]/_layout.ts'], text: '' },
+      { name: '_layout-explore.js', modules: ['apps/mobile/app/explore/_layout.tsx'], text: '' },
+      { name: 'index.js', modules: ['apps/mobile/app/office/[slug]/index.tsx'], text: '' },
+    ];
+    const groups = groupChunks('office/[slug]/index', chunks, ['entry.js'], LAZY);
+    expect(groups).toEqual({
+      route: 'office/[slug]/index',
+      routeFile: 'apps/mobile/app/office/[slug]/index.tsx',
+      entry: ['entry.js'],
+      routeChunk: 'index.js',
+      common: ['_layout-root.js', '_layout-office.js', '_layout-slug.js'],
+      lazyModules: [],
+    });
+    const bytes: Record<string, number> = {
+      'entry.js': 1000,
+      '_layout-root.js': 300,
+      '_layout-office.js': 20,
+      '_layout-slug.js': 4,
+      '_layout-explore.js': 50000,
+      'index.js': 7,
+    };
+    expect(sizeGroups(groups, (name) => bytes[name] ?? 0)).toEqual({
+      entry: 1000,
+      common: 324,
+      route: 7,
+      total: 1331,
+    });
+    expect(groupChunks('index', chunks, ['entry.js'], LAZY).common).toEqual(['_layout-root.js']);
+  });
+
+  it('a layout inside an entry chunk is not counted twice', () => {
+    const chunks = [
+      {
+        name: 'entry.js',
+        modules: ['apps/mobile/index.ts', 'apps/mobile/app/_layout.tsx'],
+        text: '"index.js"',
+      },
+      { name: 'index.js', modules: ['apps/mobile/app/index.tsx'], text: '' },
+    ];
+    const groups = groupChunks('index', chunks, ['entry.js'], LAZY);
+    expect(groups.entry).toEqual(['entry.js']);
+    expect(groups.common).toEqual([]);
+    expect(groups.routeChunk).toBe('index.js');
+  });
+
+  it('a lazy module in a layout chunk fails', () => {
+    const chunks = [
+      { name: 'entry.js', modules: ['apps/mobile/index.ts'], text: '"_layout.js","index.js"' },
+      { name: '_layout.js', modules: ['apps/mobile/app/_layout.tsx', MAPLIBRE_MODULE], text: '' },
+      { name: 'index.js', modules: ['apps/mobile/app/index.tsx'], text: '' },
+    ];
+    const groups = groupChunks('index', chunks, ['entry.js'], LAZY);
+    expect(groups.common).toEqual(['_layout.js']);
+    expect(groups.lazyModules).toEqual([MAPLIBRE_MODULE]);
+    const measured: RouteMeasure = {
+      route: 'index',
+      routeFile: groups.routeFile,
+      sizes: sizeGroups(groups, () => 1),
+      lazyModules: groups.lazyModules,
+    };
+    expect(bundleProblems([measured], CONFIG.limitBytes)).toEqual([
+      `route index: the lazy module ${MAPLIBRE_MODULE} is in the route's entry, common or route chunk (D-164)`,
+    ]);
+  });
+
+  it('a chunk a layout chunk names counts as common', () => {
+    const chunks = [
+      { name: 'entry.js', modules: ['apps/mobile/index.ts'], text: '"_layout.js","index.js"' },
+      {
+        name: '_layout.js',
+        modules: ['apps/mobile/app/_layout.tsx'],
+        text: 'var named=["vendor.js","map.js","explore.js"];',
+      },
+      { name: 'vendor.js', modules: ['packages/shared/src/index.ts'], text: '' },
+      { name: 'map.js', modules: [MAPLIBRE_MODULE], text: '' },
+      { name: 'explore.js', modules: ['apps/mobile/app/explore.tsx'], text: '' },
+      { name: 'index.js', modules: ['apps/mobile/app/index.tsx'], text: '' },
+    ];
+    const groups = groupChunks('index', chunks, ['entry.js'], LAZY);
+    expect(groups.common).toEqual(['_layout.js', 'vendor.js']);
+    expect(groups.lazyModules).toEqual([]);
   });
 
   it('a route no chunk holds is reported', () => {

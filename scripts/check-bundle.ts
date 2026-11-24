@@ -54,6 +54,27 @@ function routeFileCandidates(route: string): string[] {
   return ROUTE_EXTENSIONS.map((extension) => `${APP_DIR}${route}${extension}`);
 }
 
+/**
+ * The module paths that can hold a layout of the route: `apps/mobile/app/<folder>_layout` with each
+ * extension, for the app root and for every folder on the route's path.
+ */
+function layoutFileCandidates(route: string): string[] {
+  const folders = route.split('/').slice(0, -1);
+  const prefixes = ['', ...folders.map((_, index) => `${folders.slice(0, index + 1).join('/')}/`)];
+  return prefixes.flatMap((prefix) =>
+    ROUTE_EXTENSIONS.map((extension) => `${APP_DIR}${prefix}_layout${extension}`),
+  );
+}
+
+/** True when `module` is a layout file (`_layout`) under `apps/mobile/app/`. */
+function isLayoutFile(module: string): boolean {
+  if (!module.startsWith(APP_DIR)) {
+    return false;
+  }
+  const base = module.slice(module.lastIndexOf('/') + 1);
+  return ROUTE_EXTENSIONS.some((extension) => base === `_layout${extension}`);
+}
+
 /** True when `module` is a route file under `apps/mobile/app/`; layouts (`_layout`) are not routes. */
 function isRouteFile(module: string): boolean {
   if (!module.startsWith(APP_DIR)) {
@@ -85,8 +106,10 @@ export function entryChunkNames(html: string): string[] {
 
 /**
  * Sorts a route's chunks into three groups (D-164): the entry chunks `index.html` loads,
- * the route chunk whose modules hold the route file, and the common chunks the route chunk names
- * that hold no other route file and no lazy module.
+ * the route chunk whose modules hold the route file, and the common chunks. A common chunk is
+ * either a layout chunk, which holds the layout of the app root or of a folder on the route's
+ * path, or a chunk the route chunk or a layout chunk names that holds no other route file, no
+ * layout off the route's path and no lazy module. No chunk is in two groups.
  */
 export function groupChunks(
   route: string,
@@ -104,18 +127,25 @@ export function groupChunks(
     null;
   const routeFile = routeChunk === null ? null : (holds(routeChunk) ?? null);
   const isLazy = (module: string): boolean => lazy.some((pattern) => matchesLazy(module, pattern));
-  const common =
-    routeChunk === null
-      ? []
-      : chunks.filter(
-          (chunk) =>
-            !entryNames.includes(chunk.name) &&
-            chunk.name !== routeChunk.name &&
-            routeChunk.text.includes(chunk.name) &&
-            !chunk.modules.some(
-              (module) => (isRouteFile(module) && module !== routeFile) || isLazy(module),
-            ),
-        );
+  const layouts = layoutFileCandidates(route);
+  const outside = chunks.filter(
+    (chunk) => !entryNames.includes(chunk.name) && chunk.name !== routeChunk?.name,
+  );
+  const layoutChunks = outside.filter((chunk) =>
+    chunk.modules.some((module) => layouts.includes(module)),
+  );
+  const namers = [...(routeChunk === null ? [] : [routeChunk]), ...layoutChunks];
+  const common = outside.filter(
+    (chunk) =>
+      layoutChunks.includes(chunk) ||
+      (namers.some((namer) => namer.text.includes(chunk.name)) &&
+        !chunk.modules.some(
+          (module) =>
+            (isRouteFile(module) && module !== routeFile) ||
+            (isLayoutFile(module) && !layouts.includes(module)) ||
+            isLazy(module),
+        )),
+  );
   const counted = [...entry, ...(routeChunk === null ? [] : [routeChunk]), ...common];
   const lazyModules = [
     ...new Set(counted.flatMap((chunk) => chunk.modules.filter((module) => isLazy(module)))),
