@@ -299,6 +299,17 @@ describe('the platform fakes', () => {
     await expect(storage.flush()).resolves.toBeUndefined();
   });
 
+  it('the storage fake answers isPersisted for held keys until memoryOnly', () => {
+    expect(storage.isPersisted('reload.chunkReloaded')).toBe(false);
+    storage.set('reload.chunkReloaded', true);
+    expect(storage.isPersisted('reload.chunkReloaded')).toBe(true);
+    storageFake.memoryOnly();
+    expect(storage.isPersisted('reload.chunkReloaded')).toBe(false);
+    resetPlatformFakes();
+    storage.set('reload.chunkReloaded', true);
+    expect(storage.isPersisted('reload.chunkReloaded')).toBe(true);
+  });
+
   it('the links fake reloads once per reason', () => {
     expect(links.reloadOnce('chunk_error')).toBe(true);
     expect(links.reloadOnce('chunk_error')).toBe(false);

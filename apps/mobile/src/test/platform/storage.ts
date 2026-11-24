@@ -8,7 +8,7 @@ export type StorageFakeCall =
 
 const calls: StorageFakeCall[] = [];
 const values = new Map<StorageKey, unknown>();
-const state = { failNextFlush: false };
+const state = { failNextFlush: false, persists: true };
 
 function read<K extends StorageKey>(key: K): StorageEntries[K] | null {
   if (!values.has(key)) {
@@ -48,6 +48,7 @@ export const storage: AppStorage = {
     }
     return Promise.resolve();
   },
+  isPersisted: (key) => state.persists && values.has(key),
 };
 
 export const storageFake = {
@@ -62,9 +63,14 @@ export const storageFake = {
   failNextFlush: (): void => {
     state.failNextFlush = true;
   },
+  /** isPersisted() answers false for every key until reset(), as a browser whose storage is blocked. */
+  memoryOnly: (): void => {
+    state.persists = false;
+  },
   reset: (): void => {
     calls.length = 0;
     values.clear();
     state.failNextFlush = false;
+    state.persists = true;
   },
 };

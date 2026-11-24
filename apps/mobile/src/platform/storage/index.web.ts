@@ -13,6 +13,8 @@ const unavailable = new Set<StorageScope>();
 let hydrated = false;
 let hydrating: Promise<void> | null = null;
 let lastWriteError: PlatformError | null = null;
+/** The keys whose value is in browser storage: read from it at hydrate() or written to it without error. */
+const onDevice = new Set<StorageKey>();
 
 /** The scope's browser store, or null when it is missing or has failed this visit. */
 function areaOf(scope: StorageScope): WebArea | null {
@@ -60,8 +62,14 @@ function hydrateScope(scope: StorageScope, now: Date): void {
         area.removeItem(name);
       }
     }
-    for (const key of core.load(scope, entries, now)) {
+    const dropped = core.load(scope, entries, now);
+    for (const key of dropped) {
       area.removeItem(WEB_KEY_PREFIX + key);
+    }
+    for (const [key] of entries) {
+      if (!dropped.includes(key)) {
+        onDevice.add(key as StorageKey); // core.load kept it, so the name is a key
+      }
     }
   } catch {
     unavailable.add(scope);
@@ -73,6 +81,7 @@ function writeThrough(key: StorageKey, value: unknown): void {
   if (rule === null) {
     return;
   }
+  onDevice.delete(key);
   const area = areaOf(rule.scope);
   if (area === null) {
     return;
@@ -82,6 +91,7 @@ function writeThrough(key: StorageKey, value: unknown): void {
       area.removeItem(WEB_KEY_PREFIX + key);
     } else {
       area.setItem(WEB_KEY_PREFIX + key, JSON.stringify(value));
+      onDevice.add(key);
     }
     lastWriteError = null;
   } catch {
@@ -125,6 +135,7 @@ export const storage: AppStorage = {
     }
   },
   flush: () => (lastWriteError === null ? Promise.resolve() : Promise.reject(lastWriteError)),
+  isPersisted: (key) => onDevice.has(key),
 };
 
 export type * from './types';

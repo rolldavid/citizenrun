@@ -370,6 +370,48 @@ describe('storage', () => {
     await web.flush();
   });
 
+  it('isPersisted follows the browser store', async () => {
+    session.setItem('s1:reload.upgradeReloaded', 'true');
+    const web = await freshWeb();
+    await web.hydrate();
+    expect(web.isPersisted('reload.upgradeReloaded')).toBe(true);
+    expect(web.isPersisted('reload.chunkReloaded')).toBe(false);
+    web.set('reload.chunkReloaded', true);
+    expect(web.isPersisted('reload.chunkReloaded')).toBe(true);
+    web.remove('reload.chunkReloaded');
+    expect(web.isPersisted('reload.chunkReloaded')).toBe(false);
+    local.throwOnSet = true;
+    web.set('theme', 'dark');
+    expect(web.get('theme')).toBe('dark');
+    expect(web.isPersisted('theme')).toBe(false);
+  });
+
+  it('isPersisted is false while the browser store is blocked', async () => {
+    vi.unstubAllGlobals();
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      configurable: true,
+      get() {
+        throw new Error('SecurityError');
+      },
+    });
+    const web = await freshWeb();
+    await web.hydrate();
+    web.set('reload.chunkReloaded', true);
+    expect(web.get('reload.chunkReloaded')).toBe(true);
+    expect(web.isPersisted('reload.chunkReloaded')).toBe(false);
+    Reflect.deleteProperty(globalThis, 'sessionStorage');
+  });
+
+  it('isPersisted on phones: persistent keys only', async () => {
+    const native = await freshNative();
+    await native.hydrate();
+    native.set('reload.chunkReloaded', true);
+    expect(native.isPersisted('reload.chunkReloaded')).toBe(false);
+    expect(native.isPersisted('theme')).toBe(false);
+    native.set('theme', 'dark');
+    expect(native.isPersisted('theme')).toBe(true);
+  });
+
   it('web writes happen in the same call', async () => {
     const web = await freshWeb();
     await web.hydrate();

@@ -72,6 +72,9 @@ export const links: Links = {
       return false;
     }
     storage.set(key, true);
+    if (!storage.isPersisted(key)) {
+      return false; // the flag would not outlive the reload, so the next load would reload again (D-821)
+    }
     window.location.reload();
     return true;
   },

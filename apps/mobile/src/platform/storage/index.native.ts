@@ -121,6 +121,12 @@ export const storage: AppStorage = {
       throw lastWriteError;
     }
   },
+  // A persistent value is written in the background; visit-scope keys live in memory only.
+  isPersisted: (key) =>
+    ruleFor(key)?.scope === 'persistent' &&
+    hydrated &&
+    core.get(key, new Date()) !== null &&
+    lastWriteError === null,
 };
 
 export type * from './types';

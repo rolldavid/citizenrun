@@ -34,4 +34,9 @@ export interface AppStorage {
   clearUserData(): void;
   /** Resolves when every write so far is on the device; rejects with 'storage.write_failed' when the last write failed. */
   flush(): Promise<void>;
+  /** True when the key's value is held by the device store and not in memory only, so it outlives a reload of
+   *  the web page (D-821). Web: the key was read from, or last written to, its browser store with no error; false
+   *  when that store is unavailable this visit or the write threw. Phones: a persistent key that holds a value
+   *  while no file write has failed; a visit-scope key is memory only and answers false. */
+  isPersisted(key: StorageKey): boolean;
 }
