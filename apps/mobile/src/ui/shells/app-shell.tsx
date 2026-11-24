@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useRef } from 'react';
+import { createContext, useContext, useLayoutEffect, useMemo, useRef } from 'react';
 import type { JSX, ReactElement, ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -68,6 +68,43 @@ const ROW_EXPANDED: ViewStyle = {
 // replaces the browser's ring, which a width alone does not.
 const CONTENT: ViewStyle = { flex: 1, outlineStyle: 'solid', outlineWidth: 0 };
 
+/** A view whose attributes can be set from code: the web's element is one, a phone's view is not. */
+type AttributeHost = {
+  setAttribute: (name: string, value: string) => void;
+  removeAttribute: (name: string) => void;
+};
+
+function hasAttributes(host: unknown): host is AttributeHost {
+  return (
+    typeof host === 'object' &&
+    host !== null &&
+    'setAttribute' in host &&
+    typeof host.setAttribute === 'function' &&
+    'removeAttribute' in host &&
+    typeof host.removeAttribute === 'function'
+  );
+}
+
+/**
+ * Makes `ref`'s view the page's `main` while `marked` is true, and no landmark otherwise: the
+ * content slot of C-AppShell, and the content of a C-Screen that no shell marks. A role given as a
+ * prop picks the element the web draws, and a different element mounts everything under it again;
+ * the attribute alone changes the landmark and leaves the view, and what it holds, where they are.
+ */
+export function useMainLandmark(ref: RefObject<HostInstance | null>, marked: boolean): void {
+  useLayoutEffect(() => {
+    const host: unknown = ref.current;
+    if (!hasAttributes(host)) {
+      return;
+    }
+    if (marked) {
+      host.setAttribute('role', 'main');
+    } else {
+      host.removeAttribute('role');
+    }
+  }, [ref, marked]);
+}
+
 const SKIP_ANCHOR: ViewStyle = {
   position: 'absolute',
   top: space.x2,
@@ -121,8 +158,8 @@ function SkipLink({ target }: { target: RefObject<HostInstance | null> }): JSX.E
 
 /**
  * The shell at one breakpoint. Every breakpoint and mode draws the same elements in the same
- * places, with nothing where a part is absent, so a change of breakpoint never remounts the
- * children.
+ * places, with nothing where a part is absent, so a change of breakpoint or of mode never remounts
+ * the children.
  */
 export function ShellLayout({
   mode,
@@ -139,6 +176,7 @@ export function ShellLayout({
   const theme = useTheme();
   const mainRef = useRef<HostInstance>(null);
   const inApp = mode === 'app';
+  useMainLandmark(mainRef, inApp);
   const shell = useMemo<ShellContextValue>(
     () => ({ banner, mainProvided: inApp, active }),
     [banner, inApp, active],
@@ -165,7 +203,7 @@ export function ShellLayout({
             />
           ) : null}
           <ShellContext.Provider value={shell}>
-            <View ref={mainRef} role={inApp ? 'main' : undefined} tabIndex={-1} style={CONTENT}>
+            <View ref={mainRef} tabIndex={-1} style={CONTENT}>
               {children}
             </View>
           </ShellContext.Provider>

@@ -440,6 +440,60 @@ describe('AppShell', () => {
     expect(onMount).toHaveBeenCalledTimes(1);
   });
 
+  it('a change of mode never remounts its children', () => {
+    for (const breakpoint of ['compact', 'medium', 'expanded'] as const) {
+      const onMount = vi.fn();
+      const shell = (mode: AppShellProps['mode']): ReactElement => (
+        <ShellLayout {...STATES.signedOutHome} mode={mode} breakpoint={breakpoint}>
+          <Mounted onMount={onMount} />
+        </ShellLayout>
+      );
+      cleanup();
+      const view = renderWithProviders(shell('app'));
+      const child = screen.getByText('Content');
+      const slot = screen.getByRole('main');
+      expect(slot.contains(child), breakpoint).toBe(true);
+
+      // Bare: the chrome and the landmark go, and the slot and what it holds are the same elements.
+      view.rerender(shell('bare'));
+      expect(screen.queryByRole('main'), breakpoint).toBeNull();
+      expect(screen.queryByTestId('shell.skip-link'), breakpoint).toBeNull();
+      expect(screen.queryByTestId('shell.rail'), breakpoint).toBeNull();
+      expect(screen.getByText('Content'), breakpoint).toBe(child);
+      expect(slot.isConnected, breakpoint).toBe(true);
+      expect(slot.contains(child), breakpoint).toBe(true);
+
+      // App again: the same slot is the page's main once more, and the skip link reaches it.
+      view.rerender(shell('app'));
+      expect(screen.getAllByRole('main'), breakpoint).toEqual([slot]);
+      expect(screen.getByText('Content'), breakpoint).toBe(child);
+      fireEvent.click(screen.getByTestId('shell.skip-link'));
+      expect(document.activeElement, breakpoint).toBe(slot);
+      expect(onMount, breakpoint).toHaveBeenCalledTimes(1);
+    }
+  });
+
+  it('a shell that starts bare marks its slot when it turns to app mode', () => {
+    const onMount = vi.fn();
+    const shell = (mode: AppShellProps['mode']): ReactElement => (
+      <ShellLayout {...STATES.signedOutHome} mode={mode} breakpoint="expanded">
+        <Mounted onMount={onMount} />
+      </ShellLayout>
+    );
+    cleanup();
+    const view = renderWithProviders(shell('bare'));
+    const child = screen.getByText('Content');
+    expect(screen.queryByRole('main')).toBeNull();
+
+    view.rerender(shell('app'));
+    const mains = screen.getAllByRole('main');
+    expect(mains).toHaveLength(1);
+    expect(mains[0]?.contains(child)).toBe(true);
+    expect(mains[0]?.contains(screen.getByTestId('shell.rail'))).toBe(false);
+    expect(screen.getByText('Content')).toBe(child);
+    expect(onMount).toHaveBeenCalledTimes(1);
+  });
+
   it('caps the expanded row at the content width and centers it', () => {
     draw(
       <ShellLayout {...STATES.signedOutHome} breakpoint="expanded">

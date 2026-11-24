@@ -3,13 +3,13 @@ import { useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, ScrollView, View } from 'react-native';
-import type { ScrollViewInstance, ViewStyle } from 'react-native';
+import type { HostInstance, ScrollViewInstance, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReducedMotion } from '@/ui/motion';
 import { AppBar, AppBarInsetCover } from '@/ui/shells/app-bar';
 import type { AppBarProps } from '@/ui/shells/app-bar';
-import { useShell } from '@/ui/shells/app-shell';
+import { useMainLandmark, useShell } from '@/ui/shells/app-shell';
 import { useReportBottomChrome } from '@/ui/shells/bottom-chrome';
 import { useOnReselect } from '@/ui/shells/reselect';
 import { RightColumn } from '@/ui/shells/right-column';
@@ -154,6 +154,7 @@ export function Screen({
   const { t } = useTranslation('common');
   const reducedMotion = useReducedMotion();
   const scrollRef = useRef<ScrollViewInstance>(null);
+  const contentRef = useRef<HostInstance>(null);
   // MO-tab-restore: the tab this screen belongs to is the one that was active when it first drew.
   const [tab] = useState(shell.active);
   const [footerHeight, setFooterHeight] = useState(0);
@@ -162,6 +163,8 @@ export function Screen({
     scrollRef.current?.scrollTo({ x: 0, y: 0, animated: !reducedMotion });
   });
   useReportBottomChrome(footer === undefined || footer === null ? 0 : footerHeight);
+  // The landmark comes and goes with the shell's mode, and the content stays mounted through it.
+  useMainLandmark(contentRef, !shell.mainProvided);
 
   // Only the two widths that leave room for a right column draw one, and only at expanded.
   const showsAside =
@@ -196,43 +199,41 @@ export function Screen({
   return (
     <View style={[FILL, { backgroundColor: theme.color.bg }]} testID={testID}>
       {barScrolls ? null : bar}
-      <KeyboardAvoidingView
-        behavior="padding"
-        style={FILL}
-        role={shell.mainProvided ? undefined : 'main'}
-      >
-        <View style={frame.row}>
-          {scroll ? (
-            <ScrollView
-              ref={scrollRef}
-              style={frame.column}
-              contentContainerStyle={GROW}
-              keyboardShouldPersistTaps="handled"
-              testID={`${testID}-scroll`}
+      <KeyboardAvoidingView behavior="padding" style={FILL}>
+        <View ref={contentRef} style={FILL}>
+          <View style={frame.row}>
+            {scroll ? (
+              <ScrollView
+                ref={scrollRef}
+                style={frame.column}
+                contentContainerStyle={GROW}
+                keyboardShouldPersistTaps="handled"
+                testID={`${testID}-scroll`}
+              >
+                {barScrolls ? bar : null}
+                {shell.banner}
+                {offlineLine}
+                <View style={[frame.box, GROW]}>{children}</View>
+              </ScrollView>
+            ) : (
+              <View style={frame.column}>
+                {shell.banner}
+                {offlineLine}
+                <View style={[frame.box, FILL]}>{children}</View>
+              </View>
+            )}
+            {showsAside ? <RightColumn>{aside}</RightColumn> : null}
+          </View>
+          {footer === undefined || footer === null ? null : (
+            <View
+              onLayout={(event) => {
+                setFooterHeight(event.nativeEvent.layout.height);
+              }}
             >
-              {barScrolls ? bar : null}
-              {shell.banner}
-              {offlineLine}
-              <View style={[frame.box, GROW]}>{children}</View>
-            </ScrollView>
-          ) : (
-            <View style={frame.column}>
-              {shell.banner}
-              {offlineLine}
-              <View style={[frame.box, FILL]}>{children}</View>
+              {footer}
             </View>
           )}
-          {showsAside ? <RightColumn>{aside}</RightColumn> : null}
         </View>
-        {footer === undefined || footer === null ? null : (
-          <View
-            onLayout={(event) => {
-              setFooterHeight(event.nativeEvent.layout.height);
-            }}
-          >
-            {footer}
-          </View>
-        )}
       </KeyboardAvoidingView>
       {barScrolls ? <AppBarInsetCover /> : null}
     </View>

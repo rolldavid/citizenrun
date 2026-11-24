@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { useEffect } from 'react';
 import type { JSX, ReactElement } from 'react';
 import { View } from 'react-native';
 import { describe, expect, it, vi } from 'vitest';
@@ -8,6 +9,7 @@ import * as fixtures from '@/features/system/view-models/root.fixtures';
 import type { NavItem, RootViewModel } from '@/features/system/view-models/root.types';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import { Screen } from '@/ui/components/screen';
 
 import { RootLayoutScreenView } from './root-layout-screen';
 
@@ -65,6 +67,25 @@ function probed(vm: RootViewModel): JSX.Element {
   return (
     <RootLayoutScreenView vm={vm} systemScreen={<View testID="probe.system" />}>
       <View testID="probe.stack" />
+    </RootLayoutScreenView>
+  );
+}
+
+/** Stands for what a screen holds: it tells each time it mounts. */
+function Held({ onMount }: { onMount: () => void }): JSX.Element {
+  useEffect(() => {
+    onMount();
+  }, [onMount]);
+  return <View testID="probe.held" />;
+}
+
+/** The layout around a screen of the app in place of the root stack, and a probe for a system screen. */
+function aroundScreen(vm: RootViewModel, onMount: () => void): JSX.Element {
+  return (
+    <RootLayoutScreenView vm={vm} systemScreen={<View testID="probe.system" />}>
+      <Screen testID="probe.screen">
+        <Held onMount={onMount} />
+      </Screen>
     </RootLayoutScreenView>
   );
 }
@@ -183,15 +204,53 @@ describe('RootLayoutScreenView', () => {
     sized(EXPANDED);
     cleanup();
     const view = renderWithProviders(probed(fixtures.rootSignedOut));
+    const stack = screen.getByTestId('probe.stack');
     expect(screen.getByTestId('shell.rail')).toBeTruthy();
     view.rerender(probed(fixtures.rootUpdate));
     expect(screen.queryByTestId('shell.rail')).toBeNull();
     expect(screen.getByTestId('probe.system')).toBeTruthy();
     expect(screen.getByTestId('probe.stack')).toBeTruthy();
+    // The chrome goes and the stack is the one that was there.
+    expect(screen.getByTestId('probe.stack')).toBe(stack);
     view.rerender(probed(fixtures.rootSignedOut));
     expect(screen.getByTestId('shell.rail')).toBeTruthy();
     expect(screen.queryByTestId('probe.system')).toBeNull();
     expect(screen.getByTestId('probe.stack')).toBeTruthy();
+    expect(screen.getByTestId('probe.stack')).toBe(stack);
+  });
+
+  it('a screen of an app route stays mounted under a system screen that comes and goes', () => {
+    for (const viewport of [COMPACT, EXPANDED]) {
+      sized(viewport);
+      const onMount = vi.fn();
+      const open = fixtures.rootSignedOut;
+      // The route under the cover is still a route of the app: only the system screen changes.
+      const covered: RootViewModel = { ...open, system: 'update' };
+      cleanup();
+      const view = renderWithProviders(aroundScreen(open, onMount));
+      const held = screen.getByTestId('probe.held');
+      const area = screen.getByTestId('probe.screen-scroll');
+      const slot = screen.getByRole('main');
+      expect(slot.contains(held)).toBe(true);
+      expect(screen.getByTestId('shell.skip-link')).toBeTruthy();
+
+      view.rerender(aroundScreen(covered, onMount));
+      expect(screen.getByTestId('probe.system')).toBeTruthy();
+      expect(screen.queryByTestId('shell.skip-link')).toBeNull();
+      expect(screen.getByTestId('probe.held')).toBe(held);
+      expect(screen.getByTestId('probe.screen-scroll')).toBe(area);
+      expect(slot.contains(held)).toBe(true);
+      // The covered screen is out of a screen reader's reach, its landmark with it.
+      expect(stackBox(screen.getByTestId('probe.screen')).getAttribute('aria-hidden')).toBe('true');
+      expect(screen.queryByRole('main')).toBeNull();
+
+      view.rerender(aroundScreen(open, onMount));
+      expect(screen.queryByTestId('probe.system')).toBeNull();
+      expect(screen.getAllByRole('main')).toEqual([slot]);
+      expect(screen.getByTestId('probe.held')).toBe(held);
+      expect(screen.getByTestId('probe.screen-scroll')).toBe(area);
+      expect(onMount).toHaveBeenCalledTimes(1);
+    }
   });
 
   it('the stack mounts when the app has started, and a change of width keeps it', () => {

@@ -296,6 +296,16 @@ describe('TabBar', () => {
     expect(hapticsFake.calls).toEqual([{ method: 'selection' }, { method: 'selection' }]);
   });
 
+  it('Enter on a cell navigates, as a click does', () => {
+    const onNavigate = vi.fn();
+    drawBar({ active: 'home', onNavigate, onReselect: vi.fn() });
+    // A cell is a link with no address: no browser follows it on Enter, so the cell presses itself.
+    fireEvent.keyDown(tab('explore'), { key: 'Enter' });
+    fireEvent.keyUp(tab('explore'), { key: 'Enter' });
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledWith('explore');
+  });
+
   it('the active tab reselects without a haptic', () => {
     const onNavigate = vi.fn();
     const onReselect = vi.fn();

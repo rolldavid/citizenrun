@@ -237,6 +237,46 @@ describe('Screen', () => {
     ).toHaveLength(1);
   });
 
+  it('keeps its content when the shell around it changes mode', () => {
+    setViewport(...COMPACT);
+    const under = (mode: ShellLayoutProps['mode']): JSX.Element =>
+      inShell(
+        { mode },
+        {
+          testID: 'probe.screen',
+          footer: <View testID="probe.footer" />,
+          children: <View testID={PROBE} />,
+        },
+      );
+    cleanup();
+    const view = renderWithProviders(under('app'));
+    const root = screen.getByTestId('probe.screen');
+    const content = screen.getByTestId(PROBE);
+    const area = scrollOf('probe.screen');
+    const footer = screen.getByTestId('probe.footer');
+    const landmarks = (): Element[] => [...root.querySelectorAll('[role="main"]')];
+    expect(landmarks()).toHaveLength(0);
+
+    // A bare shell marks no main, so the screen's content becomes it, with every part where it was.
+    view.rerender(under('bare'));
+    expect(screen.getAllByRole('main')).toEqual(landmarks());
+    expect(landmarks()).toHaveLength(1);
+    expect(landmarks()[0]?.contains(content)).toBe(true);
+    expect(landmarks()[0]?.contains(footer)).toBe(true);
+    expect(screen.getByTestId('probe.screen')).toBe(root);
+    expect(screen.getByTestId(PROBE)).toBe(content);
+    expect(scrollOf('probe.screen')).toBe(area);
+    expect(screen.getByTestId('probe.footer')).toBe(footer);
+
+    // The shell's slot is the main again, and the screen gives the landmark up without a new mount.
+    view.rerender(under('app'));
+    expect(screen.getAllByRole('main')).toHaveLength(1);
+    expect(landmarks()).toHaveLength(0);
+    expect(screen.getByTestId(PROBE)).toBe(content);
+    expect(scrollOf('probe.screen')).toBe(area);
+    expect(screen.getByTestId('probe.footer')).toBe(footer);
+  });
+
   it("draws the shell's banner under the app bar", () => {
     setViewport(...COMPACT);
     const banner = <Text role="body">Suspended</Text>;
