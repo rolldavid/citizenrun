@@ -48,7 +48,7 @@ export default defineConfig([
     languageOptions: {
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
-    linterOptions: { reportUnusedDisableDirectives: 'error' },
+    linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: 'error' },
   },
   { files: [...APP, ...CARDS], extends: [expo] },
   ...baseline,

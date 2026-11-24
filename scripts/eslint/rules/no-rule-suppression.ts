@@ -38,7 +38,9 @@ export function isForbiddenDirective(directive: Directive): boolean {
 
 /**
  * Where to report a directive so that the directive itself does not hide the report: a disable
- * that covers this rule hides everything from its own position (a block) or on its own line.
+ * that covers this rule hides everything from its own position (a block) or on its own line. A
+ * directive that starts a file has no token before it; the repository configuration sets
+ * `noInlineConfig`, so no directive takes effect there and the report stands (D-804).
  */
 function reportTarget(
   sourceCode: SourceCode,

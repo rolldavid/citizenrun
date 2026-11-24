@@ -1,5 +1,7 @@
+import { ESLint } from 'eslint';
 import tseslint from 'typescript-eslint';
 import { describe, expect, it } from 'vitest';
+import { repoRoot } from '../../lib/repo-root.ts';
 import { citizenrun } from '../index.ts';
 import { restrictedNamespacePlugin } from '../restricted-imports.ts';
 import { RuleTester, testable } from '../rule-tester.ts';
@@ -134,4 +136,47 @@ describe('parseDirective', () => {
       }
     }
   });
+});
+
+describe('the repository configuration', () => {
+  const eslint = new ESLint({ cwd: repoRoot() });
+  const filePath = 'apps/api/src/lib/process-errors.ts';
+  const body =
+    "type Log = Record<string, (...args: unknown[]) => void>;\ndeclare const log: Log;\ndeclare const email: string;\nlog.info('probe.event', { email });\n";
+  const SUPPRESSION = 'citizenrun/no-rule-suppression';
+  const FIELD = 'citizenrun/no-forbidden-log-fields';
+
+  /** The rule ids the repository configuration reports on `text`, linted as a file under apps/api. */
+  async function ruleIds(text: string): Promise<string[]> {
+    const [result] = await eslint.lintText(text, { filePath });
+    const messages = result?.messages ?? [];
+    const fatal = messages.find((message) => message.fatal === true);
+    if (fatal !== undefined) {
+      throw new Error(fatal.message);
+    }
+    return messages.flatMap((message) => (message.ruleId === null ? [] : [message.ruleId]));
+  }
+
+  it('reports a forbidden log field when no comment is present', async () => {
+    const ids = await ruleIds(body);
+    expect(ids).toContain(FIELD);
+    expect(ids).not.toContain(SUPPRESSION);
+  }, 60_000);
+
+  it('reports a blanket disable that starts the file and keeps every rule on below it', async () => {
+    const ids = await ruleIds(`/* eslint-disable */\n${body}`);
+    expect(ids).toContain(SUPPRESSION);
+    expect(ids).toContain(FIELD);
+  }, 60_000);
+
+  it('reports a disable that starts the file and names the suppression and log-field rules', async () => {
+    const ids = await ruleIds(`/* eslint-disable ${SUPPRESSION}, ${FIELD} */\n${body}`);
+    expect(ids).toContain(SUPPRESSION);
+    expect(ids).toContain(FIELD);
+  }, 60_000);
+
+  it('keeps the log-field rule on when a comment that starts the file sets it off', async () => {
+    const ids = await ruleIds(`/* eslint ${FIELD}: "off" */\n${body}`);
+    expect(ids).toContain(FIELD);
+  }, 60_000);
 });
