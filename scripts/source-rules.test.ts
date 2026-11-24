@@ -6,6 +6,8 @@ import { repoRoot } from './lib/repo-root.ts';
 const ROOT = repoRoot();
 const SKIPPED_FOLDERS = new Set(['node_modules', 'dist', '.expo', 'ios', 'android']);
 const SKIPPED_PATHS = new Set(['packages/shared/src/api']);
+const CARDS_SRC = 'packages/cards/src';
+const PRIMITIVES = '@citizenrun/cards/primitives';
 
 /** Every `.ts` and `.tsx` file under `apps/` and `packages/`, relative to the root. */
 function sourceFiles(): string[] {
@@ -43,6 +45,155 @@ describe('source rules', () => {
     const pattern = /notation\s*:\s*['"]compact['"]/;
     const offenders = sourceFiles().filter((file) =>
       pattern.test(readFileSync(join(ROOT, file), 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+/** Every `.ts` and `.tsx` file under `dir` (relative to the root), or none when the folder does not exist. */
+function filesUnder(dir: string): string[] {
+  const found: string[] = [];
+  const visit = (path: string): void => {
+    let entries;
+    try {
+      entries = readdirSync(path, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const child = join(path, entry.name);
+      if (entry.isDirectory()) {
+        if (!SKIPPED_FOLDERS.has(entry.name)) {
+          visit(child);
+        }
+      } else if (/\.tsx?$/.test(entry.name)) {
+        found.push(relative(ROOT, child));
+      }
+    }
+  };
+  visit(join(ROOT, dir));
+  return found.sort();
+}
+
+/** The primitives no canvas uses: only the spike card draws the four spike elements, and nothing draws TSpan or Mask. */
+const SPIKE_ONLY_PRIMITIVES: ReadonlySet<string> = new Set([
+  'TSpan',
+  'Defs',
+  'LinearGradient',
+  'Stop',
+  'ClipPath',
+  'Mask',
+]);
+
+/** The spike-only names `source` imports from the primitives entry: named imports, with or without `type`, across lines. */
+function forbiddenPrimitiveImports(source: string): string[] {
+  const statement = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g;
+  const names: string[] = [];
+  for (const match of source.matchAll(statement)) {
+    if (match[2] !== PRIMITIVES) {
+      continue;
+    }
+    for (const specifier of (match[1] ?? '').split(',')) {
+      const imported = specifier
+        .trim()
+        .replace(/^type\s+/, '')
+        .split(/\s+as\s+/)[0]
+        ?.trim();
+      if (imported !== undefined && SPIKE_ONLY_PRIMITIVES.has(imported)) {
+        names.push(imported);
+      }
+    }
+  }
+  return names;
+}
+
+/** The canvas files the plain-canvas rule covers. The spike card and its own test are the one exception (D-100). */
+function plainCanvasFiles(): string[] {
+  const spikeCard = new Set([
+    `${CARDS_SRC}/templates/hello-card.tsx`,
+    `${CARDS_SRC}/templates/hello-card.test.tsx`,
+  ]);
+  return ['templates', 'regions', 'model', 'art', 'generated']
+    .flatMap((folder) => filesUnder(`${CARDS_SRC}/${folder}`))
+    .filter((file) => !spikeCard.has(file));
+}
+
+/** The line numbers (from 1) of `source` that turn font scaling off. */
+function findDisabledFontScaling(source: string): number[] {
+  const pattern = /allowFontScaling\s*(=\s*\{\s*false\s*\}|:\s*false)/;
+  return source.split('\n').flatMap((line, index) => (pattern.test(line) ? [index + 1] : []));
+}
+
+describe('plain canvas imports', () => {
+  it('finds a spike-only primitive among named imports', () => {
+    const source = `import { Rect, ClipPath } from '${PRIMITIVES}';`;
+    expect(forbiddenPrimitiveImports(source)).toEqual(['ClipPath']);
+  });
+
+  it('finds spike-only primitives in a type import spread across lines', () => {
+    const source = [
+      'import type {',
+      '  RectProps,',
+      '  TSpan as Line,',
+      '  Mask,',
+      `} from "${PRIMITIVES}";`,
+      `import { type Defs, G } from '${PRIMITIVES}';`,
+    ].join('\n');
+    expect(forbiddenPrimitiveImports(source)).toEqual(['TSpan', 'Mask', 'Defs']);
+  });
+
+  it('accepts the plain primitives', () => {
+    expect(forbiddenPrimitiveImports(`import { Rect } from '${PRIMITIVES}';`)).toEqual([]);
+  });
+
+  it('ignores the same names imported from another module', () => {
+    expect(forbiddenPrimitiveImports("import { ClipPath } from 'react-native-svg';")).toEqual([]);
+  });
+
+  it('scans the card folders that exist', () => {
+    expect(plainCanvasFiles()).toContain(`${CARDS_SRC}/art/empty-chair.tsx`);
+    expect(plainCanvasFiles()).not.toContain(`${CARDS_SRC}/templates/hello-card.tsx`);
+  });
+
+  it('no canvas file imports a spike-only primitive', () => {
+    const offenders = plainCanvasFiles().flatMap((file) =>
+      forbiddenPrimitiveImports(readFileSync(join(ROOT, file), 'utf8')).map(
+        (name) => `${file} imports ${name}`,
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
+
+  it('no canvas file but the spike card passes the clipPath prop', () => {
+    const prop = /\bclipPath\s*[=:]/;
+    const offenders = plainCanvasFiles().filter((file) =>
+      prop.test(readFileSync(join(ROOT, file), 'utf8')),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe('no text turns font scaling off', () => {
+  it('finds allowFontScaling={false} on a Text element', () => {
+    const source = ['const a = 1;', '<Text allowFontScaling={false}>Wren County</Text>'].join('\n');
+    expect(findDisabledFontScaling(source)).toEqual([2]);
+  });
+
+  it('finds allowFontScaling: false in an object', () => {
+    expect(findDisabledFontScaling('const props = { allowFontScaling: false };')).toEqual([1]);
+  });
+
+  it('accepts allowFontScaling={true}', () => {
+    expect(findDisabledFontScaling('<Text allowFontScaling={true}>Alder</Text>')).toEqual([]);
+  });
+
+  it('no file of the app source turns font scaling off', () => {
+    const files = filesUnder('apps/mobile/src');
+    expect(files.length).toBeGreaterThan(0);
+    const offenders = files.flatMap((file) =>
+      findDisabledFontScaling(readFileSync(join(ROOT, file), 'utf8')).map(
+        (line) => `${file}:${String(line)}`,
+      ),
     );
     expect(offenders).toEqual([]);
   });
