@@ -27,9 +27,17 @@ export default defineConfig({
     name: 'dom:mobile',
     environment: 'jsdom',
     include: ['src/**/*.test.tsx'],
+    // Vitest tests each pattern against the resolved file path, so a pattern matches the
+    // `/node_modules/<name>/` segment, never a bare specifier. `expo` and `expo-*` are left out:
+    // their development setup loads through Node's `require`, which inlining does not reach.
     server: {
       deps: {
-        inline: [/^react-native/, /^@react-native\//, /^expo/, /^@expo\//, /^@shopify\/flash-list/],
+        inline: [
+          /\/node_modules\/react-native(-[^/]+)?\//,
+          /\/node_modules\/@react-native\//,
+          /\/node_modules\/@expo\//,
+          /\/node_modules\/@shopify\/flash-list\//,
+        ],
       },
     },
   },

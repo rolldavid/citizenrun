@@ -21,6 +21,24 @@ vi.mock('@/platform/links', () => import('./platform/links'));
 vi.mock('@/platform/age-assurance', () => import('./platform/age-assurance'));
 vi.mock('@/platform/query-client', () => import('./platform/query-client'));
 
+// jsdom has no `window.matchMedia`; Reanimated reads it at import for reduced motion.
+if (typeof window.matchMedia !== 'function') {
+  Object.defineProperty(window, 'matchMedia', {
+    configurable: true,
+    writable: true,
+    value: (media: string) => ({
+      matches: false,
+      media,
+      onchange: null,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+      addListener: () => undefined,
+      removeListener: () => undefined,
+      dispatchEvent: () => false,
+    }),
+  });
+}
+
 beforeEach(() => {
   resetPlatformFakes();
 });
