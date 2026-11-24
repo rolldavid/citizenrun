@@ -170,9 +170,9 @@ export function buildConfig(input: BuildInput): ExpoConfig {
     locales: { en: './native-strings.en.json' },
     extra: {
       variant,
-      host: v.host,
-      apiOrigin,
-      apiVariant,
+      ...(v.host === null ? {} : { host: v.host }),
+      ...(apiOrigin === null ? {} : { apiOrigin }),
+      ...(apiVariant === null ? {} : { apiVariant }),
       ...(projectId === null ? {} : { eas: { projectId } }),
     },
     plugins: [

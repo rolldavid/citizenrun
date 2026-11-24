@@ -230,9 +230,11 @@ describe('buildConfig', () => {
   });
 
   it('apiOrigin follows its rule', () => {
-    expect(
-      build('development', { env: { EXPO_PUBLIC_API_ORIGIN: 'http://192.0.2.10:8080' } }).extra,
-    ).toMatchObject({ apiOrigin: 'http://192.0.2.10:8080', apiVariant: null });
+    const explicit = build('development', {
+      env: { EXPO_PUBLIC_API_ORIGIN: 'http://192.0.2.10:8080' },
+    }).extra;
+    expect(explicit).toMatchObject({ apiOrigin: 'http://192.0.2.10:8080' });
+    expect(explicit).not.toHaveProperty('apiVariant');
 
     expect(
       build('production', { brand: fixtureBrand, env: { API_VARIANT: 'staging' } }).extra,
@@ -242,12 +244,41 @@ describe('buildConfig', () => {
       'brand.json variants.staging.host is not set',
     );
 
-    expect(build('development').extra).toMatchObject({
-      variant: 'development',
-      host: null,
-      apiOrigin: null,
-      apiVariant: null,
-    });
+    const unset = build('development').extra;
+    expect(unset).toMatchObject({ variant: 'development' });
+    expect(unset).not.toHaveProperty('host');
+    expect(unset).not.toHaveProperty('apiOrigin');
+    expect(unset).not.toHaveProperty('apiVariant');
+  });
+
+  it('extra holds no null value', () => {
+    function nullPaths(value: unknown, path: string): string[] {
+      if (value === null) {
+        return [path];
+      }
+      if (typeof value !== 'object') {
+        return [];
+      }
+      return Object.entries(value).flatMap(([key, inner]) => nullPaths(inner, `${path}.${key}`));
+    }
+
+    const envs: BuildInput['env'][] = [
+      {},
+      { EXPO_PUBLIC_API_ORIGIN: 'http://192.0.2.10:8080' },
+      { API_VARIANT: 'staging' },
+      { EXPO_PUBLIC_API_ORIGIN: 'http://192.0.2.10:8080', API_VARIANT: 'staging' },
+    ];
+    for (const variant of VARIANTS) {
+      for (const source of [brand, fixtureBrand]) {
+        for (const env of envs) {
+          const needsHost =
+            env.API_VARIANT !== undefined && env.EXPO_PUBLIC_API_ORIGIN === undefined;
+          const config = build(variant, { brand: needsHost ? fixtureBrand : source, env });
+          expect(config.extra).toMatchObject({ variant });
+          expect(nullPaths(config.extra, 'extra')).toEqual([]);
+        }
+      }
+    }
   });
 
   it('identity colors are the tokens', () => {
