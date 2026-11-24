@@ -12,6 +12,7 @@ import type {
 import type { CreateClientErrorBody, ErrorEnvelope } from '../model';
 
 import { apiFetch } from '../../http/mutator.ts';
+import type { ErrorType } from '../../http/mutator.ts';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -67,7 +68,7 @@ export const createClientError = async (
 export const getCreateClientErrorMutationKey = () => ['createClientError'] as const;
 
 export const getCreateClientErrorMutationOptions = <
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
@@ -106,10 +107,10 @@ export type CreateClientErrorMutationResult = NonNullable<
   Awaited<ReturnType<typeof createClientError>>
 >;
 export type CreateClientErrorMutationBody = CreateClientErrorBody;
-export type CreateClientErrorMutationError = ErrorEnvelope;
+export type CreateClientErrorMutationError = ErrorType<ErrorEnvelope>;
 export type CreateClientErrorMutationVariables = { data: CreateClientErrorBody };
 
-export const useCreateClientError = <TError = ErrorEnvelope, TContext = unknown>(
+export const useCreateClientError = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
   options?: {
     mutation?: UseMutationOptions<
       Awaited<ReturnType<typeof createClientError>>,

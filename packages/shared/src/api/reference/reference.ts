@@ -17,6 +17,7 @@ import type {
 import type { ErrorEnvelope, OpenApiDocument } from '../model';
 
 import { apiFetch } from '../../http/mutator.ts';
+import type { ErrorType } from '../../http/mutator.ts';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -58,7 +59,7 @@ export const getGetOpenApiDocumentQueryKey = () => {
 
 export const getGetOpenApiDocumentQueryOptions = <
   TData = Awaited<ReturnType<typeof getOpenApiDocument>>,
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
 >(options?: {
   query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOpenApiDocument>>, TError, TData>>;
   request?: SecondParameter<typeof apiFetch>;
@@ -80,11 +81,11 @@ export const getGetOpenApiDocumentQueryOptions = <
 export type GetOpenApiDocumentQueryResult = NonNullable<
   Awaited<ReturnType<typeof getOpenApiDocument>>
 >;
-export type GetOpenApiDocumentQueryError = ErrorEnvelope;
+export type GetOpenApiDocumentQueryError = ErrorType<ErrorEnvelope>;
 
 export function useGetOpenApiDocument<
   TData = Awaited<ReturnType<typeof getOpenApiDocument>>,
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
 >(
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOpenApiDocument>>, TError, TData>> &
@@ -102,7 +103,7 @@ export function useGetOpenApiDocument<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetOpenApiDocument<
   TData = Awaited<ReturnType<typeof getOpenApiDocument>>,
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
 >(
   options?: {
     query?: Partial<
@@ -122,7 +123,7 @@ export function useGetOpenApiDocument<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetOpenApiDocument<
   TData = Awaited<ReturnType<typeof getOpenApiDocument>>,
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
 >(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOpenApiDocument>>, TError, TData>>;
@@ -132,7 +133,7 @@ export function useGetOpenApiDocument<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetOpenApiDocument<
   TData = Awaited<ReturnType<typeof getOpenApiDocument>>,
-  TError = ErrorEnvelope,
+  TError = ErrorType<ErrorEnvelope>,
 >(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getOpenApiDocument>>, TError, TData>>;

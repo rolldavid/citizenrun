@@ -17,6 +17,7 @@ import type {
 import type { HealthzResponse, ReadyzResponse } from '../model';
 
 import { apiFetch } from '../../http/mutator.ts';
+import type { ErrorType } from '../../http/mutator.ts';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -58,7 +59,7 @@ export const getGetHealthzQueryKey = () => {
 
 export const getGetHealthzQueryOptions = <
   TData = Awaited<ReturnType<typeof getHealthz>>,
-  TError = string,
+  TError = ErrorType<string>,
 >(options?: {
   query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthz>>, TError, TData>>;
   request?: SecondParameter<typeof apiFetch>;
@@ -78,9 +79,12 @@ export const getGetHealthzQueryOptions = <
 };
 
 export type GetHealthzQueryResult = NonNullable<Awaited<ReturnType<typeof getHealthz>>>;
-export type GetHealthzQueryError = string;
+export type GetHealthzQueryError = ErrorType<string>;
 
-export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TError = string>(
+export function useGetHealthz<
+  TData = Awaited<ReturnType<typeof getHealthz>>,
+  TError = ErrorType<string>,
+>(
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthz>>, TError, TData>> &
       Pick<
@@ -95,7 +99,10 @@ export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TE
   },
   queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TError = string>(
+export function useGetHealthz<
+  TData = Awaited<ReturnType<typeof getHealthz>>,
+  TError = ErrorType<string>,
+>(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthz>>, TError, TData>> &
       Pick<
@@ -110,14 +117,20 @@ export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TE
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TError = string>(
+export function useGetHealthz<
+  TData = Awaited<ReturnType<typeof getHealthz>>,
+  TError = ErrorType<string>,
+>(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthz>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
   },
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
-export function useGetHealthz<TData = Awaited<ReturnType<typeof getHealthz>>, TError = string>(
+export function useGetHealthz<
+  TData = Awaited<ReturnType<typeof getHealthz>>,
+  TError = ErrorType<string>,
+>(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getHealthz>>, TError, TData>>;
     request?: SecondParameter<typeof apiFetch>;
@@ -152,7 +165,7 @@ export const getGetReadyzQueryKey = () => {
 
 export const getGetReadyzQueryOptions = <
   TData = Awaited<ReturnType<typeof getReadyz>>,
-  TError = string | ReadyzResponse,
+  TError = ErrorType<string | ReadyzResponse>,
 >(options?: {
   query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadyz>>, TError, TData>>;
   request?: SecondParameter<typeof apiFetch>;
@@ -172,11 +185,11 @@ export const getGetReadyzQueryOptions = <
 };
 
 export type GetReadyzQueryResult = NonNullable<Awaited<ReturnType<typeof getReadyz>>>;
-export type GetReadyzQueryError = string | ReadyzResponse;
+export type GetReadyzQueryError = ErrorType<string | ReadyzResponse>;
 
 export function useGetReadyz<
   TData = Awaited<ReturnType<typeof getReadyz>>,
-  TError = string | ReadyzResponse,
+  TError = ErrorType<string | ReadyzResponse>,
 >(
   options: {
     query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadyz>>, TError, TData>> &
@@ -194,7 +207,7 @@ export function useGetReadyz<
 ): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetReadyz<
   TData = Awaited<ReturnType<typeof getReadyz>>,
-  TError = string | ReadyzResponse,
+  TError = ErrorType<string | ReadyzResponse>,
 >(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadyz>>, TError, TData>> &
@@ -212,7 +225,7 @@ export function useGetReadyz<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetReadyz<
   TData = Awaited<ReturnType<typeof getReadyz>>,
-  TError = string | ReadyzResponse,
+  TError = ErrorType<string | ReadyzResponse>,
 >(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadyz>>, TError, TData>>;
@@ -222,7 +235,7 @@ export function useGetReadyz<
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 export function useGetReadyz<
   TData = Awaited<ReturnType<typeof getReadyz>>,
-  TError = string | ReadyzResponse,
+  TError = ErrorType<string | ReadyzResponse>,
 >(
   options?: {
     query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getReadyz>>, TError, TData>>;

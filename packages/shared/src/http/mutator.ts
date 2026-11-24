@@ -16,6 +16,14 @@ export type ApiClientConfig = {
   onUpgradeRequired: () => void;
 };
 
+/**
+ * The error type of every generated hook and query option (D-821). Orval reads this export from the
+ * mutator and writes `ErrorType<body>`; apiFetch throws ApiError for every status that is not 2xx,
+ * never the response body, so the answer is ApiError whatever the body type (every type extends
+ * `unknown`).
+ */
+export type ErrorType<ErrorBody> = [ErrorBody] extends [unknown] ? ApiError : never;
+
 let clientConfig: ApiClientConfig | null = null;
 let requestId: string | null = null;
 
