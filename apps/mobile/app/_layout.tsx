@@ -12,6 +12,7 @@ import { links } from '@/platform/links';
 import type { PageKeyEvent } from '@/platform/links';
 import { queryClient } from '@/platform/query-client';
 import { storage } from '@/platform/storage';
+import { ToastHost } from '@/ui/components/toast';
 import { FONT_FACES, FontsProvider } from '@/ui/fonts';
 import { ShortcutProvider } from '@/ui/shortcuts';
 import { ThemeProvider } from '@/ui/theme';
@@ -41,7 +42,9 @@ function DesignProviders({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider choice={themeChoice}>
       <FontsProvider ready={fontsReady}>
-        <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>{children}</ShortcutProvider>
+        <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>
+          <ToastHost>{children}</ToastHost>
+        </ShortcutProvider>
       </FontsProvider>
     </ThemeProvider>
   );
