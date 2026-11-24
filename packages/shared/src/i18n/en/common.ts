@@ -3,6 +3,9 @@ export const common = {
   about: 'about',
   aboutValue: 'about {{value}}',
   ui: {
+    loading: 'Loading',
+    retry: 'Try again',
+    offline: 'No connection. This may be out of date.',
     link: { external: '{{label}}, opens in your browser' },
     avatar: { label: 'Photo of {{name}}' },
     badge: { overflow: '99+' },
