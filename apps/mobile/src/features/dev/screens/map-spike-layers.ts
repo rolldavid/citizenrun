@@ -128,7 +128,10 @@ export function spikeWebStyle(colors: Theme['color']): {
       'color:var(--spike-attrib-text);' +
       'border:var(--spike-attrib-line) solid var(--spike-attrib-rule);border-radius:0;' +
       'font-family:var(--spike-attrib-font);font-size:var(--spike-attrib-size)}' +
-      '.maplibregl-ctrl-attrib a{color:var(--spike-attrib-text);text-decoration:none}',
+      '.maplibregl-ctrl-attrib a{color:var(--spike-attrib-text);text-decoration:none}' +
+      // At the two left corners the library rounds an open compact control with a longer selector.
+      '.maplibregl-ctrl-top-left>.maplibregl-ctrl-attrib.maplibregl-compact-show,' +
+      '.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.maplibregl-compact-show{border-radius:0}',
     cssVariables: {
       '--spike-attrib-bg': colors.surface,
       '--spike-attrib-text': colors.textSecondary,

@@ -498,7 +498,12 @@ describe('the spike sources and camera boxes', () => {
     const light = spikeWebStyle(color.light);
     expect(light.css).not.toContain('#');
     expect(light.css).not.toContain('px');
-    expect(light.css.replace('border-radius:0', '')).not.toMatch(/\d/);
+    expect(light.css.replaceAll('border-radius:0', '')).not.toMatch(/\d/);
+    // Square at every corner: the library's own rule for the left corners is longer than the first.
+    expect(light.css).toContain(
+      '.maplibregl-ctrl-top-left>.maplibregl-ctrl-attrib.maplibregl-compact-show,' +
+        '.maplibregl-ctrl-bottom-left>.maplibregl-ctrl-attrib.maplibregl-compact-show{border-radius:0}',
+    );
     expect(light.css).toContain('.maplibregl-ctrl.maplibregl-ctrl-attrib{');
     expect(light.cssVariables).toEqual({
       '--spike-attrib-bg': LIGHT.surface,
