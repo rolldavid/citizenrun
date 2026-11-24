@@ -131,7 +131,7 @@ describe('check-bundle', () => {
 
   it('the limit is 500,000 bytes, inclusive', () => {
     expect(bundleProblems([measure(500000)], 500000)).toEqual([
-      'route index: 500000 gzipped bytes, the limit is under 500000 (D-448)',
+      'route index: 500000 gzipped bytes, the limit is under 500000 (D-448, D-822)',
     ]);
     expect(bundleProblems([measure(499999)], 500000)).toEqual([]);
   });

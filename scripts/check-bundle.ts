@@ -15,7 +15,7 @@ const SizesSchema = z.strictObject({
 });
 export type RouteSizes = z.infer<typeof SizesSchema>;
 
-/** The shape of `docs/perf/web-bundle.json` (D-164, D-448). */
+/** The shape of `docs/perf/web-bundle.json` (D-164, D-448, D-822). */
 export const BundleConfigSchema = z.strictObject({
   limitBytes: z.number().int().positive(),
   routes: z.array(z.string().min(1)).min(1),
@@ -182,7 +182,7 @@ export function bundleProblems(measures: readonly RouteMeasure[], limitBytes: nu
     }
     if (measure.sizes.total >= limitBytes) {
       problems.push(
-        `route ${measure.route}: ${String(measure.sizes.total)} gzipped bytes, the limit is under ${String(limitBytes)} (D-448)`,
+        `route ${measure.route}: ${String(measure.sizes.total)} gzipped bytes, the limit is under ${String(limitBytes)} (D-448, D-822)`,
       );
     }
     for (const module of measure.lazyModules) {

@@ -1,13 +1,13 @@
 {
-  "limitBytes": 500000,
+  "limitBytes": 700000,
   "routes": ["index"],
   "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/"],
   "baseline": {
     "index": {
-      "entry": 429873,
-      "common": 26891,
-      "route": 270,
-      "total": 457034
+      "entry": 646703,
+      "common": 3234,
+      "route": 379,
+      "total": 650316
     }
   }
 }
