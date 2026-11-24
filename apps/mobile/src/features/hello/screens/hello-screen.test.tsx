@@ -7,6 +7,7 @@ import type { HelloViewModel } from '@/features/hello/view-models/hello.types';
 import { getI18n } from '@/lib/i18n';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import { setPageLoad } from '@/ui/first-screen';
 import { space } from '@/ui/tokens';
 
 import { HelloScreenView } from './hello-screen';
@@ -137,6 +138,26 @@ describe('HelloScreenView', () => {
 
   it('the title takes the focus when the ready screen is drawn', () => {
     sized(COMPACT);
+    draw(fixtures.helloReady);
+    expect(document.activeElement).toBe(screen.getByTestId('hello.title'));
+  });
+
+  it('the first screen of a page load leaves the focus where the document starts it', () => {
+    sized(EXPANDED);
+    cleanup();
+    setPageLoad('start');
+    // The page opens on this screen: it loads, then it answers, and no route change brought it.
+    const view = renderWithProviders(<HelloScreenView vm={fixtures.helloLoading} />);
+    view.rerender(<HelloScreenView vm={fixtures.helloReady} />);
+    expect(titles()).toEqual([screen.getByTestId('hello.title')]);
+    // Nothing took the focus, so the first Tab reaches the first control of the page: the skip link.
+    expect(document.activeElement).toBe(document.body);
+    // Asking again keeps it there.
+    view.rerender(<HelloScreenView vm={fixtures.helloRefreshing} />);
+    view.rerender(<HelloScreenView vm={fixtures.helloReady} />);
+    expect(document.activeElement).toBe(document.body);
+
+    // The same screen, when a route change brings it, takes the focus to its title.
     draw(fixtures.helloReady);
     expect(document.activeElement).toBe(screen.getByTestId('hello.title'));
   });
