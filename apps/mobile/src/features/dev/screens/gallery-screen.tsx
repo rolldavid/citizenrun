@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import type { ComponentType, JSX, ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
 import type { TextInstance, ViewStyle } from 'react-native';
@@ -9,6 +9,7 @@ import {
   Button,
   CompactShell,
   CountBadge,
+  Dialog,
   EmptyChair,
   EmptyState,
   ExpandedShell,
@@ -25,17 +26,21 @@ import {
   RightColumn,
   Rule,
   Screen,
+  Sheet,
   Skeleton,
   SystemScreen,
   TabBar,
   Text,
+  Tooltip,
   Wordmark,
+  showToast,
   useBreakpoint,
 } from '@/ui';
-import type { InteractionPreviewState, ListProps } from '@/ui';
+import type { DialogProps, InteractionPreviewState, ListProps, SheetProps } from '@/ui';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
+import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
@@ -47,9 +52,12 @@ import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
+import * as toastFixtures from '@/ui/components/toast.fixtures';
+import * as tooltipFixtures from '@/ui/components/tooltip.fixtures';
 import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
 import { ReducedMotionOverride } from '@/ui/motion';
 import * as appBarFixtures from '@/ui/shells/app-bar.fixtures';
@@ -174,6 +182,92 @@ function SpecimenList(props: ListProps<ListSpecimenItem>): JSX.Element {
   return <List {...props} />;
 }
 
+/** A state name as a testID writes it: `runHover` is `run-hover`. */
+function kebab(name: string): string {
+  return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
+}
+
+/** A section whose specimens are drawn by the gallery itself: one for each state, in the given order. */
+function specimenSection(
+  id: string,
+  slug: string,
+  states: readonly string[],
+  render: GallerySection['render'],
+): GallerySection {
+  return { id, slug, cell: 'wide', states, preview: {}, ground: {}, frame: () => null, render };
+}
+
+/** The footer of a sheet's fixture with its one button closing the sheet; any other footer as it is. */
+function closingFooter(footer: ReactNode, close: () => void): ReactNode {
+  return isValidElement<{ onPress?: () => void }>(footer) && 'onPress' in footer.props
+    ? cloneElement(footer, { onPress: close })
+    : footer;
+}
+
+/**
+ * One state of C-Sheet: the button that opens it, and the sheet, closed until then. An open
+ * overlay would cover the page, so none is open when the gallery loads.
+ */
+function SheetSpecimen({ state, fixture }: { state: string; fixture: SheetProps }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const close = (): void => {
+    setOpen(false);
+  };
+  const { footer, ...props } = fixture;
+  return (
+    <>
+      <Button
+        variant="secondary"
+        label={`Open ${state}`}
+        testID={`gallery.open-sheet-${kebab(state)}`}
+        onPress={() => {
+          setOpen(true);
+        }}
+      />
+      <Sheet
+        {...props}
+        open={open}
+        onClose={close}
+        {...(footer === undefined ? {} : { footer: closingFooter(footer, close) })}
+      />
+    </>
+  );
+}
+
+/** One state of C-Dialog: the button that opens it, and the dialog, whose every action closes it. */
+function DialogSpecimen({ state, fixture }: { state: string; fixture: DialogProps }): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const close = (): void => {
+    setOpen(false);
+  };
+  const { actions, ...props } = fixture;
+  return (
+    <>
+      <Button
+        variant="secondary"
+        label={`Open ${state}`}
+        testID={`gallery.open-dialog-${kebab(state)}`}
+        onPress={() => {
+          setOpen(true);
+        }}
+      />
+      <Dialog
+        {...props}
+        open={open}
+        onClose={close}
+        {...(actions === undefined
+          ? {}
+          : { actions: actions.map((action) => ({ ...action, onPress: close })) })}
+      />
+    </>
+  );
+}
+
+const SHEET_STATES: Readonly<Record<string, SheetProps>> = sheetFixtures.STATES;
+const DIALOG_STATES: Readonly<Record<string, DialogProps>> = dialogFixtures.STATES;
+const TOAST_STATES: Readonly<Record<string, Parameters<typeof showToast>[0]>> =
+  toastFixtures.STATES;
+
 /** Every component built so far, in the order of the design system (DS-gallery). */
 const GALLERY_SECTIONS: readonly GallerySection[] = [
   shellsSection(),
@@ -208,6 +302,29 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     systemScreenFixtures,
     () => SHELL_FRAME,
   ),
+  specimenSection('C-Sheet', 'sheet', Object.keys(SHEET_STATES), (state) => {
+    const fixture = SHEET_STATES[state];
+    return fixture === undefined ? null : <SheetSpecimen state={state} fixture={fixture} />;
+  }),
+  specimenSection('C-Dialog', 'dialog', Object.keys(DIALOG_STATES), (state) => {
+    const fixture = DIALOG_STATES[state];
+    return fixture === undefined ? null : <DialogSpecimen state={state} fixture={fixture} />;
+  }),
+  section('C-Tooltip', 'tooltip', 'wide', Tooltip, tooltipFixtures),
+  // A toast is drawn by the host of the root layout, so its specimen is the button that asks for it.
+  specimenSection('C-Toast', 'toast', Object.keys(TOAST_STATES), (state) => {
+    const fixture = TOAST_STATES[state];
+    return fixture === undefined ? null : (
+      <Button
+        variant="secondary"
+        label={`Show ${state}`}
+        testID={`gallery.show-toast-${kebab(state)}`}
+        onPress={() => {
+          showToast(fixture);
+        }}
+      />
+    );
+  }),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };
@@ -246,11 +363,6 @@ const CELLS: ViewStyle = {
   marginTop: space.x3,
   marginBottom: space.x8,
 };
-
-/** A state name as a testID writes it: `runHover` is `run-hover`. */
-function kebab(name: string): string {
-  return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
-}
 
 /** One control of the header: its label and a small button for each value, the chosen one in ink. */
 function ControlRow<T>({
