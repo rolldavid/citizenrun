@@ -18,7 +18,7 @@ export default defineConfig({
         // apiFetch returns the parsed 2xx body and throws ApiError otherwise (D-032), so the
         // generated functions return the body type, not Orval's default { data, status, headers }.
         fetch: { includeHttpResponseReturnType: false },
-        query: { useQuery: true, useInfinite: false, signal: true },
+        query: { useInfinite: false, signal: true },
         operations: Object.fromEntries(
           INFINITE_OPERATIONS.map((id) => [
             id,
