@@ -179,6 +179,8 @@ type Track = {
   surface: Attached | null;
   container: HTMLElement | null;
   ready: boolean;
+  /** Errors reported as a failed load; the load step reports `ready` only when none arrives during it. */
+  failedLoads: number;
   styleErrors: number;
   styleUrl: string;
   applied: readonly MapLayerSpec[];
@@ -209,6 +211,7 @@ function Surface(props: MapSurfaceProps): JSX.Element {
     surface: null,
     container: null,
     ready: false,
+    failedLoads: 0,
     styleErrors: 0,
     styleUrl,
     applied: [],
@@ -235,6 +238,7 @@ function Surface(props: MapSurfaceProps): JSX.Element {
     /** A failure: before the caller's layers are on the map it is a failed load; after, one more style error. */
     const fail = (code: 'map.style_failed' | 'map.load_failed'): void => {
       if (!t.ready) {
+        t.failedLoads += 1;
         report({ kind: 'error', code });
         return;
       }
@@ -328,6 +332,9 @@ function Surface(props: MapSurfaceProps): JSX.Element {
 
       map.on('style.load', () => {
         const current = latest.current;
+        // The library reports some failures of the steps below as `error` events, not as throws.
+        t.ready = false;
+        const failedBefore = t.failedLoads;
         try {
           for (const source of current.sources) {
             if (map.getSource(source.id) === undefined) {
@@ -349,6 +356,8 @@ function Surface(props: MapSurfaceProps): JSX.Element {
           fail('map.load_failed');
           return;
         }
+        // An error event during the step is a failed load, never a `ready` over it (PM-map-spike).
+        if (t.failedLoads !== failedBefore) return;
         t.applied = current.layers;
         t.ready = true;
         t.styleErrors = 0;
