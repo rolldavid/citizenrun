@@ -20,6 +20,16 @@ vi.mock('@/platform/storage', () => import('./platform/storage'));
 vi.mock('@/platform/links', () => import('./platform/links'));
 vi.mock('@/platform/age-assurance', () => import('./platform/age-assurance'));
 vi.mock('@/platform/query-client', () => import('./platform/query-client'));
+vi.mock('expo-router/head', () => ({ default: () => null }));
+// expo-status-bar and expo-localization load the expo package, which jsdom cannot import. The status
+// bar draws nothing on the web; the device is English.
+vi.mock('expo-status-bar', () => ({ StatusBar: () => null }));
+vi.mock('expo-localization', () => ({ getLocales: () => [{ languageCode: 'en' }] }));
+// The original expo-router does not import in jsdom; src/ui uses no other member of it.
+vi.mock('expo-router', async () => {
+  const { TestLink } = await import('./router');
+  return { Link: TestLink };
+});
 
 // jsdom has no `window.matchMedia`; Reanimated reads it at import for reduced motion.
 if (typeof window.matchMedia !== 'function') {
