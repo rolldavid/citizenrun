@@ -1,5 +1,5 @@
-import { screen } from '@testing-library/react';
-import { useRef } from 'react';
+import { cleanup, screen } from '@testing-library/react';
+import { StrictMode, useRef } from 'react';
 import type { ReactElement } from 'react';
 import { View } from 'react-native';
 import type { HostInstance } from 'react-native';
@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 
 import { renderWithProviders } from '@/test/render';
 
+import { setPageLoad } from './first-screen';
 import { focusRingStyle, useFocusOnMount } from './focus';
 import type { Theme } from './theme';
 import { color, radius } from './tokens';
@@ -43,5 +44,28 @@ describe('focus', () => {
     const heading = screen.getByTestId('fixture.heading');
     expect(heading.getAttribute('tabindex')).toBe('-1');
     expect(document.activeElement).toBe(heading);
+  });
+
+  it('the first screen of a page load keeps the focus where the document starts it', () => {
+    setPageLoad('start');
+    renderWithProviders(<Heading />);
+    // Nothing moves focus, so the first Tab reaches the first control of the page: the skip link.
+    expect(document.activeElement).toBe(document.body);
+
+    // The next screen comes with a route change and takes focus to its heading.
+    cleanup();
+    renderWithProviders(<Heading />);
+    expect(document.activeElement).toBe(screen.getByTestId('fixture.heading'));
+  });
+
+  it('the first screen stays first when its effect runs again', () => {
+    setPageLoad('start');
+    // Strict mode runs every effect twice on mount; the second run is still the first screen.
+    renderWithProviders(
+      <StrictMode>
+        <Heading />
+      </StrictMode>,
+    );
+    expect(document.activeElement).toBe(document.body);
   });
 });

@@ -387,6 +387,11 @@ describe('Text', () => {
     expect(first.getAttribute('tabindex')).toBe('-1');
     first.focus();
     expect(document.activeElement).toBe(first);
+    // Focused from code, it draws no ring; a heading of another level is never focused, and keeps its outline as it is.
+    expect(first.style.outlineStyle).toBe('solid');
+    expect(first.style.outlineWidth).toBe('0px');
+    expect(second.style.outlineStyle).toBe('');
+    expect(second.style.outlineWidth).toBe('');
 
     const plain = draw(STATES.title);
     expect(plain.getAttribute('aria-level')).toBeNull();
@@ -421,6 +426,9 @@ describe('Text', () => {
     expect(titleRef.current).toBe(heading);
     expect(heading.getAttribute('tabindex')).toBe('-1');
     expect(document.activeElement).toBe(heading);
+    // A heading is not a control: focused, it draws no ring, and the browser draws none of its own.
+    expect(heading.style.outlineStyle).toBe('solid');
+    expect(heading.style.outlineWidth).toBe('0px');
 
     // A callback ref gets the same element, and text without a ref still draws.
     const seen: unknown[] = [];

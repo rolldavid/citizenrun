@@ -3,6 +3,8 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
+import { setPageLoad } from '@/ui/first-screen';
+
 import { resetPlatformFakes } from './platform';
 
 vi.mock('@/platform/session', () => import('./platform/session'));
@@ -52,6 +54,8 @@ if (typeof window.matchMedia !== 'function') {
 
 beforeEach(() => {
   resetPlatformFakes();
+  // A test mounts its screen as a route change brings it; a test of the first screen starts a page load.
+  setPageLoad('behind');
 });
 
 // Vitest's globals are off, so the library's automatic cleanup does not run.

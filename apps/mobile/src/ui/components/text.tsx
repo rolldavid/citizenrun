@@ -83,6 +83,13 @@ function faceStyle(role: TypeRole, children: ReactNode): TextStyle {
     : { ...fallback, textTransform: drawn.textTransform };
 }
 
+/**
+ * A level 1 heading takes focus from code only so a screen reader announces a new screen. It is not
+ * a control, so it draws no focus ring. A style of its own replaces the browser's ring, which a
+ * width alone does not.
+ */
+const FOCUS_TARGET: TextStyle = { outlineStyle: 'solid', outlineWidth: 0 };
+
 /** A level 1 heading can take focus from code, so a screen reader announces a new screen. */
 function headingProps(heading: 1 | 2 | 3 | undefined): WebHeadingProps {
   if (heading === undefined) {
@@ -128,6 +135,7 @@ export function Text({
     color: toneColor(theme.color, resolved),
     ...(tabular ? tabularNums : {}),
     ...(align === undefined ? {} : { textAlign: TEXT_ALIGN[align] }),
+    ...(heading === 1 ? FOCUS_TARGET : {}),
   };
 
   return (
