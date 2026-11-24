@@ -13,6 +13,13 @@ async function waitForGallery(page: Page): Promise<void> {
   await expect(page.getByTestId('gallery.theme-system')).toBeVisible();
 }
 
+/** The gallery has drawn the one section its address names, and no note that there is none of that name. */
+async function waitForGallerySection(page: Page): Promise<void> {
+  await waitForGallery(page);
+  await expect(page.getByRole('heading', { level: 2 }).first()).toBeVisible();
+  await expect(page.getByText(/^No component named/)).toHaveCount(0);
+}
+
 /** Opens one sheet or dialog of the gallery with the gallery's own button, and waits until it has faded in. */
 function openGalleryOverlay(overlay: string): (page: Page) => Promise<void> {
   return async (page) => {
@@ -44,6 +51,170 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/gallery?textScale=1.3',
     auth: 'none',
     prepare: waitForGallery,
+  },
+  // The whole gallery is taller at 360 by 740 than one capture takes, and grows with every component,
+  // so the design review captures it one section at a time, in the gallery's order.
+  {
+    id: 'dev-gallery-section-shells',
+    path: '/dev/gallery?only=shells',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-tab-bar',
+    path: '/dev/gallery?only=tab-bar',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-rail',
+    path: '/dev/gallery?only=rail',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-app-bar',
+    path: '/dev/gallery?only=app-bar',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-right-column',
+    path: '/dev/gallery?only=right-column',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-text',
+    path: '/dev/gallery?only=text',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-pressable',
+    path: '/dev/gallery?only=pressable',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-icon',
+    path: '/dev/gallery?only=icon',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-link',
+    path: '/dev/gallery?only=link',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-rule',
+    path: '/dev/gallery?only=rule',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-feed-rule',
+    path: '/dev/gallery?only=feed-rule',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-button',
+    path: '/dev/gallery?only=button',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-icon-button',
+    path: '/dev/gallery?only=icon-button',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-avatar',
+    path: '/dev/gallery?only=avatar',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-count-badge',
+    path: '/dev/gallery?only=count-badge',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-wordmark',
+    path: '/dev/gallery?only=wordmark',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-empty-chair',
+    path: '/dev/gallery?only=empty-chair',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-notice',
+    path: '/dev/gallery?only=notice',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-skeleton',
+    path: '/dev/gallery?only=skeleton',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-empty-state',
+    path: '/dev/gallery?only=empty-state',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-screen',
+    path: '/dev/gallery?only=screen',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-list',
+    path: '/dev/gallery?only=list',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-system-screen',
+    path: '/dev/gallery?only=system-screen',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-sheet',
+    path: '/dev/gallery?only=sheet',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-dialog',
+    path: '/dev/gallery?only=dialog',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-tooltip',
+    path: '/dev/gallery?only=tooltip',
+    auth: 'none',
+    prepare: waitForGallerySection,
+  },
+  {
+    id: 'dev-gallery-section-toast',
+    path: '/dev/gallery?only=toast',
+    auth: 'none',
+    prepare: waitForGallerySection,
   },
   // Each overlay is captured over its own section of the gallery: the whole gallery behind an
   // overlay would be captured again, one screen at a time.
