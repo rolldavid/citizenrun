@@ -89,4 +89,66 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
     prepare: focusGalleryTooltip,
   },
+  { id: 'hello', path: '/', auth: 'none' },
+  { id: 'hello-hello-loading', path: '/dev/screens/hello/helloLoading', auth: 'none' },
+  { id: 'hello-hello-ready', path: '/dev/screens/hello/helloReady', auth: 'none' },
+  { id: 'hello-hello-worker-stale', path: '/dev/screens/hello/helloWorkerStale', auth: 'none' },
+  { id: 'hello-hello-refreshing', path: '/dev/screens/hello/helloRefreshing', auth: 'none' },
+  { id: 'hello-hello-stale', path: '/dev/screens/hello/helloStale', auth: 'none' },
+  { id: 'hello-hello-error', path: '/dev/screens/hello/helloError', auth: 'none' },
+  { id: 'hello-hello-offline', path: '/dev/screens/hello/helloOffline', auth: 'none' },
+  {
+    id: 'root-layout-root-starting',
+    path: '/dev/screens/root-layout/rootStarting',
+    auth: 'none',
+  },
+  {
+    id: 'root-layout-root-signed-out',
+    path: '/dev/screens/root-layout/rootSignedOut',
+    auth: 'none',
+  },
+  {
+    id: 'root-layout-root-signed-in',
+    path: '/dev/screens/root-layout/rootSignedIn',
+    auth: 'none',
+  },
+  { id: 'root-layout-root-update', path: '/dev/screens/root-layout/rootUpdate', auth: 'none' },
+  {
+    id: 'not-found-not-found-default',
+    path: '/dev/screens/not-found/notFoundDefault',
+    auth: 'none',
+  },
+  {
+    id: 'system-update-update-with-store',
+    path: '/dev/screens/system-update/updateWithStore',
+    auth: 'none',
+  },
+  {
+    id: 'system-update-update-no-store',
+    path: '/dev/screens/system-update/updateNoStore',
+    auth: 'none',
+  },
+  {
+    id: 'system-error-system-error',
+    path: '/dev/screens/system-error/systemError',
+    auth: 'none',
+  },
+  // An unknown pair renders the not-found content.
+  { id: 'dev-screens-unknown-pair', path: '/dev/screens/none/none', auth: 'none' },
+  // The design review's 130% text size.
+  {
+    id: 'hello-hello-ready-x130',
+    path: '/dev/screens/hello/helloReady?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'not-found-not-found-default-x130',
+    path: '/dev/screens/not-found/notFoundDefault?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'system-update-update-with-store-x130',
+    path: '/dev/screens/system-update/updateWithStore?textScale=1.3',
+    auth: 'none',
+  },
 ];

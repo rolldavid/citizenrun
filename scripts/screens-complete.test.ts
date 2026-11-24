@@ -12,6 +12,8 @@ const ROOT = repoRoot();
 const ROUTES_FILE = 'apps/mobile/e2e/screens/routes.ts';
 const FEATURES_DIR = 'apps/mobile/src/features';
 const FIXTURE_PREFIX = '/dev/screens/';
+/** SCR-dev-screens' `unknownPair` capture: a pair no screen registers, drawn as not found. */
+const UNKNOWN_PAIR_PATH = '/dev/screens/none/none';
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
 /** The `{ id: '...', path: '...' }` pairs of a routes file, in order. */
@@ -59,14 +61,15 @@ function missingFixtureEntries(
   return fixtures.filter((fixture) => !opened.has(fixture));
 }
 
-/** The entries under `/dev/screens/` whose fixture does not exist, or whose path is malformed. */
+/** The entries under `/dev/screens/` whose fixture does not exist, or whose path is malformed; the
+ *  unknown-pair entry names no fixture on purpose. */
 function danglingEntries(
   entries: readonly RouteEntry[],
   fixtures: readonly string[],
 ): RouteEntry[] {
   const known = new Set(fixtures);
   return entries.filter((entry) => {
-    if (!entry.path.startsWith(FIXTURE_PREFIX)) {
+    if (!entry.path.startsWith(FIXTURE_PREFIX) || entry.path === UNKNOWN_PAIR_PATH) {
       return false;
     }
     const found = fixturePath(entry.path);
@@ -152,6 +155,24 @@ describe('the pure checks', () => {
       { id: 'hello-hello-gone', path: '/dev/screens/hello/helloGone' },
     ]);
     expect(danglingEntries(entries, ['helloReady', 'helloGone'])).toEqual([]);
+  });
+
+  it('a text-scale entry matches the fixture it opens', () => {
+    const entries = [
+      { id: 'hello-hello-ready-x130', path: '/dev/screens/hello/helloReady?textScale=1.3' },
+    ];
+    expect(missingFixtureEntries(['helloReady'], entries)).toEqual([]);
+    expect(danglingEntries(entries, ['helloReady'])).toEqual([]);
+  });
+
+  it('danglingEntries does not report the unknown-pair entry', () => {
+    const entries = [
+      { id: 'dev-screens-unknown-pair', path: '/dev/screens/none/none' },
+      { id: 'hello-none', path: '/dev/screens/hello/none' },
+    ];
+    expect(danglingEntries(entries, ['helloReady'])).toEqual([
+      { id: 'hello-none', path: '/dev/screens/hello/none' },
+    ]);
   });
 
   it('danglingEntries reports a malformed fixture path', () => {
