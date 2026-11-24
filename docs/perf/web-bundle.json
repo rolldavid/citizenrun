@@ -4,10 +4,10 @@
   "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/"],
   "baseline": {
     "index": {
-      "entry": 317148,
-      "common": 132899,
-      "route": 271,
-      "total": 450318
+      "entry": 429873,
+      "common": 26891,
+      "route": 270,
+      "total": 457034
     }
   }
 }
