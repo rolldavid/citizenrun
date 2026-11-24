@@ -155,11 +155,17 @@ export function Pressable({
     onPress?.();
   };
 
-  // A button and a link are pressed from the keyboard by the platform itself. For every other role
-  // the web presses on Enter alone, so Space clicks the target where it can be clicked from code.
+  // A button, and a link with an address, are pressed from the keyboard by the platform itself. For
+  // every other role the web presses on Enter alone, so Space clicks the target where it can be
+  // clicked from code. A link with no address is no anchor, and the web leaves its Enter to the
+  // browser, which follows nothing: Enter clicks it, and Space, as on any link, does not.
   const onKeyDown = (event: KeyDownEvent): void => {
     const { key, repeat } = event.nativeEvent;
-    if (disabled || role === 'button' || role === 'link' || key !== ' ' || repeat === true) {
+    if (disabled || role === 'button' || repeat === true) {
+      return;
+    }
+    const pressesOn = role === 'link' ? (href === undefined ? 'Enter' : null) : ' ';
+    if (key !== pressesOn) {
       return;
     }
     const target: unknown = event.currentTarget;

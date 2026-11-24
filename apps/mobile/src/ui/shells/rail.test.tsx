@@ -375,6 +375,16 @@ describe('Rail', () => {
     expect(hapticsFake.calls).toEqual([{ method: 'selection' }, { method: 'selection' }]);
   });
 
+  it('Enter on an item navigates, as a click does', () => {
+    const onNavigate = vi.fn();
+    drawRail({ active: 'home', onNavigate, onReselect: vi.fn() });
+    // An item is a link with no address: no browser follows it on Enter, so the item presses itself.
+    fireEvent.keyDown(item('explore'), { key: 'Enter' });
+    fireEvent.keyUp(item('explore'), { key: 'Enter' });
+    expect(onNavigate).toHaveBeenCalledTimes(1);
+    expect(onNavigate).toHaveBeenCalledWith('explore');
+  });
+
   it('the active item calls onReselect alone', () => {
     const onNavigate = vi.fn();
     const onReselect = vi.fn();

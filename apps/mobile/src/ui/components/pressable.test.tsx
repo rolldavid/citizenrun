@@ -302,6 +302,31 @@ describe('Pressable', () => {
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
+  it('Enter presses a link with no address once, and Space does not press it', () => {
+    const onPress = vi.fn();
+    const link = draw({ role: 'link', onPress });
+    // No anchor: the browser follows nothing and clicks nothing for either key, so the page presses.
+    expect(link.tagName).toBe('DIV');
+    expect(link.getAttribute('role')).toBe('link');
+    pressKey(link, ' ');
+    expect(onPress).not.toHaveBeenCalled();
+    pressKey(link, 'Enter');
+    expect(onPress).toHaveBeenCalledTimes(1);
+    // A held Enter presses once.
+    fireEvent.keyDown(link, { key: 'Enter' });
+    fireEvent.keyDown(link, { key: 'Enter', repeat: true });
+    fireEvent.keyUp(link, { key: 'Enter' });
+    expect(onPress).toHaveBeenCalledTimes(2);
+  });
+
+  it('Enter does not press a disabled link with no address', () => {
+    const onPress = vi.fn();
+    const link = draw({ role: 'link', onPress, disabled: true });
+    fireEvent.keyDown(link, { key: 'Enter' });
+    fireEvent.keyUp(link, { key: 'Enter' });
+    expect(onPress).not.toHaveBeenCalled();
+  });
+
   it('Enter and Space press every other role, once each', () => {
     for (const role of ['checkbox', 'radio', 'switch', 'tab', 'menuitem', 'option'] as const) {
       const onPress = vi.fn();

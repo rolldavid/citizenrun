@@ -64,8 +64,9 @@ const ROW_EXPANDED: ViewStyle = {
   maxWidth: size.contentMax,
   alignSelf: 'center',
 };
-// The slot takes focus from the skip link, and shows no ring of its own for it.
-const CONTENT: ViewStyle = { flex: 1, outlineWidth: 0 };
+// The slot takes focus from the skip link, and shows no ring of its own for it. A style of its own
+// replaces the browser's ring, which a width alone does not.
+const CONTENT: ViewStyle = { flex: 1, outlineStyle: 'solid', outlineWidth: 0 };
 
 const SKIP_ANCHOR: ViewStyle = {
   position: 'absolute',

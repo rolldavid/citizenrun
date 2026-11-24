@@ -261,6 +261,23 @@ describe('AppShell', () => {
     expect(focusables()[0]).toBe(screen.getByTestId('shell.skip-link'));
   });
 
+  it('Enter on the skip link moves focus to the content', () => {
+    setViewport(...EXPANDED);
+    drawShell();
+    const skip = screen.getByTestId('shell.skip-link');
+    act(() => {
+      skip.focus();
+    });
+    // The link has no address, so no browser follows it: the key alone must move the focus.
+    fireEvent.keyDown(skip, { key: 'Enter' });
+    fireEvent.keyUp(skip, { key: 'Enter' });
+    const main = screen.getByRole('main');
+    expect(document.activeElement).toBe(main);
+    // The slot draws no ring for the focus it takes, and the browser draws none of its own.
+    expect(main.style.outlineStyle).toBe('solid');
+    expect(main.style.outlineWidth).toBe('0px');
+  });
+
   it('the skip link shows only while it has focus', () => {
     setViewport(...EXPANDED);
     drawShell({}, { theme: 'light' });
