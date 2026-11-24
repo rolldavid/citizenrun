@@ -146,6 +146,12 @@ function draw(given: ProbeProps = {}, options: RenderWithProvidersOptions = {}):
   return parts(screen.getByTestId(PROBE));
 }
 
+/** The clear box that reaches past a small drawing to the full target; null when there is none. */
+function reachOf(target: HTMLElement): HTMLElement | null {
+  const first = target.firstElementChild;
+  return first instanceof HTMLElement && first.style.position === 'absolute' ? first : null;
+}
+
 /** The props C-Pressable gave the native Pressable. */
 function nativeProps(): Record<string, unknown> {
   const found = pressables.props.at(-1);
@@ -301,8 +307,30 @@ describe('IconButton', () => {
     expect(pressed.mover?.style.transform).toBe(MOVED);
     expect(pressed.mover?.contains(pressed.square)).toBe(true);
     expect(pressed.target.style.backgroundColor).toBe('');
-    // The outline stays when the button is disabled.
-    expect(drawState('framedDisabled').square.style.borderWidth).toBe('1px');
+  });
+
+  it('a disabled framed button drops its outline and fills with disabledBg', () => {
+    const { square, path, target, mover } = drawState('framedDisabled');
+    expect(square.style.borderWidth).toBe('');
+    expect(square.style.borderColor).toBe('');
+    expect(square.style.backgroundColor).toBe(written('#E3E0D5'));
+    expect(square.style.borderRadius).toBe('4px');
+    expect(path.getAttribute('stroke')).toBe('#535148');
+    // The fill is the button's own: nothing else is painted, and the button keeps its size.
+    expect(target.style.backgroundColor).toBe('');
+    expect(mover?.style.backgroundColor).toBe('');
+    expect(square.style.width).toBe('44px');
+    expect(square.style.height).toBe('44px');
+
+    const dark = drawState('framedDisabled', { theme: 'dark' });
+    expect(dark.square.style.borderWidth).toBe('');
+    expect(dark.square.style.backgroundColor).toBe(written('#2A2A26'));
+    expect(dark.path.getAttribute('stroke')).toBe('#A9A69B');
+
+    // A plain button has no outline to drop and gains no fill: its icon alone turns.
+    const plain = drawState('plainDisabled');
+    expect(plain.square.style.borderWidth).toBe('');
+    expect(plain.square.style.backgroundColor).toBe('');
   });
 
   it('primary is the ink fill with an inverse icon', () => {
@@ -359,6 +387,8 @@ describe('IconButton', () => {
     expect(box.style.height).toBe('44px');
     expect(target.querySelector('svg')?.getAttribute('width')).toBe('24');
     expect(nativeProps().hitSlop).toBeUndefined();
+    // The drawing is the whole target: nothing reaches past it.
+    expect(reachOf(target)).toBeNull();
   });
 
   it('small is 36 points round a 20-point icon, with hit slop 4', () => {
@@ -369,6 +399,22 @@ describe('IconButton', () => {
     expect(box.style.height).toBe('36px');
     expect(target.querySelector('svg')?.getAttribute('width')).toBe('20');
     expect(nativeProps().hitSlop).toEqual({ top: 4, bottom: 4, left: 4, right: 4 });
+  });
+
+  it('a small button is pressed 4 points past its drawing on the page as well', () => {
+    const onPress = vi.fn();
+    const { target, box } = draw({ size: 'sm', onPress });
+    const reach = reachOf(target);
+    // 4 points on every side of the 36-point drawing: the 44-point target.
+    expect(reach?.style.top).toBe('-4px');
+    expect(reach?.style.bottom).toBe('-4px');
+    expect(reach?.style.left).toBe('-4px');
+    expect(reach?.style.right).toBe('-4px');
+    // Nothing clips it: neither the press target nor the box that holds it to the drawing.
+    expect(target.style.overflow).toBe('');
+    expect(box.style.overflow).toBe('');
+    fireEvent.click(reach ?? document.body);
+    expect(onPress).toHaveBeenCalledTimes(1);
   });
 
   it('a badge shows the count on the corner, hidden from screen readers', () => {
@@ -393,7 +439,7 @@ describe('IconButton', () => {
   });
 
   it('a small button carries its badge on the very corner, and a count of zero draws none', () => {
-    const small = draw({ size: 'sm', icon: 'messages', badge: 3 }).target;
+    const small = draw({ size: 'sm', icon: 'messages', badge: 3 }).square;
     const corner = small.querySelector<HTMLElement>('[style*="position: absolute"]');
     expect(corner?.textContent).toBe('3');
     expect(corner?.style.top).toBe('0px');

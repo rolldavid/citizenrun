@@ -1,7 +1,9 @@
+import { typeRoles } from '@citizenrun/shared';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { useTheme } from '@/ui/theme';
 import { radius, size, space } from '@/ui/tokens';
 
@@ -25,11 +27,15 @@ export function CountBadge({
   size: sizeName = 'corner',
 }: CountBadgeProps): JSX.Element | null {
   const theme = useTheme();
+  const { fontScale } = useBreakpoint();
   const { t } = useTranslation('common');
   if (!(count > 0)) {
     return null;
   }
-  const side = sizeName === 'row' ? size.badgeRow : size.badge;
+  // The line of the count grows with the text size, the app's and the system's, and the badge
+  // grows with it. The width keeps up with the height, so a single digit stays a circle.
+  const line = typeRoles.mono.lineHeight * theme.textScale * fontScale;
+  const side = Math.max(sizeName === 'row' ? size.badgeRow : size.badge, line);
   return (
     // The row keeps the badge as wide as its digits wherever it is placed.
     <View

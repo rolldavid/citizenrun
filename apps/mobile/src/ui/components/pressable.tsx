@@ -2,7 +2,7 @@ import { Link } from 'expo-router';
 import type { Href } from 'expo-router';
 import { createContext, useContext, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
-import { Pressable as NativePressable } from 'react-native';
+import { Pressable as NativePressable, View } from 'react-native';
 import type { Insets, KeyDownEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
@@ -71,6 +71,20 @@ export function hitSlopFor(
   const vertical = Math.max(0, (size.target - drawn.height) / 2);
   const horizontal = Math.max(0, (size.target - drawn.width) / 2);
   return { top: vertical, bottom: vertical, left: horizontal, right: horizontal };
+}
+
+/**
+ * The hit slop as a clear box inside the target, under the content, that reaches past the drawing
+ * by the same insets. The web has no hit slop, and a phone ends one at the bounds of the control's
+ * parent; a box that belongs to the target is pressed wherever it shows. Undefined when the drawing
+ * meets the target.
+ */
+function reachFor(slop: Insets | undefined): ViewStyle | undefined {
+  const { top = 0, bottom = 0, left = 0, right = 0 } = slop ?? {};
+  if (top <= 0 && bottom <= 0 && left <= 0 && right <= 0) {
+    return undefined;
+  }
+  return { position: 'absolute', top: -top, bottom: -bottom, left: -left, right: -right };
 }
 
 /** True for a press target that can be clicked from code: the web's has the method, a phone's has not. */
@@ -167,6 +181,8 @@ export function Pressable({
     typeof children === 'function'
       ? children({ pressed, hovered, focused, swapsFill: motion.swapsFill })
       : children;
+  const slop = hitSlopFor(drawn);
+  const reach = reachFor(slop);
 
   const target = (
     <NativePressable
@@ -181,7 +197,7 @@ export function Pressable({
       aria-disabled={disabled}
       disabled={disabled}
       testID={testID}
-      hitSlop={hitSlopFor(drawn)}
+      hitSlop={slop}
       style={style}
       onPress={press}
       onLongPress={onLongPress}
@@ -202,6 +218,7 @@ export function Pressable({
       }}
       onKeyDown={onKeyDown}
     >
+      {reach === undefined ? null : <View style={reach} />}
       {moves ? <Animated.View style={[motion.style, painted]}>{content}</Animated.View> : content}
     </NativePressable>
   );

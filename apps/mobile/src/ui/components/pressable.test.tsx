@@ -135,6 +135,12 @@ function nativeProps(): Record<string, unknown> {
   return found;
 }
 
+/** The clear box that reaches past a small drawing to the full target; null when there is none. */
+function reachOf(target: HTMLElement): HTMLElement | null {
+  const first = target.firstElementChild;
+  return first instanceof HTMLElement && first.style.position === 'absolute' ? first : null;
+}
+
 /** The view that moves on press: the one that carries a transform. */
 function mover(target: HTMLElement): HTMLElement | null {
   return target.querySelector<HTMLElement>('[style*="transform"]');
@@ -366,6 +372,76 @@ describe('Pressable', () => {
     expect(nativeProps().hitSlop).toEqual({ top: 4, bottom: 4, left: 4, right: 4 });
     drawState('idle');
     expect(nativeProps().hitSlop).toBeUndefined();
+  });
+
+  it('the target reaches past a small drawing on the page as well, where there is no hit slop', () => {
+    // A 36-point square: 4 points on every side make the 44-point target.
+    const small = reachOf(drawState('small'));
+    expect(small?.style.top).toBe('-4px');
+    expect(small?.style.bottom).toBe('-4px');
+    expect(small?.style.left).toBe('-4px');
+    expect(small?.style.right).toBe('-4px');
+    // 120 by 32: 6 points above and below, and nothing at the sides.
+    const wide = reachOf(draw({ drawn: { width: 120, height: 32 } }));
+    expect(wide?.style.top).toBe('-6px');
+    expect(wide?.style.bottom).toBe('-6px');
+    expect(wide?.style.left).toBe('0px');
+    expect(wide?.style.right).toBe('0px');
+    // A drawing that meets the target, and one of no stated size, have nothing to add.
+    expect(reachOf(draw({ drawn: { width: 44, height: 44 } }))).toBeNull();
+    expect(reachOf(draw({ drawn: { width: 80, height: 56 } }))).toBeNull();
+    expect(reachOf(drawState('idle'))).toBeNull();
+    expect(drawState('idle').querySelector('[style*="position: absolute"]')).toBeNull();
+  });
+
+  it('what reaches past the drawing is part of the press target', () => {
+    const onPress = vi.fn();
+    const element = draw({ onPress, drawn: { width: 36, height: 36 } });
+    const reach = reachOf(element);
+    expect(reach).not.toBeNull();
+    // It is clear and empty, it sits under the content, and nothing clips it.
+    expect(reach?.textContent).toBe('');
+    expect(reach?.style.backgroundColor).toBe('');
+    expect(reach?.nextElementSibling?.textContent).toBe('Open the office');
+    expect(element.style.overflow).toBe('');
+    // It stays where it is when the content moves.
+    expect(mover(element)?.contains(reach)).toBe(false);
+    fireEvent.click(reach ?? document.body);
+    expect(onPress).toHaveBeenCalledTimes(1);
+
+    // A link is followed from it, and a disabled control ignores it.
+    const followed = vi.fn();
+    const link = draw({
+      role: 'link',
+      href: '/office/fixture-office',
+      onPress: followed,
+      drawn: { width: 36, height: 36 },
+    });
+    link.addEventListener('click', (event) => {
+      event.preventDefault();
+    });
+    expect(reachOf(link)?.parentElement?.tagName).toBe('A');
+    fireEvent.click(reachOf(link) ?? document.body);
+    expect(followed).toHaveBeenCalledTimes(1);
+
+    const ignored = vi.fn();
+    const disabled = draw({ onPress: ignored, disabled: true, drawn: { width: 36, height: 36 } });
+    fireEvent.click(reachOf(disabled) ?? document.body);
+    expect(ignored).not.toHaveBeenCalled();
+  });
+
+  it('a pointer over what reaches past the drawing is over the control', () => {
+    const element = draw({ hover: 'fill', feedback: 'fill', drawn: { width: 36, height: 36 } });
+    const reach = reachOf(element);
+    expect(reach).not.toBeNull();
+    // The reach is inside the target, so the target hears the pointer that enters it.
+    expect(element.contains(reach)).toBe(true);
+    movePointer(element, 'pointerenter');
+    expect(element.style.backgroundColor).toBe(written('#E3E0D5'));
+    // The fill stays on the drawing: the reach paints nothing.
+    expect(reach?.style.backgroundColor).toBe('');
+    movePointer(element, 'pointerleave');
+    expect(element.style.backgroundColor).toBe('');
   });
 
   it('a pressed fill paints pressedBg', () => {

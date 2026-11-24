@@ -1,11 +1,10 @@
 import { fontCovers, typeRoles } from '@citizenrun/shared';
-import { useContext } from 'react';
+import { createContext, useContext } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { Text as NativeText } from 'react-native';
 import type { TextStyle } from 'react-native';
 
 import { useTheme } from '@/ui/theme';
-import { textScale } from '@/ui/tokens';
 import { ToneContext, toneColor } from '@/ui/tone';
 import type { ResolvedTone, TextTone } from '@/ui/tone';
 import { systemFallback, tabularNums, typography } from '@/ui/typography';
@@ -38,6 +37,32 @@ export type TextProps = {
 type WebHeadingProps = { 'aria-level'?: 1 | 2 | 3; tabIndex?: -1 };
 
 const TEXT_ALIGN = { start: 'left', center: 'center', end: 'right' } as const;
+
+/** The largest text scale a holder lets the C-Text in it take; null where there is no holder. */
+const ScaleLimitContext = createContext<number | null>(null);
+
+/**
+ * Stops the C-Text under it from growing past `max` times the size of its role, whatever the text
+ * size: for text drawn inside a holder of a fixed size, which cannot grow with it.
+ */
+export function TextScaleLimit(props: { max: number; children: ReactNode }): JSX.Element {
+  return (
+    <ScaleLimitContext.Provider value={props.max}>{props.children}</ScaleLimitContext.Provider>
+  );
+}
+
+/**
+ * The largest scale a text takes: the lower of its role's limit and its holder's, and undefined
+ * with neither. A holder never makes text smaller than its role, and a phone reads a limit under 1
+ * as none.
+ */
+function largestScale(ofRole: number | undefined, ofHolder: number | null): number | undefined {
+  if (ofHolder === null) {
+    return ofRole;
+  }
+  const held = Math.max(1, ofHolder);
+  return ofRole === undefined ? held : Math.min(ofRole, held);
+}
 
 function times(value: number | undefined, factor: number): number | undefined {
   return value === undefined ? undefined : value * factor;
@@ -83,13 +108,14 @@ export function Text({
 }: TextProps): JSX.Element {
   const theme = useTheme();
   const parentTone = useContext(ToneContext);
+  const held = useContext(ScaleLimitContext);
   const asked = tone ?? (parentTone === null ? 'primary' : 'inherit');
   const resolved: ResolvedTone = asked === 'inherit' ? (parentTone ?? 'primary') : asked;
 
-  // A capped role stops growing at the largest scale the big roles take.
-  const scale = typeRoles[role].capped
-    ? Math.min(theme.textScale, textScale.maxLargeRoles)
-    : theme.textScale;
+  // A capped role stops growing at the largest scale the big roles take, and text in a holder of a
+  // fixed size at the scale its holder sets.
+  const largest = largestScale(typography[role].maxFontSizeMultiplier, held);
+  const scale = largest === undefined ? theme.textScale : Math.min(theme.textScale, largest);
   const face = faceStyle(role, children);
   const style: TextStyle = {
     ...face,
@@ -109,7 +135,7 @@ export function Text({
         style={style}
         numberOfLines={numberOfLines}
         selectable={selectable}
-        maxFontSizeMultiplier={typography[role].maxFontSizeMultiplier}
+        maxFontSizeMultiplier={largest}
         aria-label={accessibilityLabel}
         aria-hidden={hidden ? true : undefined}
         accessibilityElementsHidden={hidden ? true : undefined}

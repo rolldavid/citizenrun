@@ -1,3 +1,4 @@
+import { typeRoles } from '@citizenrun/shared';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -6,7 +7,7 @@ import type { ViewStyle } from 'react-native';
 import { useTheme } from '@/ui/theme';
 import { radius, size } from '@/ui/tokens';
 
-import { Text } from './text';
+import { Text, TextScaleLimit } from './text';
 
 export type AvatarProps = {
   /** xs: a reply, a stack. sm: rows and headers. md: a shared-person card. lg and xl: profiles. */
@@ -27,6 +28,13 @@ const INITIALS_ROLE = {
   lg: 'initialsMd',
   xl: 'initialsLg',
 } as const;
+
+/**
+ * The share of its disc that the initials of the smallest avatar take, the largest share of the
+ * five. A disc does not grow with the text size, so its initials grow only up to this share: that
+ * far, two capitals stay inside the disc.
+ */
+const LARGEST_INITIALS_SHARE = typeRoles[INITIALS_ROLE.xs].size / size.avatar.xs;
 
 /** The first character of a string, whole even where it takes two code units. */
 function firstCharacter(text: string): string {
@@ -69,6 +77,7 @@ export function Avatar({
   const theme = useTheme();
   const { t } = useTranslation('common');
   const side = size.avatar[sizeName];
+  const role = INITIALS_ROLE[sizeName];
   const person = filled(name) ?? filled(handle);
   const initials = image === null ? avatarInitials(name, handle) : '';
   const disc: ViewStyle = {
@@ -81,9 +90,11 @@ export function Avatar({
   };
   const letters =
     initials === '' ? null : (
-      <Text role={INITIALS_ROLE[sizeName]} tone="primary">
-        {initials}
-      </Text>
+      <TextScaleLimit max={(side * LARGEST_INITIALS_SHARE) / typeRoles[role].size}>
+        <Text role={role} tone="primary">
+          {initials}
+        </Text>
+      </TextScaleLimit>
     );
 
   if (decorative || person === null) {

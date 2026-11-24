@@ -11,7 +11,7 @@ import { color } from '@/ui/tokens';
 import type { ColorToken } from '@/ui/tokens';
 
 import { InteractionPreview } from './pressable';
-import { Text } from './text';
+import { Text, TextScaleLimit } from './text';
 import type { TextProps, TextTone } from './text';
 import { GROUND, PREVIEW, STATES } from './text.fixtures';
 
@@ -99,6 +99,23 @@ function draw(props: TextProps, options: RenderWithProvidersOptions = {}): HTMLE
   cleanup();
   texts.props = [];
   renderWithProviders(<Text {...props} testID={PROBE} />, options);
+  return screen.getByTestId(PROBE);
+}
+
+/** Renders one C-Text under the probe id inside a holder that lets it grow to `max` times its size. */
+function drawHeld(
+  max: number,
+  props: TextProps,
+  options: RenderWithProvidersOptions = {},
+): HTMLElement {
+  cleanup();
+  texts.props = [];
+  renderWithProviders(
+    <TextScaleLimit max={max}>
+      <Text {...props} testID={PROBE} />
+    </TextScaleLimit>,
+    options,
+  );
   return screen.getByTestId(PROBE);
 }
 
@@ -264,6 +281,59 @@ describe('Text', () => {
     expect(nativeProps().maxFontSizeMultiplier).toBe(1.3);
     draw(STATES.body);
     expect(nativeProps().maxFontSizeMultiplier).toBeUndefined();
+  });
+
+  it('a holder of a fixed size stops the text in it from growing past its limit', () => {
+    const held = drawHeld(1.25, STATES.body, { textScale: 2 });
+    expect(held.style.fontSize).toBe('20px');
+    expect(held.style.lineHeight).toBe('27.5px');
+    // On a phone the system scales the text; the same limit goes to the native Text.
+    expect(nativeProps().maxFontSizeMultiplier).toBe(1.25);
+    // Under its limit the text follows the text size as any other.
+    expect(drawHeld(1.25, STATES.body).style.fontSize).toBe('16px');
+    expect(drawHeld(2, STATES.body, { textScale: 1.3 }).style.fontSize).toBe('20.8px');
+    // The tracking stops with the size.
+    const tracked = drawHeld(1.25, STATES.monoLabel, { textScale: 2 });
+    expect(tracked.style.fontSize).toBe('15px');
+    expect(Number.parseFloat(tracked.style.letterSpacing)).toBeCloseTo(0.6, 5);
+  });
+
+  it('a capped role in a holder takes the lower of the two limits', () => {
+    expect(drawHeld(2, STATES.title, { textScale: 2 }).style.fontSize).toBe('36.4px');
+    expect(nativeProps().maxFontSizeMultiplier).toBe(1.3);
+    expect(drawHeld(1.25, STATES.title, { textScale: 2 }).style.fontSize).toBe('35px');
+    expect(nativeProps().maxFontSizeMultiplier).toBe(1.25);
+  });
+
+  it('a holder never makes text smaller than its role', () => {
+    const held = drawHeld(0.5, STATES.body, { textScale: 1.3 });
+    expect(held.style.fontSize).toBe('16px');
+    expect(held.style.lineHeight).toBe('22px');
+    // Under 1 a phone would read the limit as no limit at all.
+    expect(nativeProps().maxFontSizeMultiplier).toBe(1);
+  });
+
+  it('a holder limits the nested C-Text too, and nothing outside it', () => {
+    cleanup();
+    texts.props = [];
+    renderWithProviders(
+      <>
+        <TextScaleLimit max={1}>
+          <Text role="body" testID={PROBE}>
+            <Text role="mono" testID="probe.text-nested">
+              dana_okafor
+            </Text>
+          </Text>
+        </TextScaleLimit>
+        <Text role="body" testID="probe.text-free">
+          Alder
+        </Text>
+      </>,
+      { textScale: 1.3 },
+    );
+    expect(screen.getByTestId(PROBE).style.fontSize).toBe('16px');
+    expect(screen.getByTestId('probe.text-nested').style.fontSize).toBe('12px');
+    expect(screen.getByTestId('probe.text-free').style.fontSize).toBe('20.8px');
   });
 
   it('the tracking scales with the size', () => {

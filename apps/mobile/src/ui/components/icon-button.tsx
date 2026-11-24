@@ -55,10 +55,11 @@ export function IconButton({
   const tone: ResolvedTone = disabled ? 'disabled' : variant === 'primary' ? 'inverse' : 'primary';
 
   const fillFor = (hovered: boolean, swapsFill: boolean): string | null => {
+    if (disabled) {
+      // A plain button has no outline and no fill to give up: its icon alone turns.
+      return variant === 'plain' ? null : theme.color.disabledBg;
+    }
     if (variant === 'primary') {
-      if (disabled) {
-        return theme.color.disabledBg;
-      }
       return hovered || swapsFill ? theme.color.inverseHover : theme.color.inverseBg;
     }
     // Under reduced motion a press on the plain button still shows (PC6A-21); C-Pressable paints
@@ -95,7 +96,8 @@ export function IconButton({
                   justifyContent: 'center',
                   borderRadius: radius.control,
                 },
-                variant === 'framed'
+                // Disabled, the framed button gives up its outline for the disabled fill.
+                variant === 'framed' && !disabled
                   ? { borderWidth: rule.hairline, borderColor: theme.color.rule }
                   : null,
                 fill === null ? null : { backgroundColor: fill },

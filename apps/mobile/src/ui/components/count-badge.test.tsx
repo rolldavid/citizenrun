@@ -2,10 +2,11 @@ import { cleanup } from '@testing-library/react';
 import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import type * as ReactNative from 'react-native';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
 
 import { CountBadge } from './count-badge';
 import type { CountBadgeProps } from './count-badge';
@@ -27,6 +28,21 @@ vi.mock('react-native', async (importOriginal) => {
       views.props.push({ ...props });
       return createElement(actual.View, props);
     },
+  };
+});
+
+// The text size of the system, which only a phone reports: 1 unless a case sets it.
+const system = vi.hoisted(() => {
+  const state: { fontScale: number } = { fontScale: 1 };
+  return state;
+});
+
+vi.mock('@/ui/shells/use-breakpoint', async (importOriginal) => {
+  const actual = await importOriginal<typeof UseBreakpoint>();
+  return {
+    ...actual,
+    useBreakpoint: (): UseBreakpoint.Layout =>
+      actual.layoutFor({ width: 360, height: 740, fontScale: system.fontScale, topBarHeight: 0 }),
   };
 });
 
@@ -62,6 +78,10 @@ function draw(props: CountBadgeProps, options: RenderWithProvidersOptions = {}):
     digits: digits instanceof HTMLElement ? digits : null,
   };
 }
+
+afterEach(() => {
+  system.fontScale = 1;
+});
 
 describe('CountBadge', () => {
   it('renders every state', () => {
@@ -162,6 +182,39 @@ describe('CountBadge', () => {
     expect(row?.style.height).toBe('');
     expect(row?.style.paddingLeft).toBe('4px');
     expect(row?.style.paddingRight).toBe('4px');
+  });
+
+  it('a single digit stays a circle as the text grows', () => {
+    // At 130% the line of the count is 20.8 points high, and the badge is as wide.
+    for (const state of ['one', 'nine'] as const) {
+      const { pill, digits } = draw(STATES[state], { textScale: 1.3 });
+      expect(digits?.style.lineHeight, state).toBe('20.8px');
+      expect(pill?.style.minHeight, state).toBe('20.8px');
+      expect(pill?.style.minWidth, state).toBe('20.8px');
+      expect(pill?.style.height, state).toBe('');
+    }
+    // The row badge keeps its 20 points until the line passes them.
+    const row = draw(STATES.row, { textScale: 1.2 }).pill;
+    expect(row?.style.minHeight).toBe('20px');
+    expect(row?.style.minWidth).toBe('20px');
+    const tallRow = draw(STATES.row, { textScale: 1.5 }).pill;
+    expect(tallRow?.style.minHeight).toBe('24px');
+    expect(tallRow?.style.minWidth).toBe('24px');
+  });
+
+  it('on a phone the badge follows the text size of the system', () => {
+    // A phone scales the 16-point line itself: at 130% it is 20.8 points, at 200% it is 32.
+    system.fontScale = 1.3;
+    const corner = draw(STATES.one).pill;
+    expect(corner?.style.minHeight).toBe('20.8px');
+    expect(corner?.style.minWidth).toBe('20.8px');
+    system.fontScale = 2;
+    const large = draw(STATES.nine).pill;
+    expect(large?.style.minHeight).toBe('32px');
+    expect(large?.style.minWidth).toBe('32px');
+    const row = draw(STATES.row).pill;
+    expect(row?.style.minHeight).toBe('32px');
+    expect(row?.style.minWidth).toBe('32px');
   });
 
   it('is a round ink pill with mono digits in fixed-width figures', () => {

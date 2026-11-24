@@ -518,6 +518,27 @@ describe('Button', () => {
     expect(nativeProps().hitSlop).toEqual({ top: 4, bottom: 4, left: 0, right: 0 });
   });
 
+  it('a small button is pressed 4 points above and below its drawing on the page as well', () => {
+    const onPress = vi.fn();
+    const { target } = draw({ ...STATES.small, onPress });
+    const reach = target.firstElementChild;
+    if (!(reach instanceof HTMLElement)) {
+      throw new Error('the small button has nothing in it');
+    }
+    // 4 points above and below the 36-point drawing: the 44-point target.
+    expect(reach.style.position).toBe('absolute');
+    expect(reach.style.top).toBe('-4px');
+    expect(reach.style.bottom).toBe('-4px');
+    expect(reach.style.left).toBe('0px');
+    expect(reach.style.right).toBe('0px');
+    expect(target.style.overflow).toBe('');
+    fireEvent.click(reach);
+    expect(onPress).toHaveBeenCalledTimes(1);
+    // A button of the full height has nothing to add.
+    const full = drawState('secondary').target;
+    expect(full.querySelector('[style*="position: absolute"]')).toBeNull();
+  });
+
   it('quiet has 8 points at the sides', () => {
     const { box } = drawState('quiet');
     expect(box.style.paddingLeft).toBe('8px');

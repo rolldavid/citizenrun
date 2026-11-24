@@ -20,6 +20,12 @@ const views = vi.hoisted(() => {
   return state;
 });
 
+// The props each native Text receives: a phone scales its text itself, within the limit it is given.
+const texts = vi.hoisted(() => {
+  const state: { props: Record<string, unknown>[] } = { props: [] };
+  return state;
+});
+
 vi.mock('react-native', async (importOriginal) => {
   const actual = await importOriginal<typeof ReactNative>();
   return {
@@ -27,6 +33,10 @@ vi.mock('react-native', async (importOriginal) => {
     View: (props: ReactNative.ViewProps): ReactElement => {
       views.props.push({ ...props });
       return createElement(actual.View, props);
+    },
+    Text: (props: ReactNative.TextProps): ReactElement => {
+      texts.props.push({ ...props });
+      return createElement(actual.Text, props);
     },
   };
 });
@@ -58,6 +68,7 @@ function written(value: string): string {
 function draw(props: AvatarProps, options: RenderWithProvidersOptions = {}): HTMLElement {
   cleanup();
   views.props = [];
+  texts.props = [];
   renderWithProviders(<Avatar {...props} testID={PROBE} />, options);
   return screen.getByTestId(PROBE);
 }
@@ -76,6 +87,22 @@ function initialsOf(disc: HTMLElement): HTMLElement | null {
   const child = disc.firstElementChild;
   return child instanceof HTMLElement ? child : null;
 }
+
+/** A length the page wrote in points, as a number. */
+function points(length: string | undefined): number {
+  return Number.parseFloat(length ?? '');
+}
+
+/** The largest text scale C-Avatar let the native Text of its initials take. */
+function initialsLimit(): number {
+  const limit = texts.props.at(-1)?.maxFontSizeMultiplier;
+  if (typeof limit !== 'number') {
+    throw new Error('the initials carry no limit');
+  }
+  return limit;
+}
+
+const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 
 describe('Avatar', () => {
   it('renders every state', () => {
@@ -214,6 +241,47 @@ describe('Avatar', () => {
       expect(initials?.style.color, size).toBe(written('#141412'));
     }
     expect(initialsOf(draw(STATES.md, { theme: 'dark' }))?.style.color).toBe(written('#F3F1EA'));
+  });
+
+  it('the initials grow with the text size, and stop at half their disc', () => {
+    const sides = { xs: 28, sm: 36, md: 48, lg: 56, xl: 80 } as const;
+    // At 130% the smallest disc has no room to give; the two largest still have.
+    const at130 = { xs: 14, sm: 18, md: 24, lg: 26, xl: 36.4 } as const;
+    // However large the text, the letters stay inside the disc.
+    const atMost = { xs: 14, sm: 18, md: 24, lg: 28, xl: 40 } as const;
+    for (const size of SIZES) {
+      const grown = initialsOf(draw(STATES[size], { textScale: 1.3 }));
+      expect(points(grown?.style.fontSize), size).toBeCloseTo(at130[size], 5);
+      for (const textScale of [2, 3.1]) {
+        const largest = initialsOf(draw(STATES[size], { textScale }));
+        expect(points(largest?.style.fontSize), size).toBeCloseTo(atMost[size], 5);
+        expect(points(largest?.style.fontSize), size).toBeLessThanOrEqual(sides[size] / 2 + 1e-9);
+      }
+      // The disc itself never grows.
+      expect(points(draw(STATES[size], { textScale: 1.3 }).style.width), size).toBe(sides[size]);
+    }
+    // The line stops with the letters: 14 on 18 in the smallest disc, 18 on 23.14 in the next.
+    const smallest = initialsOf(draw(STATES.xs, { textScale: 1.3 }));
+    expect(points(smallest?.style.lineHeight)).toBeCloseTo(18, 5);
+    const next = initialsOf(draw(STATES.sm, { textScale: 1.3 }));
+    expect(points(next?.style.lineHeight)).toBeCloseTo(23.143, 2);
+  });
+
+  it('on a phone the system text size meets the same limit', () => {
+    // The limit times the size of the role is half the disc: 14, 18, 24, 28 and 40 points.
+    const roleSizes = { xs: 14, sm: 14, md: 20, lg: 20, xl: 28 } as const;
+    const atMost = { xs: 14, sm: 18, md: 24, lg: 28, xl: 40 } as const;
+    for (const size of SIZES) {
+      draw(STATES[size]);
+      expect(initialsLimit() * roleSizes[size], size).toBeCloseTo(atMost[size], 5);
+      // A limit under 1 would turn the limit off on a phone.
+      expect(initialsLimit(), size).toBeGreaterThanOrEqual(1);
+    }
+    draw(STATES.xs);
+    expect(initialsLimit()).toBe(1);
+    // Initials the face cannot draw are held the same way.
+    draw({ size: 'xs', image: null, name: 'Ễn Ước', handle: null });
+    expect(initialsLimit()).toBe(1);
   });
 
   it('one word gives one letter, a handle its first character, and nobody an empty disc', () => {
