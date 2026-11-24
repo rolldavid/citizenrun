@@ -12,6 +12,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  statfsSync,
   writeFileSync,
 } from 'node:fs';
 import { availableParallelism, tmpdir } from 'node:os';
@@ -430,7 +431,43 @@ async function backupSmoke(ctx: JobContext): Promise<void> {
   }
 }
 
+// Docker Desktop keeps its engine's disk inside a file on the host volume. When that volume
+// fills during a build, the engine's store fails with input/output errors and stays broken
+// until space is freed and Docker is restarted, so the jobs that build images stop first.
+const GIB = 1024 ** 3;
+export const MIN_FREE_BYTES_FOR_IMAGES = 5 * GIB;
+
+/** The bytes an unprivileged process may still write on the volume that holds `path`. */
+export function availableBytes(path: string): number {
+  const stats = statfsSync(path);
+  return stats.bavail * stats.bsize;
+}
+
+/** The message that stops a job building images on a nearly full volume, or null. */
+export function freeSpaceFailure(
+  available: number,
+  required: number = MIN_FREE_BYTES_FOR_IMAGES,
+): string | null {
+  if (available >= required) {
+    return null;
+  }
+  const gib = (bytes: number): string => (bytes / GIB).toFixed(1);
+  return (
+    `only ${gib(available)} GiB free on the host volume; building images needs at least ` +
+    `${gib(required)} GiB, or the Docker engine's store can fail with input/output errors. ` +
+    'Free space on the host, then run the job again.'
+  );
+}
+
+function requireFreeSpace(ctx: JobContext): void {
+  const failure = freeSpaceFailure(availableBytes(ctx.root));
+  if (failure !== null) {
+    throw new JobFailure(failure);
+  }
+}
+
 async function imagesJob(ctx: JobContext): Promise<void> {
+  requireFreeSpace(ctx);
   for (const service of SERVICES) {
     await step(ctx, 'docker', [
       'build',
@@ -461,6 +498,7 @@ async function e2eJob(ctx: JobContext): Promise<void> {
   if (!existsSync(join(ctx.root, 'docker/e2e.Dockerfile'))) {
     throw new JobFailure('docker/e2e.Dockerfile is missing');
   }
+  requireFreeSpace(ctx);
   await step(ctx, 'docker', [
     'build',
     '-f',

@@ -6,10 +6,13 @@ import { parse } from 'yaml';
 import { z } from 'zod';
 import {
   CI_JOBS,
+  MIN_FREE_BYTES_FOR_IMAGES,
   NIGHTLY_JOBS,
   NO_LOCAL_FORM,
   UsageError,
+  availableBytes,
   ciRange,
+  freeSpaceFailure,
   gitleaksAssetFor,
   median,
   parseCiLocalArgs,
@@ -146,6 +149,24 @@ describe('ci-local', () => {
       expect(asset.url, key).toBe(`${prefix}gitleaks_${pin.version}_${suffix}.tar.gz`);
       expect(asset.sha256, key).toMatch(/^[0-9a-f]{64}$/);
     }
+  });
+
+  it('a job that builds images stops first on a nearly full host volume', () => {
+    const gib = 1024 ** 3;
+    expect(MIN_FREE_BYTES_FOR_IMAGES).toBe(5 * gib);
+    expect(freeSpaceFailure(MIN_FREE_BYTES_FOR_IMAGES)).toBeNull();
+    expect(freeSpaceFailure(40 * gib)).toBeNull();
+    expect(freeSpaceFailure(1.7 * gib)).toBe(
+      "only 1.7 GiB free on the host volume; building images needs at least 5.0 GiB, or the Docker engine's store can fail with input/output errors. Free space on the host, then run the job again.",
+    );
+    expect(freeSpaceFailure(3 * gib, 2 * gib)).toBeNull();
+    expect(freeSpaceFailure(0, 1)).toMatch(/^only 0\.0 GiB free/);
+  });
+
+  it('reads the free space of the volume that holds the repository', () => {
+    const bytes = availableBytes(ROOT);
+    expect(Number.isSafeInteger(bytes)).toBe(true);
+    expect(bytes).toBeGreaterThan(0);
   });
 
   it('the median', () => {
