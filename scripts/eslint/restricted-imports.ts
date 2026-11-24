@@ -38,6 +38,11 @@ const BARE_BUILTINS = builtinModules.filter(
 );
 
 const OTHER_WORKSPACE = '^@citizenrun/(?!shared(?:/|$))';
+/**
+ * The same, for the card package: its files reach its own `./primitives` entry by the
+ * package's name, so the entry's conditions choose the file (D-270). No other entry passes.
+ */
+const OTHER_WORKSPACE_FROM_CARDS = '^@citizenrun/(?!shared(?:/|$)|cards/primitives$)';
 const PLATFORM_BOUND = [
   'expo-secure-store',
   'expo-notifications',
@@ -164,8 +169,9 @@ export const ROWS: readonly RestrictedRow[] = [
     files: ['packages/cards/**'],
     patterns: [
       {
-        regex: OTHER_WORKSPACE,
-        message: '@citizenrun/cards imports only @citizenrun/shared from the workspace.',
+        regex: OTHER_WORKSPACE_FROM_CARDS,
+        message:
+          '@citizenrun/cards imports only @citizenrun/shared from the workspace, and itself only as @citizenrun/cards/primitives.',
       },
       {
         regex: mod('react-native'),
