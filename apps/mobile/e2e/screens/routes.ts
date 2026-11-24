@@ -345,5 +345,12 @@ export const SCREENS: ScreenEntry[] = [
   },
   { id: 'dev-spike-map', path: '/dev/spikes/map', auth: 'none', prepare: waitForMapSpike },
   { id: 'dev-spike-card', path: '/dev/spikes/card', auth: 'none', prepare: waitForCardSpike },
-  { id: 'dev-spike-list', path: '/dev/spikes/list', auth: 'none', prepare: waitForListSpike },
+  // The spike's 1,000 rows are far more than the 60 screens one capture takes, so the design review
+  // captures twelve of them, four of each kind; the scroll test covers the whole list.
+  {
+    id: 'dev-spike-list',
+    path: '/dev/spikes/list?rows=12',
+    auth: 'none',
+    prepare: waitForListSpike,
+  },
 ];

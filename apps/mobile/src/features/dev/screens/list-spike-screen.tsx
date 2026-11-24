@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import type { JSX } from 'react';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
@@ -11,11 +11,8 @@ import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { useTheme } from '@/ui/theme';
 import { size, space } from '@/ui/tokens';
 
-import { listSpikeItems } from './list-spike-items';
+import { LIST_SPIKE_COUNT, listSpikeCount, listSpikeItems } from './list-spike-items';
 import type { ListSpikeItem } from './list-spike-items';
-
-/** Made once, so the list's data keeps its identity between renders. */
-const ITEMS = listSpikeItems();
 
 // The list needs a bounded height to recycle its rows: without it a web list draws every row.
 const LIST_BOX: ViewStyle = { flex: 1 };
@@ -62,8 +59,20 @@ const ListSpikeRow = memo(function ListSpikeRow({ item }: { item: ListSpikeItem 
   }
 });
 
+export type ListSpikeScreenProps = {
+  /** The `rows` route parameter, or null when the address has none: 1,000 rows unless it asks for fewer. */
+  rows: string | null;
+};
+
 /** SCR-dev-spikes: the list spike (D-100 row 8), 1,000 rows of three kinds through C-List. */
-export function ListSpikeScreen(): JSX.Element {
+export function ListSpikeScreen({ rows }: ListSpikeScreenProps): JSX.Element {
+  const count = listSpikeCount(rows);
+  // Made once per count, so the list's data keeps its identity between renders.
+  const items = useMemo(() => listSpikeItems(count), [count]);
+  const caption =
+    count === LIST_SPIKE_COUNT
+      ? '1,000 rows of three kinds through C-List'
+      : `${String(count)} rows of three kinds through C-List`;
   return (
     <Screen width="full" scroll={false} appBar={null} testID="dev.list-spike">
       <head.Title>List spike</head.Title>
@@ -72,12 +81,12 @@ export function ListSpikeScreen(): JSX.Element {
           List spike
         </Text>
         <Text role="caption" tone="secondary">
-          1,000 rows of three kinds through C-List
+          {caption}
         </Text>
       </View>
       <View style={LIST_BOX}>
         <List
-          items={ITEMS}
+          items={items}
           keyOf={keyOf}
           typeOf={typeOf}
           renderItem={renderItem}

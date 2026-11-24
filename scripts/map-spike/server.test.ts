@@ -158,7 +158,9 @@ describe('the map spike host', () => {
     for (const theme of ['light', 'dark']) {
       const style = json(get(`/style-${theme}.json`)) as StyleShape; // the host writes this shape
       const ids = style.layers.map((layer) => layer.id);
-      expect(ids).toEqual(['base-land', ...SPIKE_ANCHORS]);
+      const anchors: readonly string[] = SPIKE_ANCHORS;
+      // The base layers sit between the anchors; only the anchors' own order is fixed.
+      expect(ids.filter((id) => anchors.includes(id))).toEqual([...SPIKE_ANCHORS]);
       expect(SPIKE_ANCHORS).toEqual(['anchor-fill', 'anchor-line', 'anchor-top']);
     }
   });

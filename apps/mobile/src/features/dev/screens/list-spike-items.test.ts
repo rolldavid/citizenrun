@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { LIST_SPIKE_COUNT, listSpikeItems } from './list-spike-items';
+import { LIST_SPIKE_COUNT, listSpikeCount, listSpikeItems } from './list-spike-items';
 
 describe('listSpikeItems', () => {
   it('there are 1,000 rows', () => {
@@ -34,5 +34,15 @@ describe('listSpikeItems', () => {
     const items = listSpikeItems(4);
     expect(items).toHaveLength(4);
     expect(items[3]).toEqual({ key: 'item-3', index: 3, kind: 'text' });
+  });
+
+  it('the rows parameter sets a shorter list', () => {
+    expect(listSpikeCount(null)).toBe(1000);
+    expect(listSpikeCount('12')).toBe(12);
+    expect(listSpikeCount('1')).toBe(1);
+    expect(listSpikeCount('1000')).toBe(1000);
+    for (const rows of ['', '0', '-3', '012', '1.5', '1e2', ' 12', '12abc', '1001', '99999']) {
+      expect(listSpikeCount(rows)).toBe(1000);
+    }
   });
 });
