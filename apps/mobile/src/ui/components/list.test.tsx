@@ -55,10 +55,14 @@ vi.mock('@shopify/flash-list', async (importOriginal) => {
       ListFooterComponent: footer,
       onCommitLayoutEffect,
     } = props;
-    // The list calls this one method of the library's list.
+    // The list calls these two methods of the library's list. The stand-in draws no scroll element.
     useImperativeHandle(
       ref,
-      () => ({ scrollToOffset: flash.scrollToOffset }) as unknown as Handle, // one method stands in
+      () =>
+        ({
+          scrollToOffset: flash.scrollToOffset,
+          getScrollableNode: () => null,
+        }) as unknown as Handle, // two methods stand in
       [],
     );
     // The library tells the list when its items are laid out, before they are painted.
@@ -783,6 +787,46 @@ describe('List', () => {
       }
       // The list itself takes no role: its rows and its states carry their own.
       expect(root.getAttribute('role'), state).toBeNull();
+    }
+  });
+
+  it('its scroll element is a named Tab stop with the focus ring on the web', () => {
+    setViewport(...COMPACT);
+    for (const theme of ['light', 'dark'] as const) {
+      for (const state of STATE_NAMES) {
+        const root = drawState(state, { theme });
+        const stops = root.querySelectorAll<HTMLElement>('[tabindex="0"]');
+        const scrolls = [...stops].filter((element) => element.getAttribute('role') === 'group');
+        if (state === 'loading' || state === 'loadingRows' || state === 'empty') {
+          // Skeletons and the empty state scroll nothing.
+          expect(scrolls, state).toHaveLength(0);
+          continue;
+        }
+        expect(scrolls, state).toHaveLength(1);
+        const scroll = scrolls[0];
+        if (scroll === undefined) throw new Error('no scroll element');
+        expect(scroll.getAttribute('aria-label'), state).toBe('Scrolling list');
+        // The element that scrolls is the one that takes focus.
+        expect(scroll.style.overflowY || getComputedStyle(scroll).overflowY, state).toMatch(
+          /^(auto|scroll)$/,
+        );
+        expect(scroll.style.outlineStyle, state).toBe('');
+        act(() => {
+          scroll.focus();
+        });
+        expect(document.activeElement, state).toBe(scroll);
+        expect(scroll.style.outlineStyle, state).toBe('solid');
+        expect(scroll.style.outlineWidth, state).toBe(`${String(rule.focus)}px`);
+        expect(scroll.style.outlineColor, state).toBe(written(color[theme].focusRing));
+        // It fills the box that clips it, so the ring sits inside its edge.
+        expect(scroll.style.outlineOffset, state).toBe(
+          `${String(-(rule.focus + rule.focusGap))}px`,
+        );
+        act(() => {
+          scroll.blur();
+        });
+        expect(scroll.style.outlineStyle, state).toBe('');
+      }
     }
   });
 

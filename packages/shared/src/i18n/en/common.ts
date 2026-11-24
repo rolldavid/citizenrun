@@ -15,6 +15,7 @@ export const common = {
     close: 'Close',
     sheet: { close: 'Close' },
     link: { external: '{{label}}, opens in your browser' },
+    list: { label: 'Scrolling list' },
     avatar: { label: 'Photo of {{name}}' },
     badge: { overflow: '99+' },
     nav: {

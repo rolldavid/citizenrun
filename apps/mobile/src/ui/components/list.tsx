@@ -1,18 +1,20 @@
 import { assertNever } from '@citizenrun/shared';
 import { FlashList } from '@shopify/flash-list';
 import type { FlashListRef, ViewToken } from '@shopify/flash-list';
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import type { JSX, ReactElement } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { JSX, ReactElement, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import type { NativeScrollEvent, NativeSyntheticEvent, ViewStyle } from 'react-native';
 
 import { video } from '@/platform/video';
+import { focusRingStyle } from '@/ui/focus';
 import { useReducedMotion } from '@/ui/motion';
 import { useShell } from '@/ui/shells/app-shell';
 import { useOnReselect } from '@/ui/shells/reselect';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
-import { space } from '@/ui/tokens';
+import { useTheme } from '@/ui/theme';
+import { radius, rule, space } from '@/ui/tokens';
 
 import { FeedRule } from './feed-rule';
 import { Notice } from './notice';
@@ -90,6 +92,11 @@ const GRID_CELL: ViewStyle = { padding: space.pip };
 /** The share of a row one item takes, by the number of columns. */
 const COLUMN_SHARE = { 1: '100%', 2: '50%', 3: '33.333%' } as const;
 const FAILED: ViewStyle = { paddingVertical: space.x3 };
+/**
+ * The scroll element fills the box that clips it, so its focus ring is drawn inside its edge, with the
+ * ring's gap between the two.
+ */
+const RING_INSET = -(rule.focus + rule.focusGap);
 
 /** MO-tab-restore: the scroll offset of each list that asked for one, kept while the app runs. */
 const offsets = new Map<string, number>();
@@ -218,6 +225,62 @@ function useVideoActivation<T>(
   return { activeKey, see, moved, settle };
 }
 
+/** An element whose attributes and focus can be reached from code: the web's is one, a phone's view is not. */
+type FocusHost = {
+  setAttribute: (name: string, value: string) => void;
+  addEventListener: (type: 'focus' | 'blur', listener: () => void) => void;
+  removeEventListener: (type: 'focus' | 'blur', listener: () => void) => void;
+};
+
+function isFocusHost(host: unknown): host is FocusHost {
+  return (
+    typeof host === 'object' &&
+    host !== null &&
+    'setAttribute' in host &&
+    typeof host.setAttribute === 'function' &&
+    'addEventListener' in host &&
+    typeof host.addEventListener === 'function' &&
+    'removeEventListener' in host &&
+    typeof host.removeEventListener === 'function'
+  );
+}
+
+/**
+ * The keyboard reaches a list on the web as it reaches any scrolling region: its scroll element is a
+ * Tab stop, a named group, whose arrow and page keys scroll it, with the focus ring while it has
+ * focus. A list whose rows hold no control could not be scrolled from the keyboard otherwise. A
+ * phone's scroll view has no attributes and is left as it is. True while the element has focus.
+ */
+function useKeyboardScroll<T>(
+  listRef: RefObject<FlashListRef<T> | null>,
+  drawn: boolean,
+  label: string,
+): boolean {
+  const [focused, setFocused] = useState(false);
+  useLayoutEffect(() => {
+    if (!drawn) return undefined;
+    const host: unknown = listRef.current?.getScrollableNode();
+    if (!isFocusHost(host)) return undefined;
+    host.setAttribute('tabindex', '0');
+    host.setAttribute('role', 'group');
+    host.setAttribute('aria-label', label);
+    const focus = (): void => {
+      setFocused(true);
+    };
+    const blur = (): void => {
+      setFocused(false);
+    };
+    host.addEventListener('focus', focus);
+    host.addEventListener('blur', blur);
+    return () => {
+      host.removeEventListener('focus', focus);
+      host.removeEventListener('blur', blur);
+      setFocused(false);
+    };
+  }, [listRef, drawn, label]);
+  return focused;
+}
+
 function SoftSeparator(): JSX.Element {
   return <Rule variant="soft" inset="gutter" />;
 }
@@ -300,6 +363,7 @@ export function List<T>({
 }: ListProps<T>): JSX.Element {
   const layout = useBreakpoint();
   const shell = useShell();
+  const theme = useTheme();
   const { t } = useTranslation(['common', 'errors']);
   const reducedMotion = useReducedMotion();
   const listRef = useRef<FlashListRef<T>>(null);
@@ -308,6 +372,8 @@ export function List<T>({
   // The offset to take back, until the list has been laid out with its items.
   const restore = useRef(restoreKey === undefined ? null : recallOffset(restoreKey));
   const activation = useVideoActivation(items, videoOf);
+  const drawn = status !== 'loading' && !(status === 'ready' && items.length === 0);
+  const focused = useKeyboardScroll(listRef, drawn, t('ui.list.label'));
 
   useOnReselect(tab, () => {
     listRef.current?.scrollToOffset({ offset: 0, animated: !reducedMotion });
@@ -395,6 +461,13 @@ export function List<T>({
             activation.moved();
           }}
           onMomentumScrollEnd={activation.settle}
+          {...(focused
+            ? {
+                overrideProps: {
+                  style: { ...focusRingStyle(theme, radius.none), outlineOffset: RING_INSET },
+                },
+              }
+            : {})}
           onCommitLayoutEffect={() => {
             // Before the first paint of the items, so the list opens where it was left.
             const offset = restore.current;
