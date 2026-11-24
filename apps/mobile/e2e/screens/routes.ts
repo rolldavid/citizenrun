@@ -44,6 +44,27 @@ async function focusGalleryTooltip(page: Page): Promise<void> {
   await expect(bubble).toHaveCSS('opacity', '1');
 }
 
+/**
+ * The map spike has drawn its first frame, or says why it cannot: a headless browser with no WebGL2
+ * reads `error map.webgl_unavailable`, which is still a capture.
+ */
+async function waitForMapSpike(page: Page): Promise<void> {
+  await expect(page.getByTestId('dev.map-spike-status')).toHaveText(
+    /^(ready \d+|error map\.[a-z_]+)$/,
+    { timeout: 60000 },
+  );
+}
+
+/** The card spike has drawn its card. */
+async function waitForCardSpike(page: Page): Promise<void> {
+  await page.getByTestId('dev.card-spike-card').waitFor({ state: 'visible', timeout: 30000 });
+}
+
+/** The list spike has drawn its first row. */
+async function waitForListSpike(page: Page): Promise<void> {
+  await page.getByTestId('dev.list-spike-row-0').waitFor({ state: 'visible', timeout: 30000 });
+}
+
 export const SCREENS: ScreenEntry[] = [
   { id: 'dev-gallery', path: '/dev/gallery', auth: 'none', prepare: waitForGallery },
   {
@@ -322,4 +343,7 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/system-update/updateWithStore?textScale=1.3',
     auth: 'none',
   },
+  { id: 'dev-spike-map', path: '/dev/spikes/map', auth: 'none', prepare: waitForMapSpike },
+  { id: 'dev-spike-card', path: '/dev/spikes/card', auth: 'none', prepare: waitForCardSpike },
+  { id: 'dev-spike-list', path: '/dev/spikes/list', auth: 'none', prepare: waitForListSpike },
 ];
