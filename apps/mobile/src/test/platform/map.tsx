@@ -1,9 +1,10 @@
-import { useEffect, useImperativeHandle } from 'react';
+import { useEffect, useImperativeHandle, useState } from 'react';
 import type { ReactElement } from 'react';
 import { View } from 'react-native';
 
 import type {
   FeatureTarget,
+  LngLat,
   LngLatBounds,
   MapFeature,
   MapFeatureCollection,
@@ -41,12 +42,26 @@ export type MapFakeProps = {
   attributionCompact: boolean;
 };
 
+/** Every prop of a rendered surface except its callbacks, handleRef and children. */
+export type MapFakeSurfaceProps = Omit<
+  MapSurfaceProps,
+  'onStatus' | 'onFocusChange' | 'handleRef' | 'children'
+>;
+
+/** A mounted marker as its props last described it. */
+export type MapFakeMarker = { testID: string; coordinate: LngLat; anchor: 'center' | 'bottom' };
+
 const calls: MapFakeCall[] = [];
+/** The mounted markers' keys in mount order, and what each last rendered. */
+const markerOrder: symbol[] = [];
+const markerData = new Map<symbol, MapFakeMarker>();
 const state: {
   features: readonly MapFeature[];
   lastProps: MapFakeProps | null;
+  lastSurfaceProps: MapFakeSurfaceProps | null;
   mounted: MapSurfaceProps | null;
-} = { features: [], lastProps: null, mounted: null };
+  mounts: number;
+} = { features: [], lastProps: null, lastSurfaceProps: null, mounted: null, mounts: 0 };
 
 const handle: MapHandle = {
   setFeatureState: (target, featureState) => {
@@ -77,11 +92,28 @@ function describeProps(props: MapSurfaceProps): MapFakeProps {
   };
 }
 
+const CALLBACK_PROPS: ReadonlySet<string> = new Set([
+  'onStatus',
+  'onFocusChange',
+  'handleRef',
+  'children',
+]);
+
+function surfacePropsOf(props: MapSurfaceProps): MapFakeSurfaceProps {
+  return Object.fromEntries(
+    Object.entries(props).filter(([key]) => !CALLBACK_PROPS.has(key)),
+  ) as MapFakeSurfaceProps;
+}
+
 function Surface(props: MapSurfaceProps): ReactElement {
   useImperativeHandle(props.handleRef, () => handle, []);
+  useEffect(() => {
+    state.mounts += 1;
+  }, []);
   // Registered in an effect with a cleanup, so an unmounted surface is never called.
   useEffect(() => {
     state.lastProps = describeProps(props);
+    state.lastSurfaceProps = surfacePropsOf(props);
     state.mounted = props;
     return () => {
       if (state.mounted === props) {
@@ -92,7 +124,19 @@ function Surface(props: MapSurfaceProps): ReactElement {
   return <View testID={props.testID}>{props.children}</View>;
 }
 
-function Marker({ children, testID }: MapMarkerProps): ReactElement {
+function Marker({ children, testID, coordinate, anchor }: MapMarkerProps): ReactElement {
+  const [key] = useState(() => Symbol('marker'));
+  useEffect(() => {
+    markerData.set(key, { testID, coordinate, anchor });
+  });
+  useEffect(() => {
+    markerOrder.push(key);
+    return () => {
+      const index = markerOrder.indexOf(key);
+      if (index !== -1) markerOrder.splice(index, 1);
+      markerData.delete(key);
+    };
+  }, [key]);
   return <View testID={testID}>{children}</View>;
 }
 
@@ -101,6 +145,16 @@ export const map: MapModule = { Surface, Marker };
 export const mapFake = {
   calls: calls as readonly MapFakeCall[],
   lastProps: (): MapFakeProps | null => state.lastProps,
+  /** Every prop of the last rendered Surface except its callbacks, handleRef and children; null before any. */
+  lastSurfaceProps: (): MapFakeSurfaceProps | null => state.lastSurfaceProps,
+  /** How many times a Surface has mounted since the last reset (a remount by key counts). */
+  mountCount: (): number => state.mounts,
+  /** The mounted markers, in mount order. */
+  markers: (): readonly MapFakeMarker[] =>
+    markerOrder.flatMap((key) => {
+      const marker = markerData.get(key);
+      return marker === undefined ? [] : [{ ...marker }];
+    }),
   /** Calls the mounted surface's onStatus; nothing when no surface is mounted. */
   emitStatus: (status: MapStatus): void => {
     state.mounted?.onStatus(status);
@@ -117,6 +171,10 @@ export const mapFake = {
     calls.length = 0;
     state.features = [];
     state.lastProps = null;
+    state.lastSurfaceProps = null;
     state.mounted = null;
+    state.mounts = 0;
+    markerOrder.length = 0;
+    markerData.clear();
   },
 };
