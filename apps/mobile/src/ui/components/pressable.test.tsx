@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, screen } from '@testing-library/react';
-import { cloneElement, createElement } from 'react';
+import { cloneElement, createElement, createRef } from 'react';
 import type { ReactElement } from 'react';
 import type * as ReactNative from 'react-native';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -780,5 +780,65 @@ describe('Pressable', () => {
     const element = draw({ role: 'link', href: '/dev/gallery', label: '' });
     expect(element.hasAttribute('aria-label')).toBe(false);
     expect(screen.getByRole('link', { name: 'Open the office' })).toBe(element);
+  });
+
+  it('not focusable still presses', () => {
+    for (const role of ['button', 'radio', 'option'] as const) {
+      const onPress = vi.fn();
+      const element = draw({ role, focusable: false, onPress });
+      // Out of the Tab order on the page, and a phone is told the same.
+      expect(element.getAttribute('tabindex'), role).toBe('-1');
+      expect(nativeProps().focusable, role).toBe(false);
+      // It is no disabled control: it says nothing of the kind and a press reaches the caller.
+      expect(element.getAttribute('aria-disabled'), role).toBeNull();
+      expect(element.style.cursor, role).toBe('pointer');
+      fireEvent.click(element);
+      pressKey(element, 'Enter');
+      expect(onPress, role).toHaveBeenCalledTimes(2);
+    }
+    // Without the prop a control keeps its place in the Tab order, and a phone is told nothing.
+    expect(draw({ role: 'radio' }).getAttribute('tabindex')).toBe('0');
+    expect(nativeProps().focusable).toBeUndefined();
+    expect(draw({ role: 'radio', focusable: true }).getAttribute('tabindex')).toBe('0');
+  });
+
+  it('ref focuses', () => {
+    const ref = createRef<ReactNative.ViewInstance>();
+    const element = draw({ role: 'option', focusable: false, ref });
+    expect(document.activeElement).not.toBe(element);
+    act(() => {
+      ref.current?.focus();
+    });
+    // A control out of the Tab order still takes focus from code, and draws its ring.
+    expect(document.activeElement).toBe(element);
+    expect(element.style.outlineStyle).toBe('solid');
+
+    const inOrder = createRef<ReactNative.ViewInstance>();
+    const button = draw({ ref: inOrder });
+    act(() => {
+      inOrder.current?.focus();
+    });
+    expect(document.activeElement).toBe(button);
+  });
+
+  it('combobox role', () => {
+    const closed = draw({ role: 'combobox', state: { expanded: false } });
+    expect(closed.getAttribute('role')).toBe('combobox');
+    expect(closed.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('combobox', { name: 'Open the office' })).toBe(closed);
+    expect(
+      draw({ role: 'combobox', state: { expanded: true } }).getAttribute('aria-expanded'),
+    ).toBe('true');
+    // Without the state it says nothing of being open or closed, and is never said to be selected.
+    const plain = draw({ role: 'combobox', state: { selected: true } });
+    expect(plain.getAttribute('aria-expanded')).toBeNull();
+    expect(plain.getAttribute('aria-selected')).toBeNull();
+    // Enter and Space press it, as they press every role that is no native control.
+    const onPress = vi.fn();
+    const combobox = draw({ role: 'combobox', onPress });
+    expect(combobox.tagName).toBe('DIV');
+    pressKey(combobox, 'Enter');
+    pressKey(combobox, ' ');
+    expect(onPress).toHaveBeenCalledTimes(2);
   });
 });

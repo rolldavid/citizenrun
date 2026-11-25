@@ -6,8 +6,10 @@ import { linksFake } from '@/test/platform/links';
 import { sessionFake } from '@/test/platform/session';
 import { renderWithProviders } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
+import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
@@ -24,11 +26,15 @@ import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
+import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
+import * as radioFixtures from '@/ui/components/radio.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as selectFixtures from '@/ui/components/select.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
 import * as stickyFooterFixtures from '@/ui/components/sticky-footer.fixtures';
+import * as switchFixtures from '@/ui/components/switch.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
 import * as textFieldFixtures from '@/ui/components/text-field.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
@@ -107,6 +113,12 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-TextField', slug: 'text-field', states: Object.keys(textFieldFixtures.STATES) },
   { id: 'C-HandleField', slug: 'handle-field', states: Object.keys(handleFieldFixtures.STATES) },
   { id: 'C-CodeField', slug: 'code-field', states: Object.keys(codeFieldFixtures.STATES) },
+  { id: 'C-Select', slug: 'select', states: Object.keys(selectFixtures.STATES) },
+  { id: 'C-Checkbox', slug: 'checkbox', states: Object.keys(checkboxFixtures.STATES) },
+  { id: 'C-Radio', slug: 'radio', states: Object.keys(radioFixtures.STATES) },
+  { id: 'C-RadioGroup', slug: 'radio-group', states: Object.keys(radioGroupFixtures.STATES) },
+  { id: 'C-Switch', slug: 'switch', states: Object.keys(switchFixtures.STATES) },
+  { id: 'C-AgeGate', slug: 'age-gate', states: Object.keys(ageGateFixtures.STATES) },
   { id: 'C-Progress', slug: 'progress', states: Object.keys(progressFixtures.STATES) },
   { id: 'C-StickyFooter', slug: 'sticky-footer', states: Object.keys(stickyFooterFixtures.STATES) },
 ];
@@ -237,6 +249,12 @@ describe('GalleryScreen', () => {
       'C-TextField',
       'C-HandleField',
       'C-CodeField',
+      'C-Select',
+      'C-Checkbox',
+      'C-Radio',
+      'C-RadioGroup',
+      'C-Switch',
+      'C-AgeGate',
       'C-Progress',
       'C-StickyFooter',
     ]);

@@ -4,9 +4,11 @@ import { ScrollView, View } from 'react-native';
 import type { HostInstance, TextInstance, ViewStyle } from 'react-native';
 
 import {
+  AgeGate,
   AppBar,
   Avatar,
   Button,
+  Checkbox,
   CodeField,
   CompactShell,
   CountBadge,
@@ -27,13 +29,17 @@ import {
   Popover,
   Pressable,
   Progress,
+  Radio,
+  RadioGroup,
   Rail,
   RightColumn,
   Rule,
   Screen,
+  Select,
   Sheet,
   Skeleton,
   StickyFooter,
+  Switch,
   SystemScreen,
   TabBar,
   Text,
@@ -45,19 +51,27 @@ import {
   useBreakpoint,
 } from '@/ui';
 import type {
+  AgeGateProps,
+  CheckboxProps,
   CodeFieldProps,
   DialogProps,
   HandleFieldProps,
   InteractionPreviewState,
   ListProps,
   PopoverProps,
+  RadioGroupProps,
+  RadioProps,
   RightColumnProps,
+  SelectProps,
   SheetProps,
   StickyFooterProps,
+  SwitchProps,
   TextFieldProps,
 } from '@/ui';
+import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
@@ -74,11 +88,15 @@ import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
+import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
+import * as radioFixtures from '@/ui/components/radio.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as selectFixtures from '@/ui/components/select.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
 import * as stickyFooterFixtures from '@/ui/components/sticky-footer.fixtures';
+import * as switchFixtures from '@/ui/components/switch.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
 import * as textFieldFixtures from '@/ui/components/text-field.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
@@ -442,6 +460,55 @@ function CodeFieldSpecimen({ fixture }: { fixture: CodeFieldProps }): JSX.Elemen
   );
 }
 
+/** One state of C-Select, holding what is chosen from its list: nothing, until a row is pressed. */
+function SelectSpecimen({ fixture }: { fixture: SelectProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return <Select {...fixture} value={value} onChange={setValue} />;
+}
+
+/** One state of C-Checkbox, ticked and cleared by a press. */
+function CheckboxSpecimen({ fixture }: { fixture: CheckboxProps }): JSX.Element {
+  const [checked, setChecked] = useState(fixture.checked);
+  return <Checkbox {...fixture} checked={checked} onChange={setChecked} />;
+}
+
+/**
+ * One state of C-Radio in a group of its own, which the product gives it through C-RadioGroup. A
+ * press chooses it, and as the group's one option it stays chosen.
+ */
+function RadioSpecimen({ state, fixture }: { state: string; fixture: RadioProps }): JSX.Element {
+  const [selected, setSelected] = useState(fixture.selected);
+  return (
+    <View role="radiogroup" aria-label={`Specimen group of ${state}`}>
+      <Radio
+        {...fixture}
+        selected={selected}
+        onSelect={() => {
+          setSelected(true);
+        }}
+      />
+    </View>
+  );
+}
+
+/** One state of C-RadioGroup, holding its choice. */
+function RadioGroupSpecimen({ fixture }: { fixture: RadioGroupProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return <RadioGroup {...fixture} value={value} onChange={setValue} />;
+}
+
+/** One state of C-Switch, flipped by a press. */
+function SwitchSpecimen({ fixture }: { fixture: SwitchProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return <Switch {...fixture} value={value} onChange={setValue} />;
+}
+
+/** One state of C-AgeGate, holding the month and the year chosen from its two lists. */
+function AgeGateSpecimen({ fixture }: { fixture: AgeGateProps }): JSX.Element {
+  const [answer, setAnswer] = useState({ month: fixture.month, year: fixture.year });
+  return <AgeGate {...fixture} month={answer.month} year={answer.year} onChange={setAnswer} />;
+}
+
 // The foot of a screen: a little of its ground over the footer, which is not pinned here.
 const FOOTER_BOX: ViewStyle = { marginHorizontal: -space.x3, borderWidth: rule.hairline };
 const FOOTER_GROUND: ViewStyle = { height: size.listRowMin };
@@ -544,6 +611,28 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     codeFieldFixtures,
     (fixture) => <CodeFieldSpecimen fixture={fixture} />,
   ),
+  fixtureSection<SelectProps>('C-Select', 'select', 'wide', selectFixtures, (fixture) => (
+    <SelectSpecimen fixture={fixture} />
+  )),
+  fixtureSection<CheckboxProps>('C-Checkbox', 'checkbox', 'wide', checkboxFixtures, (fixture) => (
+    <CheckboxSpecimen fixture={fixture} />
+  )),
+  fixtureSection<RadioProps>('C-Radio', 'radio', 'wide', radioFixtures, (fixture, state) => (
+    <RadioSpecimen state={state} fixture={fixture} />
+  )),
+  fixtureSection<RadioGroupProps>(
+    'C-RadioGroup',
+    'radio-group',
+    'wide',
+    radioGroupFixtures,
+    (fixture) => <RadioGroupSpecimen fixture={fixture} />,
+  ),
+  fixtureSection<SwitchProps>('C-Switch', 'switch', 'wide', switchFixtures, (fixture) => (
+    <SwitchSpecimen fixture={fixture} />
+  )),
+  fixtureSection<AgeGateProps>('C-AgeGate', 'age-gate', 'wide', ageGateFixtures, (fixture) => (
+    <AgeGateSpecimen fixture={fixture} />
+  )),
   section('C-Progress', 'progress', 'wide', Progress, progressFixtures),
   fixtureSection<StickyFooterProps>(
     'C-StickyFooter',

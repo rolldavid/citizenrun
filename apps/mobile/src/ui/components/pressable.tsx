@@ -1,8 +1,8 @@
 import { Link } from 'expo-router';
 import { createContext, useContext, useState } from 'react';
-import type { JSX, ReactNode } from 'react';
+import type { JSX, ReactNode, Ref } from 'react';
 import { Pressable as NativePressable, View } from 'react-native';
-import type { Insets, KeyDownEvent, ViewStyle } from 'react-native';
+import type { Insets, KeyDownEvent, ViewInstance, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { assertRouterPath } from '@/lib/router-path';
@@ -33,12 +33,28 @@ export type PressableProps = {
   radius?: number;
   /** The active item of a navigation list (C-TabBar, C-Rail). */
   current?: boolean;
-  role: 'button' | 'link' | 'checkbox' | 'radio' | 'switch' | 'tab' | 'menuitem' | 'option';
+  /**
+   * Default true. False takes the control out of the Tab order: it still answers presses and takes
+   * focus from code, as one option of a group that is a single Tab stop does.
+   */
+  focusable?: boolean;
+  role:
+    | 'button'
+    | 'link'
+    | 'checkbox'
+    | 'radio'
+    | 'switch'
+    | 'tab'
+    | 'menuitem'
+    | 'option'
+    | 'combobox';
   /** The accessible name. */
   label: string;
   hint?: string;
   state?: { selected?: boolean; checked?: boolean; expanded?: boolean; busy?: boolean };
   testID: string;
+  /** Reaches the press target itself, so a caller can move focus to it. */
+  ref?: Ref<ViewInstance>;
   children:
     | ReactNode
     | ((s: {
@@ -119,6 +135,12 @@ const EXTERNAL_ANCHOR = { hrefAttrs: { target: EXTERNAL_TARGET, rel: EXTERNAL_RE
 const CURRENT_ITEM = { 'aria-current': 'page', accessibilityState: { selected: true } } as const;
 
 /**
+ * What takes a control out of the Tab order and leaves it pressable. The web's press target gives
+ * itself a tab index of its own, so the index is given as well as the phone's prop.
+ */
+const NOT_A_TAB_STOP = { focusable: false, tabIndex: -1 } as const;
+
+/**
  * How a selected state that `aria-selected` may not carry is said. ARIA allows that attribute on a
  * tab and an option only. A toggle button is pressed or not on the web, and every other role says
  * nothing there; a phone, which has no pressed state, reads the selected state for all of them.
@@ -149,11 +171,13 @@ export function Pressable({
   haptic,
   radius: corner = radius.control,
   current = false,
+  focusable = true,
   role,
   label,
   hint,
   state,
   testID,
+  ref,
   children,
 }: PressableProps): JSX.Element {
   const theme = useTheme();
@@ -224,8 +248,10 @@ export function Pressable({
 
   const target = (
     <NativePressable
+      ref={ref}
       {...(external ? EXTERNAL_ANCHOR : {})}
       {...(current ? CURRENT_ITEM : {})}
+      {...(focusable ? {} : NOT_A_TAB_STOP)}
       {...(selected === undefined || takesSelected ? {} : toggledState(role, selected))}
       role={role}
       aria-label={label === '' ? undefined : label}
