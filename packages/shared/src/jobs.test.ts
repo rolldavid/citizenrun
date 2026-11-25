@@ -96,6 +96,8 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'cost.check': {},
   'account.delete': { userId: SAMPLE_ID, skipDeferral: false },
   'account.export': { exportId: SAMPLE_ID },
+  'uploads.cleanup': { scope: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
+  'media.process.image': { target: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
   'notify.email': { template: 'signin_method_added', userId: SAMPLE_ID, provider: 'apple' },
 };
 
@@ -221,6 +223,30 @@ describe('the job list', () => {
     expect(schema.safeParse({ exportId: SAMPLE_ID }).success).toBe(true);
     expect(schema.safeParse({}).success).toBe(false);
     expect(schema.safeParse({ exportId: SAMPLE_ID, userId: SAMPLE_ID }).success).toBe(false);
+  });
+
+  it('a media.process.image payload names an avatar upload by its ids', () => {
+    const schema = JOB_PAYLOADS['media.process.image'];
+    const avatar = { target: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID };
+    expect(schema.safeParse(avatar).success).toBe(true);
+    expect(schema.safeParse({ ...avatar, uploadId: 'not-a-uuid' }).success).toBe(false);
+    expect(schema.safeParse({ ...avatar, key: 'incoming/x.jpg' }).success).toBe(false);
+    // The other targets arrive with their paths in later milestones.
+    expect(schema.safeParse({ target: 'post_media', mediaId: SAMPLE_ID }).success).toBe(false);
+    expect(schema.safeParse({ target: 'message', messageId: SAMPLE_ID }).success).toBe(false);
+  });
+
+  it('an uploads.cleanup payload names an avatar upload by its ids', () => {
+    const schema = JOB_PAYLOADS['uploads.cleanup'];
+    const avatar = { scope: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID };
+    expect(schema.safeParse(avatar).success).toBe(true);
+    expect(schema.safeParse({ scope: 'avatar', userId: SAMPLE_ID }).success).toBe(false);
+    expect(schema.safeParse({ ...avatar, prefix: 'avatars/' }).success).toBe(false);
+    // The other scopes arrive with their paths in later milestones.
+    expect(schema.safeParse({ scope: 'upload', uploadId: SAMPLE_ID }).success).toBe(false);
+    expect(
+      schema.safeParse({ scope: 'post', postId: SAMPLE_ID, uploadIds: [SAMPLE_ID] }).success,
+    ).toBe(false);
   });
 
   it('an unknown email template is refused', () => {

@@ -15,6 +15,8 @@ export const JOB_NAMES = [
   'cost.check',
   'account.delete',
   'account.export',
+  'uploads.cleanup',
+  'media.process.image',
   'notify.email',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
@@ -35,6 +37,8 @@ export const JOB_POLICIES = {
   'cost.check': 'stately',
   'account.delete': 'standard',
   'account.export': 'standard',
+  'uploads.cleanup': 'standard',
+  'media.process.image': 'standard',
   'notify.email': 'standard',
 } as const satisfies Record<JobName, QueuePolicy>;
 
@@ -57,6 +61,11 @@ export const ReplayKindSchema = z.enum([
   'user_restored',
 ]);
 
+// The item a `media.process.image` job re-encodes. Milestone 1 has avatars only.
+const MediaTargetSchema = z.discriminatedUnion('target', [
+  z.object({ target: z.literal('avatar'), userId: Id, uploadId: Id }).strict(),
+]);
+
 export const JOB_PAYLOADS = {
   // The dead job's own payload; never parsed or logged.
   'ops.dead': z.unknown(),
@@ -77,6 +86,10 @@ export const JOB_PAYLOADS = {
   // skipDeferral: D-492.
   'account.delete': z.object({ userId: Id, skipDeferral: z.boolean().default(false) }).strict(),
   'account.export': z.object({ exportId: Id }).strict(),
+  'uploads.cleanup': z.discriminatedUnion('scope', [
+    z.object({ scope: z.literal('avatar'), userId: Id, uploadId: Id }).strict(),
+  ]),
+  'media.process.image': MediaTargetSchema,
   'notify.email': z.discriminatedUnion('template', [
     z
       .object({

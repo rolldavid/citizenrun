@@ -11,15 +11,20 @@ import {
 import { JOB_NAMES, newId } from '@citizenrun/shared';
 import type { JobName } from '@citizenrun/shared';
 import { loadKeyRing } from '@citizenrun/shared/crypto';
-import { marker } from '@citizenrun/shared/testing';
+import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
+import { avatarUpload, setAvatarColumns } from './lib/media/testing/avatar-upload.ts';
+import { mediaProcessImage } from './jobs/media/process-image.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { opsDeadJob } from './jobs/ops/dead.ts';
 import { PermanentJobError } from './jobs/types.ts';
+import { solidJpeg, truncated } from './lib/media/images.fixtures.ts';
+import type { Bucket } from './lib/storage.ts';
 import { QUEUE_REGISTRY } from './queues.ts';
 import { testWorkerEnv } from './testing/env.ts';
 import { insertEveryKind } from './testing/every-kind.ts';
@@ -32,7 +37,8 @@ import { runJob, runQueued } from './testing/job.ts';
 // success, retry and permanent-failure paths, or is listed with the reason it cannot carry one.
 
 type QueuePrivacy =
-  { covered: true; run: () => Promise<void> } | { covered: false; reason: string };
+  | { covered: true; run: () => Promise<void>; noPermanentPath?: string }
+  | { covered: false; reason: string };
 
 const EMPTY_PAYLOAD = 'reads no row and no object that carries user text; its payload is empty';
 
@@ -254,6 +260,94 @@ async function accountExportPaths(): Promise<void> {
   expectNoUserValueLogged(kind);
 }
 
+// The media bucket under a name no bucket can have, so every call fails.
+async function missingMediaBucket(): Promise<Bucket> {
+  const media = await getTestBucket('media');
+  return { client: media.client, bucket: `${media.bucket}_gone` };
+}
+
+// No log line names an object key, the user or anything the factory marked.
+function expectNoMediaValueLogged(
+  user: { id: string; email: string | null },
+  keys: readonly string[],
+): void {
+  expect(captureLogs().lines.length).toBeGreaterThan(0);
+  expect(anyLineHolds(marker())).toBe(false);
+  expect(anyLineHolds(user.id)).toBe(false);
+  expect(anyLineHolds(user.email ?? marker())).toBe(false);
+  expect(anyLineHolds('example.test')).toBe(false);
+  expect(anyLineHolds('incoming/')).toBe(false);
+  expect(anyLineHolds('avatars/')).toBe(false);
+  for (const key of keys) {
+    expect(anyLineHolds(key)).toBe(false);
+  }
+}
+
+async function mediaProcessImagePaths(): Promise<void> {
+  const clock = new FakeClock();
+  const user = await insertUser(getTestDb());
+  expect(user.email).toContain(marker());
+
+  // Success: the avatar passes and becomes the user's.
+  const passed = await avatarUpload(clock, await solidJpeg(800, 600), { user });
+  const done = await runJob(mediaProcessImage, passed.payload, { clock });
+  expect(done.outcome).toBe('completed');
+  const [row] = await getTestDb()
+    .select({ avatarKey: users.avatarKey })
+    .from(users)
+    .where(eq(users.id, user.id));
+  expect(row?.avatarKey).toBe(passed.keys.small);
+
+  // Retry: the bucket is unreachable, so the job throws.
+  const waiting = await avatarUpload(clock, await solidJpeg(800, 600), { user });
+  const retried = await runJob(mediaProcessImage, waiting.payload, {
+    clock,
+    media: await missingMediaBucket(),
+  });
+  expect(retried.outcome).toBe('failed');
+
+  // Permanent: a truncated JPEG is refused for good.
+  const broken = await avatarUpload(clock, truncated(await solidJpeg(800, 600)), { user });
+  const refused = await runJob(mediaProcessImage, broken.payload, { clock });
+  expect(refused.outcome).toBe('completed');
+  expect(
+    captureLogs().lines.some(
+      (line) => line.parsed.event === 'media.failed' && line.parsed.reason === 'undecodable',
+    ),
+  ).toBe(true);
+
+  expectNoMediaValueLogged(
+    user,
+    [passed, waiting, broken].flatMap((fixture) => [fixture.upload.key, fixture.keys.small]),
+  );
+}
+
+async function uploadsCleanupPaths(): Promise<void> {
+  const clock = new FakeClock();
+  const user = await insertUser(getTestDb());
+  expect(user.email).toContain(marker());
+  const old = await avatarUpload(clock, await solidJpeg(80, 60), { user });
+  const payload = { scope: 'avatar', userId: user.id, uploadId: old.upload.id } as const;
+
+  // Retry: the bucket is unreachable, so the job throws.
+  const retried = await runJob(uploadsCleanup, payload, {
+    clock,
+    media: await missingMediaBucket(),
+  });
+  expect(retried.outcome).toBe('failed');
+
+  // Success: the old avatar's original is deleted.
+  const current = await avatarUpload(clock, await solidJpeg(80, 60), { user });
+  await setAvatarColumns(user.id, { avatarKey: current.keys.small });
+  const done = await runJob(uploadsCleanup, payload, { clock });
+  expect(done.outcome).toBe('completed');
+  expect(captureLogs().lines.some((line) => line.parsed.event === 'uploads.cleanup.done')).toBe(
+    true,
+  );
+
+  expectNoMediaValueLogged(user, [old.upload.key, current.keys.small]);
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -263,6 +357,12 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'cost.check': { covered: false, reason: EMPTY_PAYLOAD },
   'account.delete': { covered: true, run: accountDeletePaths },
   'account.export': { covered: true, run: accountExportPaths },
+  'uploads.cleanup': {
+    covered: true,
+    run: uploadsCleanupPaths,
+    noPermanentPath: 'no permanent failure: a missing object or row is already clean',
+  },
+  'media.process.image': { covered: true, run: mediaProcessImagePaths },
   'notify.email': { covered: true, run: notifyEmailPaths },
 };
 
@@ -283,6 +383,8 @@ describe('worker privacy', () => {
     for (const row of Object.values(QUEUE_PRIVACY)) {
       if (!row.covered) {
         expect(row.reason.trim().length).toBeGreaterThan(0);
+      } else if (row.noPermanentPath !== undefined) {
+        expect(row.noPermanentPath.trim().length).toBeGreaterThan(0);
       }
     }
   });
@@ -305,5 +407,13 @@ describe('worker privacy', () => {
 
   it('account export never logs the account', async () => {
     await runCovered('account.export');
+  });
+
+  it('avatar processing never logs the user or an object key', async () => {
+    await runCovered('media.process.image');
+  });
+
+  it('upload cleanup never logs the user or an object key', async () => {
+    await runCovered('uploads.cleanup');
   });
 });

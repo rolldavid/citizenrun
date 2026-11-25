@@ -146,6 +146,40 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 5, // J-account.export
     },
   },
+  'uploads.cleanup': {
+    queue: {
+      policy: JOB_POLICIES['uploads.cleanup'], // J-uploads.cleanup
+      retryLimit: 2, // D-238
+      retryDelay: 30, // J-uploads.cleanup
+      retryBackoff: true, // D-238
+      retryDelayMax: 900, // J-uploads.cleanup
+      expireInSeconds: 300, // J-uploads.cleanup
+      heartbeatSeconds: null, // J-uploads.cleanup
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 4, // J-uploads.cleanup
+      pollingIntervalSeconds: 5, // J-uploads.cleanup
+    },
+  },
+  'media.process.image': {
+    queue: {
+      policy: JOB_POLICIES['media.process.image'], // J-media.process
+      retryLimit: 2, // D-238
+      retryDelay: 2, // J-media.process
+      retryBackoff: true, // D-238
+      retryDelayMax: 60, // J-media.process
+      expireInSeconds: 120, // J-media.process
+      heartbeatSeconds: null, // J-media.process
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 2, // J-media.process
+      pollingIntervalSeconds: 1, // J-media.process
+    },
+  },
   'notify.email': {
     queue: {
       policy: JOB_POLICIES['notify.email'], // J-notify.email
