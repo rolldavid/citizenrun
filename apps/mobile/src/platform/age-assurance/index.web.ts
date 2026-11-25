@@ -1,24 +1,18 @@
-import { PlatformNotReadyError } from '@/platform/shared';
+import { storage } from '@/platform/storage';
+
+import { blockedUntilFrom, evaluateBirthMonth } from './dob-gate';
 import type { AgeAssurance } from './types';
 
+// The web has no store signal: sign-up always uses the month-and-year gate (PM-age-assurance).
 export const ageAssurance: AgeAssurance = {
   storeSignalSupported: false,
-  requestStoreSignal: () =>
-    Promise.reject(new PlatformNotReadyError('age_assurance', 'requestStoreSignal')),
-  significantUpdateAcknowledgmentRequired: () =>
-    Promise.reject(
-      new PlatformNotReadyError('age_assurance', 'significantUpdateAcknowledgmentRequired'),
-    ),
-  acknowledgeSignificantUpdate: () =>
-    Promise.reject(new PlatformNotReadyError('age_assurance', 'acknowledgeSignificantUpdate')),
-  evaluateBirthMonth: () => {
-    throw new PlatformNotReadyError('age_assurance', 'evaluateBirthMonth');
-  },
-  gateBlockedUntil: () => {
-    throw new PlatformNotReadyError('age_assurance', 'gateBlockedUntil');
-  },
-  blockGate: () => {
-    throw new PlatformNotReadyError('age_assurance', 'blockGate');
+  requestStoreSignal: () => Promise.resolve({ kind: 'unavailable' }),
+  significantUpdateAcknowledgmentRequired: () => Promise.resolve(false),
+  acknowledgeSignificantUpdate: () => Promise.resolve(),
+  evaluateBirthMonth,
+  gateBlockedUntil: () => storage.get('ageGate.blockedUntil'),
+  blockGate: (now) => {
+    storage.set('ageGate.blockedUntil', blockedUntilFrom(now));
   },
 };
 

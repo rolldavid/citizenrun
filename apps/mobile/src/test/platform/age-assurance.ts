@@ -1,10 +1,12 @@
-import { PlatformNotReadyError } from '@/platform/shared';
+import { blockedUntilFrom, evaluateBirthMonth } from '@/platform/age-assurance/dob-gate';
 import type { AgeAssurance, AgeOutcome } from '@/platform/age-assurance/types';
 
+import { storage } from './storage';
+
+/** Never a birth month: the gate's answer and its lock are the only things a test can see. */
 export type AgeAssuranceFakeCall =
   { op: 'requestStoreSignal' } | { op: 'blockGate' } | { op: 'acknowledgeSignificantUpdate' };
 
-const GATE_LOCK_MS = 24 * 60 * 60 * 1000;
 const DEFAULT_OUTCOME: AgeOutcome = { kind: 'adult', tier: 'declared' };
 
 const calls: AgeAssuranceFakeCall[] = [];
@@ -12,14 +14,13 @@ const state: {
   storeSignalSupported: boolean;
   outcome: AgeOutcome;
   acknowledgmentRequired: boolean;
-  blockedUntil: string | null;
 } = {
   storeSignalSupported: true,
   outcome: DEFAULT_OUTCOME,
   acknowledgmentRequired: false,
-  blockedUntil: null,
 };
 
+// The real gate function; the lock lives in the storage fake under 'ageGate.blockedUntil'.
 export const ageAssurance: AgeAssurance = {
   get storeSignalSupported() {
     return state.storeSignalSupported;
@@ -33,32 +34,35 @@ export const ageAssurance: AgeAssurance = {
     calls.push({ op: 'acknowledgeSignificantUpdate' });
     return Promise.resolve();
   },
-  evaluateBirthMonth: () => {
-    throw new PlatformNotReadyError('age_assurance', 'evaluateBirthMonth');
-  },
-  gateBlockedUntil: () => state.blockedUntil,
+  evaluateBirthMonth,
+  gateBlockedUntil: () => storage.get('ageGate.blockedUntil'),
   blockGate: (now) => {
     calls.push({ op: 'blockGate' });
-    state.blockedUntil = new Date(now.getTime() + GATE_LOCK_MS).toISOString();
+    storage.set('ageGate.blockedUntil', blockedUntilFrom(now));
   },
 };
 
+function scriptSignal(outcome: AgeOutcome): void {
+  state.outcome = outcome;
+}
+
 export const ageAssuranceFake = {
   calls: calls as readonly AgeAssuranceFakeCall[],
-  scriptOutcome: (outcome: AgeOutcome): void => {
-    state.outcome = outcome;
-  },
+  /** The outcome requestStoreSignal() answers. */
+  scriptSignal,
+  /** The same as scriptSignal. */
+  scriptOutcome: scriptSignal,
   setStoreSignalSupported: (value: boolean): void => {
     state.storeSignalSupported = value;
   },
   scriptAcknowledgmentRequired: (value: boolean): void => {
     state.acknowledgmentRequired = value;
   },
+  /** Restores the defaults. The gate lock is the storage fake's, which its own reset() clears. */
   reset: (): void => {
     calls.length = 0;
     state.storeSignalSupported = true;
     state.outcome = DEFAULT_OUTCOME;
     state.acknowledgmentRequired = false;
-    state.blockedUntil = null;
   },
 };

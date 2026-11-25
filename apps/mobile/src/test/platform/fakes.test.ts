@@ -1,5 +1,5 @@
 import { focusManager, onlineManager } from '@tanstack/react-query';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import * as realAgeAssurance from '@/platform/age-assurance';
 import * as realAuth from '@/platform/auth';
@@ -344,11 +344,25 @@ describe('the platform fakes', () => {
     await expect(push.requestPermission()).resolves.toBe('blocked');
   });
 
-  it('the age assurance fake keeps its own gate lock', () => {
-    ageAssurance.blockGate(new Date('2026-03-01T12:00:00.000Z'));
+  it('the age assurance fake keeps its gate lock in the storage fake', () => {
+    const now = new Date('2026-03-01T12:00:00.000Z');
+    vi.setSystemTime(now);
+    ageAssurance.blockGate(now);
     expect(ageAssurance.gateBlockedUntil()).toBe('2026-03-02T12:00:00.000Z');
-    expect(() => ageAssurance.evaluateBirthMonth({ year: 2000, month: 1 }, '2026-03-01')).toThrow(
-      PlatformNotReadyError,
-    );
+    expect(storage.get('ageGate.blockedUntil')).toBe('2026-03-02T12:00:00.000Z');
+    expect(storageFake.calls).toEqual([{ op: 'set', key: 'ageGate.blockedUntil' }]);
+    expect(ageAssuranceFake.calls).toEqual([{ op: 'blockGate' }]);
+    vi.setSystemTime(new Date('2026-03-02T12:00:00.000Z'));
+    expect(ageAssurance.gateBlockedUntil()).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('the age assurance fake answers the real date-of-birth gate', () => {
+    expect(() =>
+      ageAssurance.evaluateBirthMonth({ year: 2000, month: 1 }, '2026-03-01'),
+    ).not.toThrow(PlatformNotReadyError);
+    expect(ageAssurance.evaluateBirthMonth({ year: 2008, month: 2 }, '2026-03-01')).toBe('adult');
+    expect(ageAssurance.evaluateBirthMonth({ year: 2008, month: 3 }, '2026-03-01')).toBe('minor');
+    expect(ageAssuranceFake.calls).toEqual([]);
   });
 });
