@@ -6,17 +6,69 @@ import { captureLogs } from './logs.ts';
 import { clearScanRegistrations, scanForLeaks } from './scan.ts';
 import { resetSequence } from './sequence.ts';
 import { closeStorage } from './storage.ts';
-import { closeWorker, createTestBoss, ensureWorkerDatabase, getTestDb } from './worker.ts';
+import {
+  KEPT_ROWS_SCHEMA,
+  closeWorker,
+  createTestBoss,
+  ensureWorkerDatabase,
+  getTestDb,
+} from './worker.ts';
+import type { Db } from '../client.ts';
 
 // The per-file setup of the database harness (TEST-harness-db).
 
 let resetBoss: PgBoss | null = null;
 
+/** The migration's `state_rules` rows, read once per file: every column as JSON, and the codes. */
+type KeptStateRules = { rows: string; states: readonly string[] };
+
+let keptStateRules: KeptStateRules | null = null;
+
+async function readKeptStateRules(db: Db): Promise<KeptStateRules> {
+  const kept = sql.identifier(KEPT_ROWS_SCHEMA);
+  const [found] = await db.execute<{ rows: string; states: string[] }>(
+    sql`select coalesce(jsonb_agg(k order by k.state), '[]'::jsonb)::text as rows,
+               coalesce(array_agg(k.state::text order by k.state), '{}') as states
+        from ${kept}.state_rules k`,
+    'objects',
+  );
+  if (found === undefined || found.states.length === 0) {
+    throw new Error('The clone holds no kept state_rules rows.');
+  }
+  return { rows: found.rows, states: found.states };
+}
+
+// Puts `state_rules` back to the migration's rows, every column, deletes every other row (a
+// truncate of `users` cascades into it through `updated_by`), then adds the fixture state `ZZ`
+// with the column defaults (TEST-harness-db). No rule value is written here.
+async function restoreStateRules(db: Db): Promise<void> {
+  keptStateRules ??= await readKeptStateRules(db);
+  const { rows, states } = keptStateRules;
+  await db.execute(
+    sql`insert into state_rules
+          (state, signup, age_method, candidate_tools, updated_by, updated_at, created_at)
+        select state, signup, age_method, candidate_tools, updated_by, updated_at, created_at
+        from jsonb_populate_recordset(null::state_rules, ${rows}::jsonb)
+        on conflict (state) do update set
+          signup = excluded.signup,
+          age_method = excluded.age_method,
+          candidate_tools = excluded.candidate_tools,
+          updated_by = excluded.updated_by,
+          updated_at = excluded.updated_at,
+          created_at = excluded.created_at`,
+  );
+  await db.execute(
+    sql`delete from state_rules where state::text <> all(${sql.param(states)}::text[])`,
+  );
+  await db.execute(sql`insert into state_rules (state) values ('ZZ')`);
+}
+
 /**
  * Empties this worker's database before a test: truncates every application table of schema
  * `public` not in KEEP_TABLES (extension tables such as PostGIS's `spatial_ref_sys` are not
  * application tables), deletes every pg-boss job, restarts the factory sequence, clears the log
- * capture and forgets the registered scan values and sources.
+ * capture, forgets the registered scan values and sources, and restores `state_rules` to the
+ * migration's rows plus the fixture state `ZZ`.
  */
 export async function resetDb(): Promise<void> {
   const db = getTestDb();
@@ -49,6 +101,7 @@ export async function resetDb(): Promise<void> {
   resetSequence();
   captureLogs().clear();
   clearScanRegistrations();
+  await restoreStateRules(db);
 }
 
 beforeAll(async () => {

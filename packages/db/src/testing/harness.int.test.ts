@@ -9,13 +9,22 @@ import {
   getTestBucket,
   getTestDb,
   getTestObject,
+  insertAppEvent,
+  insertConsent,
+  insertDataExport,
+  insertRateCounter,
+  insertUpload,
+  insertUsageCounter,
+  insertUser,
   listTestKeys,
   putTestObject,
   resetDb,
   resetStorage,
+  setUserIssues,
 } from './index.ts';
 import { bucketName, workerDatabaseName } from './names.ts';
 import { PrivacyLeakError, scanForLeaks } from './scan.ts';
+import { KEPT_ROWS_SCHEMA } from './worker.ts';
 import { harnessSettings } from './settings.ts';
 import { localCorsRules } from './storage.ts';
 
@@ -138,4 +147,111 @@ describe('the database harness', () => {
       await boss.stop({ graceful: false });
     }
   });
+
+  it('resetDb keeps the issues', async () => {
+    const user = await insertUser(getTestDb());
+    await setUserIssues(getTestDb(), user.id);
+    await resetDb();
+    const { issues } = await one<{ issues: number }>(
+      sql`select count(*)::int as issues from issues`,
+    );
+    expect(issues).toBe(19);
+    const { picks } = await one<{ picks: number }>(
+      sql`select count(*)::int as picks from user_issues`,
+    );
+    expect(picks).toBe(0);
+  });
+
+  it('resetDb restores state rules', async () => {
+    const before = await stateRulesAsText();
+    const db = getTestDb();
+    await db.execute(sql`update state_rules set signup = 'withhold' where state = 'TX'`);
+    await db.execute(sql`insert into state_rules (state) values ('YY')`);
+    await db.execute(sql`delete from state_rules where state = 'MP'`);
+    await resetDb();
+    const after = await stateRulesAsText();
+    expect(after.filter((row) => row.state !== 'ZZ')).toEqual(
+      before.filter((row) => row.state !== 'ZZ'),
+    );
+    expect(after.filter((row) => row.state !== 'ZZ')).toHaveLength(56);
+    expect(after.filter((row) => row.state !== 'ZZ')).toEqual(
+      await stateRulesAsText(KEPT_ROWS_SCHEMA),
+    );
+    expect(after.some((row) => row.state === 'YY')).toBe(false);
+    expect(after.some((row) => row.state === 'MP')).toBe(true);
+    expect(after.filter((row) => row.state === 'ZZ')).toHaveLength(1);
+  });
+
+  it('resetDb survives the users cascade', async () => {
+    const user = await insertUser(getTestDb());
+    await getTestDb().execute(
+      sql`update state_rules set updated_by = ${user.id} where state = 'CA'`,
+    );
+    await resetDb();
+    const rules = await stateRulesAsText();
+    expect(rules.filter((row) => row.state !== 'ZZ')).toHaveLength(56);
+    expect(rules.find((row) => row.state === 'CA')).toBeDefined();
+    expect(rules.every((row) => row.updated_by === null)).toBe(true);
+  });
+
+  it('resetDb empties the account tables and the partitioned log', async () => {
+    const db = getTestDb();
+    const user = await insertUser(db);
+    await insertConsent(db, { userId: user.id });
+    await setUserIssues(db, user.id, [{ issueId: 'climate' }]);
+    await insertUpload(db, { userId: user.id });
+    await insertRateCounter(db, { key: `u:${user.id}:probe:1m`, windowStart: new Date(0) });
+    await insertUsageCounter(db, { name: 'email.day', period: '2026-01-01' });
+    await insertAppEvent(db, { userId: user.id });
+    await insertDataExport(db, { userId: user.id });
+    const tables = [
+      'users',
+      'auth_identities',
+      'user_consents',
+      'user_issues',
+      'uploads',
+      'rate_limits',
+      'usage_counters',
+      'app_events',
+      'data_exports',
+    ];
+    for (const table of tables) {
+      expect(await countRows(table)).toBe(1);
+    }
+    await resetDb();
+    for (const table of tables) {
+      expect(await countRows(table)).toBe(0);
+    }
+    const next = await insertAppEvent(db);
+    expect(next.id).toBe(1);
+  });
 });
+
+type StateRuleText = {
+  state: string;
+  signup: string;
+  age_method: string;
+  candidate_tools: boolean;
+  updated_by: string | null;
+  updated_at: string;
+  created_at: string;
+};
+
+// Every column of state_rules (or of the clone's kept copy), the timestamps as text, so a lost
+// microsecond shows.
+async function stateRulesAsText(schema = 'public'): Promise<StateRuleText[]> {
+  return getTestDb().execute<StateRuleText>(
+    sql`select state::text as state, signup, age_method, candidate_tools, updated_by::text as updated_by,
+               updated_at::text as updated_at, created_at::text as created_at
+        from ${sql.identifier(schema)}.state_rules order by state`,
+    'objects',
+  );
+}
+
+// The fixed table names of the test above, never a name from outside it.
+async function countRows(table: string): Promise<number> {
+  const { n } = await one<{ n: number }>(
+    sql`select count(*)::int as n from ${sql.identifier(table)}`,
+  );
+  return n;
+}
