@@ -502,6 +502,10 @@ type Ctx = {
   readyVariableSet: boolean;
   /** Set by the first run's `environment` step: the project was created and the run ends. */
   stopRun: boolean;
+  /** What to do before running again, set by a step that fails and knows the likely cause. */
+  failHint: string | null;
+  /** The command to run next after a run that did not fail, when one is needed (D-840). */
+  nextNote: string | null;
 };
 
 class StepPrinter {
@@ -523,6 +527,26 @@ class StepPrinter {
     }
     this.ctx.io.out(`${this.step} ${outcome} ${detail}`);
   }
+}
+
+/** The command that runs the bootstrap again for this environment, with `--only <step>` when given. */
+function bootstrapCommand(ctx: Ctx, only: StepName | null): string {
+  const parts = ['pnpm exec tsx scripts/railway-bootstrap.ts', '--env', ctx.args.env];
+  if (only !== null) {
+    parts.push('--only', only);
+  }
+  if (ctx.args.dbService !== 'postgres') {
+    parts.push('--db-service', ctx.args.dbService);
+  }
+  if (ctx.args.dryRun) {
+    parts.push('--dry-run');
+  }
+  return parts.join(' ');
+}
+
+// The CLI refuses `redeploy` while the newest deployment is still building or deploying.
+function waitHint(ctx: Ctx, service: string): string {
+  return `wait until pnpm exec railway deployment list --service ${service} --environment ${ctx.args.env} shows no ${service} deployment building or deploying (the CLI refuses a redeploy until then)`;
 }
 
 function plainEnv(env: Readonly<Record<string, string | undefined>>): Record<string, string> {
@@ -1351,19 +1375,29 @@ function sshArgs(ctx: Ctx, command: readonly string[]): string[] {
 // `railway ssh` at 5.74.0 names this command when no SSH key of the account is registered.
 const SSH_KEY_MISSING = /ssh keys add/i;
 
-async function waitForDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
+type Readiness = 'ready' | 'down' | 'no-ssh-key';
+
+async function pgIsReady(ctx: Ctx, out: StepPrinter): Promise<Readiness> {
   const args = sshArgs(ctx, ['pg_isready', '-U', 'citizenrun', '-d', 'citizenrun']);
+  const result = await cli(ctx, 'railway', args, { mutating: true });
+  if (result.code === 0) {
+    return 'ready';
+  }
+  if (SSH_KEY_MISSING.test(result.stderr)) {
+    out.line(
+      'fail',
+      'railway ssh has no registered SSH key: run pnpm exec railway ssh keys add in your terminal (RB-infra)',
+    );
+    return 'no-ssh-key';
+  }
+  return 'down';
+}
+
+async function waitForDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
   for (let attempt = 1; attempt <= 30; attempt += 1) {
-    const result = await cli(ctx, 'railway', args, { mutating: true });
-    if (result.code === 0) {
-      return true;
-    }
-    if (SSH_KEY_MISSING.test(result.stderr)) {
-      out.line(
-        'fail',
-        'railway ssh has no registered SSH key: run pnpm exec railway ssh keys add in your terminal (RB-infra)',
-      );
-      return false;
+    const readiness = await pgIsReady(ctx, out);
+    if (readiness !== 'down') {
+      return readiness === 'ready';
     }
     if (attempt < 30) {
       await ctx.sleep(10_000);
@@ -1371,6 +1405,63 @@ async function waitForDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
   }
   out.line('fail', `pg_isready on ${ctx.args.dbService} did not answer after 30 tries`);
   return false;
+}
+
+/** Redeploys the database service, waits for the new deployment, then for `pg_isready` (D-831). */
+async function redeployDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
+  const service = ctx.args.dbService;
+  const before = await readDeployments(ctx, service);
+  if (before === null) {
+    out.line('fail', `deployment list --service ${service}: unexpected output`);
+    return false;
+  }
+  const redeploy = await cli(
+    ctx,
+    'railway',
+    ['redeploy', '--service', service, '--environment', ctx.args.env, '--yes'],
+    { mutating: true },
+  );
+  if (redeploy.code !== 0) {
+    out.line('fail', `redeploy ${service}: exit ${String(redeploy.code)}`);
+    ctx.failHint = waitHint(ctx, service);
+    return false;
+  }
+  // The redeploy returns before the new instance runs; the old one may still answer (D-831).
+  if (!(await waitForDeployment(ctx, out, service, newest(before)))) {
+    return false;
+  }
+  return waitForDatabase(ctx, out);
+}
+
+/**
+ * Waits until the database answers. A new environment's first apply starts the database before
+ * step 4 sets its passwords, and a variable set with --skip-deploys reaches it only through a new
+ * deployment, so when it does not answer and api has never deployed, it is redeployed once (D-840).
+ */
+async function startDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
+  const service = ctx.args.dbService;
+  const first = await pgIsReady(ctx, out);
+  if (first !== 'down') {
+    return first === 'ready';
+  }
+  const history = await readDeployments(ctx, 'api', ['--limit', '1000']);
+  if (history === null) {
+    out.line('fail', 'deployment list --service api: unexpected output');
+    return false;
+  }
+  if (history.some((item) => item.status === 'SUCCESS')) {
+    // A live environment's database is never restarted by this step.
+    if (await waitForDatabase(ctx, out)) {
+      return true;
+    }
+    ctx.failHint = `api has deployed, so the step does not redeploy ${service}: read pnpm exec railway logs --service ${service} --environment ${ctx.args.env}`;
+    return false;
+  }
+  if (!(await redeployDatabase(ctx, out))) {
+    return false;
+  }
+  out.line('ok', `${service} did not answer; redeployed with its variables, and it answers`);
+  return true;
 }
 
 type Settings = { sharedBuffers: string; maxConnections: string; postgis: string };
@@ -1396,8 +1487,11 @@ async function readSettings(ctx: Ctx, out: StepPrinter): Promise<Settings | null
 
 async function stepDatabase(ctx: Ctx, out: StepPrinter): Promise<void> {
   if (ctx.args.dryRun) {
-    out.line('skip', 'dry-run: pg_isready');
-  } else if (!(await waitForDatabase(ctx, out))) {
+    out.line(
+      'skip',
+      `dry-run: pg_isready, and a redeploy of ${ctx.args.dbService} on a new environment when it does not answer`,
+    );
+  } else if (!(await startDatabase(ctx, out))) {
     return;
   }
   const stored = readSecretsFile(ctx);
@@ -1432,26 +1526,7 @@ async function stepDatabase(ctx: Ctx, out: StepPrinter): Promise<void> {
     return;
   }
   if (settings.sharedBuffers !== '512MB') {
-    const before = await readDeployments(ctx, ctx.args.dbService);
-    if (before === null) {
-      out.line('fail', `deployment list --service ${ctx.args.dbService}: unexpected output`);
-      return;
-    }
-    const redeploy = await cli(
-      ctx,
-      'railway',
-      ['redeploy', '--service', ctx.args.dbService, '--environment', ctx.args.env, '--yes'],
-      { mutating: true },
-    );
-    if (redeploy.code !== 0) {
-      out.line('fail', `redeploy ${ctx.args.dbService}: exit ${String(redeploy.code)}`);
-      return;
-    }
-    // The redeploy returns before the new instance runs; the old one may still answer (D-831).
-    if (!(await waitForDeployment(ctx, out, ctx.args.dbService, newest(before)))) {
-      return;
-    }
-    if (!(await waitForDatabase(ctx, out))) {
+    if (!(await redeployDatabase(ctx, out))) {
       return;
     }
     settings = await readSettings(ctx, out);
@@ -1716,6 +1791,9 @@ async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
   const token = answer?.trim() ?? '';
   if (token === '') {
     out.line('owner-check', `project token github-actions-${env}`);
+    if (!ctx.args.dryRun) {
+      ctx.nextNote = `when the owner has made the project token github-actions-${env}, run: ${bootstrapCommand(ctx, 'tokens')}, then: ${bootstrapCommand(ctx, 'redeploy')}`;
+    }
     return;
   }
   const result = await cli(ctx, 'gh', ['secret', 'set', tokenSecret, '--env', env], {
@@ -1727,6 +1805,10 @@ async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
     return;
   }
   out.line('ok', `${tokenSecret} set in the GitHub Environment ${env}`);
+  if (ctx.args.only === 'tokens') {
+    // Only step 13 sets the ready variable, so an owner step finished later is followed by it.
+    ctx.nextNote = `run: ${bootstrapCommand(ctx, 'redeploy')} (step 13 sets ${ENV_NAMES[env].readyVariable})`;
+  }
 }
 
 const FAILED_STATES = new Set(['FAILED', 'CRASHED', 'REMOVED']);
@@ -1792,6 +1874,7 @@ async function stepRedeploy(ctx: Ctx, out: StepPrinter): Promise<void> {
     );
     if (result.code !== 0) {
       out.line('fail', `redeploy ${service}: exit ${String(result.code)}`);
+      ctx.failHint = waitHint(ctx, service);
       return;
     }
   }
@@ -1805,6 +1888,8 @@ async function stepRedeploy(ctx: Ctx, out: StepPrinter): Promise<void> {
     }
     if (!(await readyzAnswers(ctx, host))) {
       out.line('fail', `/readyz on ${env} does not answer 200 with db ok`);
+      // The host answers only once its CNAME resolves and Railway has issued its certificate.
+      ctx.failHint = `check that ${host} resolves to the CNAME target Railway shows for the api domain and that Railway shows its certificate (RB-infra item 15)`;
       return;
     }
     out.line('ok', 'api and worker deployed; /readyz answers db ok');
@@ -1966,19 +2051,22 @@ export async function runBootstrap(argv: readonly string[], io: BootstrapIo): Pr
     limitsVerified: false,
     readyVariableSet: false,
     stopRun: false,
+    failHint: null,
+    nextNote: null,
   };
   if (!(await preflight(ctx))) {
+    io.out(`next fix what each preflight line names; then run: ${rerunCommand(ctx, null)}`);
     return 1;
   }
   const selected: readonly StepName[] =
     args.only === null ? STEP_NAMES : args.only === 'preflight' ? [] : [args.only];
-  let failed = false;
+  let failedStep: StepName | null = null;
   for (const step of selected) {
     if (step === 'preflight' || step === 'report') {
       continue;
     }
-    failed = await runStep(ctx, step);
-    if (failed) {
+    if (await runStep(ctx, step)) {
+      failedStep = step;
       break;
     }
     if (ctx.stopRun) {
@@ -1988,7 +2076,32 @@ export async function runBootstrap(argv: readonly string[], io: BootstrapIo): Pr
   if (selected.includes('report')) {
     await stepReport(ctx);
   }
-  return failed ? 1 : 0;
+  if (failedStep !== null) {
+    const hint =
+      ctx.failHint ??
+      'run the command the fail line names by hand to read its message, and fix the cause';
+    io.out(`next ${hint}; then run: ${rerunCommand(ctx, failedStep)}`);
+    return 1;
+  }
+  if (ctx.nextNote !== null) {
+    io.out(`next ${ctx.nextNote}`);
+  }
+  return 0;
+}
+
+/**
+ * The command to run after a failure: the same `--only` step when one was given; `--only redeploy`
+ * when the last step failed, since every step before it is done; otherwise the whole run, whose
+ * steps each check their state first (D-840). A rotation is finished by its runbook instead.
+ */
+function rerunCommand(ctx: Ctx, failedStep: StepName | null): string {
+  if (ctx.args.rotate !== null) {
+    return `the step RB-rotate-secrets names for --rotate ${ctx.args.rotate}`;
+  }
+  if (ctx.args.only !== null) {
+    return bootstrapCommand(ctx, ctx.args.only);
+  }
+  return bootstrapCommand(ctx, failedStep === 'redeploy' ? 'redeploy' : null);
 }
 
 const entry = process.argv[1];

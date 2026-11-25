@@ -91,6 +91,9 @@ const PSQL = ['psql', '-U', 'citizenrun', '-d', 'citizenrun', '-v', 'ON_ERROR_ST
 const SUCCESS = '[{"status":"SUCCESS","createdAt":"2026-11-01T00:00:00Z"}]';
 const SSH_POSTGRES = ['ssh', '--service', 'postgres', '--environment', 'staging', '--'];
 const SETTINGS_READ = [...SSH_POSTGRES, ...PSQL, '-A', '-t'];
+const PG_ISREADY = [...SSH_POSTGRES, 'pg_isready', '-U', 'citizenrun', '-d', 'citizenrun'];
+const REDEPLOY_POSTGRES = 'railway redeploy --service postgres --environment staging --yes';
+const BOOTSTRAP = 'pnpm exec tsx scripts/railway-bootstrap.ts --env staging';
 
 // The database's deployments around a redeploy: the old one alone before it and once after it
 // (the list lags the redeploy), then the new one building, then the new one up.
@@ -186,6 +189,8 @@ type CaseOptions = {
   deterministic?: boolean;
   corsReadBack?: CORSRule[];
   home?: string;
+  /** What `https://<host>/readyz` answers; by default 200 with db ok. */
+  readyz?: { status: number; body: string };
 };
 
 type CaseResult = {
@@ -389,9 +394,11 @@ async function runCase(argv: readonly string[], options: CaseOptions = {}): Prom
       fetched.push(
         typeof input === 'string' ? input : input instanceof URL ? input.href : input.url,
       );
-      return Promise.resolve(
-        new Response(JSON.stringify({ db: 'ok', schema: 'ok' }), { status: 200 }),
-      );
+      const answer = options.readyz ?? {
+        status: 200,
+        body: JSON.stringify({ db: 'ok', schema: 'ok' }),
+      };
+      return Promise.resolve(new Response(answer.body, { status: answer.status }));
     },
     sleep: () => Promise.resolve(),
   };
@@ -1264,6 +1271,8 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
     expect(
       result.lines.filter((line) => line.startsWith('database ok password kept for')),
     ).toHaveLength(4);
+    // A database that answers is never redeployed by the step's start (D-840).
+    expect(result.calls.some((call) => call.args[0] === 'redeploy')).toBe(false);
   });
 
   it('a role password from the generated-secrets file gives that role a verifier', async () => {
@@ -1346,6 +1355,73 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
       'database fail railway ssh has no registered SSH key: run pnpm exec railway ssh keys add in your terminal (RB-infra)',
     );
     expect(result.calls.filter((call) => call.args.includes('pg_isready'))).toHaveLength(1);
+  });
+
+  it('a database that does not answer on a new environment is redeployed before roles.sql', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      railway: [{ args: PG_ISREADY, exitCode: 1, once: true }, ...redeployedDatabase()],
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    expect(calls.filter((call) => call === REDEPLOY_POSTGRES)).toHaveLength(1);
+    const setPassword = calls.findIndex((call) =>
+      call.startsWith('railway variable set POSTGRES_PASSWORD '),
+    );
+    const firstProbe = calls.findIndex((call) => call.includes(' pg_isready '));
+    const redeployAt = calls.indexOf(REDEPLOY_POSTGRES);
+    const answered = calls.findIndex(
+      (call, index) => index > redeployAt && call.includes(' pg_isready '),
+    );
+    const roles = result.calls.findIndex(
+      (call) => call.args[0] === 'ssh' && call.args.at(-1) === '-q' && call.stdin !== undefined,
+    );
+    expect(setPassword).toBeGreaterThan(-1);
+    expect(setPassword).toBeLessThan(firstProbe);
+    expect(firstProbe).toBeLessThan(redeployAt);
+    // The new deployment is polled until it is up before the database is asked again.
+    expect(calls.slice(redeployAt + 1, answered)).toEqual([
+      'railway deployment list --service postgres --environment staging --json',
+      'railway deployment list --service postgres --environment staging --json',
+      'railway deployment list --service postgres --environment staging --json',
+    ]);
+    expect(answered).toBeLessThan(roles);
+    expect(result.lines).toContain(
+      'database ok postgres did not answer; redeployed with its variables, and it answers',
+    );
+  });
+
+  it('a database that does not answer once api has deployed is not redeployed', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'database'], {
+      railway: [{ args: PG_ISREADY, exitCode: 1 }],
+      apiHistory: SUCCESS,
+    });
+    expect(result.code).toBe(1);
+    expect(result.calls.some((call) => call.args[0] === 'redeploy')).toBe(false);
+    expect(result.lines).toContain(
+      'database fail pg_isready on postgres did not answer after 30 tries',
+    );
+    expect(result.lines.at(-1)).toBe(
+      `next api has deployed, so the step does not redeploy postgres: read pnpm exec railway logs --service postgres --environment staging; then run: ${BOOTSTRAP} --only database`,
+    );
+  });
+
+  it('a refused database redeploy says to wait for the running deployment', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'database'], {
+      railway: [
+        { args: PG_ISREADY, exitCode: 1 },
+        {
+          args: ['redeploy', '--service', 'postgres', '--environment', 'staging', '--yes'],
+          stderr: 'The latest deployment for service postgres cannot be redeployed\n',
+          exitCode: 1,
+        },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('database fail redeploy postgres: exit 1');
+    expect(result.lines.at(-1)).toBe(
+      `next wait until pnpm exec railway deployment list --service postgres --environment staging shows no postgres deployment building or deploying (the CLI refuses a redeploy until then); then run: ${BOOTSTRAP} --only database`,
+    );
+    expect(result.output).not.toContain('cannot be redeployed');
   });
 });
 
@@ -1528,5 +1604,74 @@ describe('buckets, tokens, redeploy and report', { timeout: 30_000 }, () => {
       expect(result.output).not.toContain('Hard limit');
       expect(result.lines.some((line) => line.includes('limits verified'))).toBe(false);
     }
+  });
+});
+
+describe('the next command', { timeout: 60_000 }, () => {
+  it('a failed step in a full run names the full command again', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      railway: [{ args: ['config', 'apply', '--environment', 'staging', '--yes'], exitCode: 1 }],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines.at(-1)).toBe(
+      `next run the command the fail line names by hand to read its message, and fix the cause; then run: ${BOOTSTRAP}`,
+    );
+  });
+
+  it('a failed preflight names the same command', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'seal'], {
+      railway: [{ args: ['--version'], stdout: 'railway 5.73.0\n' }],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines.at(-1)).toBe(
+      `next fix what each preflight line names; then run: ${BOOTSTRAP} --only seal`,
+    );
+  });
+
+  it('a redeploy refused during a build says to wait, then run --only redeploy', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      railway: [
+        {
+          args: ['redeploy', '--service', 'api', '--environment', 'staging', '--yes'],
+          stderr: 'The latest deployment for service api cannot be redeployed\n',
+          exitCode: 1,
+        },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('redeploy fail redeploy api: exit 1');
+    expect(result.lines.at(-1)).toBe(
+      `next wait until pnpm exec railway deployment list --service api --environment staging shows no api deployment building or deploying (the CLI refuses a redeploy until then); then run: ${BOOTSTRAP} --only redeploy`,
+    );
+    expect(result.output).not.toContain('cannot be redeployed');
+  });
+
+  it('a /readyz that does not answer names the DNS record, then --only redeploy', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'redeploy'], {
+      readyz: { status: 404, body: 'not found' },
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(
+      'redeploy fail /readyz on staging does not answer 200 with db ok',
+    );
+    expect(result.lines.at(-1)).toBe(
+      `next check that staging.example.test resolves to the CNAME target Railway shows for the api domain and that Railway shows its certificate (RB-infra item 15); then run: ${BOOTSTRAP} --only redeploy`,
+    );
+  });
+
+  it('a project token set with --only tokens is followed by --only redeploy', async () => {
+    const set = await runCase(['--env', 'staging', '--only', 'tokens'], {
+      prompt: () => Promise.resolve(PROJECT_TOKEN),
+    });
+    expect(set.code).toBe(0);
+    expect(set.lines.at(-1)).toBe(
+      `next run: ${BOOTSTRAP} --only redeploy (step 13 sets RAILWAY_STAGING_READY)`,
+    );
+
+    const left = await runCase(['--env', 'staging']);
+    expect(left.code).toBe(0);
+    expect(left.lines.at(-1)).toBe(
+      `next when the owner has made the project token github-actions-staging, run: ${BOOTSTRAP} --only tokens, then: ${BOOTSTRAP} --only redeploy`,
+    );
   });
 });
