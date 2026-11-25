@@ -1,8 +1,8 @@
-import type { JobName, JobPayload } from '@citizenrun/shared';
+import type { JobName, JobPayload, QueuePolicy } from '@citizenrun/shared';
 import type { JobContext } from '../context.ts';
 
 export type QueueOptions = {
-  policy: 'standard' | 'singleton' | 'stately';
+  policy: QueuePolicy;
   retryLimit: 2; // every queue: three attempts in all (D-062, D-238)
   retryDelay: number; // seconds before the first retry
   retryBackoff: true; // D-238

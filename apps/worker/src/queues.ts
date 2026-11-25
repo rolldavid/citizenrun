@@ -90,6 +90,15 @@ export type JobOutcome = { outcome: 'completed' | 'permanent' | 'failed'; error:
 
 const DEAD_LETTER_QUEUE = 'ops.dead' satisfies JobName;
 
+/** A queue that exists with a policy other than its registry row's; the worker does not start (D-827). */
+export class QueuePolicyMismatchError extends Error {
+  override readonly name = 'QueuePolicyMismatchError';
+
+  constructor() {
+    super('A queue exists with a policy other than its registry row.');
+  }
+}
+
 // pg-boss accepts a cap on the delay only with backoff, which only a test override turns off.
 function createOptions(options: QueueOptions, overrides: RegisterOverrides): Omit<Queue, 'name'> {
   const retryBackoff = overrides.retryBackoff ?? options.retryBackoff;
@@ -125,10 +134,13 @@ function updateOptions(options: QueueOptions, overrides: RegisterOverrides): Upd
 /**
  * Creates each queue with its QUEUE_OPTIONS, ops.dead first because a queue's dead letter must
  * exist before the queue names it; a queue that exists is updated, so a changed option takes effect.
+ * pg-boss fixes a policy when the queue is created, so a queue that exists with another policy is
+ * logged as `queue.policy_mismatch` and refused with QueuePolicyMismatchError (D-827).
  */
 export async function createQueues(
   boss: PgBoss,
   names: readonly JobName[],
+  logger: Logger,
   overrides: RegisterOverrides = {},
 ): Promise<void> {
   const ordered: JobName[] = [
@@ -137,11 +149,17 @@ export async function createQueues(
   ];
   for (const name of ordered) {
     const options = QUEUE_OPTIONS[name].queue;
-    if ((await boss.getQueue(name)) === null) {
+    const existing = await boss.getQueue(name);
+    if (existing === null) {
       await boss.createQueue(name, createOptions(options, overrides));
-    } else {
-      await boss.updateQueue(name, updateOptions(options, overrides));
+      continue;
     }
+    const found = existing.policy ?? 'standard';
+    if (found !== options.policy) {
+      logger.error('queue.policy_mismatch', { queue: name, expected: options.policy, found });
+      throw new QueuePolicyMismatchError();
+    }
+    await boss.updateQueue(name, updateOptions(options, overrides));
   }
 }
 
@@ -242,6 +260,7 @@ export async function registerQueues(
   await createQueues(
     boss,
     registry.map((definition) => definition.name),
+    runtime.logger,
     overrides,
   );
   for (const definition of registry) {

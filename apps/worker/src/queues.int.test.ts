@@ -24,6 +24,7 @@ import { createShutdown } from './lib/shutdown.ts';
 import { QUEUE_OPTIONS } from './queue-options.ts';
 import {
   QUEUE_REGISTRY,
+  QueuePolicyMismatchError,
   SCHEDULE_REGISTRY,
   createQueues,
   registerQueues,
@@ -174,17 +175,13 @@ describe('the queue registry', () => {
 
   it('every queue dead-letters to ops.dead', async () => {
     const boss = await startBoss();
-    await createQueues(boss, JOB_NAMES);
+    await createQueues(boss, JOB_NAMES, testLogger());
     for (const name of JOB_NAMES) {
       const queue = await boss.getQueue(name);
       expect(queue).not.toBeNull();
       expect(queue?.retryLimit).toBe(2);
       expect(queue?.retryBackoff).toBe(true);
       expect(queue?.deleteAfterSeconds).toBe(86400);
-      expect(queue?.retryDelay).toBe(QUEUE_OPTIONS[name].queue.retryDelay);
-      expect(queue?.retryDelayMax).toBe(QUEUE_OPTIONS[name].queue.retryDelayMax);
-      expect(queue?.expireInSeconds).toBe(QUEUE_OPTIONS[name].queue.expireInSeconds);
-      expect(queue?.heartbeatSeconds ?? null).toBe(QUEUE_OPTIONS[name].queue.heartbeatSeconds);
       if (name === 'ops.dead') {
         expect(queue?.deadLetter ?? null).toBeNull();
       } else {
@@ -193,12 +190,77 @@ describe('the queue registry', () => {
     }
   });
 
+  it('every created queue holds the options of 04 section 1.5', async () => {
+    // Written out, not read from QUEUE_OPTIONS, so a changed value fails here.
+    const expected: Record<
+      JobName,
+      [policy: string, delay: number, delayMax: number, expire: number, heartbeat: number | null]
+    > = {
+      'ops.dead': ['standard', 60, 600, 300, null],
+      'ops.alert': ['standard', 60, 900, 120, null],
+      'ops.heartbeat': ['stately', 5, 30, 30, null],
+      'backup.check': ['stately', 300, 3600, 300, null],
+      'db.connections-check': ['stately', 300, 3600, 120, null],
+      'cost.check': ['stately', 300, 3600, 1800, 60],
+    };
+    const boss = await startBoss();
+    // ops.dead last: the other queues name it as their dead letter.
+    for (const name of [...JOB_NAMES].reverse()) {
+      await boss.deleteQueue(name);
+    }
+    await createQueues(boss, JOB_NAMES, testLogger());
+    for (const name of JOB_NAMES) {
+      const queue = await boss.getQueue(name);
+      const [policy, retryDelay, retryDelayMax, expireInSeconds, heartbeatSeconds] = expected[name];
+      expect({
+        name,
+        policy: queue?.policy,
+        retryDelay: queue?.retryDelay,
+        retryDelayMax: queue?.retryDelayMax,
+        expireInSeconds: queue?.expireInSeconds,
+        heartbeatSeconds: queue?.heartbeatSeconds ?? null,
+      }).toEqual({ name, policy, retryDelay, retryDelayMax, expireInSeconds, heartbeatSeconds });
+      expect(queue?.policy).toBe(QUEUE_OPTIONS[name].queue.policy);
+    }
+  });
+
+  it('a stately queue refuses a second send while one job is queued', async () => {
+    const boss = await startBoss();
+    await createQueues(boss, ['cost.check'], testLogger());
+    expect(await boss.send('cost.check', {})).not.toBeNull();
+    expect(await boss.send('cost.check', {})).toBeNull();
+    expect(await pendingCount('cost.check')).toBe(1);
+  });
+
+  it('a queue that exists with another policy stops the boot', async () => {
+    const boss = await startBoss();
+    await boss.deleteQueue('cost.check');
+    await boss.createQueue('cost.check'); // pg-boss's default policy, standard
+    try {
+      await expect(createQueues(boss, ['cost.check'], testLogger())).rejects.toBeInstanceOf(
+        QueuePolicyMismatchError,
+      );
+      const mismatch = lines('queue.policy_mismatch');
+      expect(mismatch).toHaveLength(1);
+      expect(mismatch[0]).toMatchObject({
+        level: 'error',
+        queue: 'cost.check',
+        expected: 'stately',
+        found: 'standard',
+      });
+      expect((await boss.getQueue('cost.check'))?.policy).toBe('standard');
+    } finally {
+      await boss.deleteQueue('cost.check');
+      await boss.createQueue('cost.check', { policy: 'stately' });
+    }
+  });
+
   it('a changed option takes effect on a queue that exists', async () => {
     const boss = await startBoss();
-    await createQueues(boss, ['cost.check'], FAST);
+    await createQueues(boss, ['cost.check'], testLogger(), FAST);
     expect((await boss.getQueue('cost.check'))?.retryBackoff).toBe(false);
     expect((await boss.getQueue('cost.check'))?.retryDelay).toBe(0);
-    await createQueues(boss, ['cost.check']);
+    await createQueues(boss, ['cost.check'], testLogger());
     expect((await boss.getQueue('cost.check'))?.retryBackoff).toBe(true);
     expect((await boss.getQueue('cost.check'))?.retryDelay).toBe(300);
   });

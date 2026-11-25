@@ -1,4 +1,4 @@
-import { JOB_NAMES } from '@citizenrun/shared';
+import { JOB_NAMES, JOB_POLICIES } from '@citizenrun/shared';
 import type { Pool } from 'pg';
 import { PgBoss } from 'pg-boss';
 import { inject } from 'vitest';
@@ -104,8 +104,8 @@ export async function ensureWorkerDatabase(): Promise<void> {
 
 /**
  * A started, send-only PgBoss on this worker's clone (no supervision, no schedules, no migration),
- * with every queue of JOB_NAMES that does not exist created with pg-boss's default options, so a
- * queue a test deleted is back on the next call. The caller stops it; any left running is stopped
+ * with every queue of JOB_NAMES that does not exist created with its JOB_POLICIES policy and
+ * pg-boss's other defaults, so a queue a test deleted is back on the next call (D-827). The caller stops it; any left running is stopped
  * after the file.
  */
 export async function createTestBoss(): Promise<PgBoss> {
@@ -124,7 +124,7 @@ export async function createTestBoss(): Promise<PgBoss> {
   bosses.add(boss);
   for (const name of JOB_NAMES) {
     if ((await boss.getQueue(name)) === null) {
-      await boss.createQueue(name);
+      await boss.createQueue(name, { policy: JOB_POLICIES[name] });
     }
   }
   return boss;

@@ -1,9 +1,10 @@
+import { JOB_POLICIES } from '@citizenrun/shared';
 import type { JobName } from '@citizenrun/shared';
 import type { QueueOptions, WorkOptions } from './jobs/types.ts';
 
 // Every queue: three attempts in all with backoff, finished jobs kept 24 hours, and a dead letter
-// to ops.dead except on ops.dead itself (D-238). The other values
-// are tunable constants of the queue's job; a job file reads its row here, never from queues.ts.
+// to ops.dead except on ops.dead itself (D-238). The policy is JOB_POLICIES's (D-827). The other
+// values are tunable constants of the queue's job; a job file reads its row here, never from queues.ts.
 
 /** Each queue's pg-boss queue options and work options. */
 export const QUEUE_OPTIONS: {
@@ -11,7 +12,7 @@ export const QUEUE_OPTIONS: {
 } = {
   'ops.dead': {
     queue: {
-      policy: 'standard', // J-ops.dead
+      policy: JOB_POLICIES['ops.dead'], // J-ops.dead
       retryLimit: 2, // D-238
       retryDelay: 60, // J-ops.dead
       retryBackoff: true, // D-238
@@ -28,7 +29,7 @@ export const QUEUE_OPTIONS: {
   },
   'ops.alert': {
     queue: {
-      policy: 'standard', // J-ops.alert
+      policy: JOB_POLICIES['ops.alert'], // J-ops.alert
       retryLimit: 2, // D-238
       retryDelay: 60, // J-ops.alert
       retryBackoff: true, // D-238
@@ -45,7 +46,7 @@ export const QUEUE_OPTIONS: {
   },
   'ops.heartbeat': {
     queue: {
-      policy: 'stately', // J-ops.heartbeat
+      policy: JOB_POLICIES['ops.heartbeat'], // J-ops.heartbeat
       retryLimit: 2, // D-238
       retryDelay: 5, // J-ops.heartbeat
       retryBackoff: true, // D-238
@@ -62,7 +63,7 @@ export const QUEUE_OPTIONS: {
   },
   'backup.check': {
     queue: {
-      policy: 'stately', // J-backup.check
+      policy: JOB_POLICIES['backup.check'], // J-backup.check
       retryLimit: 2, // D-238
       retryDelay: 300, // J-backup.check
       retryBackoff: true, // D-238
@@ -79,7 +80,7 @@ export const QUEUE_OPTIONS: {
   },
   'db.connections-check': {
     queue: {
-      policy: 'stately', // J-db.connections-check
+      policy: JOB_POLICIES['db.connections-check'], // J-db.connections-check
       retryLimit: 2, // D-238
       retryDelay: 300, // J-db.connections-check
       retryBackoff: true, // D-238
@@ -96,7 +97,7 @@ export const QUEUE_OPTIONS: {
   },
   'cost.check': {
     queue: {
-      policy: 'stately', // J-cost.check
+      policy: JOB_POLICIES['cost.check'], // J-cost.check
       retryLimit: 2, // D-238
       retryDelay: 300, // J-cost.check
       retryBackoff: true, // D-238

@@ -15,6 +15,22 @@ export const JOB_NAMES = [
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
+/** A pg-boss queue policy this product uses. */
+export type QueuePolicy = 'standard' | 'singleton' | 'stately';
+
+/**
+ * Each queue's pg-boss policy, the one place it is written: the worker, the seed and the test
+ * harness create queues with it, and pg-boss fixes a queue's policy when the queue is created.
+ */
+export const JOB_POLICIES = {
+  'ops.dead': 'standard',
+  'ops.alert': 'standard',
+  'ops.heartbeat': 'stately',
+  'backup.check': 'stately',
+  'db.connections-check': 'stately',
+  'cost.check': 'stately',
+} as const satisfies Record<JobName, QueuePolicy>;
+
 /** The kinds of ops alert whose sending step exists. */
 export const OpsAlertKindSchema = z.enum([
   'job_failed',
