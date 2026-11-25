@@ -3,7 +3,7 @@
 export const BRAND = {
   displayName: 'CitizenRun',
   slug: 'citizenrun',
-  domain: null,
+  domain: 'citizenrun.org',
   expo: {
     owner: null,
     projectId: null,
@@ -40,8 +40,8 @@ export const BRAND = {
       scheme: 'citizenrun-staging',
       iosBundleId: 'org.citizenrun.app.staging',
       androidPackage: 'org.citizenrun.app.staging',
-      host: null,
-      adminHost: null,
+      host: 'staging.citizenrun.org',
+      adminHost: 'admin.staging.citizenrun.org',
       appleServicesId: null,
     },
     production: {
