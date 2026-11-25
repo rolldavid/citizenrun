@@ -661,6 +661,40 @@ describe('loadEnv', () => {
     });
   });
 
+  it('the review list admits the perf and load accounts and refuses more than 100 addresses', () => {
+    // The stand-in's and staging's list: perf_01 and load_01 to load_50, 51 addresses.
+    const loadAccounts = Array.from(
+      { length: 50 },
+      (_, index) => `load_${String(index + 1).padStart(2, '0')}@example.test`,
+    );
+    const measurement = ['perf_01@example.test', ...loadAccounts].join(',');
+    const local = load(
+      infra('local', { REVIEW_SIGNIN_EMAILS: measurement, REVIEW_SIGNIN_CODE: '012345' }),
+    );
+    expect(local.REVIEW_SIGNIN_EMAILS).toBe(measurement);
+    expect(local.ownerInputReport.invalid).toEqual([]);
+    const staging = load(
+      deployed('staging', { REVIEW_SIGNIN_EMAILS: measurement, REVIEW_SIGNIN_CODE: '012345' }),
+    );
+    expect(staging.REVIEW_SIGNIN_EMAILS).toBe(measurement);
+
+    const tooMany = Array.from(
+      { length: 101 },
+      (_, index) => `r${String(index)}@example.test`,
+    ).join(',');
+    const refused = load(
+      infra('local', { REVIEW_SIGNIN_EMAILS: tooMany, REVIEW_SIGNIN_CODE: '012345' }),
+    );
+    expect(refused.REVIEW_SIGNIN_EMAILS).toBeNull();
+    expect(refused.ownerInputReport.invalid).toEqual([
+      { variable: 'REVIEW_SIGNIN_EMAILS', ownerInput: 'OI-store-submission' },
+    ]);
+    expect(
+      refusal(deployed('staging', { REVIEW_SIGNIN_EMAILS: tooMany, REVIEW_SIGNIN_CODE: '012345' }))
+        .variables,
+    ).toEqual(['REVIEW_SIGNIN_EMAILS']);
+  });
+
   it('an empty string counts as unset', () => {
     const env = load(infra('local', { RESEND_API_KEY: '', EMAIL_FROM: '' }));
     expect(env.RESEND_API_KEY).toBeNull();

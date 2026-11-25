@@ -128,8 +128,9 @@ const MAX_PATH_LENGTH = 4096;
 const MAX_MEDIA_VALUE_LENGTH = 200;
 const MAX_ADMIN_EMAIL_LENGTH = 254;
 const MAX_ADMIN_EMAILS = 50;
-// The longest list of MAX_ADMIN_EMAILS well-formed items with their commas.
-const MAX_ADMIN_EMAILS_RAW_LENGTH = MAX_ADMIN_EMAILS * (MAX_ADMIN_EMAIL_LENGTH + 1);
+// The review list has its own bound: staging's holds `perf_01` and `load_01` to `load_50`, 51
+// addresses (09 section 1.3, 10 TC-32), beside the store-review accounts.
+const MAX_REVIEW_SIGNIN_EMAILS = 100;
 
 const RESEND_API_KEY_PATTERN = /^re_[A-Za-z0-9_-]{10,200}$/;
 const EMAIL_FROM_MAX_LENGTH = 320;
@@ -237,9 +238,11 @@ type Parsed<T> = { kind: 'unset' } | { kind: 'invalid' } | { kind: 'ok'; value: 
 const UNSET = Object.freeze({ kind: 'unset' } as const);
 const INVALID = Object.freeze({ kind: 'invalid' } as const);
 
-// Trimmed and lower-cased items, empty items dropped; an empty result is unset.
-function parseEmailList(raw: string): Parsed<readonly string[]> {
-  if (raw.length > MAX_ADMIN_EMAILS_RAW_LENGTH) {
+// Trimmed and lower-cased items, empty items dropped; an empty result is unset. More than
+// `maxItems` items, or a raw value longer than that many well-formed items with their commas, is
+// malformed.
+function parseEmailList(raw: string, maxItems: number): Parsed<readonly string[]> {
+  if (raw.length > maxItems * (MAX_ADMIN_EMAIL_LENGTH + 1)) {
     return INVALID;
   }
   const items = raw
@@ -249,7 +252,7 @@ function parseEmailList(raw: string): Parsed<readonly string[]> {
   if (items.length === 0) {
     return UNSET;
   }
-  if (items.length > MAX_ADMIN_EMAILS) {
+  if (items.length > maxItems) {
     return INVALID;
   }
   if (!items.every((item) => AdminEmailSchema.safeParse(item).success)) {
@@ -364,8 +367,10 @@ function parseOwnerInputs(
     EMAIL_FROM: read('EMAIL_FROM', (raw) =>
       isEmailFrom(raw) ? { kind: 'ok', value: raw } : INVALID,
     ),
-    ADMIN_EMAILS: read('ADMIN_EMAILS', parseEmailList),
-    REVIEW_SIGNIN_EMAILS: read('REVIEW_SIGNIN_EMAILS', parseEmailList),
+    ADMIN_EMAILS: read('ADMIN_EMAILS', (raw) => parseEmailList(raw, MAX_ADMIN_EMAILS)),
+    REVIEW_SIGNIN_EMAILS: read('REVIEW_SIGNIN_EMAILS', (raw) =>
+      parseEmailList(raw, MAX_REVIEW_SIGNIN_EMAILS),
+    ),
     REVIEW_SIGNIN_CODE: read('REVIEW_SIGNIN_CODE', matching(REVIEW_SIGNIN_CODE_PATTERN)),
     APPLE_TEAM_ID: read('APPLE_TEAM_ID', matching(APPLE_ID_PATTERN)),
     APPLE_KEY_ID: read('APPLE_KEY_ID', matching(APPLE_ID_PATTERN)),
