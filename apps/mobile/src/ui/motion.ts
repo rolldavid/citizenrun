@@ -274,6 +274,29 @@ export function useRise(play: boolean, distance: number, durationMs: number): An
   };
 }
 
+/**
+ * MO-sheet for the sheet this app draws itself: it rises by its own height from under the bottom
+ * edge over motion.duration.sheet when `shown` turns true, and leaves the same way. Under reduced
+ * motion it does not move: it is the one short fade.
+ */
+export function useSheetRise(shown: boolean): AnimatedStyle {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return {
+      transitionProperty: 'opacity',
+      transitionDuration: REDUCED_FADE_MS,
+      transitionTimingFunction: EASE_OUT_CSS,
+      opacity: shown ? 1 : 0,
+    };
+  }
+  return {
+    transitionProperty: 'transform',
+    transitionDuration: motion.duration.sheet,
+    transitionTimingFunction: EASE_OUT_CSS,
+    transform: [{ translateY: shown ? '0%' : '100%' }],
+  };
+}
+
 /** Opacity 0 to 1 over `durationMs` (default motion.duration.fade) on easeOut when `visible` changes. */
 export function useFade(visible: boolean, durationMs?: number): AnimatedStyle {
   return {

@@ -20,12 +20,19 @@ async function waitForGallerySection(page: Page): Promise<void> {
   await expect(page.getByText(/^No component named/)).toHaveCount(0);
 }
 
-/** Opens one sheet or dialog of the gallery with the gallery's own button, and waits until it has faded in. */
+/** A frame that is where it rests: one that never moves, or one that has finished moving. */
+const AT_REST = /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/;
+
+/**
+ * Opens one sheet or dialog of the gallery with the gallery's own button, and waits until it has
+ * faded in and, for a sheet on a phone, risen to where it rests.
+ */
 function openGalleryOverlay(overlay: string): (page: Page) => Promise<void> {
   return async (page) => {
     await page.getByTestId(`gallery.open-${overlay}`).click();
     await page.getByTestId(`gallery.${overlay}`).waitFor();
     await expect(page.getByTestId(`gallery.${overlay}`)).toHaveCSS('opacity', '1');
+    await expect(page.getByTestId(`gallery.${overlay}`)).toHaveCSS('transform', AT_REST);
   };
 }
 

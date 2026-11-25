@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   clearOncePerItem,
+  motion,
   ReducedMotionOverride,
   useFade,
   useOncePerItem,
@@ -12,6 +13,7 @@ import {
   usePulse,
   useReducedMotion,
   useRise,
+  useSheetRise,
   useSpringScale,
   useStagger,
   useStamp,
@@ -111,6 +113,31 @@ describe('motion hooks', () => {
       fields(renderHook(() => useFade(true, 150), { wrapper: under(false) }).result.current)
         .transitionDuration,
     ).toBe(150);
+  });
+
+  it('a sheet rises by its own height over the sheet duration, and only fades under reduced motion', () => {
+    const waiting = fields(
+      renderHook(() => useSheetRise(false), { wrapper: under(false) }).result.current,
+    );
+    expect(waiting.transitionProperty).toBe('transform');
+    expect(waiting.transitionDuration).toBe(motion.duration.sheet);
+    expect(waiting.transitionDuration).toBe(240);
+    expect(waiting.transform).toEqual([{ translateY: '100%' }]);
+    expect(waiting.opacity).toBeUndefined();
+    const risen = fields(
+      renderHook(() => useSheetRise(true), { wrapper: under(false) }).result.current,
+    );
+    expect(risen.transform).toEqual([{ translateY: '0%' }]);
+
+    for (const shown of [false, true]) {
+      const reduced = fields(
+        renderHook(() => useSheetRise(shown), { wrapper: under(true) }).result.current,
+      );
+      expect(reduced.transitionProperty).toBe('opacity');
+      expect(reduced.transitionDuration).toBe(120);
+      expect(reduced.opacity).toBe(shown ? 1 : 0);
+      expect(reduced.transform).toBeUndefined();
+    }
   });
 
   it('once per item', () => {

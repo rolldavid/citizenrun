@@ -97,10 +97,13 @@ function ordered(actions: readonly DialogAction[]): readonly DialogAction[] {
 }
 
 /**
- * How the frame follows `open` (MO-sheet, the dialog form): it is laid out clear, fades in from the
- * next frame, and stays until the fade out has run.
+ * How an overlay follows `open` (MO-sheet): it is laid out unseen, comes in from the next frame,
+ * and stays until it has left, which takes `leaveMs` (default the fade).
  */
-function usePresence(open: boolean): { mounted: boolean; shown: boolean } {
+export function usePresence(
+  open: boolean,
+  leaveMs: number = motion.duration.fade,
+): { mounted: boolean; shown: boolean } {
   const [mounted, setMounted] = useState(open);
   const [entered, setEntered] = useState(false);
   if (open && !mounted) {
@@ -122,11 +125,11 @@ function usePresence(open: boolean): { mounted: boolean; shown: boolean } {
     if (!mounted) return undefined;
     const timer = setTimeout(() => {
       setMounted(false);
-    }, motion.duration.fade);
+    }, leaveMs);
     return () => {
       clearTimeout(timer);
     };
-  }, [open, mounted]);
+  }, [open, mounted, leaveMs]);
 
   return { mounted, shown: open && entered };
 }

@@ -126,18 +126,32 @@ const WORDS: ViewStyle = { flexShrink: 1 };
  * Where the layer stands. `shell`: over the app, centered above the bottom chrome on a phone and in
  * the content slot at medium and expanded, right of the rail where one is drawn (PC6A-27).
  * `screen`: the same place, drawn by a screen that fills the window and brings a theme of its own.
- * `window`: inside an overlay that covers the window, centered in it. `sheet`: inside a sheet on a
- * phone, whose bottom edge is the screen's.
+ * `window`: inside an overlay that covers the window, centered in it. `sheet`: with a sheet on a
+ * phone, over its top edge or, on a tall sheet, above its footer.
  */
 type ToastPlace = 'shell' | 'screen' | 'window' | 'sheet';
 
-type Chrome = { bottomChrome: number; bottomInset: number; rail: number };
+type Chrome = {
+  bottomChrome: number;
+  bottomInset: number;
+  leftInset: number;
+  rightInset: number;
+  rail: number;
+  /** In a sheet: how far over the outlet the sheet's top edge is, 0 when the toast stands at the outlet. */
+  lift: number;
+};
 
 function placeOf(place: ToastPlace, layout: Layout, chrome: Chrome): ViewStyle {
   const sides: ViewStyle = { left: 0, right: 0, paddingHorizontal: layout.gutter };
   if (place === 'sheet') {
-    // The sheet's anchor is as wide as its content and stands where the toast's foot is.
-    return { left: 0, right: 0, bottom: 0 };
+    // The sheet's outlet is as wide as its content, which keeps clear of the gutter and the side
+    // insets; the toast is centered on the sheet, which is as wide as the window.
+    return {
+      left: -(layout.gutter + chrome.leftInset),
+      right: -(layout.gutter + chrome.rightInset),
+      paddingHorizontal: layout.gutter,
+      bottom: chrome.lift > 0 ? chrome.lift + space.x4 : 0,
+    };
   }
   // A screen that fills the window stands where the app does.
   const overApp = place === 'shell' || place === 'screen';
@@ -184,7 +198,7 @@ function ToastView({ toast }: { toast: ShownToast }): JSX.Element {
   );
 }
 
-function ToastLayer({ place }: { place: ToastPlace }): JSX.Element {
+function ToastLayer({ place, lift = 0 }: { place: ToastPlace; lift?: number }): JSX.Element {
   const toast = useSyncExternalStore(subscribe, getCurrent, getCurrent);
   const layout = useBreakpoint();
   const bottomChrome = useBottomChromeHeight();
@@ -192,7 +206,17 @@ function ToastLayer({ place }: { place: ToastPlace }): JSX.Element {
   const insets = useSafeAreaInsets();
   return (
     <View
-      style={[LAYER, placeOf(place, layout, { bottomChrome, bottomInset: insets.bottom, rail })]}
+      style={[
+        LAYER,
+        placeOf(place, layout, {
+          bottomChrome,
+          bottomInset: insets.bottom,
+          leftInset: insets.left,
+          rightInset: insets.right,
+          rail,
+          lift,
+        }),
+      ]}
       pointerEvents="box-none"
     >
       {toast === null ? null : <ToastView key={toast.id} toast={toast} />}
@@ -210,10 +234,17 @@ function ToastLayer({ place }: { place: ToastPlace }): JSX.Element {
 export function ToastOutlet({
   place,
   active = true,
+  lift = 0,
 }: {
   place: 'window' | 'sheet' | 'screen';
   /** False while the overlay is closed. Default true. */
   active?: boolean;
+  /**
+   * `sheet` only: how far over the outlet the sheet's top edge is, where the window has room for
+   * a toast above the sheet; the toast then stands `space.x4` over that edge. Default 0: the toast
+   * rises from the outlet.
+   */
+  lift?: number;
 }): JSX.Element | null {
   const id = useId();
   const top = useSyncExternalStore(subscribe, topOutlet, topOutlet);
@@ -229,11 +260,12 @@ export function ToastOutlet({
   if (top !== id) {
     return null;
   }
-  // A sheet holds the outlet in its column, above its footer: the toast rises from that line and
-  // covers no button of the sheet.
+  // A sheet holds the outlet in its column, above its footer. The toast stands over the sheet
+  // where there is room, and covers nothing of it; on a tall sheet it rises from the outlet's
+  // line and covers no button.
   return place === 'sheet' ? (
     <View style={SHEET_ANCHOR} pointerEvents="box-none">
-      <ToastLayer place={place} />
+      <ToastLayer place={place} lift={lift} />
     </View>
   ) : (
     <ToastLayer place={place} />

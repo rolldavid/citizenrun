@@ -103,6 +103,21 @@ function toast(testID = 'toast'): HTMLElement {
   return screen.getByTestId(testID);
 }
 
+/**
+ * Tells a view where it is laid out, as the page does. jsdom lays nothing out, so the handler the
+ * page keeps on the element is called directly:
+ * https://github.com/necolas/react-native-web/blob/0.21.2/packages/react-native-web/src/modules/useElementLayout/index.js
+ */
+function layOut(element: Element, y: number, height: number): void {
+  const handler: unknown = Reflect.get(element, '__reactLayoutHandler');
+  if (typeof handler !== 'function') {
+    throw new Error('the view listens for no layout');
+  }
+  act(() => {
+    Reflect.apply(handler, element, [{ nativeEvent: { layout: { x: 0, y, width: 390, height } } }]);
+  });
+}
+
 /** The layer the host draws its toast in: the view after the page. */
 function layer(): HTMLElement {
   const found = screen.getByTestId(PAGE).nextElementSibling;
@@ -501,19 +516,36 @@ describe('Toast', () => {
     show(STATES.success);
     const frame = screen.getByTestId(OVERLAY);
     expect(toasts()).toHaveLength(1);
-    // Inside the sheet's frame, rising from the line between its content and its footer, so it
-    // covers no button of the sheet.
+    // Inside the sheet's frame, at the line between its content and its footer.
     const drawn = toast().parentElement;
     const anchor = drawn?.parentElement;
-    expect(anchor?.parentElement).toBe(frame);
+    const outlet = anchor?.parentElement;
+    expect(outlet?.parentElement).toBe(frame);
     expect(anchor?.style.height).toBe('0px');
-    expect(anchor?.previousElementSibling).toBe(screen.getByTestId('sheet-content'));
-    expect(anchor?.nextElementSibling?.contains(screen.getByTestId('sheet-footer'))).toBe(true);
+    expect(outlet?.previousElementSibling).toBe(screen.getByTestId('sheet-content'));
+    expect(outlet?.nextElementSibling?.contains(screen.getByTestId('sheet-footer'))).toBe(true);
     expect(drawn?.style.position).toBe('absolute');
-    expect(drawn?.style.left).toBe('0px');
-    expect(drawn?.style.right).toBe('0px');
-    expect(drawn?.style.bottom).toBe('0px');
     expect(drawn?.style.zIndex).toBe(String(z.toast));
+    // Centered on the sheet: the layer reaches back over the gutter its outlet stands inside.
+    expect(drawn?.style.left).toBe(`${String(-gutter.regular)}px`);
+    expect(drawn?.style.right).toBe(`${String(-gutter.regular)}px`);
+    expect(drawn?.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
+    // Until the sheet is laid out the toast rises from that line.
+    expect(drawn?.style.bottom).toBe('0px');
+    if (!(outlet instanceof HTMLElement)) {
+      throw new Error('the sheet holds no outlet');
+    }
+
+    // A short sheet: the window has room over it, and the toast stands above its top edge, where
+    // it covers neither the title, the content nor a button.
+    layOut(frame, 0, 220);
+    layOut(outlet, 150, 0);
+    expect(toast().parentElement?.style.bottom).toBe(`${String(150 + space.x4)}px`);
+    // A sheet that leaves less room than a toast takes: it rises from the line above the footer.
+    layOut(frame, 0, COMPACT[1] - size.listRowMin * 3 + 1);
+    expect(toast().parentElement?.style.bottom).toBe('0px');
+    layOut(frame, 0, COMPACT[1] - size.listRowMin * 3);
+    expect(toast().parentElement?.style.bottom).toBe(`${String(150 + space.x4)}px`);
 
     // A sheet that is closed draws no toast: the host does.
     cleanup();

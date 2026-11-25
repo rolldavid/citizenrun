@@ -1,16 +1,19 @@
-import { BottomSheet, RNHostView } from '@expo/ui';
+import { assertNever } from '@citizenrun/shared';
 import { useId, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import { Modal, View } from 'react-native';
+import type { LayoutChangeEvent, ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { motion, useFade, useSheetRise } from '@/ui/motion';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { useShortcutBlocker } from '@/ui/shortcuts';
 import { useTheme } from '@/ui/theme';
-import { radius, rule, size, space } from '@/ui/tokens';
+import { radius, rule, size, space, z } from '@/ui/tokens';
 
-import { DialogFrame } from './dialog';
+import { DialogFrame, usePresence } from './dialog';
 import { useOverlay } from './overlay-registry';
 import { Pressable } from './pressable';
 import { Text } from './text';
@@ -31,13 +34,24 @@ type Detent = NonNullable<SheetProps['detents']>[number];
 
 const CONTENT_ONLY: readonly Detent[] = ['content'];
 
+// The window, with the sheet at its bottom edge. The frame comes first, so focus starts inside it.
+const ROOT: ViewStyle = { flex: 1, justifyContent: 'flex-end' };
+// The scrim is laid as a row, so the press target inside it is as tall as the window.
+const SCRIM: ViewStyle = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  zIndex: z.scrim,
+  flexDirection: 'row',
+  overflow: 'hidden',
+};
 const FRAME: ViewStyle = {
+  zIndex: z.overlay,
   borderTopWidth: rule.hairline,
   borderRadius: radius.none,
-  paddingBottom: space.x6,
 };
-// A sheet with a height of its own is filled by its frame; one sized to its content is not.
-const FRAME_FILLS: ViewStyle = { ...FRAME, flex: 1 };
 const GRABBER_ROW: ViewStyle = {
   alignItems: 'center',
   paddingTop: space.x2,
@@ -50,20 +64,29 @@ const GRABBER: ViewStyle = {
 };
 const GRABBER_DRAWN = { width: size.sheetGrabber.width, height: size.sheetGrabber.height };
 const TITLE: ViewStyle = { marginBottom: space.x2 };
+// A sheet with a height of its own gives its content the room between its title and its footer.
+const CONTENT_FILLS: ViewStyle = { flex: 1 };
 const FOOTER: ViewStyle = { marginTop: space.x4 };
 const DIALOG_FOOTER: ViewStyle = { marginTop: space.x6 };
+/** The clear height over a sheet in which a toast stands above it, not on it. */
+const TOAST_ROOM = size.listRowMin * 3;
 
 function hasContent(node: ReactNode): boolean {
   return node !== undefined && node !== null && node !== false;
 }
 
-/** The heights the library's sheet rests at; none when the sheet takes the height of its content. */
-function snapPointsOf(detents: readonly Detent[]): ('half' | 'full')[] {
-  const points: ('half' | 'full')[] = [];
-  for (const detent of detents) {
-    if (detent !== 'content') points.push(detent);
+/** The height the sheet rests at, inside the window less its top inset. */
+function heightOf(detent: Detent): ViewStyle {
+  switch (detent) {
+    case 'content':
+      return { maxHeight: '100%' };
+    case 'half':
+      return { height: '50%' };
+    case 'full':
+      return { height: '100%' };
+    default:
+      return assertNever(detent);
   }
-  return points;
 }
 
 type CompactSheetProps = Omit<SheetProps, 'detents' | 'dismissible'> & {
@@ -72,9 +95,10 @@ type CompactSheetProps = Omit<SheetProps, 'detents' | 'dismissible'> & {
 };
 
 /**
- * The compact form (D-035): the platform's own sheet, holding a frame of `surface` with a hairline
- * of `rule` on its top edge. The platform draws the scrim, moves the sheet and keeps the content
- * clear of the bottom inset.
+ * The compact form (D-035, D-843): a frame of `surface` with a hairline of `rule` on its top edge,
+ * as wide as the window and standing on its bottom edge, over the flat scrim. It rests at its first
+ * detent. Its content keeps clear of the side and bottom insets; the rule and the grabber belong to
+ * the frame and are centered on it.
  */
 function CompactSheet({
   open,
@@ -88,52 +112,60 @@ function CompactSheet({
 }: CompactSheetProps): JSX.Element {
   const theme = useTheme();
   const layout = useBreakpoint();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation('common');
   const titleId = useId();
-  // The platform lets a person drag any sheet away. One that is not dismissible is shown again.
-  const [showing, setShowing] = useState(0);
+  const { mounted, shown } = usePresence(open, motion.duration.sheet);
+  const [frameHeight, setFrameHeight] = useState(0);
+  const [outletTop, setOutletTop] = useState(0);
+  const rise = useSheetRise(shown);
+  const fade = useFade(shown);
   useShortcutBlocker(open);
 
-  const snapPoints = snapPointsOf(detents);
-  const fitsContent = snapPoints.length === 0;
+  const detent = detents[0] ?? 'content';
+  const fills = detent !== 'content';
+  // A toast stands over the sheet's top edge where the window has the room, so it covers nothing
+  // of a short sheet; on a tall one it rises from the line above the footer.
+  const clear = layout.height - insets.top - frameHeight;
+  const toastLift = frameHeight > 0 && clear >= TOAST_ROOM ? outletTop : 0;
   const bar = <View style={[GRABBER, { backgroundColor: theme.color.text }]} />;
 
   return (
-    <BottomSheet
-      key={showing}
-      isPresented={open}
-      onDismiss={() => {
-        if (dismissible) {
-          onClose();
-        } else {
-          setShowing((count) => count + 1);
-        }
+    <Modal
+      transparent={true}
+      animationType="none"
+      statusBarTranslucent={true}
+      navigationBarTranslucent={true}
+      visible={mounted}
+      onRequestClose={() => {
+        if (dismissible) onClose();
       }}
-      showDragIndicator={false}
-      contentPadding={0}
-      containerColor={theme.color.surface}
-      scrimColor={theme.color.scrim}
-      shouldDismissOnBackPress={dismissible}
-      shouldDismissOnClickOutside={dismissible}
-      {...(fitsContent ? {} : { snapPoints })}
     >
-      <RNHostView matchContents={fitsContent ? { vertical: true } : false}>
-        <View
+      <View style={[ROOT, { paddingTop: insets.top }]}>
+        <Animated.View
           role="dialog"
           aria-modal={true}
           aria-labelledby={title === undefined ? undefined : titleId}
           accessibilityViewIsModal={true}
           testID={testID}
+          onLayout={(event: LayoutChangeEvent) => {
+            setFrameHeight(event.nativeEvent.layout.height);
+          }}
           style={[
-            fitsContent ? FRAME : FRAME_FILLS,
+            FRAME,
+            heightOf(detent),
             {
               backgroundColor: theme.color.surface,
               borderTopColor: theme.color.rule,
-              paddingHorizontal: layout.gutter,
+              paddingLeft: layout.gutter + insets.left,
+              paddingRight: layout.gutter + insets.right,
+              paddingBottom: space.x6 + insets.bottom,
             },
+            rise,
           ]}
         >
-          <View style={GRABBER_ROW}>
+          {/* Centered on the frame, which is as wide as the window, not on the safe area. */}
+          <View style={[GRABBER_ROW, { marginLeft: -insets.left, marginRight: -insets.right }]}>
             {dismissible ? (
               <Pressable
                 role="button"
@@ -156,12 +188,31 @@ function CompactSheet({
               </Text>
             </View>
           )}
-          {children}
-          <ToastOutlet place="sheet" active={open} />
+          {fills ? <View style={CONTENT_FILLS}>{children}</View> : children}
+          <View
+            onLayout={(event: LayoutChangeEvent) => {
+              setOutletTop(event.nativeEvent.layout.y);
+            }}
+          >
+            <ToastOutlet place="sheet" active={open} lift={toastLift} />
+          </View>
           {hasContent(footer) ? <View style={FOOTER}>{footer}</View> : null}
-        </View>
-      </RNHostView>
-    </BottomSheet>
+        </Animated.View>
+        <Animated.View style={[SCRIM, { backgroundColor: theme.color.scrim }, fade]}>
+          {dismissible ? (
+            <Pressable
+              role="button"
+              label={t('ui.close')}
+              feedback="none"
+              testID={`${testID}-scrim`}
+              onPress={onClose}
+            >
+              <View style={{ width: layout.width }} />
+            </Pressable>
+          ) : null}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 }
 

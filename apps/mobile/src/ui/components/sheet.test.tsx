@@ -1,10 +1,12 @@
 import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import type { JSX } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { describe, expect, it, vi } from 'vitest';
 
 import { linksFake } from '@/test/platform/links';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import { motion } from '@/ui/motion';
 import { useShortcut } from '@/ui/shortcuts';
 import type { KeyEventLike } from '@/ui/shortcuts';
 import { color, gutter, rule, size, space } from '@/ui/tokens';
@@ -14,6 +16,12 @@ import { Sheet } from './sheet';
 import type { SheetProps } from './sheet';
 import { GROUND, PREVIEW, STATES } from './sheet.fixtures';
 
+// react-native-safe-area-context 5.11.1 names its CommonJS build as `main`. The test resolver picks
+// that build, and it loads the phone's React Native; the module build is the one that runs on the web:
+// https://github.com/AppAndFlow/react-native-safe-area-context/blob/v5.11.1/package.json
+vi.mock('react-native-safe-area-context', () =>
+  vi.importActual('react-native-safe-area-context/lib/module/index.js'),
+);
 // react-native-svg 15.16.0 names its CommonJS build as `main`. The test resolver picks that build,
 // and it loads the phone files; the module build is the one that draws real svg elements on the web.
 vi.mock('react-native-svg', () => vi.importActual('react-native-svg/lib/module/index.js'));
@@ -76,6 +84,15 @@ function emit(event: KeyEventLike): void {
 function Shortcut({ onKey }: { onKey: () => void }): null {
   useShortcut({ key: 'j', description: 'fixture j', handler: onKey });
   return null;
+}
+
+/** The scrim of a sheet on a phone: the layer after its frame. */
+function scrimOf(frame: HTMLElement): HTMLElement {
+  const scrim = frame.nextElementSibling;
+  if (!(scrim instanceof HTMLElement)) {
+    throw new Error('the sheet has no scrim');
+  }
+  return scrim;
 }
 
 /** The grabber's bar: the one drawing in the frame that is the grabber's size. */
@@ -221,16 +238,147 @@ describe('Sheet', () => {
     setViewport(...COMPACT);
     const onClose = vi.fn<() => void>();
     draw({ ...STATES.open, onClose });
-    fireEvent.click(screen.getByTestId('expo-ui-bottom-sheet-overlay'));
+    fireEvent.click(screen.getByTestId('gallery.sheet-open-scrim'));
     expect(onClose).toHaveBeenCalledTimes(1);
+    pressEscape();
+    expect(onClose).toHaveBeenCalledTimes(2);
 
-    // A sheet that must be answered is shown again when the platform lets it go.
+    // A sheet that must be answered has no scrim to press and does not hear Escape.
     const stays = vi.fn<() => void>();
-    draw({ ...STATES.notDismissible, onClose: stays });
-    fireEvent.click(screen.getByTestId('expo-ui-bottom-sheet-overlay'));
+    const frame = draw({ ...STATES.notDismissible, onClose: stays });
+    expect(screen.queryByTestId('gallery.sheet-not-dismissible-scrim')).toBeNull();
+    pressEscape();
     expect(stays).not.toHaveBeenCalled();
-    expect(screen.getByTestId('gallery.sheet-not-dismissible').isConnected).toBe(true);
+    expect(frame.isConnected).toBe(true);
     expect(screen.getByTestId('gallery.sheet-not-dismissible-allow')).toBeDefined();
+  });
+
+  it('on a phone the scrim is the scrim token and the one dialog is named by the title', () => {
+    setViewport(...COMPACT);
+    for (const theme of ['light', 'dark'] as const) {
+      const frame = draw(STATES.open, { theme });
+      const scrim = scrimOf(frame);
+      expect(scrim.style.backgroundColor, theme).toBe(written(color[theme].scrim));
+      expect(scrim.style.position, theme).toBe('absolute');
+      for (const edge of ['top', 'right', 'bottom', 'left'] as const) {
+        expect(scrim.style[edge], `${theme} ${edge}`).toBe('0px');
+      }
+      // The frame stands over the scrim, and it is the only dialog with a name.
+      expect(Number(frame.style.zIndex), theme).toBeGreaterThan(Number(scrim.style.zIndex));
+      expect(screen.getAllByRole('dialog', { name: /./ }), theme).toEqual([frame]);
+      expect(document.querySelectorAll('dialog'), theme).toHaveLength(0);
+      expect(screen.queryByLabelText('Bottom sheet'), theme).toBeNull();
+    }
+    // Without a title the sheet takes no name from anywhere else.
+    const untitled = draw(STATES.openNoTitle);
+    expect(untitled.getAttribute('aria-label')).toBeNull();
+    expect(screen.queryAllByRole('dialog', { name: /./ })).toEqual([]);
+  });
+
+  it('stands on the bottom edge as wide as the window, with its content clear of every inset', () => {
+    setViewport(...COMPACT);
+    const insets = { top: 59, right: 84, bottom: 34, left: 0 };
+    cleanup();
+    renderWithProviders(
+      <SafeAreaInsetsContext.Provider value={insets}>
+        <Sheet {...STATES.open} />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    const frame = screen.getByTestId('gallery.sheet-open');
+    const window = frame.parentElement;
+    // The frame is the last thing in a column that fills the window under the top inset.
+    expect(window?.style.justifyContent).toBe('flex-end');
+    expect(window?.style.paddingTop).toBe('59px');
+    expect(window?.style.paddingLeft ?? '').toBe('');
+    expect(window?.style.paddingRight ?? '').toBe('');
+    expect(frame.style.marginLeft).toBe('');
+    expect(frame.style.marginRight).toBe('');
+    expect(frame.style.maxHeight).toBe('100%');
+    // The rule on its top edge is the frame's own, so it runs the width of the sheet.
+    expect(frame.style.borderTopWidth).toBe(`${String(rule.hairline)}px`);
+    // The content keeps clear of the side inset and of the home indicator.
+    expect(frame.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
+    expect(frame.style.paddingRight).toBe(`${String(gutter.regular + 84)}px`);
+    expect(frame.style.paddingBottom).toBe(`${String(space.x6 + 34)}px`);
+    // The grabber's row reaches back over the inset, so the bar is centered on the sheet.
+    const row = barOf(frame).closest<HTMLElement>('[style*="align-items: center"]');
+    expect(row?.parentElement).toBe(frame);
+    expect(row?.style.marginLeft).toBe('0px');
+    expect(row?.style.marginRight).toBe('-84px');
+  });
+
+  it('rests at its first detent', () => {
+    setViewport(...COMPACT);
+    expect(draw(STATES.half).style.height).toBe('50%');
+    expect(draw({ ...STATES.half, detents: ['full'] }).style.height).toBe('100%');
+    const fitted = draw(STATES.open);
+    expect(fitted.style.height).toBe('');
+    expect(fitted.style.maxHeight).toBe('100%');
+    // A sheet with a height of its own keeps its footer at its foot.
+    const tall = draw({ ...STATES.withFooter, detents: ['full'] });
+    let box: HTMLElement | null = within(tall).getByText('Soonest filing deadline first.');
+    while (box !== null && box.parentElement !== tall) {
+      box = box.parentElement;
+    }
+    expect(box?.style.flexGrow).toBe('1');
+    const foot = within(tall).getByTestId('gallery.sheet-with-footer-apply');
+    expect(
+      (box?.compareDocumentPosition(foot) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it('rises from under the bottom edge, and stays until it has gone back', () => {
+    setViewport(...COMPACT);
+    vi.useFakeTimers();
+    cleanup();
+    const view = renderWithProviders(<Sheet {...STATES.open} open={false} />);
+    expect(screen.queryByTestId('gallery.sheet-open')).toBeNull();
+
+    view.rerender(<Sheet {...STATES.open} />);
+    const frame = screen.getByTestId('gallery.sheet-open');
+    // Laid out its own height down, which is just under the bottom edge, and the scrim clear.
+    expect(frame.style.transform).toBe('translateY(100%)');
+    expect(frame.style.opacity).toBe('');
+    expect(scrimOf(frame).style.opacity).toBe('0');
+    act(() => {
+      vi.advanceTimersByTime(motion.duration.sheet);
+    });
+    expect(frame.style.transform).toBe('translateY(0%)');
+    expect(frame.style.opacity).toBe('');
+    expect(scrimOf(frame).style.opacity).toBe('1');
+
+    // It leaves by its own height, and is gone when that has run.
+    view.rerender(<Sheet {...STATES.open} open={false} />);
+    expect(frame.style.transform).toBe('translateY(100%)');
+    expect(scrimOf(frame).style.opacity).toBe('0');
+    act(() => {
+      vi.advanceTimersByTime(motion.duration.sheet - 1);
+    });
+    expect(screen.queryByTestId('gallery.sheet-open')).toBe(frame);
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.queryByTestId('gallery.sheet-open')).toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('under reduced motion it fades and does not rise', () => {
+    setViewport(...COMPACT);
+    vi.useFakeTimers();
+    cleanup();
+    const view = renderWithProviders(<Sheet {...STATES.open} />, { reducedMotion: true });
+    const frame = screen.getByTestId('gallery.sheet-open');
+    expect(frame.style.opacity).toBe('0');
+    expect(frame.style.transform).toBe('');
+    act(() => {
+      vi.advanceTimersByTime(motion.duration.sheet);
+    });
+    expect(frame.style.opacity).toBe('1');
+    expect(frame.style.transform).toBe('');
+    view.rerender(<Sheet {...STATES.open} open={false} />);
+    expect(frame.style.opacity).toBe('0');
+    expect(frame.style.transform).toBe('');
+    vi.useRealTimers();
   });
 
   it('Escape closes it when dismissible', () => {
