@@ -221,11 +221,24 @@ const CASES: Case[] = [
   },
   {
     row: 'cards-node',
+    file: 'packages/cards/src/templates/x.ts',
+    code: "import { readFile } from 'fs';",
+    fails: true,
+  },
+  {
+    row: 'cards-node',
     file: 'packages/cards/src/server/render-png.ts',
     code: "import 'node:fs';",
     fails: false,
   },
+  {
+    row: 'cards-node',
+    file: 'packages/cards/src/server/render-png.ts',
+    code: "import 'fs';",
+    fails: false,
+  },
   { row: 'rules', file: 'packages/rules/src/x.ts', code: "import 'node:fs';", fails: true },
+  { row: 'rules', file: 'packages/rules/src/x.ts', code: "import 'path';", fails: true },
   {
     row: 'rules',
     file: 'packages/rules/src/x.ts',
@@ -262,8 +275,26 @@ const CASES: Case[] = [
   },
   {
     row: 'mobile-node',
+    file: 'apps/mobile/src/lib/x.ts',
+    code: "import { join } from 'path';",
+    fails: true,
+  },
+  {
+    row: 'mobile-node',
+    file: 'apps/mobile/src/lib/x.ts',
+    code: "import { readFile } from 'fs/promises';",
+    fails: true,
+  },
+  {
+    row: 'mobile-node',
     file: 'apps/mobile/e2e/web/hello.spec.ts',
     code: "import 'node:path';",
+    fails: false,
+  },
+  {
+    row: 'mobile-node',
+    file: 'apps/mobile/e2e/web/hello.spec.ts',
+    code: "import 'path';",
     fails: false,
   },
   {

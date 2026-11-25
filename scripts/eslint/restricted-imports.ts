@@ -217,6 +217,10 @@ export const ROWS: readonly RestrictedRow[] = [
         regex: '^node:',
         message: 'Card code runs in the app too: no node: module outside the server folder.',
       },
+      {
+        regex: mod(...BARE_BUILTINS),
+        message: 'Card code runs in the app too: no Node built-in outside the server folder.',
+      },
     ],
   },
   {
@@ -230,6 +234,10 @@ export const ROWS: readonly RestrictedRow[] = [
       {
         regex: '^node:',
         message: '@citizenrun/rules is pure functions and data: no node: module.',
+      },
+      {
+        regex: mod(...BARE_BUILTINS),
+        message: '@citizenrun/rules is pure functions and data: no Node built-in.',
       },
     ],
   },
@@ -295,6 +303,10 @@ export const ROWS: readonly RestrictedRow[] = [
     ignores: ['apps/mobile/e2e/**', 'apps/mobile/*.config.*'],
     patterns: [
       { regex: '^node:', message: 'App code runs on phones and in browsers: no node: module.' },
+      {
+        regex: mod(...BARE_BUILTINS),
+        message: 'App code runs on phones and in browsers: no Node built-in.',
+      },
     ],
   },
   {
