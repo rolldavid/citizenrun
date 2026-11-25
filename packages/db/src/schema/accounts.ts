@@ -320,3 +320,35 @@ export const userIssues = pgTable(
 
 export type UserIssueRow = typeof userIssues.$inferSelect;
 export type NewUserIssueRow = typeof userIssues.$inferInsert;
+
+/** A user's export requests; the file is built by the worker (T-data_exports). */
+export const dataExports = pgTable(
+  'data_exports',
+  {
+    id: uuid('id').primaryKey(),
+    userId: uuid('user_id').notNull(),
+    status: text('status').notNull().default('queued'),
+    objectKey: text('object_key'),
+    readyAt: timestamp('ready_at', { withTimezone: true, mode: 'date' }),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'date' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [
+    foreignKey({
+      name: 'data_exports_user_id_fkey',
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete('cascade'),
+    check(
+      'data_exports_status_check',
+      sql`${table.status} in ('queued', 'ready', 'failed', 'expired')`,
+    ),
+    index('data_exports_user').on(table.userId, table.id.desc().nullsFirst()),
+    index('data_exports_ready')
+      .on(table.readyAt)
+      .where(sql`${table.status} = 'ready'`),
+  ],
+);
+
+export type DataExportRow = typeof dataExports.$inferSelect;
+export type NewDataExportRow = typeof dataExports.$inferInsert;

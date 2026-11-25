@@ -1,0 +1,239 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "c8d4607a-99d4-4638-b2de-276f7ac537b5",
+  "prevIds": [
+    "0e43298e-5ee0-4e1f-be2e-391f33952463"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "state_rules"
+      ],
+      "writes": [
+        "s|tbl|public.state_rules",
+        "n|tbl|public.state_rules",
+        "e|tbl|public.state_rules",
+        "n|rel|public.state_rules",
+        "n|type|public.state_rules",
+        "n|rel|public.state_rules_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "state_rules"
+      ],
+      "writes": [
+        "s|fk|public.state_rules.state_rules_updated_by_fkey",
+        "n|fk|public.state_rules.state_rules_updated_by_fkey",
+        "e|fk|public.state_rules.state_rules_updated_by_fkey",
+        "n|con|public.state_rules.state_rules_updated_by_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.state_rules",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.state_rules.updated_by",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "state_rules",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state",
+        "type": "char(2)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "signup",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'allow'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "age_method",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'store_signal_or_dob'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "candidate_tools",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "true",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "updated_by",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "updated_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state_rules_updated_by_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "updated_by"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state_rules_pkey",
+        "columns": [
+          "state"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state_rules_state_check",
+        "value": "\"state\" ~ '^[A-Z]{2}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state_rules_signup_check",
+        "value": "\"signup\" in ('allow', 'withhold')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "state_rules",
+        "name": "state_rules_age_method_check",
+        "value": "\"age_method\" in ('store_signal_required', 'store_signal_or_dob')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
