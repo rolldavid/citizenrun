@@ -89,6 +89,30 @@ const DETERMINISTIC = Buffer.alloc(32, 0xab);
 const ROLES_SQL = readFileSync(join(repoRoot(), 'packages', 'db', 'sql', 'roles.sql'), 'utf8');
 const PSQL = ['psql', '-U', 'citizenrun', '-d', 'citizenrun', '-v', 'ON_ERROR_STOP=1', '-X', '-q'];
 const SUCCESS = '[{"status":"SUCCESS","createdAt":"2026-11-01T00:00:00Z"}]';
+const SSH_POSTGRES = ['ssh', '--service', 'postgres', '--environment', 'staging', '--'];
+const SETTINGS_READ = [...SSH_POSTGRES, ...PSQL, '-A', '-t'];
+
+// The database's deployments around a redeploy: the old one alone before it and once after it
+// (the list lags the redeploy), then the new one building, then the new one up.
+function redeployedDatabase(): FakeRule[] {
+  const list = [
+    'deployment',
+    'list',
+    '--service',
+    'postgres',
+    '--environment',
+    'staging',
+    '--json',
+  ];
+  const old = { id: 'dep-old', status: 'SUCCESS', createdAt: '2026-11-01T00:00:00Z' };
+  const fresh = { id: 'dep-new', createdAt: '2026-11-02T00:00:00Z' };
+  return [
+    { args: list, stdout: JSON.stringify([old]), once: true },
+    { args: list, stdout: JSON.stringify([old]), once: true },
+    { args: list, stdout: JSON.stringify([{ ...fresh, status: 'BUILDING' }, old]), once: true },
+    { args: list, stdout: JSON.stringify([{ ...fresh, status: 'SUCCESS' }, old]) },
+  ];
+}
 const ALL_KEYS_LISTED: Partial<Record<Service, Record<string, string | null>>> = {
   postgres: {
     POSTGRES_PASSWORD: null,
@@ -534,6 +558,20 @@ describe('the inputs file', () => {
     } catch (error) {
       expect(error instanceof Error ? error.message : '@').not.toContain('@');
     }
+    // A swapped line and a wrapped value: the text before `=` is not shaped like a key.
+    for (const text of [
+      `${RESEND_KEY}=RESEND_API_KEY`,
+      `RESEND_API_KEY=${RESEND_KEY}\nZmFrZS1rZXktdGFpbA=`,
+    ]) {
+      expect(() => parseInputsFile(text)).toThrow(/^inputs file line \d+ has an unknown key$/);
+      try {
+        parseInputsFile(text);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : RESEND_KEY;
+        expect(message).not.toContain(RESEND_KEY);
+        expect(message).not.toContain('ZmFrZS1rZXktdGFpbA');
+      }
+    }
   });
 
   it('the review sign-in pair comes together with a six-digit code', () => {
@@ -640,6 +678,17 @@ describe('preflight', { timeout: 30_000 }, () => {
     expect(dry.code).toBe(0);
   });
 
+  it('a failing whoami with a token set says the token may be workspace-scoped', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'preflight'], {
+      railway: [{ args: ['whoami'], stderr: 'Unauthorized\n', exitCode: 1 }],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(
+      'preflight fail railway whoami: exit 1 (OI-railway); RAILWAY_API_TOKEN may be a workspace or project token: use an account token created with "No workspace"',
+    );
+    expect(result.output).not.toContain(WORKSPACE_TOKEN);
+  });
+
   it('usage errors exit 2', async () => {
     for (const argv of [
       [],
@@ -669,6 +718,52 @@ describe('environment', { timeout: 30_000 }, () => {
     expect(result.calls.some((call) => call.args[0] === 'link' || call.args[0] === 'config')).toBe(
       false,
     );
+  });
+
+  it('the first run passes RAILWAY_WORKSPACE to init as --workspace', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      inputs: { RAILWAY_PROJECT_ID: null, RAILWAY_WORKSPACE: 'fixture-workspace' },
+      railway: [
+        {
+          args: ['init', '--name', BRAND.slug, '--workspace', 'fixture-workspace', '--json'],
+          stdout: JSON.stringify({ id: NEW_PROJECT_ID, name: BRAND.slug }),
+        },
+      ],
+    });
+    expect(result.code).toBe(0);
+    expect(result.calls.map(joined)).toContain(
+      `railway init --name ${BRAND.slug} --workspace fixture-workspace --json`,
+    );
+    expect(result.output).toContain(`RAILWAY_PROJECT_ID=${NEW_PROJECT_ID}`);
+  });
+
+  it('init refused for want of a workspace names RAILWAY_WORKSPACE', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      inputs: { RAILWAY_PROJECT_ID: null },
+      railway: [
+        {
+          args: ['init', '--name', BRAND.slug, '--json'],
+          stderr: '--workspace required in non-interactive mode (multiple workspaces available)\n',
+          exitCode: 1,
+        },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(
+      'environment fail railway init: exit 1: the account has more than one workspace; set RAILWAY_WORKSPACE in the inputs file',
+    );
+  });
+
+  it('a dry run says the environment was not created', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'environment', '--dry-run'], {
+      environments: '[{"name":"production","serviceInstances":[]}]',
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('environment ok dry-run: staging not created');
+    expect(result.lines).toContain(
+      'environment ok dry-run: the empty default environment production not deleted',
+    );
+    expect(result.lines).not.toContain('environment ok created staging');
   });
 
   it('no environment is created without the four required inputs', async () => {
@@ -1051,6 +1146,35 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
     expect(result.output).not.toContain(RESEND_KEY);
   });
 
+  it('a later seal run compares with the generated-secrets file and checks what it cannot compare', async () => {
+    const home = await tempFolder('bootstrap-home-');
+    await mkdir(join(home, '.config', BRAND.slug), { recursive: true });
+    await writeFile(
+      secretsFile(home),
+      JSON.stringify({ POSTGRES_PASSWORD: 'fixture-pg-password' }),
+    );
+    const result = await runCase(['--env', 'staging', '--only', 'seal'], {
+      home,
+      lists: {
+        postgres: {
+          ...(ALL_KEYS_LISTED.postgres ?? {}),
+          POSTGRES_PASSWORD: 'fixture-pg-password',
+          API_DB_PASSWORD: 'fixture-unknown-value',
+        },
+        api: { APP_SECRET: null },
+        worker: { APP_SECRET: null },
+        admin: { APP_SECRET: null },
+      },
+      prompt: () => Promise.resolve('y'),
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('seal owner-check seal postgres/POSTGRES_PASSWORD');
+    expect(result.lines).toContain('seal owner-check seal postgres/API_DB_PASSWORD');
+    expect(result.lines).toContain('seal ok sealed postgres/WORKER_DB_PASSWORD');
+    expect(result.output).not.toContain('fixture-pg-password');
+    expect(result.output).not.toContain('fixture-unknown-value');
+  });
+
   it('a missing optional key skips its step with its owner-input id', async () => {
     const result = await runCase(['--env', 'staging', '--only', 'owner-values'], {
       inputs: { BACKUP_PUBLIC_KEY_FILE: null },
@@ -1168,20 +1292,8 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
       ['--env', 'staging', '--only', 'database', '--db-service', 'postgres'],
       {
         railway: [
-          {
-            args: [
-              'ssh',
-              '--service',
-              'postgres',
-              '--environment',
-              'staging',
-              '--',
-              ...PSQL,
-              '-A',
-              '-t',
-            ],
-            stdout: `128MB|100|POSTGIS="3.7.0"\n`,
-          },
+          ...redeployedDatabase(),
+          { args: SETTINGS_READ, stdout: `128MB|100|POSTGIS="3.7.0"\n` },
         ],
       },
     );
@@ -1192,6 +1304,48 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
     expect(result.output).toContain(
       'database fail shared_buffers is 128MB after the redeploy, not 512MB',
     );
+  });
+
+  it('after the redeploy the settings are read only once the new deployment is up', async () => {
+    const result = await runCase(
+      ['--env', 'staging', '--only', 'database', '--db-service', 'postgres'],
+      {
+        railway: [
+          ...redeployedDatabase(),
+          // The instance still being replaced answers 128MB; the new one answers 512MB.
+          { args: SETTINGS_READ, stdout: `128MB|100|POSTGIS="3.7.0"\n`, once: true },
+        ],
+      },
+    );
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('database ok shared_buffers 512MB');
+    const calls = result.calls.map(joined);
+    const redeployAt = calls.indexOf(
+      'railway redeploy --service postgres --environment staging --yes',
+    );
+    const after = calls.slice(redeployAt + 1);
+    const deploymentList =
+      'railway deployment list --service postgres --environment staging --json';
+    expect(after.slice(0, 3)).toEqual([deploymentList, deploymentList, deploymentList]);
+    expect(after[3]).toMatch(/ pg_isready /);
+    expect(after[4]).toMatch(/ -A -t$/);
+  });
+
+  it('a missing SSH key stops the database step at once and names it', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'database'], {
+      railway: [
+        {
+          args: [...SSH_POSTGRES, 'pg_isready', '-U', 'citizenrun', '-d', 'citizenrun'],
+          stderr: 'No registered SSH keys found. Register one with: railway ssh keys add\n',
+          exitCode: 1,
+        },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(
+      'database fail railway ssh has no registered SSH key: run pnpm exec railway ssh keys add in your terminal (RB-infra)',
+    );
+    expect(result.calls.filter((call) => call.args.includes('pg_isready'))).toHaveLength(1);
   });
 });
 

@@ -10,6 +10,8 @@ export type FakeRule = {
   readonly stderr?: string;
   readonly exitCode?: number;
   readonly captureStdin?: boolean;
+  /** The rule answers one call only; the next matching call goes to a later rule. */
+  readonly once?: boolean;
 };
 
 /** One recorded call. `stdin` is present only when the matching rule asked to capture it. */
@@ -33,7 +35,7 @@ type StoredPattern = string | { re: string; flags: string };
 
 // The shim records arguments and standard-input byte counts, never an environment value
 // (TEST-fake-cli). It reads standard input to its end whenever standard input is not a terminal.
-const SHIM = `import { appendFileSync, readFileSync } from 'node:fs';
+const SHIM = `import { appendFileSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -60,11 +62,18 @@ async function readStdin() {
   return Buffer.concat(chunks);
 }
 
-const rule = rules.find(
-  (candidate) =>
+const usedFile = join(folder, 'used-' + tool + '.json');
+const used = existsSync(usedFile) ? JSON.parse(readFileSync(usedFile, 'utf8')) : [];
+const ruleIndex = rules.findIndex(
+  (candidate, index) =>
+    !used.includes(index) &&
     candidate.args.length === args.length &&
-    candidate.args.every((pattern, index) => matches(pattern, args[index])),
+    candidate.args.every((pattern, position) => matches(pattern, args[position])),
 );
+const rule = ruleIndex === -1 ? undefined : rules[ruleIndex];
+if (rule !== undefined && rule.once === true) {
+  writeFileSync(usedFile, JSON.stringify([...used, ruleIndex]));
+}
 const stdin = await readStdin();
 const exitCode = rule === undefined ? 97 : (rule.exitCode ?? 0);
 const call = { tool, args, exitCode, matched: rule !== undefined, stdinBytes: stdin.length };

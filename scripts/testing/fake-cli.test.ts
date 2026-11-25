@@ -52,6 +52,21 @@ describe('createFakeCli', () => {
     expect(result).toEqual({ code: 0, stdout: 'fixture-user', stderr: '' });
   });
 
+  it('a rule marked once answers one call and the next goes to a later rule', async () => {
+    const fake = await fakeWith({
+      railway: [
+        { args: ['whoami'], stdout: 'first', once: true },
+        { args: ['whoami'], stdout: 'second', once: true },
+        { args: ['whoami'], stdout: 'after' },
+      ],
+    });
+    const answers: string[] = [];
+    for (let call = 0; call < 4; call += 1) {
+      answers.push((await runTool(fake, 'railway', ['whoami'])).stdout);
+    }
+    expect(answers).toEqual(['first', 'second', 'after', 'after']);
+  });
+
   it('an unscripted command exits 97 and is recorded unmatched', async () => {
     const fake = await fakeWith({ railway: [{ args: ['whoami'], stdout: 'fixture-user' }] });
     const result = await runTool(fake, 'gh', ['auth', 'status']);

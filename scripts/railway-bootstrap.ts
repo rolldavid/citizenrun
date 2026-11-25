@@ -164,6 +164,7 @@ export function parseBootstrapArgs(argv: readonly string[]): BootstrapArgs {
 /** Every key of the inputs file, its owner input and whether this version writes it anywhere. */
 export const INPUT_KEYS = {
   RAILWAY_PROJECT_ID: { ownerInput: 'OI-railway', setByThisVersion: true },
+  RAILWAY_WORKSPACE: { ownerInput: 'OI-railway', setByThisVersion: true },
   MAIL_HOST: { ownerInput: 'OI-domain', setByThisVersion: true },
   ADMIN_EMAILS: { ownerInput: 'OI-admin-emails', setByThisVersion: true },
   RESEND_API_KEY: { ownerInput: 'OI-resend', setByThisVersion: true },
@@ -194,6 +195,7 @@ function isInputKey(value: string): value is InputKey {
   return Object.hasOwn(INPUT_KEYS, value);
 }
 
+const PRINTABLE_KEY = /^[A-Z][A-Z0-9_]{0,63}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const LABEL = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?';
 const HOST = new RegExp(`^(?=.{1,253}$)${LABEL}(?:\\.${LABEL})+$`);
@@ -220,6 +222,8 @@ const REVIEW_PAIR_MESSAGE = 'REVIEW_SIGNIN_EMAILS and REVIEW_SIGNIN_CODE must be
 export const InputsFileSchema = z
   .strictObject({
     RAILWAY_PROJECT_ID: z.string().regex(UUID).optional(),
+    // The workspace's id or name, passed to `railway init --workspace` (D-831).
+    RAILWAY_WORKSPACE: oneLine.optional(),
     MAIL_HOST: z.string().regex(HOST).optional(),
     ADMIN_EMAILS: z
       .string()
@@ -293,7 +297,12 @@ export function parseInputsFile(text: string): Inputs {
     }
     const key = match[1] ?? '';
     if (!isInputKey(key)) {
-      throw new InputsFileError(`inputs file: unknown key ${key}`);
+      // Only a name shaped like a key is printed: a wrapped or swapped line could hold a value.
+      throw new InputsFileError(
+        PRINTABLE_KEY.test(key)
+          ? `inputs file: unknown key ${key}`
+          : `inputs file line ${String(index + 1)} has an unknown key`,
+      );
     }
     if (Object.hasOwn(values, key)) {
       throw new InputsFileError(`inputs file: ${key} is given twice`);
@@ -679,7 +688,7 @@ async function setVariable(
   return true;
 }
 
-type Deployment = { status: string; createdAt: string | null };
+type Deployment = { status: string; id: string | null; createdAt: string | null };
 
 async function readDeployments(
   ctx: Ctx,
@@ -706,6 +715,7 @@ async function readDeployments(
   }
   return list.map((item) => ({
     status: item.status.toUpperCase(),
+    id: item.id ?? null,
     createdAt: item.createdAt ?? null,
   }));
 }
@@ -721,6 +731,17 @@ function newest(list: readonly Deployment[]): Deployment | null {
     );
   }
   return list[0] ?? null;
+}
+
+// A deployment made after `than`: a later `createdAt`, else another id; with neither, assumed so.
+function isNewer(deployment: Deployment, than: Deployment): boolean {
+  if (deployment.createdAt !== null && than.createdAt !== null) {
+    return deployment.createdAt > than.createdAt;
+  }
+  if (deployment.id !== null && than.id !== null) {
+    return deployment.id !== than.id;
+  }
+  return true;
 }
 
 function secretsFilePath(ctx: Ctx): string {
@@ -775,7 +796,12 @@ async function preflight(ctx: Ctx): Promise<boolean> {
   }
   const whoami = await cli(ctx, 'railway', ['whoami'], { mutating: false });
   if (whoami.code !== 0) {
-    out.line('fail', `railway whoami: exit ${String(whoami.code)} (OI-railway)`);
+    // A workspace or project token cannot run the CLI's `me` query (D-831).
+    const hint =
+      env.RAILWAY_API_TOKEN === undefined
+        ? ''
+        : '; RAILWAY_API_TOKEN may be a workspace or project token: use an account token created with "No workspace"';
+    out.line('fail', `railway whoami: exit ${String(whoami.code)} (OI-railway)${hint}`);
   }
   const gh = await cli(ctx, 'gh', ['auth', 'status'], { mutating: false });
   if (gh.code !== 0) {
@@ -938,9 +964,19 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
   const env = ctx.args.env;
   const projectId = ctx.inputs.RAILWAY_PROJECT_ID;
   if (projectId === undefined) {
-    const init = await cli(ctx, 'railway', ['init', '--name', BRAND.slug, '--json'], {
-      mutating: true,
-    });
+    const workspace = ctx.inputs.RAILWAY_WORKSPACE;
+    const init = await cli(
+      ctx,
+      'railway',
+      [
+        'init',
+        '--name',
+        BRAND.slug,
+        ...(workspace === undefined ? [] : ['--workspace', workspace]),
+        '--json',
+      ],
+      { mutating: true },
+    );
     if (ctx.args.dryRun) {
       out.line(
         'ok',
@@ -950,7 +986,11 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
       return;
     }
     if (init.code !== 0) {
-      out.line('fail', `railway init: exit ${String(init.code)}`);
+      const hint =
+        workspace === undefined && /--workspace/.test(init.stderr)
+          ? ': the account has more than one workspace; set RAILWAY_WORKSPACE in the inputs file'
+          : '';
+      out.line('fail', `railway init: exit ${String(init.code)}${hint}`);
       return;
     }
     const created = parseJson(ProjectCreated, init.stdout);
@@ -1008,7 +1048,7 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
     out.line('fail', `environment new ${env}: exit ${String(created.code)}`);
     return;
   }
-  out.line('ok', `created ${env}`);
+  out.line('ok', ctx.args.dryRun ? `dry-run: ${env} not created` : `created ${env}`);
   if (env !== 'staging') {
     return;
   }
@@ -1032,7 +1072,12 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
     out.line('fail', `environment delete production: exit ${String(deleted.code)}`);
     return;
   }
-  out.line('ok', 'deleted the empty default environment production');
+  out.line(
+    'ok',
+    ctx.args.dryRun
+      ? 'dry-run: the empty default environment production not deleted'
+      : 'deleted the empty default environment production',
+  );
   return;
 }
 
@@ -1150,7 +1195,7 @@ function knownValue(ctx: Ctx, service: string, key: string): string | null {
   if (key === 'RESEND_API_KEY') {
     return ctx.inputs.RESEND_API_KEY ?? null;
   }
-  return ctx.generated.get(key) ?? null;
+  return ctx.generated.get(key) ?? readSecretsFile(ctx)[key] ?? null;
 }
 
 async function stepSeal(ctx: Ctx, out: StepPrinter): Promise<void> {
@@ -1196,7 +1241,9 @@ async function stepSeal(ctx: Ctx, out: StepPrinter): Promise<void> {
   for (const row of rows) {
     const shown = after.get(row.service)?.get(row.key) ?? null;
     const known = knownValue(ctx, row.service, row.key);
-    if (shown !== null && known !== null && shown === known) {
+    // A value still returned is sealed only when it differs from the one known; with nothing to
+    // compare it with, the owner checks it (D-831).
+    if (shown !== null && (known === null || shown === known)) {
       out.line('owner-check', `seal ${row.service}/${row.key}`);
     } else {
       out.line('ok', `sealed ${row.service}/${row.key}`);
@@ -1301,12 +1348,22 @@ function sshArgs(ctx: Ctx, command: readonly string[]): string[] {
   return ['ssh', '--service', ctx.args.dbService, '--environment', ctx.args.env, '--', ...command];
 }
 
+// `railway ssh` at 5.74.0 names this command when no SSH key of the account is registered.
+const SSH_KEY_MISSING = /ssh keys add/i;
+
 async function waitForDatabase(ctx: Ctx, out: StepPrinter): Promise<boolean> {
   const args = sshArgs(ctx, ['pg_isready', '-U', 'citizenrun', '-d', 'citizenrun']);
   for (let attempt = 1; attempt <= 30; attempt += 1) {
     const result = await cli(ctx, 'railway', args, { mutating: true });
     if (result.code === 0) {
       return true;
+    }
+    if (SSH_KEY_MISSING.test(result.stderr)) {
+      out.line(
+        'fail',
+        'railway ssh has no registered SSH key: run pnpm exec railway ssh keys add in your terminal (RB-infra)',
+      );
+      return false;
     }
     if (attempt < 30) {
       await ctx.sleep(10_000);
@@ -1375,6 +1432,11 @@ async function stepDatabase(ctx: Ctx, out: StepPrinter): Promise<void> {
     return;
   }
   if (settings.sharedBuffers !== '512MB') {
+    const before = await readDeployments(ctx, ctx.args.dbService);
+    if (before === null) {
+      out.line('fail', `deployment list --service ${ctx.args.dbService}: unexpected output`);
+      return;
+    }
     const redeploy = await cli(
       ctx,
       'railway',
@@ -1383,6 +1445,10 @@ async function stepDatabase(ctx: Ctx, out: StepPrinter): Promise<void> {
     );
     if (redeploy.code !== 0) {
       out.line('fail', `redeploy ${ctx.args.dbService}: exit ${String(redeploy.code)}`);
+      return;
+    }
+    // The redeploy returns before the new instance runs; the old one may still answer (D-831).
+    if (!(await waitForDeployment(ctx, out, ctx.args.dbService, newest(before)))) {
       return;
     }
     if (!(await waitForDatabase(ctx, out))) {
@@ -1665,10 +1731,20 @@ async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
 
 const FAILED_STATES = new Set(['FAILED', 'CRASHED', 'REMOVED']);
 
-async function waitForDeployment(ctx: Ctx, out: StepPrinter, service: string): Promise<boolean> {
+/**
+ * Polls until the service's newest deployment is SUCCESS; with `after`, only a deployment newer
+ * than that one counts, so a redeploy is not taken for done while the old deployment is listed.
+ */
+async function waitForDeployment(
+  ctx: Ctx,
+  out: StepPrinter,
+  service: string,
+  after: Deployment | null = null,
+): Promise<boolean> {
   for (let attempt = 1; attempt <= 90; attempt += 1) {
     const list = await readDeployments(ctx, service);
-    const latest = list === null ? null : newest(list);
+    const found = list === null ? null : newest(list);
+    const latest = found !== null && after !== null && !isNewer(found, after) ? null : found;
     if (latest?.status === 'SUCCESS') {
       return true;
     }
