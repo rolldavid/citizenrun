@@ -110,8 +110,9 @@ async function waitForListSpike(page: Page): Promise<void> {
 }
 
 export const SCREENS: ScreenEntry[] = [
-  // The whole gallery is taller on a phone than one capture takes, so it is captured whole at the
-  // two wide viewports only; on the two phones its section entries are the record.
+  // The whole gallery, at either text size, is taller on a phone than one capture takes, so it is
+  // captured whole at the two wide viewports only; on the two phones its section entries are the
+  // record.
   {
     id: 'dev-gallery',
     path: '/dev/gallery',
@@ -123,6 +124,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'dev-gallery-text-130',
     path: '/dev/gallery?textScale=1.3',
     auth: 'none',
+    viewports: ['820x1180', '1440x900'],
     prepare: waitForGallery,
   },
   // The gallery grows with every component, so the design review captures it one section at a

@@ -581,9 +581,11 @@ describe('the real tree', () => {
     expect(badViewportLists(lists, viewports)).toEqual([]);
   });
 
-  it('the whole gallery is captured at the two wide viewports only', () => {
-    expect(viewportLists(source).filter((list) => list.id === 'dev-gallery')).toEqual([
+  it('the whole gallery, at either text size, is captured at the two wide viewports only', () => {
+    const whole = ['dev-gallery', 'dev-gallery-text-130'];
+    expect(viewportLists(source).filter((list) => whole.includes(list.id))).toEqual([
       { id: 'dev-gallery', viewports: ['820x1180', '1440x900'] },
+      { id: 'dev-gallery-text-130', viewports: ['820x1180', '1440x900'] },
     ]);
   });
 
