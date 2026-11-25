@@ -76,6 +76,26 @@ export function ListSpikeScreen({ rows }: ListSpikeScreenProps): JSX.Element {
   return (
     <Screen width="full" scroll={false} appBar={null} testID="dev.list-spike">
       <head.Title>List spike</head.Title>
+      <ListSpikeBody items={items} caption={caption} />
+    </Screen>
+  );
+}
+
+/**
+ * The heading and the list. The frame keeps a gutter at each side for the heading; the list leaves
+ * the frame's gutters, because its rows and rules keep the gutter themselves, so a row starts
+ * where the heading does.
+ */
+function ListSpikeBody({
+  items,
+  caption,
+}: {
+  items: readonly ListSpikeItem[];
+  caption: string;
+}): JSX.Element {
+  const layout = useBreakpoint();
+  return (
+    <>
       <View style={HEADER}>
         <Text role="heading" heading={1}>
           List spike
@@ -84,7 +104,7 @@ export function ListSpikeScreen({ rows }: ListSpikeScreenProps): JSX.Element {
           {caption}
         </Text>
       </View>
-      <View style={LIST_BOX}>
+      <View style={[LIST_BOX, { marginHorizontal: -layout.gutter }]}>
         <List
           items={items}
           keyOf={keyOf}
@@ -95,6 +115,6 @@ export function ListSpikeScreen({ rows }: ListSpikeScreenProps): JSX.Element {
           testID="dev.list-spike-list"
         />
       </View>
-    </Screen>
+    </>
   );
 }
