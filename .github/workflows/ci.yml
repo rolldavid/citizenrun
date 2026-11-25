@@ -192,7 +192,8 @@ jobs:
             citizenrun-backup:ci
           key="$(aws s3api list-objects-v2 --bucket ci-backups --prefix pg/ --query "Contents[?ends_with(Key, '.dump.enc')].Key | [0]" --output text)"
           aws s3 cp "s3://ci-backups/$key" backup.dump.enc
-          pnpm --filter @citizenrun/worker exec tsx src/backup/decrypt.ts --in "$PWD/backup.dump.enc" --out "$PWD/backup.dump" --key "$PWD/key.pem"
+          # This step runs in a folder outside the workspace, so pnpm is pointed back at it.
+          pnpm --dir "$GITHUB_WORKSPACE" --filter @citizenrun/worker exec tsx src/backup/decrypt.ts --in "$PWD/backup.dump.enc" --out "$PWD/backup.dump" --key "$PWD/key.pem"
           docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/data" citizenrun-backup:ci pg_restore --list /data/backup.dump > list.txt
           grep -q ' TABLE DATA ' list.txt
 
@@ -227,6 +228,9 @@ jobs:
           path: apps/mobile/dist
       - run: pnpm build:api
       - run: pnpm build:worker
+      # scripts/e2e-stack.ts drops and creates the stack's database with psql, which the Playwright
+      # image lacks (as docker/e2e.Dockerfile installs it for the local job).
+      - run: apt-get update && apt-get install -y --no-install-recommends postgresql-client
       - run: pnpm e2e:web
       - if: always()
         run: pnpm exec tsx scripts/flake-report.ts --report apps/mobile/test-results/results.json
