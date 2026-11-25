@@ -46,14 +46,24 @@ function envOf(step: YamlMap): YamlMap {
 }
 
 describe('railway-config workflow', () => {
-  it('uses the railwayapp/config action only to apply, never to plan, and never destructively', () => {
-    const actionSteps = allSteps().filter((step) => usesAction(step, 'railwayapp/config'));
-    expect(actionSteps.length).toBeGreaterThan(0);
-    for (const step of actionSteps) {
-      const inputs = withInputs(step);
-      expect(inputs.command).not.toBe('plan');
-      expect(inputs.command).toBe('apply');
-      expect(inputs['confirm-destructive']).toBe('false');
+  it('applies the reviewed plan with the pinned CLI and hands no token to an action', () => {
+    expect(allSteps().filter((step) => usesAction(step, 'railwayapp/config'))).toEqual([]);
+    const steps = jobSteps(asMap(workflow().jobs, 'jobs')['apply-staging']);
+    const download = steps.findIndex((step) => step.name === 'Download the reviewed plan');
+    const apply = steps.findIndex(
+      (step) => step.run === 'pnpm exec railway config apply --plan railway-plan.json --yes',
+    );
+    expect(download).toBeGreaterThan(-1);
+    expect(apply).toBeGreaterThan(download);
+    expect(envOf(steps[apply] ?? {}).RAILWAY_TOKEN).toMatch(
+      /^\$\{\{\s*secrets\.RAILWAY_TOKEN_STAGING\s*\}\}$/,
+    );
+    expect(String(steps[download]?.run)).toContain('railway-plan-staging');
+    // A step that is given a secret runs a command of this repository, never an action.
+    for (const step of allSteps()) {
+      if (JSON.stringify({ with: step.with, env: step.env }).includes('secrets.')) {
+        expect(step.uses, String(step.name)).toBeUndefined();
+      }
     }
   });
 

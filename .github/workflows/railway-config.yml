@@ -35,7 +35,7 @@ jobs:
         run: |
           set -o pipefail
           pnpm exec railway config plan --out railway-plan.json | tee "$RUNNER_TEMP/railway-plan.txt"
-      # The apply job's action downloads the newest artifact of this name planned on the pull request's head.
+      # The apply job downloads the newest artifact of this name planned on the pull request's head.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: railway-plan-staging
@@ -78,14 +78,32 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
-      - uses: railwayapp/config@9e17d413dbe219f19d62538d9c06b5dbb5e9abf8 # v1.2.0
-        with:
-          command: apply
-          railway-token: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
-          cli-version: '5.74.0'
-          artifact-name: railway-plan-staging
-          # The action's own default is true; a plan that deletes or replaces fails here instead.
-          confirm-destructive: 'false'
+      # The plan reviewed on the merged pull request's head, fetched with gh, and applied with the
+      # lockfile's CLI: no third-party action holds the token. Without --confirm-destructive the
+      # CLI refuses a plan that deletes or replaces.
+      - name: Download the reviewed plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
+            --jq '[.[] | select(.merged_at != null)] | first | .head.sha // empty')"
+          if [ -z "$head_sha" ]; then
+            echo "no merged pull request holds $GITHUB_SHA, so there is no reviewed plan to apply" >&2
+            exit 1
+          fi
+          artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=railway-plan-staging&per_page=100" \
+            --jq "[.artifacts[] | select(.workflow_run.head_sha == \"$head_sha\" and .expired == false)] | sort_by(.created_at) | last | .id // empty")"
+          if [ -z "$artifact_id" ]; then
+            echo "no railway-plan-staging artifact was planned on $head_sha; re-plan the pull request" >&2
+            exit 1
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/railway-plan.zip"
+          unzip -o "$RUNNER_TEMP/railway-plan.zip" railway-plan.json
+      - name: Apply the reviewed plan
+        env:
+          RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
+        run: pnpm exec railway config apply --plan railway-plan.json --yes
 
   dispatch:
     if: github.event_name == 'workflow_dispatch'
