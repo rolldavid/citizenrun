@@ -1,4 +1,4 @@
-import { assertNever } from '@citizenrun/shared';
+import { assertNever, typeRoles } from '@citizenrun/shared';
 import { useRef } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,12 +13,11 @@ import { EmptyState } from '@/ui/components/empty-state';
 import { Rule } from '@/ui/components/rule';
 import { Screen } from '@/ui/components/screen';
 import type { ScreenProps } from '@/ui/components/screen';
-import { Skeleton } from '@/ui/components/skeleton';
+import { SKELETON_TEXT_BAR, Skeleton } from '@/ui/components/skeleton';
 import { Text } from '@/ui/components/text';
 import { useFocusOnMount } from '@/ui/focus';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { size, space } from '@/ui/tokens';
-import { typography } from '@/ui/typography';
 
 type HelloReady = Extract<HelloViewModel, { status: 'ready' }>;
 
@@ -47,7 +46,15 @@ const ROW: ViewStyle = {
 };
 const CELL: ViewStyle = { flexShrink: 1, maxWidth: '100%' };
 const ACTION: ViewStyle = { marginTop: space.x6 };
-const SKELETON_ROW: ViewStyle = { minHeight: size.listRowMin, justifyContent: 'center' };
+// The title's bars: each a line of the title less the room between two lines.
+const TITLE_BARS: ViewStyle = { paddingVertical: space.x1, gap: space.x2 };
+const TITLE_WIDE: ViewStyle = { width: '80%' };
+// The last line of a title stops short, as a last line does.
+const TITLE_LAST: ViewStyle = { width: '60%' };
+const LABEL_BAR = size.target * 2;
+const VALUE_BAR = size.target + space.x4;
+// The button with its English label.
+const BUTTON_BLOCK = size.button * 3 - space.x3;
 
 /** One check: what was asked, and what answered. */
 function StatusRow({
@@ -145,38 +152,83 @@ function Ready({ vm }: { vm: HelloReady }): JSX.Element {
   );
 }
 
+/** Out of a screen reader's way: the blocks after the first, which say nothing new. */
+function Quiet({ children, style }: { children: ReactNode; style?: ViewStyle }): JSX.Element {
+  return (
+    <View
+      style={style}
+      aria-hidden={true}
+      accessibilityElementsHidden={true}
+      importantForAccessibility="no-hide-descendants"
+    >
+      {children}
+    </View>
+  );
+}
+
+/** One check that has not answered: a bar where its label stands and a bar where its value does. */
+function SkeletonRow(): JSX.Element {
+  return (
+    <View style={ROW}>
+      <Skeleton shape="block" width={LABEL_BAR} height={SKELETON_TEXT_BAR} />
+      <Skeleton shape="block" width={VALUE_BAR} height={SKELETON_TEXT_BAR} />
+    </View>
+  );
+}
+
 /**
- * The ready screen as flat blocks. The first block is the one progress bar a screen reader meets;
- * the others pulse with it and stay out of its way, so "Loading" is said once.
+ * The ready screen as flat blocks, each in the box its text stands in, so nothing moves when the
+ * answer comes: the title on as many lines as it takes, the intro, the group's rule and heading,
+ * the three checks with a bar at each end, and the button. The rules are the ready screen's own.
+ * The first block is the one progress bar a screen reader meets; the others pulse with it and stay
+ * out of its way, so "Loading" is said once.
  */
 function Loading(): JSX.Element {
-  const titleHeight = typography.display.style.lineHeight;
+  const layout = useBreakpoint();
+  const compact = layout.breakpoint === 'compact';
+  const titleLine = typeRoles[layout.isTight ? 'title' : 'display'].lineHeight;
+  const titleBar = titleLine - space.x2;
+  // The title breaks once at compact and stands on one line of a wider column.
+  const introLines = compact ? 2 : 1;
   return (
     <>
-      <Skeleton shape="block" {...(titleHeight === undefined ? {} : { height: titleHeight })} />
-      <View
-        aria-hidden={true}
-        accessibilityElementsHidden={true}
-        importantForAccessibility="no-hide-descendants"
-      >
-        <View style={INTRO}>
-          <Skeleton shape="line" />
+      <View style={[TITLE_BARS, compact ? null : TITLE_WIDE]}>
+        <Skeleton shape="block" height={titleBar} />
+        {compact ? (
+          <Quiet style={TITLE_LAST}>
+            <Skeleton shape="block" height={titleBar} />
+          </Quiet>
+        ) : null}
+      </View>
+      <Quiet>
+        <View
+          style={[
+            INTRO,
+            { minHeight: typeRoles.body.lineHeight * introLines, justifyContent: 'center' },
+          ]}
+        >
+          <Skeleton shape="line" lines={introLines} />
         </View>
         <View style={STATUS}>
-          <View style={SKELETON_ROW}>
-            <Skeleton shape="line" />
+          <Rule variant="strong" />
+          <View
+            style={[
+              STATUS_HEADING,
+              { minHeight: typeRoles.monoLabel.lineHeight, justifyContent: 'center' },
+            ]}
+          >
+            <Skeleton shape="block" width={size.target} height={space.x3} />
           </View>
-          <View style={SKELETON_ROW}>
-            <Skeleton shape="line" />
-          </View>
-          <View style={SKELETON_ROW}>
-            <Skeleton shape="line" />
-          </View>
+          <SkeletonRow />
+          <Rule variant="soft" />
+          <SkeletonRow />
+          <Rule variant="soft" />
+          <SkeletonRow />
         </View>
         <View style={ACTION}>
-          <Skeleton shape="block" height={size.button} width={size.button * 3} />
+          <Skeleton shape="block" height={size.button} width={BUTTON_BLOCK} />
         </View>
-      </View>
+      </Quiet>
     </>
   );
 }

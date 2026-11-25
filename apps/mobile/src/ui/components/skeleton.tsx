@@ -22,6 +22,8 @@ export type SkeletonProps = {
 /** A text bar is this share of the line of text it stands for. */
 const LINE_SHARE = 0.6;
 const LINE_HEIGHT = typeRoles.body.lineHeight * LINE_SHARE;
+/** The height of one text bar: what a `block` takes to stand for a few words of `body` text. */
+export const SKELETON_TEXT_BAR = LINE_HEIGHT;
 /** The last bar of a paragraph stops short, as a last line does. */
 const LAST_LINE = '60%';
 /** The two short bars beside a card's avatar: a name and a line under it. */

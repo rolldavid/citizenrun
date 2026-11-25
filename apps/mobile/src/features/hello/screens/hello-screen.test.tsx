@@ -263,11 +263,61 @@ describe('HelloScreenView', () => {
     expect(bars[0]?.getAttribute('aria-busy')).toBe('true');
     // The other blocks pulse with it, out of a screen reader's way.
     const drawn = [...root.querySelectorAll('[role="progressbar"]')];
-    expect(drawn).toHaveLength(6);
+    expect(drawn).toHaveLength(11);
     expect(drawn.filter((block) => block.closest('[aria-hidden="true"]') === null)).toEqual(bars);
     expect(titles()).toEqual([]);
     expect(screen.queryByTestId('hello.refresh')).toBeNull();
     expect(root.textContent).toBe('');
+  });
+
+  it('the loading skeleton has the shape of the ready screen', () => {
+    /** The rules of the drawn screen, by color: the group's strong rule, then the soft ones. */
+    const rules = (root: HTMLElement): string[] =>
+      [...root.querySelectorAll<HTMLElement>('[aria-hidden="true"]')]
+        .filter((element) => element.style.height === '1px' && element.children.length === 0)
+        .map((element) => element.style.backgroundColor);
+    /** The rows of checks: what stands between the rules, with something at each end. */
+    const rows = (root: HTMLElement): HTMLElement[] =>
+      [...root.querySelectorAll<HTMLElement>('[style*="min-height: 56px"]')].filter(
+        (element) => element.style.justifyContent === 'space-between',
+      );
+    for (const viewport of [NARROW, COMPACT, MEDIUM, EXPANDED]) {
+      sized(viewport);
+      const ready = draw(fixtures.helloReady);
+      const readyRules = rules(ready);
+      const readyRows = rows(ready).map((row) => row.getAttribute('style'));
+      expect(readyRules, String(viewport[0])).toHaveLength(3);
+      expect(readyRows, String(viewport[0])).toHaveLength(3);
+
+      const loading = draw(fixtures.helloLoading);
+      // The same rules in the same order, and the same three rows in the same boxes.
+      expect(rules(loading), String(viewport[0])).toEqual(readyRules);
+      const loadingRows = rows(loading);
+      expect(
+        loadingRows.map((row) => row.getAttribute('style')),
+        String(viewport[0]),
+      ).toEqual(readyRows);
+      // Each row holds a bar where the label stands and a shorter one where the value does.
+      for (const row of loadingRows) {
+        const bars = [...row.querySelectorAll<HTMLElement>('[role="progressbar"]')];
+        expect(bars.map((bar) => bar.style.width)).toEqual(['88px', '60px']);
+        expect(bars.map((bar) => bar.style.alignSelf)).toEqual(['flex-start', 'flex-start']);
+      }
+      // The title stands on two lines at compact, the last one short, and on one in a wider
+      // column; the button block is as high as the button.
+      const blocks = [...loading.querySelectorAll<HTMLElement>('[role="progressbar"]')];
+      const compact = viewport[0] < 600;
+      expect(blocks, String(viewport[0])).toHaveLength(compact ? 11 : 10);
+      const titleBox = blocks[0]?.parentElement;
+      expect(titleBox?.querySelectorAll('[role="progressbar"]'), String(viewport[0])).toHaveLength(
+        compact ? 2 : 1,
+      );
+      expect(titleBox?.style.width, String(viewport[0])).toBe(compact ? '' : '80%');
+      const button = blocks.at(-1)?.querySelector<HTMLElement>('[style*="height: 44px"]');
+      expect(button, String(viewport[0])).not.toBeNull();
+      expect(blocks.at(-1)?.style.width, String(viewport[0])).toBe('120px');
+      expect(loading.textContent, String(viewport[0])).toBe('');
+    }
   });
 
   it('the home bar shows at compact only', () => {
