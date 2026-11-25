@@ -1,5 +1,10 @@
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Stack, useSegments } from 'expo-router';
+import {
+  DefaultTheme,
+  Stack,
+  ThemeProvider as NavigationThemeProvider,
+  useSegments,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { I18nextProvider } from 'react-i18next';
 
@@ -17,6 +22,7 @@ import type { PageKeyEvent } from '@/platform/links';
 import { queryClient } from '@/platform/query-client';
 import { ToastHost } from '@/ui/components/toast';
 import { FontsProvider } from '@/ui/fonts';
+import { useNavigatorTheme } from '@/ui/shells/navigator-theme';
 import { ShortcutProvider } from '@/ui/shortcuts';
 import { ThemeProvider } from '@/ui/theme';
 
@@ -38,7 +44,7 @@ export default function RootLayout() {
               <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>
                 <ToastHost>
                   <RootLayoutScreenView vm={vm} systemScreen={<SystemUpdateScreen />}>
-                    <Stack screenOptions={{ headerShown: false, animation: 'default' }} />
+                    <RootStack />
                   </RootLayoutScreenView>
                 </ToastHost>
               </ShortcutProvider>
@@ -47,6 +53,19 @@ export default function RootLayout() {
         </QueryClientProvider>
       </I18nextProvider>
     </RootErrorBoundary>
+  );
+}
+
+/**
+ * The root stack. Every navigator under it takes its ground from the theme, so a route that paints
+ * none of its own stands on `bg` and not on the navigation library's gray.
+ */
+function RootStack() {
+  const navigatorTheme = useNavigatorTheme(DefaultTheme);
+  return (
+    <NavigationThemeProvider value={navigatorTheme}>
+      <Stack screenOptions={{ headerShown: false, animation: 'default' }} />
+    </NavigationThemeProvider>
   );
 }
 
