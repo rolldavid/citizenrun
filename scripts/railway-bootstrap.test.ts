@@ -94,6 +94,27 @@ const SETTINGS_READ = [...SSH_POSTGRES, ...PSQL, '-A', '-t'];
 const PG_ISREADY = [...SSH_POSTGRES, 'pg_isready', '-U', 'citizenrun', '-d', 'citizenrun'];
 const REDEPLOY_POSTGRES = 'railway redeploy --service postgres --environment staging --yes';
 const BOOTSTRAP = 'pnpm exec tsx scripts/railway-bootstrap.ts --env staging';
+const APPLY = 'railway config apply --environment staging --yes';
+
+/** `railway status --project <id> --environment <env> --json` with that many services in it. */
+function statusWithServices(env: Env, services: number): string {
+  const edges = Array.from({ length: services }, (_, index) => ({
+    node: { id: `instance-${String(index)}` },
+  }));
+  return JSON.stringify({
+    id: PROJECT_ID,
+    name: BRAND.slug,
+    environments: { edges: [{ node: { name: env, serviceInstances: { edges } } }] },
+  });
+}
+
+function statusRule(env: Env, services: number, once = false): FakeRule {
+  return {
+    args: ['status', '--project', PROJECT_ID, '--environment', env, '--json'],
+    stdout: statusWithServices(env, services),
+    once,
+  };
+}
 
 // The database's deployments around a redeploy: the old one alone before it and once after it
 // (the list lags the redeploy), then the new one building, then the new one up.
@@ -280,6 +301,7 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
       { args: ['environment', 'new', env] },
       { args: ['environment', 'delete', 'production', '--yes'] },
       { args: ['config', 'apply', '--environment', env, '--yes'] },
+      statusRule(env, 5),
       ...listRules,
       {
         args: [
@@ -1604,6 +1626,74 @@ describe('buckets, tokens, redeploy and report', { timeout: 30_000 }, () => {
       expect(result.output).not.toContain('Hard limit');
       expect(result.lines.some((line) => line.includes('limits verified'))).toBe(false);
     }
+  });
+});
+
+describe('apply', { timeout: 30_000 }, () => {
+  it('a first apply that creates the services is followed by a second apply', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [statusRule('staging', 0, true)],
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    expect(calls.filter((call) => call === APPLY)).toHaveLength(2);
+    const firstApply = calls.indexOf(APPLY);
+    const counts = calls
+      .map((call, index) => (call.startsWith('railway status') ? index : -1))
+      .filter((index) => index !== -1);
+    expect(counts).toHaveLength(2);
+    expect(counts[0]).toBeLessThan(firstApply);
+    expect(counts[1]).toBeGreaterThan(firstApply);
+    expect(calls.lastIndexOf(APPLY)).toBeGreaterThan(counts[1] ?? Infinity);
+    expect(result.lines).toContain(
+      'apply ok config applied twice: the first apply created 5 service(s)',
+    );
+  });
+
+  it('the second apply comes before the steps that follow in a full run', async () => {
+    const result = await runCase(['--env', 'staging'], {
+      railway: [statusRule('staging', 0, true)],
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    const firstSet = calls.findIndex((call) => call.startsWith('railway variable set'));
+    expect(calls.filter((call) => call === APPLY)).toHaveLength(2);
+    expect(calls.lastIndexOf(APPLY)).toBeLessThan(firstSet);
+  });
+
+  it('an apply that creates no service runs once', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply']);
+    expect(result.code).toBe(0);
+    expect(result.calls.map(joined).filter((call) => call === APPLY)).toHaveLength(1);
+    expect(result.lines).toContain('apply ok config applied');
+  });
+
+  it('an apply whose service count cannot be read runs twice', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        {
+          args: ['status', '--project', PROJECT_ID, '--environment', 'staging', '--json'],
+          exitCode: 1,
+        },
+      ],
+    });
+    expect(result.code).toBe(0);
+    expect(result.calls.map(joined).filter((call) => call === APPLY)).toHaveLength(2);
+    expect(result.lines).toContain(
+      'apply ok config applied twice: the service count could not be read',
+    );
+  });
+
+  it('a second apply that fails fails the step', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        statusRule('staging', 0, true),
+        { args: ['config', 'apply', '--environment', 'staging', '--yes'], once: true },
+        { args: ['config', 'apply', '--environment', 'staging', '--yes'], exitCode: 4 },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('apply fail config apply (second): exit 4');
   });
 });
 

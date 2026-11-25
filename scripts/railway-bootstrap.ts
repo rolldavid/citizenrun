@@ -955,19 +955,16 @@ function serviceCount(environment: Record<string, unknown>): number | null {
   return null;
 }
 
-async function productionServiceCount(
+/** How many services `railway status` shows in one environment, or null when it does not say. */
+async function statusServiceCount(
   ctx: Ctx,
-  fromList: Record<string, unknown>,
   projectId: string,
+  environment: string,
 ): Promise<number | null> {
-  const listed = serviceCount(fromList);
-  if (listed !== null) {
-    return listed;
-  }
   const status = await cli(
     ctx,
     'railway',
-    ['status', '--project', projectId, '--environment', 'production', '--json'],
+    ['status', '--project', projectId, '--environment', environment, '--json'],
     { mutating: false },
   );
   if (status.code !== 0) {
@@ -980,8 +977,16 @@ async function productionServiceCount(
     return null;
   }
   const environments = environmentsOf(parsed);
-  const production = environments?.find((item) => nameOf(item) === 'production');
-  return production === undefined ? null : serviceCount(production);
+  const found = environments?.find((item) => nameOf(item) === environment);
+  return found === undefined ? null : serviceCount(found);
+}
+
+async function productionServiceCount(
+  ctx: Ctx,
+  fromList: Record<string, unknown>,
+  projectId: string,
+): Promise<number | null> {
+  return serviceCount(fromList) ?? statusServiceCount(ctx, projectId, 'production');
 }
 
 async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
@@ -1105,18 +1110,44 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
   return;
 }
 
+/**
+ * Applies the file. The apply that creates a service leaves its `source.checkSuites` false, and a
+ * second apply sets it (D-848), so a first apply that created a service, or one whose effect on
+ * the service count cannot be read, is followed by a second.
+ */
 async function stepApply(ctx: Ctx, out: StepPrinter): Promise<void> {
-  const result = await cli(
-    ctx,
-    'railway',
-    ['config', 'apply', '--environment', ctx.args.env, '--yes'],
-    { mutating: true },
-  );
-  if (result.code !== 0) {
-    out.line('fail', `config apply: exit ${String(result.code)}`);
+  const env = ctx.args.env;
+  const projectId = ctx.inputs.RAILWAY_PROJECT_ID;
+  const count = async (): Promise<number | null> =>
+    projectId === undefined || ctx.args.dryRun ? null : statusServiceCount(ctx, projectId, env);
+  const apply = (): Promise<CliResult> =>
+    cli(ctx, 'railway', ['config', 'apply', '--environment', env, '--yes'], { mutating: true });
+
+  const before = await count();
+  const first = await apply();
+  if (first.code !== 0) {
+    out.line('fail', `config apply: exit ${String(first.code)}`);
     return;
   }
-  out.line('ok', ctx.args.dryRun ? 'dry-run: config not applied' : 'config applied');
+  if (ctx.args.dryRun) {
+    out.line('ok', 'dry-run: config not applied');
+    return;
+  }
+  const after = await count();
+  if (before !== null && after !== null && after <= before) {
+    out.line('ok', 'config applied');
+    return;
+  }
+  const second = await apply();
+  if (second.code !== 0) {
+    out.line('fail', `config apply (second): exit ${String(second.code)}`);
+    return;
+  }
+  const why =
+    before === null || after === null
+      ? 'the service count could not be read'
+      : `the first apply created ${String(after - before)} service(s)`;
+  out.line('ok', `config applied twice: ${why}`);
 }
 
 const POSTGRES_SECRETS = [
