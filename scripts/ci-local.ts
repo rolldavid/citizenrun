@@ -18,6 +18,7 @@ import {
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { JOB_POLICIES } from '@citizenrun/shared';
 import { z } from 'zod';
 import { run } from './lib/exec.ts';
 import { repoRoot } from './lib/repo-root.ts';
@@ -74,6 +75,7 @@ const CI_DATABASE = 'citizenrun_ci';
 const CI_DATABASE_URL = `postgresql://citizenrun:citizenrun@postgres:5432/${CI_DATABASE}`;
 const API_CONTAINER = 'citizenrun-ci-api';
 const API_HOST_PORT = 18080;
+export const WORKER_CONTAINER = 'citizenrun-ci-worker';
 const BACKUP_BUCKET = 'ci-backups';
 const SERVICES = ['api', 'worker', 'backup'] as const;
 // The fixed, public, local-only object store keys of docker-compose.yml.
@@ -206,7 +208,7 @@ async function gitleaksBinary(ctx: JobContext): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// The images job: three builds, the API smoke and the backup smoke on the compose network.
+// The images job: three builds, then the API, worker and backup smokes on the compose network.
 
 const ImagesSchema = z.object({ awscli: z.string() });
 
@@ -238,6 +240,28 @@ async function psql(ctx: JobContext, ...statements: readonly string[]): Promise<
     '-v',
     'ON_ERROR_STOP=1',
     ...statements.flatMap((statement) => ['-c', statement]),
+  ]);
+}
+
+/** One query on the smoke database; its rows unaligned, without headers, fields split on `|`. */
+async function queryCiDatabase(ctx: JobContext, statement: string): Promise<string> {
+  return capture(ctx, 'docker', [
+    'compose',
+    'exec',
+    '-T',
+    'postgres',
+    'psql',
+    '-U',
+    'citizenrun',
+    '-d',
+    CI_DATABASE,
+    '-v',
+    'ON_ERROR_STOP=1',
+    '-tA',
+    '-F',
+    '|',
+    '-c',
+    statement,
   ]);
 }
 
@@ -319,6 +343,218 @@ async function apiSmoke(ctx: JobContext): Promise<void> {
     console.log('api smoke: migrated, /readyz db ok, / serves the shell');
   } finally {
     await showLogsAndRemove(ctx, API_CONTAINER);
+  }
+}
+
+// The worker smoke (D-842): the image starts against the database the API smoke migrated, writes
+// its heartbeat, creates its queues with their policies, and stops cleanly on SIGTERM.
+const WORKER_START_SECONDS = 60;
+const WORKER_STOP_SECONDS = 30;
+const WORKER_QUEUES_QUERY =
+  'select q.name, q.policy, exists (select 1 from pgboss.schedule s where s.name = q.name) ' +
+  'from pgboss.queue q order by q.name';
+
+/** The `docker run` arguments of the worker smoke: the worker image on the compose network. */
+export function workerRunArgs(): string[] {
+  const env = {
+    APP_ENV: 'ci',
+    LOG_LEVEL: 'info',
+    DATABASE_URL: CI_DATABASE_URL,
+    PUBLIC_URL: `http://localhost:${String(API_HOST_PORT)}`,
+    BACKUPS_BUCKET: BACKUP_BUCKET,
+    BACKUPS_ENDPOINT: 'http://seaweedfs:8333',
+    BACKUPS_REGION: 'us-east-1',
+    BACKUPS_ACCESS_KEY_ID: STORE_KEY_ID,
+    BACKUPS_SECRET_ACCESS_KEY: STORE_SECRET,
+    S3_FORCE_PATH_STYLE: 'true',
+  };
+  return [
+    'run',
+    '-d',
+    '--name',
+    WORKER_CONTAINER,
+    '--network',
+    COMPOSE_NETWORK,
+    ...Object.entries(env).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
+    'citizenrun-worker:local',
+  ];
+}
+
+export type LogEvent = {
+  readonly event: string;
+  readonly fields: Readonly<Record<string, unknown>>;
+};
+
+const LogLineSchema = z.looseObject({ event: z.string() });
+
+/** The service's JSON log lines in a container's output, in order; any other line is skipped. */
+export function logEvents(output: string): LogEvent[] {
+  const events: LogEvent[] = [];
+  for (const line of output.split('\n')) {
+    let value: unknown;
+    try {
+      value = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const parsed = LogLineSchema.safeParse(value);
+    if (parsed.success) {
+      events.push({ event: parsed.data.event, fields: parsed.data });
+    }
+  }
+  return events;
+}
+
+/** Where the worker's boot stands in its log: started, failed, or neither yet. */
+export function workerStartState(events: readonly LogEvent[]): 'started' | 'failed' | 'waiting' {
+  const failed = ['env.invalid', 'worker.start_failed', 'worker.crashed'];
+  if (events.some((entry) => failed.includes(entry.event))) {
+    return 'failed';
+  }
+  return events.some((entry) => entry.event === 'worker.started') ? 'started' : 'waiting';
+}
+
+export type QueueRow = {
+  readonly name: string;
+  readonly policy: string;
+  readonly scheduled: boolean;
+};
+
+/** The rows of WORKER_QUEUES_QUERY as psql prints them unaligned. */
+export function parseQueueRows(output: string): QueueRow[] {
+  return output
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => {
+      const [name = '', policy = '', scheduled = ''] = line.trim().split('|');
+      return { name, policy, scheduled: scheduled === 't' };
+    });
+}
+
+// pg-boss's own queues, such as its schedule clock's `__pgboss__send-it`, carry this prefix.
+const PG_BOSS_QUEUE_PREFIX = '__pgboss__';
+
+/** The queues the product created: every row but pg-boss's own. */
+export function productQueues(rows: readonly QueueRow[]): QueueRow[] {
+  return rows.filter((row) => !row.name.startsWith(PG_BOSS_QUEUE_PREFIX));
+}
+
+/**
+ * Why the worker's queues are wrong, or null: pg-boss's own queues aside, the created queues are
+ * exactly the registry's, each with its `JOB_POLICIES` policy (D-827), at least one holds a
+ * schedule, and no scheduled queue is `standard`, which would let a run pile up (04 section 1.5).
+ */
+export function workerQueuesFailure(
+  allRows: readonly QueueRow[],
+  policies: Readonly<Record<string, string>> = JOB_POLICIES,
+): string | null {
+  const rows = productQueues(allRows);
+  const created = new Map(rows.map((row) => [row.name, row]));
+  for (const [name, policy] of Object.entries(policies)) {
+    const row = created.get(name);
+    if (row === undefined) {
+      return `worker smoke: queue ${name} was not created`;
+    }
+    if (row.policy !== policy) {
+      return `worker smoke: queue ${name} is ${row.policy}, not ${policy}`;
+    }
+  }
+  const extra = rows.find((row) => !(row.name in policies));
+  if (extra !== undefined) {
+    return `worker smoke: queue ${extra.name} is not in JOB_POLICIES`;
+  }
+  const scheduled = rows.filter((row) => row.scheduled);
+  if (scheduled.length === 0) {
+    return 'worker smoke: no queue holds a schedule';
+  }
+  const piling = scheduled.find((row) => row.policy === 'standard');
+  if (piling !== undefined) {
+    return `worker smoke: scheduled queue ${piling.name} is standard`;
+  }
+  return null;
+}
+
+/**
+ * Why the worker did not stop cleanly on SIGTERM, or null: the container exited 0 (137 is the kill
+ * after the stop timeout), and its log holds `worker.stopping` with signal SIGTERM, then
+ * `worker.stopped`, and no `worker.stop_failed`.
+ */
+export function workerStopFailure(events: readonly LogEvent[], exitCode: number): string | null {
+  if (exitCode !== 0) {
+    return `worker smoke: the worker exited ${String(exitCode)} after SIGTERM`;
+  }
+  if (events.some((entry) => entry.event === 'worker.stop_failed')) {
+    return 'worker smoke: the worker logged worker.stop_failed';
+  }
+  const stopping = events.findIndex(
+    (entry) => entry.event === 'worker.stopping' && entry.fields.signal === 'SIGTERM',
+  );
+  if (stopping === -1) {
+    return 'worker smoke: no worker.stopping line with signal SIGTERM';
+  }
+  if (!events.slice(stopping + 1).some((entry) => entry.event === 'worker.stopped')) {
+    return 'worker smoke: no worker.stopped line after worker.stopping';
+  }
+  return null;
+}
+
+async function workerSmoke(ctx: JobContext): Promise<void> {
+  await attempt(ctx, 'docker', ['rm', '-f', WORKER_CONTAINER]);
+  const logs = async (): Promise<LogEvent[]> =>
+    logEvents(await capture(ctx, 'docker', ['logs', WORKER_CONTAINER]));
+  const inspect = async (format: string): Promise<string> =>
+    (await capture(ctx, 'docker', ['inspect', '-f', format, WORKER_CONTAINER])).trim();
+  try {
+    await step(ctx, 'docker', workerRunArgs());
+    let state: 'started' | 'failed' | 'waiting' = 'waiting';
+    for (let second = 0; second < WORKER_START_SECONDS && state === 'waiting'; second += 1) {
+      state = workerStartState(await logs());
+      if (state === 'waiting') {
+        if ((await inspect('{{.State.Running}}')) !== 'true') {
+          state = 'failed';
+          break;
+        }
+        await sleep(1000);
+      }
+    }
+    if (state === 'failed') {
+      throw new JobFailure('worker smoke: the worker stopped before worker.started');
+    }
+    if (state === 'waiting') {
+      throw new JobFailure(
+        `worker smoke: no worker.started line within ${String(WORKER_START_SECONDS)} seconds`,
+      );
+    }
+    const beats = (
+      await queryCiDatabase(ctx, "select count(*) from worker_heartbeats where worker = 'worker'")
+    ).trim();
+    if (beats !== '1') {
+      throw new JobFailure(`worker smoke: ${beats} heartbeat rows, not 1`);
+    }
+    const rows = parseQueueRows(await queryCiDatabase(ctx, WORKER_QUEUES_QUERY));
+    const queueFailure = workerQueuesFailure(rows);
+    if (queueFailure !== null) {
+      throw new JobFailure(queueFailure);
+    }
+    await step(ctx, 'docker', ['stop', '--time', String(WORKER_STOP_SECONDS), WORKER_CONTAINER]);
+    const stopFailure = workerStopFailure(
+      await logs(),
+      Number(await inspect('{{.State.ExitCode}}')),
+    );
+    if (stopFailure !== null) {
+      throw new JobFailure(stopFailure);
+    }
+    const queues = productQueues(rows);
+    const scheduled = queues
+      .filter((row) => row.scheduled)
+      .map((row) => `${row.name} ${row.policy}`)
+      .join(', ');
+    console.log(
+      `worker smoke: started, heartbeat written, ${String(queues.length)} queues with their ` +
+        `policies (scheduled: ${scheduled}), stopped on SIGTERM with exit 0`,
+    );
+  } finally {
+    await showLogsAndRemove(ctx, WORKER_CONTAINER);
   }
 }
 
@@ -486,6 +722,19 @@ function requireFreeSpace(ctx: JobContext): void {
   }
 }
 
+/**
+ * The smokes of the images job, in order: the API smoke migrates the database the worker smoke
+ * boots against, and the backup smoke dumps it (section 12.7, D-842).
+ */
+export const IMAGE_SMOKES: readonly {
+  readonly name: 'api' | 'worker' | 'backup';
+  readonly run: (ctx: JobContext) => Promise<void>;
+}[] = [
+  { name: 'api', run: apiSmoke },
+  { name: 'worker', run: workerSmoke },
+  { name: 'backup', run: backupSmoke },
+];
+
 async function imagesJob(ctx: JobContext): Promise<void> {
   requireFreeSpace(ctx);
   for (const service of SERVICES) {
@@ -504,8 +753,9 @@ async function imagesJob(ctx: JobContext): Promise<void> {
     `create database ${CI_DATABASE}`,
   );
   try {
-    await apiSmoke(ctx);
-    await backupSmoke(ctx);
+    for (const smoke of IMAGE_SMOKES) {
+      await smoke.run(ctx);
+    }
   } finally {
     await psql(ctx, `drop database if exists ${CI_DATABASE} with (force)`);
   }

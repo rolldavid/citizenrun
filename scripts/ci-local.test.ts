@@ -4,8 +4,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { z } from 'zod';
+import { JOB_POLICIES } from '@citizenrun/shared';
 import {
   CI_JOBS,
+  IMAGE_SMOKES,
   MIN_FREE_BYTES_FOR_IMAGES,
   NIGHTLY_JOBS,
   NO_LOCAL_FORM,
@@ -20,7 +22,16 @@ import {
   readGitleaksPin,
   selectJobs,
   showLogsAndRemove,
+  WORKER_CONTAINER,
+  logEvents,
+  parseQueueRows,
+  productQueues,
+  workerQueuesFailure,
+  workerRunArgs,
+  workerStartState,
+  workerStopFailure,
 } from './ci-local.ts';
+import type { QueueRow } from './ci-local.ts';
 import { repoRoot } from './lib/repo-root.ts';
 import { createFakeCli } from './testing/fake-cli.ts';
 import type { FakeCli } from './testing/fake-cli.ts';
@@ -370,5 +381,146 @@ describe('the api smoke clean-up', () => {
     };
     await showLogsAndRemove({ root: ROOT, env: {} }, 'fixture-container', exec);
     expect(calls).toEqual(['logs fixture-container', 'rm -f fixture-container']);
+  });
+});
+
+describe('the worker smoke', () => {
+  const line = (event: string, fields: Record<string, unknown> = {}): string =>
+    JSON.stringify({
+      time: '2026-11-25T10:00:00.000Z',
+      level: 'info',
+      service: 'worker',
+      event,
+      ...fields,
+    });
+
+  const registryRows = (): QueueRow[] =>
+    Object.entries(JOB_POLICIES).map(([name, policy]) => ({
+      name,
+      policy,
+      scheduled: policy === 'stately',
+    }));
+
+  it('the images job runs the api, worker and backup smokes in that order', () => {
+    expect(IMAGE_SMOKES.map((smoke) => smoke.name)).toEqual(['api', 'worker', 'backup']);
+  });
+
+  it('starts the worker image on the compose network against the smoke database', () => {
+    const args = workerRunArgs();
+    expect(WORKER_CONTAINER).toBe('citizenrun-ci-worker');
+    expect(args.slice(0, 6)).toEqual([
+      'run',
+      '-d',
+      '--name',
+      'citizenrun-ci-worker',
+      '--network',
+      'citizenrun_default',
+    ]);
+    expect(args.at(-1)).toBe('citizenrun-worker:local');
+    expect(args).not.toContain('--rm');
+    expect(args).not.toContain('-p');
+    expect(args).toContain('APP_ENV=ci');
+    expect(args).toContain(
+      'DATABASE_URL=postgresql://citizenrun:citizenrun@postgres:5432/citizenrun_ci',
+    );
+    expect(args).toContain('BACKUPS_ENDPOINT=http://seaweedfs:8333');
+  });
+
+  it('reads the JSON log lines and skips any other line', () => {
+    const output = [
+      line('worker.started', { queueCount: 6 }),
+      'node: warning',
+      '',
+      '{"no":1}',
+    ].join('\n');
+    const events = logEvents(output);
+    expect(events.map((entry) => entry.event)).toEqual(['worker.started']);
+    expect(events[0]?.fields.queueCount).toBe(6);
+  });
+
+  it('waits for worker.started and fails on a failed boot', () => {
+    expect(workerStartState(logEvents(line('env.input_missing')))).toBe('waiting');
+    expect(workerStartState(logEvents(line('worker.started')))).toBe('started');
+    for (const event of ['env.invalid', 'worker.start_failed', 'worker.crashed']) {
+      expect(workerStartState(logEvents(line(event))), event).toBe('failed');
+    }
+  });
+
+  it('parses the queue rows psql prints', () => {
+    expect(parseQueueRows('cost.check|stately|t\nops.dead|standard|f\n\n')).toEqual([
+      { name: 'cost.check', policy: 'stately', scheduled: true },
+      { name: 'ops.dead', policy: 'standard', scheduled: false },
+    ]);
+  });
+
+  it('passes the queues only when every registry queue holds its policy and the scheduled ones pile up nothing', () => {
+    const rows = registryRows();
+    expect(rows.filter((row) => row.scheduled).map((row) => row.name)).toEqual([
+      'ops.heartbeat',
+      'backup.check',
+      'db.connections-check',
+      'cost.check',
+    ]);
+    expect(workerQueuesFailure(rows)).toBeNull();
+    const clock = { name: '__pgboss__send-it', policy: 'standard', scheduled: false };
+    expect(workerQueuesFailure([...rows, clock])).toBeNull();
+    expect(productQueues([...rows, clock])).toEqual(rows);
+    expect(workerQueuesFailure(rows.filter((row) => row.name !== 'cost.check'))).toBe(
+      'worker smoke: queue cost.check was not created',
+    );
+    expect(
+      workerQueuesFailure(
+        rows.map((row) => (row.name === 'ops.heartbeat' ? { ...row, policy: 'standard' } : row)),
+      ),
+    ).toBe('worker smoke: queue ops.heartbeat is standard, not stately');
+    expect(
+      workerQueuesFailure([...rows, { name: 'x.y', policy: 'standard', scheduled: false }]),
+    ).toBe('worker smoke: queue x.y is not in JOB_POLICIES');
+    expect(workerQueuesFailure(rows.map((row) => ({ ...row, scheduled: false })))).toBe(
+      'worker smoke: no queue holds a schedule',
+    );
+    expect(
+      workerQueuesFailure([{ name: 'a', policy: 'standard', scheduled: true }], { a: 'standard' }),
+    ).toBe('worker smoke: scheduled queue a is standard');
+  });
+
+  it('passes the stop only on exit 0 with worker.stopping for SIGTERM, then worker.stopped', () => {
+    const clean = logEvents(
+      [
+        line('worker.started'),
+        line('worker.stopping', { signal: 'SIGTERM' }),
+        line('worker.stopped'),
+      ].join('\n'),
+    );
+    expect(workerStopFailure(clean, 0)).toBeNull();
+    expect(workerStopFailure(clean, 137)).toBe('worker smoke: the worker exited 137 after SIGTERM');
+    expect(
+      workerStopFailure(
+        logEvents(
+          [line('worker.stopping', { signal: 'SIGINT' }), line('worker.stopped')].join('\n'),
+        ),
+        0,
+      ),
+    ).toBe('worker smoke: no worker.stopping line with signal SIGTERM');
+    expect(
+      workerStopFailure(
+        logEvents(
+          [line('worker.stopped'), line('worker.stopping', { signal: 'SIGTERM' })].join('\n'),
+        ),
+        0,
+      ),
+    ).toBe('worker smoke: no worker.stopped line after worker.stopping');
+    expect(
+      workerStopFailure(
+        logEvents(
+          [
+            line('worker.stopping', { signal: 'SIGTERM' }),
+            line('worker.stop_failed'),
+            line('worker.stopped'),
+          ].join('\n'),
+        ),
+        0,
+      ),
+    ).toBe('worker smoke: the worker logged worker.stop_failed');
   });
 });
