@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { SAFE_URL_MAX, SOURCE_URL_MAX, parseSafeUrl } from './links.ts';
+import {
+  LINK_REL,
+  SAFE_URL_MAX,
+  SOURCE_URL_MAX,
+  containsLink,
+  linkify,
+  parseSafeUrl,
+} from './links.ts';
+import type { TextSegment } from './links.ts';
 
 function urlOfLength(length: number): string {
   const prefix = 'https://example.org/';
@@ -79,5 +87,131 @@ describe('parseSafeUrl', () => {
     expect(parseSafeUrl('https://example.org/a\tb')).toBeNull();
     expect(parseSafeUrl('https://example.org/a\u0007b')).toBeNull();
     expect(parseSafeUrl('https://example.org/a b')).toBeNull();
+  });
+});
+
+function joined(segments: readonly TextSegment[]): string {
+  return segments.map((segment) => segment.value).join('');
+}
+
+describe('linkify', () => {
+  it('linkify finds https links', () => {
+    const input = 'Read https://example.org/a.';
+    const segments = linkify(input);
+    expect(segments).toEqual([
+      { type: 'text', value: 'Read ' },
+      {
+        type: 'link',
+        value: 'https://example.org/a',
+        href: 'https://example.org/a',
+        domain: 'example.org',
+      },
+      { type: 'text', value: '.' },
+    ]);
+    expect(joined(segments)).toBe(input);
+  });
+
+  it('linkify leaves http links as text', () => {
+    const input = 'See http://example.org/a now';
+    const segments = linkify(input);
+    expect(segments).toEqual([{ type: 'text', value: input }]);
+    expect(joined(segments)).toBe(input);
+  });
+
+  it('linkify leaves a bare domain as text', () => {
+    const input = 'bare domain stays text: example.org and www.example.org';
+    const segments = linkify(input);
+    expect(segments).toEqual([{ type: 'text', value: input }]);
+    expect(joined(segments)).toBe(input);
+  });
+
+  it('linkify refuses a 201-character link', () => {
+    const url = urlOfLength(201);
+    expect(url).toHaveLength(201);
+    const input = `long ${url} end`;
+    const segments = linkify(input);
+    expect(segments).toEqual([{ type: 'text', value: input }]);
+    expect(joined(segments)).toBe(input);
+  });
+
+  it('joining the segments gives the input back', () => {
+    const inputs = [
+      'Read https://example.org/a.',
+      'See http://example.org/a now',
+      'bare domain stays text: example.org',
+      `long ${urlOfLength(201)} end`,
+      '',
+      'https://example.org',
+      '(see https://Example.org/x?y=1), then "https://www.city.gov/a"!',
+      'https://a.org https://b.org',
+      'https://localhost and https://example.org/ok.',
+      'HTTPS://EXAMPLE.ORG/Path)]};',
+      'x<https://example.org/a>y',
+    ];
+    for (const input of inputs) {
+      expect(joined(linkify(input)), input).toBe(input);
+    }
+  });
+
+  it('gives no empty segment and merges text around a refused run', () => {
+    expect(linkify('')).toEqual([]);
+    const segments = linkify('https://a.org https://localhost https://b.org');
+    for (const segment of segments) {
+      expect(segment.value).not.toBe('');
+    }
+    expect(segments.map((segment) => segment.type)).toEqual(['link', 'text', 'link']);
+    expect(segments[1]).toEqual({ type: 'text', value: ' https://localhost ' });
+  });
+
+  it('returns the stripped punctuation to the following text', () => {
+    expect(linkify('(see https://Example.org/x?y=1), then')).toEqual([
+      { type: 'text', value: '(see ' },
+      {
+        type: 'link',
+        value: 'https://Example.org/x?y=1',
+        href: 'https://example.org/x?y=1',
+        domain: 'example.org',
+      },
+      { type: 'text', value: '), then' },
+    ]);
+  });
+
+  it('stops a run at angle brackets and quotes', () => {
+    expect(linkify('x<https://example.org/a>y')).toEqual([
+      { type: 'text', value: 'x<' },
+      {
+        type: 'link',
+        value: 'https://example.org/a',
+        href: 'https://example.org/a',
+        domain: 'example.org',
+      },
+      { type: 'text', value: '>y' },
+    ]);
+  });
+});
+
+describe('LINK_REL', () => {
+  it('rel attributes', () => {
+    expect(LINK_REL).toBe('nofollow ugc noopener noreferrer');
+  });
+});
+
+describe('containsLink', () => {
+  it('is true for links and things that read as links', () => {
+    for (const text of [
+      'https://example.org',
+      'http://example.org',
+      'www.example',
+      'example.org',
+      'name@example.org',
+    ]) {
+      expect(containsLink(text), text).toBe(true);
+    }
+  });
+
+  it('is false for plain text', () => {
+    for (const text of ['no links here', 'e.g. this', '3.14']) {
+      expect(containsLink(text), text).toBe(false);
+    }
   });
 });
