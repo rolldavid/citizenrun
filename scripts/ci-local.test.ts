@@ -19,10 +19,12 @@ import {
   readDurations,
   readGitleaksPin,
   selectJobs,
+  showLogsAndRemove,
 } from './ci-local.ts';
 import { repoRoot } from './lib/repo-root.ts';
 import { createFakeCli } from './testing/fake-cli.ts';
 import type { FakeCli } from './testing/fake-cli.ts';
+import type { RunResult } from './lib/exec.ts';
 
 const ROOT = repoRoot();
 
@@ -337,5 +339,36 @@ describe('the durations figure', () => {
     expect(report.environment).toBe('local');
     expect(report.static).toEqual({ runs: 0, medianSeconds: null });
     expect(report.withinBudget).toBe(false);
+  });
+});
+
+describe('the api smoke clean-up', () => {
+  it("prints the container's log to the terminal whatever its exit, then removes it", async () => {
+    const calls: { args: readonly string[]; inherit: boolean }[] = [];
+    const exec = (
+      _command: string,
+      args: readonly string[],
+      options?: { inherit?: boolean },
+    ): Promise<RunResult> => {
+      calls.push({ args, inherit: options?.inherit === true });
+      return Promise.resolve({ code: args[0] === 'logs' ? 1 : 0, stdout: '', stderr: '' });
+    };
+    await showLogsAndRemove({ root: ROOT, env: {} }, 'fixture-container', exec);
+    expect(calls).toEqual([
+      { args: ['logs', 'fixture-container'], inherit: true },
+      { args: ['rm', '-f', 'fixture-container'], inherit: false },
+    ]);
+  });
+
+  it('removes the container when docker logs cannot start', async () => {
+    const calls: string[] = [];
+    const exec = (_command: string, args: readonly string[]): Promise<RunResult> => {
+      calls.push(args.join(' '));
+      return args[0] === 'logs'
+        ? Promise.reject(new Error('spawn docker ENOENT'))
+        : Promise.resolve({ code: 0, stdout: '', stderr: '' });
+    };
+    await showLogsAndRemove({ root: ROOT, env: {} }, 'fixture-container', exec);
+    expect(calls).toEqual(['logs fixture-container', 'rm -f fixture-container']);
   });
 });

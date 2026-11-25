@@ -116,6 +116,27 @@ async function attempt(ctx: JobContext, command: string, args: readonly string[]
   }
 }
 
+/**
+ * Prints a container's log straight to this terminal, as ci.yml prints it, whatever the command's
+ * exit, then removes the container. `exec` is the command runner, replaced only by tests.
+ */
+export async function showLogsAndRemove(
+  ctx: Pick<JobContext, 'root' | 'env'>,
+  container: string,
+  exec: typeof run = run,
+): Promise<void> {
+  try {
+    await exec('docker', ['logs', container], { cwd: ctx.root, env: ctx.env, inherit: true });
+  } catch {
+    // docker is missing or could not start: there is no log to show.
+  }
+  try {
+    await exec('docker', ['rm', '-f', container], { cwd: ctx.root, env: ctx.env });
+  } catch {
+    // Nothing to remove.
+  }
+}
+
 // ---------------------------------------------------------------------------------------------
 // gitleaks
 
@@ -297,8 +318,7 @@ async function apiSmoke(ctx: JobContext): Promise<void> {
     }
     console.log('api smoke: migrated, /readyz db ok, / serves the shell');
   } finally {
-    await attempt(ctx, 'docker', ['logs', API_CONTAINER]);
-    await attempt(ctx, 'docker', ['rm', '-f', API_CONTAINER]);
+    await showLogsAndRemove(ctx, API_CONTAINER);
   }
 }
 
