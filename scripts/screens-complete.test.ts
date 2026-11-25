@@ -5,12 +5,15 @@ import { repoRoot } from './lib/repo-root.ts';
 
 // TEST-screens-capture: every screen fixture has a capture entry, and every fixture entry names a
 // fixture that exists. routes.ts is read as text, so its ids and paths are single-quoted literals.
+// Every section of the gallery has a capture entry too; the gallery's source is read as text as
+// well, so each section's kebab name is a single-quoted literal.
 
 type RouteEntry = { id: string; path: string };
 
 const ROOT = repoRoot();
 const ROUTES_FILE = 'apps/mobile/e2e/screens/routes.ts';
 const FEATURES_DIR = 'apps/mobile/src/features';
+const GALLERY_FILE = 'apps/mobile/src/features/dev/screens/gallery-screen.tsx';
 const FIXTURE_PREFIX = '/dev/screens/';
 /** SCR-dev-screens' `unknownPair` capture: a pair no screen registers, drawn as not found. */
 const UNKNOWN_PAIR_PATH = '/dev/screens/none/none';
@@ -114,6 +117,53 @@ function strayGalleryTextScale(entries: readonly RouteEntry[]): RouteEntry[] {
             other.path === entry.path.slice(0, -GALLERY_TEXT_SCALE.length),
         )
       ),
+  );
+}
+
+/** What the id of a gallery section's entry starts with. */
+const GALLERY_SECTION_ID = 'dev-gallery-section-';
+
+/** The kebab names of the sections a gallery source lists, in the order they are written: the
+ *  second literal of a call to one of its `...Section` helpers, or a `slug:` literal. */
+function gallerySectionSlugs(source: string): string[] {
+  return [
+    ...source.matchAll(/\b\w*[sS]ection(?:<\w+>)?\(\s*'[^']*',\s*'([^']*)'|\bslug:\s*'([^']*)'/g),
+  ].map((match) => match[1] ?? match[2] ?? '');
+}
+
+/** How many sections a gallery source lists, however each is written: every element of its
+ *  `GALLERY_SECTIONS` array opens a line at the array's own indent. */
+function gallerySectionCount(source: string): number {
+  const list = /const GALLERY_SECTIONS\b[^=]*=\s*\[\n([\s\S]*?)\n\];/.exec(source)?.[1] ?? '';
+  return [...list.matchAll(/^ {2}[A-Za-z{]/gm)].length;
+}
+
+/** The gallery sections with no entry of their own: `dev-gallery-section-<slug>` on
+ *  `/dev/gallery?only=<slug>`. */
+function missingGallerySections(
+  slugs: readonly string[],
+  entries: readonly RouteEntry[],
+): string[] {
+  return slugs.filter(
+    (slug) =>
+      !entries.some(
+        (entry) =>
+          entry.id === `${GALLERY_SECTION_ID}${slug}` &&
+          entry.path === `${GALLERY_SECTION_PREFIX}${slug}`,
+      ),
+  );
+}
+
+/** The gallery's one-section entries, at either text size, whose path names no section. */
+function unknownGallerySections(
+  slugs: readonly string[],
+  entries: readonly RouteEntry[],
+): RouteEntry[] {
+  const known = new Set(slugs);
+  return entries.filter(
+    (entry) =>
+      entry.path.startsWith(GALLERY_SECTION_PREFIX) &&
+      !known.has(entry.path.slice(GALLERY_SECTION_PREFIX.length).split('&')[0] ?? ''),
   );
 }
 
@@ -268,6 +318,113 @@ describe('the pure checks', () => {
     ).toEqual([]);
   });
 
+  const GALLERY = `
+    function shellsSection(): GallerySection {
+      return { id: 'Shells', slug: 'shells', cell: 'full' };
+    }
+
+    function section<P extends object>(
+      id: string,
+      slug: string,
+    ): GallerySection {
+      return { id, slug };
+    }
+
+    const GALLERY_SECTIONS: readonly GallerySection[] = [
+      shellsSection(),
+      section('C-Text', 'text', 'wide', Text, textFixtures),
+      // A specimen the gallery draws itself.
+      specimenSection('C-Sheet', 'sheet', Object.keys(SHEET_STATES), (state) => {
+        return <SheetSpecimen state={state} />;
+      }),
+      fixtureSection<PopoverProps>(
+        'C-Popover',
+        'popover',
+        'wide',
+      ),
+      {
+        id: 'C-IssueTile',
+        slug: 'issue-tile',
+        cell: 'wide',
+      },
+    ];
+  `
+    .split('\n')
+    .map((line) => line.slice(4))
+    .join('\n');
+
+  it('gallerySectionSlugs reads the kebab name of a section, however the section is written', () => {
+    expect(gallerySectionSlugs(GALLERY)).toEqual([
+      'shells',
+      'text',
+      'sheet',
+      'popover',
+      'issue-tile',
+    ]);
+    expect(gallerySectionCount(GALLERY)).toBe(5);
+  });
+
+  it('counts a section whose kebab name is no literal, which gallerySectionSlugs leaves out', () => {
+    const source = [
+      'const GALLERY_SECTIONS: readonly GallerySection[] = [',
+      "  section('C-Text', 'text', 'wide', Text, textFixtures),",
+      "  section('C-Rule', RULE_SLUG, 'wide', Rule, ruleFixtures),",
+      '  ruleSection(),',
+      '];',
+    ].join('\n');
+    expect(gallerySectionSlugs(source)).toEqual(['text']);
+    expect(gallerySectionCount(source)).toBe(3);
+  });
+
+  it('missingGallerySections reports a section with no entry of its own', () => {
+    const entries = [
+      { id: 'dev-gallery', path: '/dev/gallery' },
+      { id: 'dev-gallery-section-text', path: '/dev/gallery?only=text' },
+      { id: 'dev-gallery-section-text-x130', path: '/dev/gallery?only=text&textScale=1.3' },
+      // An open overlay over its section, and a section's entry at 130% text, are not the
+      // section's own entry.
+      { id: 'dev-gallery-sheet-open', path: '/dev/gallery?only=sheet' },
+      { id: 'dev-gallery-section-rule-x130', path: '/dev/gallery?only=rule&textScale=1.3' },
+    ];
+    expect(missingGallerySections(['text', 'sheet', 'rule'], entries)).toEqual(['sheet', 'rule']);
+    expect(missingGallerySections(['text'], entries)).toEqual([]);
+    // The id and the path must both be the section's own.
+    expect(
+      missingGallerySections(
+        ['text', 'rule'],
+        [
+          { id: 'dev-gallery-section-text', path: '/dev/gallery?only=rule' },
+          { id: 'dev-gallery-rule', path: '/dev/gallery?only=rule' },
+        ],
+      ),
+    ).toEqual(['text', 'rule']);
+  });
+
+  it('unknownGallerySections reports a one-section entry whose path names no section', () => {
+    const section = { id: 'dev-gallery-section-text', path: '/dev/gallery?only=text' };
+    const overlay = { id: 'dev-gallery-sheet-open', path: '/dev/gallery?only=sheet' };
+    const gone = { id: 'dev-gallery-section-gone', path: '/dev/gallery?only=gone' };
+    const goneAt130 = {
+      id: 'dev-gallery-section-gone-x130',
+      path: '/dev/gallery?only=gone&textScale=1.3',
+    };
+    expect(unknownGallerySections(['text', 'sheet'], [section, overlay, gone, goneAt130])).toEqual([
+      gone,
+      goneAt130,
+    ]);
+    // The whole gallery and a screen's fixture are not sections of the gallery.
+    expect(
+      unknownGallerySections(
+        ['text'],
+        [
+          { id: 'dev-gallery', path: '/dev/gallery' },
+          { id: 'dev-gallery-text-130', path: '/dev/gallery?textScale=1.3' },
+          { id: 'hello-hello-ready', path: '/dev/screens/hello/helloReady' },
+        ],
+      ),
+    ).toEqual([]);
+  });
+
   it('danglingEntries reports a malformed fixture path', () => {
     expect(danglingEntries([{ id: 'hello-x', path: '/dev/screens/hello' }], ['hello'])).toEqual([
       { id: 'hello-x', path: '/dev/screens/hello' },
@@ -281,6 +438,8 @@ describe('the real tree', () => {
   const fixtures = fixtureFiles().flatMap((file) =>
     fixtureExports(readFileSync(join(ROOT, file), 'utf8')),
   );
+  const gallerySource = readFileSync(join(ROOT, GALLERY_FILE), 'utf8');
+  const gallerySlugs = gallerySectionSlugs(gallerySource);
 
   it('every entry is written with single-quoted id and path literals', () => {
     expect(entries.length).toBeGreaterThan(0);
@@ -299,6 +458,18 @@ describe('the real tree', () => {
 
   it('every fixture entry names an existing fixture', () => {
     expect(danglingEntries(entries, fixtures)).toEqual([]);
+  });
+
+  it('every gallery section is written with a kebab name literal', () => {
+    expect(gallerySlugs.length).toBeGreaterThan(0);
+    expect(gallerySlugs.length).toBe(gallerySectionCount(gallerySource));
+    expect(gallerySlugs.filter((slug) => !KEBAB.test(slug))).toEqual([]);
+    expect(gallerySlugs.filter((slug, index) => gallerySlugs.indexOf(slug) !== index)).toEqual([]);
+  });
+
+  it('every gallery section has an entry, and every one-section entry names a section', () => {
+    expect(missingGallerySections(gallerySlugs, entries)).toEqual([]);
+    expect(unknownGallerySections(gallerySlugs, entries)).toEqual([]);
   });
 
   it('every gallery section and overlay entry has its entry at 130% text, and no other', () => {
