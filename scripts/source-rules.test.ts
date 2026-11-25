@@ -85,15 +85,25 @@ const SPIKE_ONLY_PRIMITIVES: ReadonlySet<string> = new Set([
   'Mask',
 ]);
 
-/** The spike-only names `source` imports from the primitives entry: named imports, with or without `type`, across lines. */
+/**
+ * The spike-only names `source` imports from the primitives entry: named imports, with or without `type`,
+ * across lines and after a default import. A namespace import reaches every primitive, so it is reported
+ * as `* as <name>`.
+ */
 function forbiddenPrimitiveImports(source: string): string[] {
-  const statement = /import\s+(?:type\s+)?\{([^}]*)\}\s*from\s*['"]([^'"]+)['"]/g;
+  const statement = /\bimport\s+(?:type\s+)?([^'";]*?)\s*\bfrom\s*['"]([^'"]+)['"]/g;
   const names: string[] = [];
   for (const match of source.matchAll(statement)) {
     if (match[2] !== PRIMITIVES) {
       continue;
     }
-    for (const specifier of (match[1] ?? '').split(',')) {
+    const clause = match[1] ?? '';
+    const namespace = /\*\s*as\s+([\w$]+)/.exec(clause);
+    if (namespace?.[1] !== undefined) {
+      names.push(`* as ${namespace[1]}`);
+    }
+    const named = /\{([^}]*)\}/.exec(clause)?.[1] ?? '';
+    for (const specifier of named.split(',')) {
       const imported = specifier
         .trim()
         .replace(/^type\s+/, '')
@@ -140,6 +150,18 @@ describe('plain canvas imports', () => {
       `import { type Defs, G } from '${PRIMITIVES}';`,
     ].join('\n');
     expect(forbiddenPrimitiveImports(source)).toEqual(['TSpan', 'Mask', 'Defs']);
+  });
+
+  it('finds a spike-only primitive after a default import', () => {
+    const source = `import Primitives, { Rect, type ClipPath } from '${PRIMITIVES}';`;
+    expect(forbiddenPrimitiveImports(source)).toEqual(['ClipPath']);
+  });
+
+  it('refuses a namespace import, which reaches every primitive', () => {
+    expect(forbiddenPrimitiveImports(`import * as P from '${PRIMITIVES}';`)).toEqual(['* as P']);
+    expect(forbiddenPrimitiveImports(`import Primitives, * as Q from '${PRIMITIVES}';`)).toEqual([
+      '* as Q',
+    ]);
   });
 
   it('accepts the plain primitives', () => {
