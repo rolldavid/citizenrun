@@ -1,0 +1,21 @@
+# The 19 issues users pick. Ids are frozen once released; colors equal the issue design tokens.
+# prettier-ignore
+- { id: rent-housing,        name: Rent and housing costs,               sort: 1,  icon: rent-housing,        color_light: "#CD527C", color_dark: "#E96B94" }
+- { id: utility-bills,       name: Power and utility bills,              sort: 2,  icon: utility-bills,       color_light: "#9D7806", color_dark: "#B98E1C" }
+- { id: data-centers-ai,     name: Data centers and AI,                  sort: 3,  icon: data-centers-ai,     color_light: "#8C6AD5", color_dark: "#A382F0" }
+- { id: climate,             name: Climate,                              sort: 4,  icon: climate,             color_light: "#248F41", color_dark: "#42A859" }
+- { id: corporate-subsidies, name: Corporate tax breaks and subsidies,   sort: 5,  icon: corporate-subsidies, color_light: "#882739", color_dark: "#B34F5D" }
+- { id: property-taxes,      name: Property taxes and fair assessment,   sort: 6,  icon: property-taxes,      color_light: "#6F6601", color_dark: "#8D8522" }
+- { id: wages-workers,       name: Wages and worker power,               sort: 7,  icon: wages-workers,       color_light: "#4D79DD", color_dark: "#6392F8" }
+- { id: policing-justice,    name: "Policing, prosecution and jails",    sort: 8,  icon: policing-justice,    color_light: "#354298", color_dark: "#5669C2" }
+- { id: healthcare,          name: Healthcare costs and access,          sort: 9,  icon: healthcare,          color_light: "#098B88", color_dark: "#11A6A2" }
+- { id: medicare-for-all,    name: Medicare for All,                     sort: 10, icon: medicare-for-all,    color_light: "#91489D", color_dark: "#B166BD" }
+- { id: schools,             name: Schools,                              sort: 11, icon: schools,             color_light: "#0985BB", color_dark: "#0F9EDD" }
+- { id: water-land,          name: "Water, land and environment",        sort: 12, icon: water-land,          color_light: "#2368A6", color_dark: "#4486C7" }
+- { id: transit,             name: Transit,                              sort: 13, icon: transit,             color_light: "#6F4016", color_dark: "#97643D" }
+- { id: voting-access,       name: Elections and voting access,          sort: 14, icon: voting-access,       color_light: "#915809", color_dark: "#B57528" }
+- { id: money-in-politics,   name: Money in politics,                    sort: 15, icon: money-in-politics,   color_light: "#005264", color_dark: "#187A90" }
+- { id: nominations,         name: "Who gets nominated, up to Congress", sort: 16, icon: nominations,         color_light: "#00735D", color_dark: "#0E9479" }
+- { id: public-money,        name: Public money and divestment,          sort: 17, icon: public-money,        color_light: "#025637", color_dark: "#008053" }
+- { id: defund-israel,       name: Defunding Israel,                     sort: 18, icon: defund-israel,       color_light: "#7B2C67", color_dark: "#A4538D" }
+- { id: foreign-wars,        name: Foreign wars and military spending,   sort: 19, icon: foreign-wars,        color_light: "#4B4E17", color_dark: "#70733E" }

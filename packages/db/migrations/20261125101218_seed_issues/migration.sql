@@ -1,0 +1,21 @@
+insert into issues (id, name, color_light, color_dark, icon, sort) values
+  ('rent-housing', 'Rent and housing costs', '#CD527C', '#E96B94', 'rent-housing', 1),
+  ('utility-bills', 'Power and utility bills', '#9D7806', '#B98E1C', 'utility-bills', 2),
+  ('data-centers-ai', 'Data centers and AI', '#8C6AD5', '#A382F0', 'data-centers-ai', 3),
+  ('climate', 'Climate', '#248F41', '#42A859', 'climate', 4),
+  ('corporate-subsidies', 'Corporate tax breaks and subsidies', '#882739', '#B34F5D', 'corporate-subsidies', 5),
+  ('property-taxes', 'Property taxes and fair assessment', '#6F6601', '#8D8522', 'property-taxes', 6),
+  ('wages-workers', 'Wages and worker power', '#4D79DD', '#6392F8', 'wages-workers', 7),
+  ('policing-justice', 'Policing, prosecution and jails', '#354298', '#5669C2', 'policing-justice', 8),
+  ('healthcare', 'Healthcare costs and access', '#098B88', '#11A6A2', 'healthcare', 9),
+  ('medicare-for-all', 'Medicare for All', '#91489D', '#B166BD', 'medicare-for-all', 10),
+  ('schools', 'Schools', '#0985BB', '#0F9EDD', 'schools', 11),
+  ('water-land', 'Water, land and environment', '#2368A6', '#4486C7', 'water-land', 12),
+  ('transit', 'Transit', '#6F4016', '#97643D', 'transit', 13),
+  ('voting-access', 'Elections and voting access', '#915809', '#B57528', 'voting-access', 14),
+  ('money-in-politics', 'Money in politics', '#005264', '#187A90', 'money-in-politics', 15),
+  ('nominations', 'Who gets nominated, up to Congress', '#00735D', '#0E9479', 'nominations', 16),
+  ('public-money', 'Public money and divestment', '#025637', '#008053', 'public-money', 17),
+  ('defund-israel', 'Defunding Israel', '#7B2C67', '#A4538D', 'defund-israel', 18),
+  ('foreign-wars', 'Foreign wars and military spending', '#4B4E17', '#70733E', 'foreign-wars', 19)
+on conflict (id) do update set name = excluded.name, color_light = excluded.color_light, color_dark = excluded.color_dark, icon = excluded.icon, sort = excluded.sort;
