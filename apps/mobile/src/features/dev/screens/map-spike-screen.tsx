@@ -22,6 +22,7 @@ import {
   LOWER48_MAX,
   SPIKE_BOUNDS,
   SPIKE_CENTRE,
+  SPIKE_CLOSE_BOUNDS,
   SPIKE_MAX_ZOOM,
   SPIKE_MIN_ZOOM,
   buildSpikeLayers,
@@ -31,6 +32,7 @@ import {
   spikeWebStyle,
 } from './map-spike-layers';
 import type { EmptyMode, MapSpikeToggles, SpikeRegion } from './map-spike-layers';
+import { SpikeGround } from './spike-ground';
 import { spikeServerOrigin } from './spike-server';
 
 export type MapSpikeScreenProps = {
@@ -65,6 +67,14 @@ const INITIAL_PADDING: MapPadding = {
   right: space.x4,
   bottom: space.x4,
   left: space.x4,
+};
+// On a phone the view starts close on the cells: room at each side for the names of the line's
+// ends, and under the cells for the attribution, which starts open on two lines.
+const INITIAL_PADDING_COMPACT: MapPadding = {
+  top: space.x8,
+  right: space.x8,
+  bottom: space.x12 + space.x4,
+  left: space.x8,
 };
 
 const HEADER: ViewStyle = { paddingVertical: space.x4 };
@@ -201,6 +211,8 @@ function MapSpikeBody({
   };
 
   const beside = layout.breakpoint !== 'compact';
+  // The whole fixture tile where the map is wide; on a phone, the cells alone.
+  const spikeBounds = beside ? SPIKE_BOUNDS : SPIKE_CLOSE_BOUNDS;
   // The frame keeps a gutter at each side for the heading; the map and the panel reach the edges.
   const bleed: ViewStyle = { marginHorizontal: -layout.gutter };
 
@@ -222,8 +234,8 @@ function MapSpikeBody({
             sources={sources}
             geojsonSources={geojsonSources}
             layers={layers}
-            initialBounds={region === 'spike' ? SPIKE_BOUNDS : ALASKA_FIT}
-            initialPadding={INITIAL_PADDING}
+            initialBounds={region === 'spike' ? spikeBounds : ALASKA_FIT}
+            initialPadding={beside ? INITIAL_PADDING : INITIAL_PADDING_COMPACT}
             maxBounds={region === 'spike' ? LOWER48_MAX : ALASKA_MAX}
             minZoom={SPIKE_MIN_ZOOM}
             maxZoom={SPIKE_MAX_ZOOM}
@@ -370,6 +382,7 @@ export function MapSpikeScreen({ apiOrigin, spikeOrigin }: MapSpikeScreenProps):
   const [choice, setChoice] = useState<ThemeChoice>('system');
   return (
     <ThemeProvider choice={choice} textScale={outer.textScale}>
+      <SpikeGround />
       <MapSpikeBody
         apiOrigin={apiOrigin}
         spikeOrigin={spikeOrigin}

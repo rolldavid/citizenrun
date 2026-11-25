@@ -195,6 +195,28 @@ describe('CardSpikeScreen', () => {
     expect(groundFill()).toBe(color.light.surface);
   });
 
+  it('its own theme reaches the edges of a window wider than the screen', () => {
+    // At 1440 the shell's margins are 80 at each side; the spike lays its ground over them.
+    draw();
+    const ground = screen.getByTestId('dev.spike-ground');
+    expect(ground.style.left).toBe('-80px');
+    expect(ground.style.right).toBe('-80px');
+    const light = ground.style.backgroundColor;
+    pressTheme();
+    pressTheme();
+    expect(screen.getByTestId('dev.card-spike-theme').getAttribute('aria-label')).toBe(
+      'Theme: dark',
+    );
+    const dark = screen.getByTestId('dev.spike-ground').style.backgroundColor;
+    expect(dark).not.toBe(light);
+    expect(dark).toBe(screen.getByTestId('dev.card-spike').style.backgroundColor);
+    // A window the screen fills has no margin to cover.
+    cleanup();
+    setViewport(430, 932);
+    draw();
+    expect(screen.queryByTestId('dev.spike-ground')).toBeNull();
+  });
+
   it('the photo is the fixture JPEG', () => {
     draw();
     const images = [...canvas().querySelectorAll('image')];

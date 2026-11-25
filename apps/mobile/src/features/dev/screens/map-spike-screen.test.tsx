@@ -12,6 +12,7 @@ import {
   ALASKA_MAX,
   LOWER48_MAX,
   SPIKE_BOUNDS,
+  SPIKE_CLOSE_BOUNDS,
   SPIKE_CENTRE,
 } from './map-spike-layers';
 import { MapSpikeScreen } from './map-spike-screen';
@@ -115,6 +116,13 @@ function line(testID: string): string | null {
   return screen.getByTestId(testID).textContent;
 }
 
+/** A color as the page writes it back, so a token and a rendered color compare. */
+function written(value: string): string {
+  const probe = document.createElement('span');
+  probe.style.color = value;
+  return probe.style.color;
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -135,8 +143,10 @@ describe('MapSpikeScreen', () => {
     expect(props.geojsonSources.map((source) => source.id)).toEqual(['spike-geo']);
     expect(geoIds()).toEqual([1, 2, 3]);
     expect(props.layers.map((entry) => entry.id)).toEqual(LAYER_IDS);
-    expect(props.initialBounds).toEqual(SPIKE_BOUNDS);
-    expect(props.initialPadding).toEqual({ top: 16, right: 16, bottom: 16, left: 16 });
+    // A phone starts close on the nine cells, clear of the names at the line's ends and of the
+    // attribution under them.
+    expect(props.initialBounds).toEqual(SPIKE_CLOSE_BOUNDS);
+    expect(props.initialPadding).toEqual({ top: 32, right: 32, bottom: 64, left: 32 });
     expect(props.maxBounds).toEqual(LOWER48_MAX);
     expect(props.minZoom).toBe(3);
     expect(props.maxZoom).toBe(16);
@@ -399,6 +409,80 @@ describe('MapSpikeScreen', () => {
     press('dev.map-spike-attribution-compact');
     expect(surface().attributionPosition).toBe('bottom-right');
     expect(surface().attributionCompact).toBe(true);
+  });
+
+  it('the first view is the whole tile where the map is wide, and the cells alone on a phone', () => {
+    try {
+      for (const [width, height] of [
+        [820, 1180],
+        [1440, 900],
+      ] as const) {
+        cleanup();
+        setViewport(width, height);
+        draw();
+        expect(surface().initialBounds, String(width)).toEqual(SPIKE_BOUNDS);
+        expect(surface().initialPadding, String(width)).toEqual({
+          top: 16,
+          right: 16,
+          bottom: 16,
+          left: 16,
+        });
+      }
+      for (const [width, height] of [
+        [360, 740],
+        [430, 932],
+      ] as const) {
+        cleanup();
+        setViewport(width, height);
+        draw();
+        expect(surface().initialBounds, String(width)).toEqual(SPIKE_CLOSE_BOUNDS);
+        // Alaska keeps its own box at every width.
+        press('dev.map-spike-region');
+        expect(surface().initialBounds, String(width)).toEqual(ALASKA_FIT);
+      }
+    } finally {
+      setViewport(390, 844);
+    }
+  });
+
+  it('its own theme reaches the edges of a window wider than the screen', () => {
+    try {
+      // The shell holds the screen to 1280 and paints the margins in the app's theme.
+      setViewport(1600, 900);
+      draw();
+      const ground = screen.getByTestId('dev.spike-ground');
+      expect(ground.style.position).toBe('absolute');
+      expect(ground.style.left).toBe('-160px');
+      expect(ground.style.right).toBe('-160px');
+      expect(ground.style.top).toBe('0px');
+      expect(ground.style.bottom).toBe('0px');
+      expect(ground.style.backgroundColor).toBe(written(color.light.bg));
+      expect(window.getComputedStyle(ground).pointerEvents).toBe('none');
+      // Under the screen, which is drawn after it.
+      const page = screen.getByTestId('dev.map-spike');
+      expect(ground.compareDocumentPosition(page) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      // The spike turns dark while the app stays light: the margins turn with it.
+      press('dev.map-spike-theme');
+      press('dev.map-spike-theme');
+      expect(screen.getByTestId('dev.spike-ground').style.backgroundColor).toBe(
+        written(color.dark.bg),
+      );
+      expect(color.dark.bg).not.toBe(color.light.bg);
+
+      // A window the screen fills has no margin to cover.
+      for (const [width, height] of [
+        [1280, 900],
+        [820, 1180],
+        [390, 844],
+      ] as const) {
+        cleanup();
+        setViewport(width, height);
+        draw();
+        expect(screen.queryByTestId('dev.spike-ground'), String(width)).toBeNull();
+      }
+    } finally {
+      setViewport(390, 844);
+    }
   });
 
   it('the panel stands beside the map from the medium width up', () => {

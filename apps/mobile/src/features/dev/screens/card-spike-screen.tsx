@@ -16,6 +16,7 @@ import type { ThemeChoice } from '@/ui/theme';
 import { issue, space } from '@/ui/tokens';
 
 import { HELLO_PHOTO_DATA_URI } from './hello-photo';
+import { SpikeGround } from './spike-ground';
 
 const NEXT_THEME: Readonly<Record<ThemeChoice, ThemeChoice>> = {
   system: 'light',
@@ -115,6 +116,7 @@ export function CardSpikeScreen(): JSX.Element {
   const [choice, setChoice] = useState<ThemeChoice>('system');
   return (
     <ThemeProvider choice={choice} textScale={outer.textScale}>
+      <SpikeGround />
       <Screen width="full" scroll={true} appBar={null} testID="dev.card-spike">
         <head.Title>Card spike</head.Title>
         <CardSpikeBody
