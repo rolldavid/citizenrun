@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { brotliDecompressSync, gunzipSync } from 'node:zlib';
 import { brandVariant } from '@citizenrun/shared';
 import { afterEach, describe, expect, it } from 'vitest';
+import { createApp } from '../app.ts';
 import { sha256Source } from '../config/csp.ts';
 import { createTestApp } from '../testing/app.ts';
 import type { TestApp } from '../testing/app.ts';
@@ -322,6 +323,41 @@ describe('the web shell and static files', () => {
     expect(Number(staticRefused.headers.get('retry-after'))).toBeGreaterThan(0);
     expect(await staticRefused.text()).toBe('Too many requests');
     expect(errorCodes(testApp).filter((code) => code === 'rate_limited')).toHaveLength(2);
+  });
+
+  it('an unclaimed /v1 GET never meets the shell limiter or compression', async () => {
+    const testApp = await createTestApp();
+    const ip = { 'x-real-ip': '203.0.113.122', 'Accept-Encoding': 'gzip' };
+    for (let n = 1; n <= SHELL_PER_REPLICA + 1; n += 1) {
+      const response = await send(testApp, 'GET', '/v1/nope', ip);
+      expect(response.status, `unknown /v1 request ${String(n)}`).toBe(404);
+      expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8');
+      expect(await response.json()).toEqual({
+        error: { code: 'not_found', message: 'Not found.', fields: {} },
+      });
+    }
+    const routes = testApp.logs
+      .filter((line) => line.parsed['event'] === 'request.done')
+      .map((line) => line.parsed['route']);
+    expect(new Set(routes)).toEqual(new Set(['/*']));
+    // The same address still gets the shell: the /v1 requests took nothing from web_page.
+    await expectShell(await send(testApp, 'GET', '/', { 'x-real-ip': '203.0.113.122' }));
+
+    // A /v1 route mounted after the registry is not gzipped by the catch-all row.
+    const app = createApp(testApp.deps, {
+      extraRoutes: (probe) => {
+        probe.get('/v1/__probe', (c) => c.text('x'.repeat(4_096)));
+      },
+    });
+    const url = new URL('/v1/__probe', testApp.deps.env.PUBLIC_URL).toString();
+    for (let n = 1; n <= SHELL_PER_REPLICA + 1; n += 1) {
+      const response = await app.request(url, {
+        headers: { 'x-real-ip': '203.0.113.123', 'Accept-Encoding': 'gzip' },
+      });
+      expect(response.status, `probe request ${String(n)}`).toBe(200);
+      expect(response.headers.get('content-encoding')).toBeNull();
+      expect(await response.text()).toBe('x'.repeat(4_096));
+    }
   });
 
   it('the shell is gzip-compressed when accepted', async () => {

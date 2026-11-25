@@ -4,7 +4,7 @@ import type { Deps } from '../deps.ts';
 import { limit } from '../middleware/rate-limit.ts';
 import { createRouter } from '../router.ts';
 import type { ApiEnv, RouteContext } from '../router.ts';
-import { shellHandler } from '../web/catch-all.ts';
+import { shellHandler, webOnly } from '../web/catch-all.ts';
 import { robotsHandler } from '../web/robots.ts';
 import { staticFiles } from '../web/static.ts';
 import { registerHealthRoutes } from './health/index.ts';
@@ -33,5 +33,10 @@ export function registerRoutes(app: OpenAPIHono<ApiEnv>, deps: Deps, ctx: RouteC
   app.use('*', staticFiles(deps));
 
   // D-163
-  app.get('*', limit(deps, 'web_page'), compress({ encoding: 'gzip' }), shellHandler(deps));
+  app.get(
+    '*',
+    webOnly(limit(deps, 'web_page')),
+    webOnly(compress({ encoding: 'gzip' })),
+    shellHandler(deps),
+  );
 }

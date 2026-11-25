@@ -1,4 +1,4 @@
-import type { MiddlewareHandler } from 'hono';
+import type { Env, MiddlewareHandler } from 'hono';
 import { brandVariant } from '@citizenrun/shared';
 import type { Deps } from '../deps.ts';
 import { isV1Path } from '../middleware/route-meta.ts';
@@ -11,6 +11,21 @@ const HTML = 'text/html; charset=utf-8';
 
 function isDevPath(path: string): boolean {
   return path === '/dev' || path.startsWith('/dev/');
+}
+
+/**
+ * A step of the catch-all row that a `/v1` path skips (D-824): the row's `*` also matches an
+ * unclaimed `/v1` `GET` and every `/v1` route mounted after it, which the `web_page` limiter must
+ * not count and `compress` must not gzip.
+ */
+export function webOnly<E extends Env>(step: MiddlewareHandler<E>): MiddlewareHandler<E> {
+  return async (c, next) => {
+    if (isV1Path(c.req.path)) {
+      await next();
+      return;
+    }
+    return step(c, next);
+  };
 }
 
 /**
