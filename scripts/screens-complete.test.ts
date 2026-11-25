@@ -77,6 +77,46 @@ function danglingEntries(
   });
 }
 
+/** What a gallery entry's path starts with when it draws one section. */
+const GALLERY_SECTION_PREFIX = '/dev/gallery?only=';
+/** What follows a gallery section's path in its entry at 130% text. */
+const GALLERY_TEXT_SCALE = '&textScale=1.3';
+const TEXT_SCALE_ID = '-x130';
+
+/** The gallery's one-section entries, an open overlay among them, that have no entry at 130% text:
+ *  the same id followed by `-x130`, on the same path followed by `&textScale=1.3`. */
+function missingGalleryTextScale(entries: readonly RouteEntry[]): RouteEntry[] {
+  return entries.filter(
+    (entry) =>
+      entry.path.startsWith(GALLERY_SECTION_PREFIX) &&
+      !entry.path.includes('textScale=') &&
+      !entries.some(
+        (other) =>
+          other.id === `${entry.id}${TEXT_SCALE_ID}` &&
+          other.path === `${entry.path}${GALLERY_TEXT_SCALE}`,
+      ),
+  );
+}
+
+/** The gallery's one-section entries at 130% text that repeat no entry at 100%: the id without
+ *  `-x130` on the path without `&textScale=1.3`. */
+function strayGalleryTextScale(entries: readonly RouteEntry[]): RouteEntry[] {
+  return entries.filter(
+    (entry) =>
+      entry.path.startsWith(GALLERY_SECTION_PREFIX) &&
+      entry.path.includes('textScale=') &&
+      !(
+        entry.id.endsWith(TEXT_SCALE_ID) &&
+        entry.path.endsWith(GALLERY_TEXT_SCALE) &&
+        entries.some(
+          (other) =>
+            other.id === entry.id.slice(0, -TEXT_SCALE_ID.length) &&
+            other.path === entry.path.slice(0, -GALLERY_TEXT_SCALE.length),
+        )
+      ),
+  );
+}
+
 /** Every `apps/mobile/src/features/*\/view-models/*.fixtures.ts`, repository-relative. */
 function fixtureFiles(): string[] {
   const featuresDir = join(ROOT, FEATURES_DIR);
@@ -175,6 +215,59 @@ describe('the pure checks', () => {
     ]);
   });
 
+  it('missingGalleryTextScale reports a gallery section or overlay with no entry at 130% text', () => {
+    const section = { id: 'dev-gallery-section-text', path: '/dev/gallery?only=text' };
+    const overlay = { id: 'dev-gallery-toast-error', path: '/dev/gallery?only=toast' };
+    const sectionAt130 = {
+      id: 'dev-gallery-section-text-x130',
+      path: '/dev/gallery?only=text&textScale=1.3',
+    };
+    expect(missingGalleryTextScale([section, overlay, sectionAt130])).toEqual([overlay]);
+    // The whole gallery and a screen's fixture are not sections of the gallery.
+    expect(
+      missingGalleryTextScale([
+        { id: 'dev-gallery', path: '/dev/gallery' },
+        { id: 'hello-hello-ready', path: '/dev/screens/hello/helloReady' },
+      ]),
+    ).toEqual([]);
+    // The id and the path must both be the section's own.
+    expect(
+      missingGalleryTextScale([
+        section,
+        { id: 'dev-gallery-section-text-130', path: '/dev/gallery?only=text&textScale=1.3' },
+      ]),
+    ).toEqual([section]);
+    expect(
+      missingGalleryTextScale([
+        section,
+        { id: 'dev-gallery-section-text-x130', path: '/dev/gallery?textScale=1.3&only=text' },
+      ]),
+    ).toEqual([section]);
+  });
+
+  it('strayGalleryTextScale reports a 130% gallery entry that repeats no entry at 100%', () => {
+    const section = { id: 'dev-gallery-section-text', path: '/dev/gallery?only=text' };
+    const sectionAt130 = {
+      id: 'dev-gallery-section-text-x130',
+      path: '/dev/gallery?only=text&textScale=1.3',
+    };
+    const stray = {
+      id: 'dev-gallery-section-rule-x130',
+      path: '/dev/gallery?only=rule&textScale=1.3',
+    };
+    expect(strayGalleryTextScale([section, sectionAt130, stray])).toEqual([stray]);
+    // An entry of another section's id on this section's path is not its repeat.
+    const crossed = {
+      id: 'dev-gallery-section-rule-x130',
+      path: '/dev/gallery?only=text&textScale=1.3',
+    };
+    expect(strayGalleryTextScale([section, crossed])).toEqual([crossed]);
+    // The whole gallery at 130% is not a section.
+    expect(
+      strayGalleryTextScale([{ id: 'dev-gallery-text-130', path: '/dev/gallery?textScale=1.3' }]),
+    ).toEqual([]);
+  });
+
   it('danglingEntries reports a malformed fixture path', () => {
     expect(danglingEntries([{ id: 'hello-x', path: '/dev/screens/hello' }], ['hello'])).toEqual([
       { id: 'hello-x', path: '/dev/screens/hello' },
@@ -206,6 +299,12 @@ describe('the real tree', () => {
 
   it('every fixture entry names an existing fixture', () => {
     expect(danglingEntries(entries, fixtures)).toEqual([]);
+  });
+
+  it('every gallery section and overlay entry has its entry at 130% text, and no other', () => {
+    expect(entries.some((entry) => entry.path.startsWith(GALLERY_SECTION_PREFIX))).toBe(true);
+    expect(missingGalleryTextScale(entries)).toEqual([]);
+    expect(strayGalleryTextScale(entries)).toEqual([]);
   });
 
   it('holds the gallery and its text-scale entry', () => {
