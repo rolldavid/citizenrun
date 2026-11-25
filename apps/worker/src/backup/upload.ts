@@ -12,6 +12,42 @@ import { abortReason } from './dump.ts';
 /** The size of one multipart part (PC9-06). */
 export const PART_BYTES = 64 * 1024 * 1024;
 
+/** How long the cleanup abort of a failed upload may take before it is left to the store (D-828). */
+export const ABORT_UPLOAD_LIMIT_MS = 10_000;
+
+// Sends the abort of a failed multipart upload with its own signal, cut off after
+// ABORT_UPLOAD_LIMIT_MS, so a store that stalls cannot hold the run open. Never throws.
+async function abortUpload(
+  s3: S3Client,
+  bucket: string,
+  key: string,
+  uploadId: string,
+): Promise<void> {
+  const controller = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<void>((resolve) => {
+    timer = setTimeout(() => {
+      controller.abort();
+      resolve();
+    }, ABORT_UPLOAD_LIMIT_MS);
+  });
+  try {
+    await Promise.race([
+      s3
+        .send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }), {
+          abortSignal: controller.signal,
+        })
+        .then(
+          () => undefined,
+          () => undefined,
+        ),
+      limit,
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // Fills `buffer` from `position` until it is full or the file ends; returns the bytes read.
 async function readPart(handle: FileHandle, buffer: Buffer, position: number): Promise<number> {
   let filled = 0;
@@ -32,8 +68,9 @@ async function readPart(handle: FileHandle, buffer: Buffer, position: number): P
 
 /**
  * Uploads `file` to `bucket` under `key` as a multipart upload in parts of `partBytes`, one part at
- * a time (each part reuses one buffer). Every part is sent with `signal`. On any failure or abort
- * after the upload is created, the multipart upload is aborted and the original error rethrown.
+ * a time (each part reuses one buffer). The create, every part and the completion are sent with
+ * `signal`. On any failure or abort after the upload is created, the multipart upload is aborted,
+ * within ABORT_UPLOAD_LIMIT_MS, and the original error rethrown (D-828).
  */
 export async function uploadMultipart(
   s3: S3Client,
@@ -55,6 +92,7 @@ export async function uploadMultipart(
       Key: key,
       ContentType: 'application/octet-stream',
     }),
+    sendOptions,
   );
   const uploadId = created.UploadId;
   if (uploadId === undefined) {
@@ -104,10 +142,8 @@ export async function uploadMultipart(
     );
     return { bytes };
   } catch (error) {
-    // Sent without the signal, which may be the reason for the abort.
-    await s3
-      .send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }))
-      .catch(() => undefined);
+    // Not sent with `signal`, which may be the reason for the abort.
+    await abortUpload(s3, bucket, key, uploadId);
     throw error;
   } finally {
     await handle?.close().catch(() => undefined);

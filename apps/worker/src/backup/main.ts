@@ -4,7 +4,7 @@ import { pgDumpVersion, runDump, verifyDump } from './dump.ts';
 import { BackupEnvError, loadBackupEnvFromProcess } from './env.ts';
 import type { BackupEnv } from './env.ts';
 import { readDatabaseFacts } from './facts.ts';
-import { runBackup } from './run.ts';
+import { backupCrashHandler, runBackup } from './run.ts';
 
 // The backup cron's entry (OPS-backup-job). Railway never stops a cron run, so every path ends in
 // process.exit: 0 on success, 1 on failure, 2 on the job's own time limit (D-144).
@@ -36,6 +36,11 @@ async function main(): Promise<number> {
   }
 
   const log = createLogger({ service: 'worker', level: env.logLevel });
+  const exit = (code: number): void => {
+    process.exit(code);
+  };
+  process.on('uncaughtException', backupCrashHandler(log, WORK_DIR, 'exception', exit));
+  process.on('unhandledRejection', backupCrashHandler(log, WORK_DIR, 'rejection', exit));
   const s3 = createS3Client({
     endpoint: env.backups.endpoint,
     region: env.backups.region,

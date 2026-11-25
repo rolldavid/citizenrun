@@ -1,13 +1,18 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { CompleteMultipartUploadCommand, UploadPartCommand } from '@aws-sdk/client-s3';
+import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
+  UploadPartCommand,
+} from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { seededRandom } from '@citizenrun/shared/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createFakeS3 } from './testing/fake-s3.ts';
 import type { FakeS3 } from './testing/fake-s3.ts';
-import { PART_BYTES, uploadMultipart } from './upload.ts';
+import { ABORT_UPLOAD_LIMIT_MS, PART_BYTES, uploadMultipart } from './upload.ts';
 
 const BUCKET = 'fixture-backups';
 const KEY = 'pg/2027/03/20270305T080004Z.dump.enc';
@@ -35,6 +40,7 @@ beforeEach(async () => {
 });
 
 afterEach(async () => {
+  vi.useRealTimers();
   await rm(dir, { recursive: true, force: true });
 });
 
@@ -93,20 +99,100 @@ describe('uploadMultipart', () => {
     expect(fake.objects.size).toBe(0);
   });
 
-  it('aborts when the signal fires', async () => {
+  it('a signal that fired before the start creates no upload', async () => {
     const file = join(dir, 'twenty.bin');
     await writeFile(file, seededBytes(20, 4));
     const fake = createFakeS3();
+    const { client, sent } = recording(fake);
     const controller = new AbortController();
     const reason = new Error('stopped');
     controller.abort(reason);
 
     await expect(
-      uploadMultipart(fake.client, BUCKET, KEY, file, { signal: controller.signal, partBytes: 8 }),
+      uploadMultipart(client, BUCKET, KEY, file, { signal: controller.signal, partBytes: 8 }),
     ).rejects.toBe(reason);
-    expect(fake.calls).toContain('AbortMultipartUploadCommand');
+    expect(sent.map((command) => (command as object).constructor.name)).toEqual([
+      'CreateMultipartUploadCommand',
+    ]);
     expect(fake.calls).not.toContain('UploadPartCommand');
     expect(fake.objects.size).toBe(0);
+  });
+
+  it('aborts the created upload when the signal fires during a part', async () => {
+    const file = join(dir, 'twenty.bin');
+    await writeFile(file, seededBytes(20, 4));
+    const fake = createFakeS3();
+    const controller = new AbortController();
+    const reason = new Error('stopped');
+    const send = (command: unknown, options?: unknown): Promise<unknown> => {
+      if (command instanceof UploadPartCommand) {
+        controller.abort(reason);
+      }
+      return fake.client.send(command as never, options as never);
+    };
+    // test double: implements send() for the commands the backup uses
+    const client = { send } as unknown as S3Client;
+
+    await expect(
+      uploadMultipart(client, BUCKET, KEY, file, { signal: controller.signal, partBytes: 8 }),
+    ).rejects.toBe(reason);
+    expect(fake.calls).toContain('AbortMultipartUploadCommand');
+    expect(fake.calls).not.toContain('CompleteMultipartUploadCommand');
+    expect(fake.objects.size).toBe(0);
+  });
+
+  it('sends the create with the signal', async () => {
+    const file = join(dir, 'twenty.bin');
+    await writeFile(file, seededBytes(20, 6));
+    const fake = createFakeS3();
+    const signals: (AbortSignal | undefined)[] = [];
+    const send = (command: unknown, options?: { abortSignal?: AbortSignal }): Promise<unknown> => {
+      if (command instanceof CreateMultipartUploadCommand) {
+        signals.push(options?.abortSignal);
+      }
+      return fake.client.send(command as never, options as never);
+    };
+    const controller = new AbortController();
+    // test double: implements send() for the commands the backup uses
+    const client = { send } as unknown as S3Client;
+    await uploadMultipart(client, BUCKET, KEY, file, { signal: controller.signal, partBytes: 8 });
+    expect(signals).toEqual([controller.signal]);
+  });
+
+  it('an abort that never answers is given up after its limit', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const file = join(dir, 'twenty.bin');
+    await writeFile(file, seededBytes(20, 7));
+    const fake = createFakeS3();
+    const failure = new Error('part refused');
+    fake.failOn('UploadPartCommand', failure);
+    let abortSignal: AbortSignal | undefined;
+    let aborting = (): void => undefined;
+    const abortSent = new Promise<void>((resolve) => {
+      aborting = resolve;
+    });
+    const send = (command: unknown, options?: { abortSignal?: AbortSignal }): Promise<unknown> => {
+      if (command instanceof AbortMultipartUploadCommand) {
+        abortSignal = options?.abortSignal;
+        aborting();
+        return new Promise<never>(() => undefined);
+      }
+      return fake.client.send(command as never, options as never);
+    };
+    // test double: implements send() for the commands the backup uses
+    const client = { send } as unknown as S3Client;
+
+    let settled = false;
+    const upload = uploadMultipart(client, BUCKET, KEY, file, { partBytes: 8 }).finally(() => {
+      settled = true;
+    });
+    upload.catch(() => undefined);
+    await abortSent;
+    await vi.advanceTimersByTimeAsync(ABORT_UPLOAD_LIMIT_MS - 1);
+    expect(settled).toBe(false);
+    await vi.advanceTimersByTimeAsync(1);
+    await expect(upload).rejects.toBe(failure);
+    expect(abortSignal?.aborted).toBe(true);
   });
 
   it('still rethrows the original error when the abort itself fails', async () => {

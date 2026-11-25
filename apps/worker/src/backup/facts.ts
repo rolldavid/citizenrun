@@ -19,8 +19,14 @@ function isUndefinedTable(error: unknown): boolean {
  * Reads the server version, the newest applied migration (null when the migrations table does not
  * exist) and the planner's live-row estimates per table, on one connection that is always closed.
  */
-export async function readDatabaseFacts(databaseUrl: string): Promise<DatabaseFacts> {
-  const client = new pg.Client({ connectionString: databaseUrl, application_name: 'backup' });
+export async function readDatabaseFacts(
+  databaseUrl: string,
+  createClient: (config: pg.ClientConfig) => pg.Client = (config) => new pg.Client(config),
+): Promise<DatabaseFacts> {
+  const client = createClient({ connectionString: databaseUrl, application_name: 'backup' });
+  // A connection lost between queries is emitted as 'error'; the query in flight rejects on its
+  // own, so the run reports the facts step (D-828).
+  client.on('error', () => undefined);
   let connected = false;
   try {
     await client.connect();

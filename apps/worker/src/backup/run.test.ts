@@ -18,10 +18,11 @@ import { loadBackupEnv } from './env.ts';
 import type { BackupEnv } from './env.ts';
 import type { DatabaseFacts } from './facts.ts';
 import { BackupManifestSchema } from './manifest.ts';
-import { runBackup } from './run.ts';
+import { backupCrashHandler, runBackup } from './run.ts';
 import type { BackupDeps } from './run.ts';
 import { createFakeS3 } from './testing/fake-s3.ts';
 import type { FakeS3 } from './testing/fake-s3.ts';
+import { ABORT_UPLOAD_LIMIT_MS } from './upload.ts';
 
 const generate = promisify(generateKeyPair);
 
@@ -360,6 +361,44 @@ describe('runBackup', () => {
     expect(existsSync(workDir)).toBe(false);
   });
 
+  it('a store that stalls at the create still exits 2 on the time limit', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const creating = deferred();
+    hooks.set('CreateMultipartUploadCommand', () => {
+      creating.resolve();
+      return new Promise<void>(() => undefined); // ignores the signal
+    });
+    const run = runBackup(deps({ timeoutMs: 300 }));
+    await creating.promise;
+    await vi.advanceTimersByTimeAsync(300);
+    expect(await run).toBe(2);
+    expect(logged().filter((line) => line.event === 'backup.failed')).toEqual([
+      expect.objectContaining({ level: 'error', reason: 'timeout', step: 'upload' }),
+    ]);
+    expect(existsSync(workDir)).toBe(false);
+  });
+
+  it('a store that stalls at the cleanup abort still exits 2 on the time limit', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    const uploading = deferred();
+    hooks.set('UploadPartCommand', (_command, options) => {
+      uploading.resolve();
+      return waitForAbort(options?.abortSignal);
+    });
+    hooks.set('AbortMultipartUploadCommand', () => new Promise<void>(() => undefined));
+    const run = runBackup(deps({ timeoutMs: 300 }));
+    await uploading.promise;
+    await vi.advanceTimersByTimeAsync(300);
+    expect(await run).toBe(2);
+    expect(events).toContain('AbortMultipartUploadCommand');
+    expect(logged().filter((line) => line.event === 'backup.failed')).toEqual([
+      expect.objectContaining({ level: 'error', reason: 'timeout', step: 'upload' }),
+    ]);
+    expect(existsSync(workDir)).toBe(false);
+    // The abandoned upload gives up its abort and closes the file.
+    await vi.advanceTimersByTimeAsync(ABORT_UPLOAD_LIMIT_MS);
+  });
+
   it('a timeout during a step without a signal still exits 2', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
     const reading = deferred();
@@ -456,5 +495,31 @@ describe('runBackup', () => {
     });
     expect(await runBackup(deps())).toBe(0);
     expect(key).toBe(DUMP_KEY);
+  });
+});
+
+describe('backupCrashHandler', () => {
+  it('logs backup.failed with the class only, removes the work folder and exits 1', async () => {
+    await mkdir(workDir, { recursive: true });
+    await writeFile(join(workDir, 'left.dump'), seededBytes(16, 9));
+    const exits: number[] = [];
+    const log = deps().log;
+    const handler = backupCrashHandler(log, workDir, 'exception', (code) => {
+      exits.push(code);
+    });
+    const error = new Error(`Connection terminated ${DATABASE_URL}`);
+    handler(error);
+    expect(exits).toEqual([1]);
+    expect(logged()).toEqual([
+      expect.objectContaining({
+        level: 'error',
+        event: 'backup.failed',
+        reason: 'crash',
+        source: 'exception',
+        errorClass: 'Error',
+      }),
+    ]);
+    expect(lines.join('\n')).not.toContain('marker-password-3c9e');
+    expect(existsSync(workDir)).toBe(false);
   });
 });

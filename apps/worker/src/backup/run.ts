@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { createReadStream } from 'node:fs';
+import { createReadStream, rmSync } from 'node:fs';
 import { mkdir, rm, stat, unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
@@ -80,6 +80,30 @@ function untilAborted<T>(signal: AbortSignal, work: Promise<T>): Promise<T> {
   });
 }
 
+/**
+ * The backup entry's handler for an uncaught exception or an unhandled rejection (D-807, D-828):
+ * one `backup.failed` line with `reason: "crash"`, the error's class and `source`, then the work
+ * folder removed, since it may hold the plaintext dump, and `exit(1)`. Node's crash text is never
+ * printed.
+ */
+export function backupCrashHandler(
+  log: Logger,
+  workDir: string,
+  source: 'exception' | 'rejection',
+  exit: (code: number) => void,
+): (error: unknown) => void {
+  return (error) => {
+    try {
+      log.error('backup.failed', { reason: 'crash', source, errorClass: errorClassOf(error) });
+      rmSync(workDir, { recursive: true, force: true });
+    } catch {
+      // Nothing more can be reported; the exit code still says the run failed.
+    } finally {
+      exit(1);
+    }
+  };
+}
+
 async function sha256Of(file: string): Promise<string> {
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(file)) {
@@ -143,7 +167,8 @@ export async function runBackup(deps: BackupDeps): Promise<0 | 1 | 2> {
     const encryptedSha256 = await untilAborted(signal, sha256Of(encryptedFile));
 
     begin('upload');
-    await uploadMultipart(s3, bucket, dumpKey, encryptedFile, { signal });
+    // Raced as well: the time limit holds even when the store ignores the signal (D-828).
+    await untilAborted(signal, uploadMultipart(s3, bucket, dumpKey, encryptedFile, { signal }));
     const head = await untilAborted(
       signal,
       s3.send(new HeadObjectCommand({ Bucket: bucket, Key: dumpKey }), { abortSignal: signal }),
