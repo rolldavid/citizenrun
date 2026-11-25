@@ -19,7 +19,9 @@ RUN pnpm build:worker
 
 FROM fetch AS prod-deps
 COPY . .
-RUN pnpm install --frozen-lockfile --offline --prod --filter @citizenrun/worker
+# `pnpm fetch` put every package of the lockfile in node_modules; reinstalling into an empty one
+# from the store keeps only this service's production dependencies (D-829).
+RUN rm -rf node_modules && pnpm install --frozen-lockfile --offline --prod --filter @citizenrun/worker
 
 # The operating-system layer of the deployed image.
 FROM ${NODE_IMAGE} AS system

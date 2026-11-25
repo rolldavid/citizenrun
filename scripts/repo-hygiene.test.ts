@@ -166,6 +166,21 @@ describe('repository hygiene', () => {
     expect(BANNED_TEST_LINE.test("it('runs only once', () => {});")).toBe(false);
   });
 
+  it('no build context holds credential files or the agent folder', () => {
+    const gitignore = read('.gitignore').split('\n');
+    const start = gitignore.indexOf('# credentials and signing material');
+    const end = gitignore.indexOf('', start);
+    const credentials = gitignore.slice(start + 1, end);
+    expect(credentials).toContain('*.pem');
+    for (const file of ['.dockerignore', 'docker/e2e.Dockerfile.dockerignore']) {
+      const lines = read(file).split('\n');
+      for (const pattern of credentials) {
+        expect(lines, `${file} lacks **/${pattern}`).toContain(`**/${pattern}`);
+      }
+      expect(lines).toEqual(expect.arrayContaining(['.claude', 'CLAUDE.md', '**/*.dump']));
+    }
+  });
+
   it('the local database listens on the loopback address only', () => {
     const compose = z
       .object({
