@@ -2,7 +2,7 @@
   {
     "package": "@img/sharp-libvips-*",
     "versions": ["1.3.4"],
-    "workspaces": ["@citizenrun/cards"],
+    "workspaces": ["@citizenrun/cards", "@citizenrun/worker", "@citizenrun/db"],
     "decision": "D-600",
     "reason": "libvips (LGPL-3.0-or-later), loaded unmodified as a shared library by sharp, a development dependency"
   }

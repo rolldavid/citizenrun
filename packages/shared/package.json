@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./api": "./src/api/index.ts",
     "./storage": "./src/storage/index.ts",
+    "./crypto": "./src/crypto/index.ts",
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {
@@ -16,14 +17,15 @@
     "gen:client": "orval --config orval.config.ts && tsx scripts/write-api-index.ts && prettier --write src/api"
   },
   "dependencies": {
-    "zod": "catalog:",
-    "uuid": "catalog:",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
     "i18next": "catalog:",
-    "@aws-sdk/client-s3": "catalog:"
+    "uuid": "catalog:",
+    "zod": "catalog:"
   },
   "peerDependencies": {
-    "react": "catalog:",
-    "@tanstack/react-query": "catalog:"
+    "@tanstack/react-query": "catalog:",
+    "react": "catalog:"
   },
   "peerDependenciesMeta": {
     "react": {
@@ -34,9 +36,9 @@
     }
   },
   "devDependencies": {
-    "react": "catalog:",
     "@tanstack/react-query": "catalog:",
+    "@types/react": "catalog:",
     "orval": "8.48.0",
-    "@types/react": "catalog:"
+    "react": "catalog:"
   }
 }

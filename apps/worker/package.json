@@ -12,14 +12,17 @@
     "test:integration": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
-    "pg-boss": "catalog:",
-    "pg": "catalog:",
-    "drizzle-orm": "catalog:",
-    "zod": "catalog:",
     "@aws-sdk/client-s3": "catalog:",
-    "resend": "6.38.1",
+    "@citizenrun/db": "workspace:*",
     "@citizenrun/shared": "workspace:*",
-    "@citizenrun/db": "workspace:*"
+    "blurhash": "2.0.5",
+    "drizzle-orm": "catalog:",
+    "jose": "catalog:",
+    "pg": "catalog:",
+    "pg-boss": "catalog:",
+    "resend": "catalog:",
+    "sharp": "catalog:",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@types/pg": "8.23.1"

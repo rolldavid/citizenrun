@@ -13,15 +13,19 @@
     "test:integration": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
-    "hono": "4.13.19",
+    "@aws-sdk/client-s3": "catalog:",
+    "@aws-sdk/s3-presigned-post": "catalog:",
+    "@aws-sdk/s3-request-presigner": "catalog:",
+    "@citizenrun/db": "workspace:*",
+    "@citizenrun/shared": "workspace:*",
     "@hono/node-server": "2.1.11",
     "@hono/zod-openapi": "1.6.3",
-    "zod": "catalog:",
     "drizzle-orm": "catalog:",
+    "hono": "4.13.19",
+    "jose": "catalog:",
     "pg": "catalog:",
     "pg-boss": "catalog:",
-    "resend": "6.38.1",
-    "@citizenrun/shared": "workspace:*",
-    "@citizenrun/db": "workspace:*"
+    "resend": "catalog:",
+    "zod": "catalog:"
   }
 }
