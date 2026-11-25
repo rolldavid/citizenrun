@@ -18,6 +18,9 @@ const DOCKER_PIN = /^docker:\/\/[^@\s]+@sha256:[0-9a-f]{64}$/;
 const VERSION_COMMENT = /#\s*v\d+(\.\d+)*\b/;
 const RAW_USES = /^\s*(?:-\s+)?uses:\s*(['"]?)([^'"\s#]+)\1\s*(#.*)?$/;
 const SECRET_REFERENCE = /\bsecrets\s*(?:\.\s*([A-Za-z_][A-Za-z0-9_]*)|\[)/g;
+const EXPRESSION = /\$\{\{([\s\S]*?)\}\}/g;
+// The whole `secrets` context inside an expression, such as `toJSON(secrets)`.
+const WHOLE_SECRETS = /\bsecrets\b(?!\s*[.[])/;
 
 /** Job permission keys a job may raise, with the values each may take. */
 const JOB_PERMISSIONS: Readonly<Record<string, readonly string[]>> = {
@@ -135,13 +138,37 @@ function pinViolations(file: string, text: string, uses: readonly string[]): Vio
   return violations;
 }
 
-/** The secret names a job's text references (`secrets[...]` counts as `[`). */
-function secretNames(job: unknown): string[] {
-  const text = JSON.stringify(job);
-  return [...text.matchAll(SECRET_REFERENCE)].map((match) => match[1] ?? '[');
+/**
+ * The secret names a value's text references: `secrets.NAME` gives NAME, `secrets[...]` gives `[`,
+ * and the whole `secrets` context inside an expression gives `*`.
+ */
+function secretNames(value: unknown): string[] {
+  const text = value === undefined ? '' : JSON.stringify(value);
+  const names = [...text.matchAll(SECRET_REFERENCE)].map((match) => match[1] ?? '[');
+  for (const expression of text.matchAll(EXPRESSION)) {
+    if (WHOLE_SECRETS.test(expression[1] ?? '')) {
+      names.push('*');
+    }
+  }
+  return names;
 }
 
-function checkJob(file: string, id: string, job: unknown, isCi: boolean): Violation[] {
+/** The secrets a job is given: its own text, a job-level `secrets:` key, and the workflow's `env`. */
+function jobSecrets(job: YamlMap, workflowSecrets: readonly string[]): string[] {
+  const names = [...secretNames(job), ...workflowSecrets];
+  if (job.secrets !== undefined) {
+    names.push('*'); // `secrets: inherit` or a map handed to a called workflow
+  }
+  return names;
+}
+
+function checkJob(
+  file: string,
+  id: string,
+  job: unknown,
+  isCi: boolean,
+  workflowSecrets: readonly string[],
+): Violation[] {
   const violations: Violation[] = [];
   const add = (rule: string, message: string): void => {
     violations.push({ file, rule, message: `job ${id}: ${message}` });
@@ -170,7 +197,7 @@ function checkJob(file: string, id: string, job: unknown, isCi: boolean): Violat
       }
     }
   }
-  const secrets = secretNames(job);
+  const secrets = jobSecrets(job, workflowSecrets);
   const environment = job.environment;
   if (
     secrets.some((name) => name !== 'GITHUB_TOKEN') &&
@@ -267,9 +294,11 @@ export function checkWorkflowText(file: string, text: string): Violation[] {
     violations.push(...checkSchedule(file, workflow, on));
   }
   const isCi = basename(file) === 'ci.yml';
+  // The workflow's own `env` reaches every job.
+  const workflowSecrets = secretNames(workflow.env);
   const uses: string[] = [];
   for (const [id, job] of Object.entries(workflow.jobs)) {
-    violations.push(...checkJob(file, id, job, isCi));
+    violations.push(...checkJob(file, id, job, isCi, workflowSecrets));
     if (isMap(job)) {
       uses.push(...stepUses(job.steps));
       if (typeof job.uses === 'string') {

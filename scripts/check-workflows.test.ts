@@ -252,6 +252,54 @@ describe('checkWorkflowText', () => {
     expect(rules(checkWorkflowText('sample.yml', text))).toEqual(['secrets']);
   });
 
+  it('the whole secrets context outside an Environment fails', () => {
+    const steps = [CHECKOUT, '      - run: echo "${{ toJSON(secrets) }}" > all.json'];
+    const text = workflow({ job: job(BASE_JOB, steps) });
+    expect(rules(checkWorkflowText('sample.yml', text))).toEqual(['secrets']);
+    const inEnvironment = workflow({ job: job([...BASE_JOB, 'environment: staging'], steps) });
+    expect(checkWorkflowText('sample.yml', inEnvironment)).toEqual([]);
+    const plainWords = workflow({
+      job: job(BASE_JOB, [
+        CHECKOUT,
+        '      - name: Check that no secrets leak',
+        '        run: echo ok',
+      ]),
+    });
+    expect(checkWorkflowText('sample.yml', plainWords)).toEqual([]);
+  });
+
+  it("a secret in the workflow's top-level env is given to every job", () => {
+    const text = workflow({ extraTop: 'env:\n  TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}' });
+    expect(rules(checkWorkflowText('sample.yml', text))).toEqual(['secrets']);
+    expect(rules(checkWorkflowText('.github/workflows/ci.yml', text))).toEqual([
+      'secrets',
+      'ci-secrets',
+    ]);
+    const inEnvironment = workflow({
+      extraTop: 'env:\n  TOKEN: ${{ secrets.RAILWAY_TOKEN_STAGING }}',
+      job: job([...BASE_JOB, 'environment: staging']),
+    });
+    expect(checkWorkflowText('sample.yml', inEnvironment)).toEqual([]);
+  });
+
+  it('a job that hands on secrets with secrets: inherit fails', () => {
+    const text = workflow({
+      job: [
+        '  build:',
+        '    runs-on: ubuntu-24.04',
+        '    timeout-minutes: 5',
+        '    secrets: inherit',
+        '    steps:',
+        CHECKOUT,
+      ].join('\n'),
+    });
+    expect(rules(checkWorkflowText('sample.yml', text))).toEqual(['secrets']);
+    expect(rules(checkWorkflowText('.github/workflows/ci.yml', text))).toEqual([
+      'secrets',
+      'ci-secrets',
+    ]);
+  });
+
   it('ci.yml may use no secret', () => {
     const steps = [CHECKOUT, '      - run: echo ${{ secrets.EXPO_TOKEN }}'];
     const text = workflow({ job: job([...BASE_JOB, 'environment: staging'], steps) });
