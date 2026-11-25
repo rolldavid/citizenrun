@@ -8,10 +8,10 @@ phones and by the server renderer.
 
 | Face                    | Instance                                    | SHA-256 of the TTF                                                 |
 | ----------------------- | ------------------------------------------- | ------------------------------------------------------------------ |
-| `SpecialGothic-Regular` | Special Gothic, weight 400, width 100       | `85e239f2a3966c102b8ce8e89098a0a4bff5ba57c7a86d70fbaaaa4da15e1001` |
-| `SpecialGothic-Medium`  | Special Gothic, weight 500, width 100       | `aeeb0bab12c2a41b92f48954a61c3041f1a91c99cfe612c1387372f3c6a2f0fb` |
-| `SpecialGothic-Bold`    | Special Gothic, weight 700, width 100       | `7a1dd1b2ade1a8a9db0d02a3cbd6a181afeb5cba66ac8d23e9e862b99e77d859` |
-| `ChivoMono-Medium`      | Chivo Mono, weight 500, no `liga` or `dlig` | `eb4d47664fc11f9bd8051d7f3e60c6daac3bd747a396755caac2b7564c5e56e7` |
+| `SpecialGothic-Regular` | Special Gothic, weight 400, width 100       | `5f778c05b05d2fa4ea23b6e90813fb8696da464b96ae6c6a0ad1bb91b300c517` |
+| `SpecialGothic-Medium`  | Special Gothic, weight 500, width 100       | `7947c5aaa66aed1d9a8fbabbbb4bd0989bdb88ddbca20f6a0ed7b6c64039ad5f` |
+| `SpecialGothic-Bold`    | Special Gothic, weight 700, width 100       | `d0bd7ff2c3ff28c95a4536c1f9e9b16ffe32b3a34750101c999ee0ed9ca721bf` |
+| `ChivoMono-Medium`      | Chivo Mono, weight 500, no `liga` or `dlig` | `b44520d1438626dee18115faab0df6ab0ea75408fb227f135e25a7ee73677dda` |
 
 `SHA256SUMS` lists the SHA-256 of all eight files and is the check: `shasum -a 256 -c SHA256SUMS`
 in this folder prints `OK` for each of them. The unit tests run the same check, and the
@@ -23,7 +23,12 @@ rendered card, so the files are never rebuilt or edited in place.
 Each face was cut from its family's variable font with fontTools: every weight was instanced from
 the variable source at the values above, renamed so that the file name is also its PostScript name,
 and subset to the characters the product draws. The mono face had its `liga` and `dlig` features
-removed. The build writes no timestamps, so it gives byte-identical files on every run.
+removed. Then each glyph's overlapping contours were merged into one outline with fontTools'
+`removeOverlaps` (on skia-pathops), which also decomposes an accented letter whose parts overlap,
+and the overlap flag was cleared from every glyph, so each glyph fills the same under the nonzero
+and the even-odd rule. The name table, metrics, glyph set and features are unchanged, and the
+faces stay unhinted. Each WOFF2 file was written from its merged TTF. The build writes no
+timestamps, so it gives byte-identical files on every run.
 
 The sources were these variable files:
 

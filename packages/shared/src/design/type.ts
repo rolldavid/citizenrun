@@ -28,7 +28,7 @@ export const FONT_FALLBACK_METRICS = {
 } as const;
 
 /** Part of the web font URL. Raise it whenever a font file changes. */
-export const FONT_VERSION = '1';
+export const FONT_VERSION = '2';
 export const FONT_URL_BASE = `/fonts/${FONT_VERSION}`;
 
 export type TypeRole =

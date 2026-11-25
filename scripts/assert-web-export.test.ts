@@ -9,8 +9,8 @@ const SHELL_CSS_FIXTURE =
   '@font-face{font-family:"Fixture"}\n:focus:not(:focus-visible){outline:none}';
 
 const PRELOADS = [
-  '<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/1/SpecialGothic-Medium.woff2" />',
-  '<link\n      rel="preload"\n      as="font"\n      type="font/woff2"\n      crossorigin\n      href="/fonts/1/SpecialGothic-Bold.woff2"\n    />',
+  '<link rel="preload" as="font" type="font/woff2" crossorigin href="/fonts/2/SpecialGothic-Medium.woff2" />',
+  '<link\n      rel="preload"\n      as="font"\n      type="font/woff2"\n      crossorigin\n      href="/fonts/2/SpecialGothic-Bold.woff2"\n    />',
 ];
 
 function shellHtml(options?: {
@@ -52,14 +52,14 @@ beforeEach(() => {
   distDir = join(root, 'dist');
   fontsDir = join(root, 'fonts');
   mkdirSync(join(distDir, '_expo/static/js/web'), { recursive: true });
-  mkdirSync(join(distDir, 'fonts/1'), { recursive: true });
+  mkdirSync(join(distDir, 'fonts/2'), { recursive: true });
   mkdirSync(fontsDir);
   writeFileSync(join(distDir, 'index.html'), shellHtml());
   writeFileSync(join(distDir, '_expo/static/js/web/index-0123.js'), 'console.log(1);');
   writeFileSync(join(distDir, 'metadata.json'), '{}');
   for (const face of Object.values(FONT_FILES)) {
     writeFileSync(join(fontsDir, `${face}.woff2`), fontBytes(face));
-    writeFileSync(join(distDir, 'fonts/1', `${face}.woff2`), fontBytes(face));
+    writeFileSync(join(distDir, 'fonts/2', `${face}.woff2`), fontBytes(face));
   }
 });
 
@@ -139,7 +139,7 @@ describe('webExportProblems', () => {
   it('reports a missing preload link', () => {
     writeFileSync(join(distDir, 'index.html'), shellHtml({ preloads: [PRELOADS[0] ?? ''] }));
     expect(problems()).toEqual([
-      'index.html has no font preload link for /fonts/1/SpecialGothic-Bold.woff2',
+      'index.html has no font preload link for /fonts/2/SpecialGothic-Bold.woff2',
     ]);
   });
 
@@ -150,21 +150,21 @@ describe('webExportProblems', () => {
       shellHtml({ preloads: [withoutCors, PRELOADS[1] ?? ''] }),
     );
     expect(problems()).toEqual([
-      'index.html has no font preload link for /fonts/1/SpecialGothic-Medium.woff2',
+      'index.html has no font preload link for /fonts/2/SpecialGothic-Medium.woff2',
     ]);
   });
 
   it('reports a WOFF2 file that differs by one byte', () => {
     const bytes = fontBytes(FONT_FILES.mono);
     bytes[0] = (bytes[0] ?? 0) ^ 1;
-    writeFileSync(join(distDir, 'fonts/1', `${FONT_FILES.mono}.woff2`), bytes);
+    writeFileSync(join(distDir, 'fonts/2', `${FONT_FILES.mono}.woff2`), bytes);
     expect(problems()).toEqual([
-      'dist/fonts/1/ChivoMono-Medium.woff2 differs from the committed file',
+      'dist/fonts/2/ChivoMono-Medium.woff2 differs from the committed file',
     ]);
   });
 
   it('reports a WOFF2 file missing from the export', () => {
-    rmSync(join(distDir, 'fonts/1', `${FONT_FILES.regular}.woff2`));
-    expect(problems()).toEqual(['dist/fonts/1/SpecialGothic-Regular.woff2 is missing']);
+    rmSync(join(distDir, 'fonts/2', `${FONT_FILES.regular}.woff2`));
+    expect(problems()).toEqual(['dist/fonts/2/SpecialGothic-Regular.woff2 is missing']);
   });
 });

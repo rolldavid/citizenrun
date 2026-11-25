@@ -158,6 +158,71 @@ function fixtureText(fontWeight: number, fontFamily = 'Special Gothic'): ReactEl
   );
 }
 
+/** The overlap flag of a simple glyph's first point and of a composite's component (OpenType `glyf`). */
+const OVERLAP_SIMPLE = 0x40;
+const OVERLAP_COMPOUND = 0x0400;
+
+/**
+ * The indices of the glyphs of a TrueType file that carry the overlap flag. Read from
+ * the `head`, `maxp`, `loca` and `glyf` tables (D-846: no canvas face carries the flag).
+ */
+function glyphsWithOverlapFlag(font: Buffer): number[] {
+  const tables = new Map<string, { offset: number; length: number }>();
+  const tableCount = font.readUInt16BE(4);
+  for (let index = 0; index < tableCount; index += 1) {
+    const record = 12 + index * 16;
+    tables.set(font.toString('latin1', record, record + 4), {
+      offset: font.readUInt32BE(record + 8),
+      length: font.readUInt32BE(record + 12),
+    });
+  }
+  const table = (tag: string): { offset: number; length: number } => {
+    const found = tables.get(tag);
+    if (found === undefined) {
+      throw new Error(`the font has no ${tag} table`);
+    }
+    return found;
+  };
+  const longOffsets = font.readInt16BE(table('head').offset + 50) === 1;
+  const glyphCount = font.readUInt16BE(table('maxp').offset + 4);
+  const loca = table('loca').offset;
+  const glyf = table('glyf').offset;
+  const glyphStart = (index: number): number =>
+    longOffsets ? font.readUInt32BE(loca + index * 4) : font.readUInt16BE(loca + index * 2) * 2;
+  const flagged: number[] = [];
+  for (let index = 0; index < glyphCount; index += 1) {
+    const start = glyphStart(index);
+    if (glyphStart(index + 1) === start) {
+      continue;
+    }
+    const at = glyf + start;
+    const contours = font.readInt16BE(at);
+    if (contours > 0) {
+      const instructionLength = font.readUInt16BE(at + 10 + contours * 2);
+      const firstFlag = font.readUInt8(at + 12 + contours * 2 + instructionLength);
+      if ((firstFlag & OVERLAP_SIMPLE) !== 0) {
+        flagged.push(index);
+      }
+      continue;
+    }
+    let component = at + 10;
+    for (;;) {
+      const flags = font.readUInt16BE(component);
+      if ((flags & OVERLAP_COMPOUND) !== 0) {
+        flagged.push(index);
+        break;
+      }
+      component += 4 + ((flags & 0x0001) !== 0 ? 4 : 2);
+      component +=
+        (flags & 0x0008) !== 0 ? 2 : (flags & 0x0040) !== 0 ? 4 : (flags & 0x0080) !== 0 ? 8 : 0;
+      if ((flags & 0x0020) === 0) {
+        break;
+      }
+    }
+  }
+  return flagged;
+}
+
 const temporaryDirs: string[] = [];
 
 function fontDirCopy(): string {
@@ -209,6 +274,14 @@ describe('renderCardPng', () => {
     expect(() => {
       assertFontFiles(missing);
     }).toThrow(/ChivoMono-Medium\.ttf/);
+  });
+
+  it('no glyph of a canvas face carries the overlap flag', () => {
+    const ttfFiles = FONT_FILES.filter((name) => name.endsWith('.ttf'));
+    expect(ttfFiles).toHaveLength(4);
+    for (const name of ttfFiles) {
+      expect(glyphsWithOverlapFlag(readFileSync(join(FONT_DIR, name))), name).toEqual([]);
+    }
   });
 
   it('renders an svg element to a PNG of the requested size', async () => {

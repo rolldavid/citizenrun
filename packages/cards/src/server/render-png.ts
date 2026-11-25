@@ -15,10 +15,10 @@ type FontFileName = (typeof FONT_FILES)[FontFace];
 
 // CARD-fonts
 const TTF_SHA256: Readonly<Record<FontFileName, string>> = {
-  [FONT_FILES.regular]: '85e239f2a3966c102b8ce8e89098a0a4bff5ba57c7a86d70fbaaaa4da15e1001',
-  [FONT_FILES.medium]: 'aeeb0bab12c2a41b92f48954a61c3041f1a91c99cfe612c1387372f3c6a2f0fb',
-  [FONT_FILES.bold]: '7a1dd1b2ade1a8a9db0d02a3cbd6a181afeb5cba66ac8d23e9e862b99e77d859',
-  [FONT_FILES.mono]: 'eb4d47664fc11f9bd8051d7f3e60c6daac3bd747a396755caac2b7564c5e56e7',
+  [FONT_FILES.regular]: '5f778c05b05d2fa4ea23b6e90813fb8696da464b96ae6c6a0ad1bb91b300c517',
+  [FONT_FILES.medium]: '7947c5aaa66aed1d9a8fbabbbb4bd0989bdb88ddbca20f6a0ed7b6c64039ad5f',
+  [FONT_FILES.bold]: 'd0bd7ff2c3ff28c95a4536c1f9e9b16ffe32b3a34750101c999ee0ed9ca721bf',
+  [FONT_FILES.mono]: 'b44520d1438626dee18115faab0df6ab0ea75408fb227f135e25a7ee73677dda',
 };
 
 const FONT_FILE_NAMES: readonly FontFileName[] = Object.values(FONT_FILES);

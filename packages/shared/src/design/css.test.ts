@@ -6,17 +6,17 @@ import type { ThemeName } from './tokens.ts';
 import { FONT_STACKS } from './type.ts';
 
 const FONT_FACE_LINES = [
-  '@font-face{font-family:"Special Gothic";src:url(/fonts/1/SpecialGothic-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}',
-  '@font-face{font-family:"Special Gothic";src:url(/fonts/1/SpecialGothic-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}',
-  '@font-face{font-family:"Special Gothic";src:url(/fonts/1/SpecialGothic-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}',
-  '@font-face{font-family:"Chivo Mono";src:url(/fonts/1/ChivoMono-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}',
+  '@font-face{font-family:"Special Gothic";src:url(/fonts/2/SpecialGothic-Regular.woff2) format("woff2");font-weight:400;font-style:normal;font-display:swap}',
+  '@font-face{font-family:"Special Gothic";src:url(/fonts/2/SpecialGothic-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}',
+  '@font-face{font-family:"Special Gothic";src:url(/fonts/2/SpecialGothic-Bold.woff2) format("woff2");font-weight:700;font-style:normal;font-display:swap}',
+  '@font-face{font-family:"Chivo Mono";src:url(/fonts/2/ChivoMono-Medium.woff2) format("woff2");font-weight:500;font-style:normal;font-display:swap}',
   '@font-face{font-family:"Special Gothic Fallback";src:local("Arial");font-weight:400;size-adjust:94.5%;ascent-override:106.3%;descent-override:31.2%}',
   '@font-face{font-family:"Special Gothic Fallback";src:local("Arial");font-weight:500;size-adjust:97.7%;ascent-override:102.9%;descent-override:30.2%}',
   '@font-face{font-family:"Special Gothic Fallback";src:local("Arial Bold"),local("Arial");font-weight:700;size-adjust:100.8%;ascent-override:99.7%;descent-override:29.3%}',
-  '@font-face{font-family:"SpecialGothic-Regular";src:url(/fonts/1/SpecialGothic-Regular.woff2) format("woff2"),local("Helvetica Neue"),local("Arial");font-display:block}',
-  '@font-face{font-family:"SpecialGothic-Medium";src:url(/fonts/1/SpecialGothic-Medium.woff2) format("woff2"),local("Helvetica Neue Medium"),local("Arial");font-display:block}',
-  '@font-face{font-family:"SpecialGothic-Bold";src:url(/fonts/1/SpecialGothic-Bold.woff2) format("woff2"),local("Helvetica Neue Bold"),local("Arial Bold"),local("Arial");font-display:block}',
-  '@font-face{font-family:"ChivoMono-Medium";src:url(/fonts/1/ChivoMono-Medium.woff2) format("woff2"),local("Menlo"),local("Consolas"),local("Courier New");font-display:block}',
+  '@font-face{font-family:"SpecialGothic-Regular";src:url(/fonts/2/SpecialGothic-Regular.woff2) format("woff2"),local("Helvetica Neue"),local("Arial");font-display:block}',
+  '@font-face{font-family:"SpecialGothic-Medium";src:url(/fonts/2/SpecialGothic-Medium.woff2) format("woff2"),local("Helvetica Neue Medium"),local("Arial");font-display:block}',
+  '@font-face{font-family:"SpecialGothic-Bold";src:url(/fonts/2/SpecialGothic-Bold.woff2) format("woff2"),local("Helvetica Neue Bold"),local("Arial Bold"),local("Arial");font-display:block}',
+  '@font-face{font-family:"ChivoMono-Medium";src:url(/fonts/2/ChivoMono-Medium.woff2) format("woff2"),local("Menlo"),local("Consolas"),local("Courier New");font-display:block}',
 ];
 
 const TOKENS_CSS_LINES = [
