@@ -12,6 +12,11 @@ import { Text } from './text';
 /** The largest count a badge writes out. */
 const MAX_COUNT = 99;
 
+/** True for a count the badge does not write out: it draws the wider overflow form. */
+export function countBadgeOverflows(count: number): boolean {
+  return count > MAX_COUNT;
+}
+
 export type CountBadgeProps = {
   count: number;
   /** Default 'corner': on an icon's corner. 'row': at the end of a rail row. */
@@ -57,7 +62,7 @@ export function CountBadge({
         }}
       >
         <Text role="mono" tone="inverse" tabular>
-          {count > MAX_COUNT ? t('ui.badge.overflow') : String(count)}
+          {countBadgeOverflows(count) ? t('ui.badge.overflow') : String(count)}
         </Text>
       </View>
     </View>

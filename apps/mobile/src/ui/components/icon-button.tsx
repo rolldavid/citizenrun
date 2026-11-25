@@ -1,5 +1,6 @@
 import type { JSX } from 'react';
 import { View } from 'react-native';
+import type { ViewStyle } from 'react-native';
 
 import type { HapticName } from '@/ui/haptic';
 import type { IconName } from '@/ui/icons';
@@ -7,7 +8,7 @@ import { useTheme } from '@/ui/theme';
 import { radius, rule, size, space } from '@/ui/tokens';
 import type { ResolvedTone } from '@/ui/tone';
 
-import { CountBadge } from './count-badge';
+import { CountBadge, countBadgeOverflows } from './count-badge';
 import { Icon } from './icon';
 import { Pressable } from './pressable';
 import { Tooltip } from './tooltip';
@@ -31,6 +32,24 @@ export type IconButtonProps = {
   haptic?: HapticName;
   testID: string;
 };
+
+/**
+ * Where the badge stands on the button's top-right corner. One figure sits where the corner of the
+ * icon is; a wider count keeps that left edge until it reaches the button's own edge, and from
+ * there grows toward the icon. The overflow form, the widest, is raised by the room one figure
+ * keeps above it, so it rests on the icon and does not cover it.
+ */
+function badgeCorner(small: boolean, overflows: boolean): ViewStyle {
+  const inset = small ? 0 : space.x1;
+  return {
+    position: 'absolute',
+    top: inset - (overflows ? space.x1 : 0),
+    right: 0,
+    minWidth: inset + size.badge,
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  };
+}
 
 /**
  * C-IconButton: an action shown as an icon. A toggled button swaps its icon for the selected one
@@ -112,14 +131,7 @@ export function IconButton({
                   tone={tone}
                 />
                 {badge === undefined ? null : (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: small ? 0 : space.x1,
-                      right: small ? 0 : space.x1,
-                    }}
-                    pointerEvents="none"
-                  >
+                  <View style={badgeCorner(small, countBadgeOverflows(badge))} pointerEvents="none">
                     <CountBadge count={badge} size="corner" />
                   </View>
                 )}

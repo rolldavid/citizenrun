@@ -252,20 +252,24 @@ describe('IconButton', () => {
     expect(off.path.getAttribute('d')).toBe(BOOKMARK);
     expect(off.path.getAttribute('fill')).toBe('none');
     expect(off.path.getAttribute('stroke')).toBe('#141412');
-    expect(off.target.getAttribute('aria-selected')).toBe('false');
+    expect(off.target.getAttribute('aria-pressed')).toBe('false');
+    expect(off.target.hasAttribute('aria-selected')).toBe(false);
 
     const on = drawState('selected');
     // The filled form is the same shape, filled, in the same color.
     expect(on.path.getAttribute('d')).toBe(BOOKMARK);
     expect(on.path.getAttribute('fill')).toBe('#141412');
     expect(on.path.getAttribute('stroke')).toBe('#141412');
-    expect(on.target.getAttribute('aria-selected')).toBe('true');
+    // A toggle button is pressed: a button may not carry aria-selected.
+    expect(on.target.getAttribute('aria-pressed')).toBe('true');
+    expect(on.target.hasAttribute('aria-selected')).toBe(false);
     expect(on.square.style.backgroundColor).toBe('');
     expect(on.target.style.backgroundColor).toBe('');
 
     // Without a second icon the button is no toggle: it keeps its icon and reports no state.
     const plain = draw({ selected: true });
     expect(plain.path.getAttribute('fill')).toBe('none');
+    expect(plain.target.hasAttribute('aria-pressed')).toBe(false);
     expect(plain.target.hasAttribute('aria-selected')).toBe(false);
   });
 
@@ -429,13 +433,40 @@ describe('IconButton', () => {
     const corner = badge?.parentElement;
     expect(corner?.parentElement).toBe(square);
     expect(corner?.style.position).toBe('absolute');
+    // One figure stands where the icon's corner is: 4 points down, its left edge 20 from the
+    // button's right edge.
     expect(corner?.style.top).toBe('4px');
-    expect(corner?.style.right).toBe('4px');
+    expect(corner?.style.right).toBe('0px');
+    expect(corner?.style.minWidth).toBe('20px');
+    expect(corner?.style.justifyContent).toBe('flex-start');
+  });
 
-    const overflow = drawState('badgeOverflow').target;
+  it('the overflow badge rests on the icon and does not cover it', () => {
+    const { target, square } = drawState('badgeOverflow');
+    const badge = target.querySelector<HTMLElement>(
+      '[aria-hidden="true"][style*="flex-direction"]',
+    );
+    expect(badge?.textContent).toBe('99+');
+    const corner = badge?.parentElement;
+    expect(corner?.parentElement).toBe(square);
+    // Raised to the button's top edge: the badge is 16 high and the envelope starts below that.
+    expect(corner?.style.top).toBe('0px');
+    // Held at the button's right edge, so its width grows away from the screen's edge and it is
+    // never anchored 4 points in, where it reached across the whole icon.
+    expect(corner?.style.right).toBe('0px');
+    expect(corner?.style.left).toBe('');
+    // A count the badge writes out keeps the lower place, whatever its width.
+    for (const count of [1, 9, 10, 99]) {
+      const drawn = draw({ icon: 'messages', badge: count }).square;
+      const at = drawn.querySelector<HTMLElement>('[style*="position: absolute"]');
+      expect(at?.style.top, String(count)).toBe('4px');
+      expect(at?.style.right, String(count)).toBe('0px');
+    }
     expect(
-      overflow.querySelector('[aria-hidden="true"][style*="flex-direction"]')?.textContent,
-    ).toBe('99+');
+      draw({ icon: 'messages', badge: 100 }).square.querySelector<HTMLElement>(
+        '[style*="position: absolute"]',
+      )?.style.top,
+    ).toBe('0px');
   });
 
   it('a small button carries its badge on the very corner, and a count of zero draws none', () => {
@@ -444,6 +475,7 @@ describe('IconButton', () => {
     expect(corner?.textContent).toBe('3');
     expect(corner?.style.top).toBe('0px');
     expect(corner?.style.right).toBe('0px');
+    expect(corner?.style.minWidth).toBe('16px');
     expect(draw({ icon: 'messages', badge: 0 }).target.textContent).toBe('');
     expect(
       draw({ icon: 'messages' }).target.querySelector('[style*="position: absolute"]'),
