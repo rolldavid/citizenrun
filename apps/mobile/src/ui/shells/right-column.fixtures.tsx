@@ -12,7 +12,9 @@ export const STATES = {
       <>
         <View>
           <Text role="monoLabel">Deadlines near you</Text>
-          <Text role="body">County Treasurer, Wren County. Filing closes in 12 days.</Text>
+          <Text role="body">
+            County Treasurer, Wren County. Filing closes in 12 days, on Fri, Nov 20.
+          </Text>
         </View>
         <View>
           <Text role="monoLabel">People in your races</Text>

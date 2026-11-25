@@ -58,7 +58,9 @@ export const STATES = {
     onClose: () => undefined,
     title: 'Stop following Wren County Clerk?',
     body: 'Its deadlines leave your Home feed.',
-    children: <Notice kind="warning" text="Filing for this office closes in 3 days." />,
+    children: (
+      <Notice kind="warning" text="Filing for this office closes in 3 days, on Fri, Nov 27." />
+    ),
     actions: [
       {
         label: 'Keep following',

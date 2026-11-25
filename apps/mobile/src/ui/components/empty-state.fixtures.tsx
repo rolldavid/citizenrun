@@ -33,7 +33,7 @@ export const STATES = {
   artNone: {
     art: 'none',
     title: 'No one is running yet.',
-    body: 'Filing for this office opens on January 12.',
+    body: 'Filing for this office opens Mon, Jan 12.',
     action: {
       label: 'See the filing steps',
       variant: 'secondary',

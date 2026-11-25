@@ -175,7 +175,7 @@ describe('Screen', () => {
           expect(root.style.backgroundColor, state).toBe(written(color[theme].bg));
           expect(root.style.flexGrow, state).toBe('1');
           expect(
-            within(root).getByText('Filing opens on January 12 and closes on March 6.'),
+            within(root).getByText('Filing opens Mon, Jan 12 and closes Fri, Mar 6.'),
             state,
           ).toBeDefined();
         }
@@ -213,7 +213,7 @@ describe('Screen', () => {
       expect(root.contains(mains[0] ?? null), state).toBe(true);
       expect(
         mains[0]?.contains(
-          within(root).getByText('Filing opens on January 12 and closes on March 6.'),
+          within(root).getByText('Filing opens Mon, Jan 12 and closes Fri, Mar 6.'),
         ),
         state,
       ).toBe(true);
@@ -280,7 +280,7 @@ describe('Screen', () => {
   it("draws the shell's banner under the app bar", () => {
     setViewport(...COMPACT);
     const banner = <Text role="body">Suspended</Text>;
-    const content = 'Filing opens on January 12 and closes on March 6.';
+    const content = 'Filing opens Mon, Jan 12 and closes Fri, Mar 6.';
     draw(inShell({ banner }, STATES.offline));
     const title = screen.getByRole('heading', { level: 1, name: 'Wren County' });
     const suspended = screen.getByText('Suspended');
@@ -322,7 +322,7 @@ describe('Screen', () => {
     const title = within(root).getByRole('heading', { level: 1 });
     expect(follows(title, line)).toBe(true);
     expect(
-      follows(line, within(root).getByText('Filing opens on January 12 and closes on March 6.')),
+      follows(line, within(root).getByText('Filing opens Mon, Jan 12 and closes Fri, Mar 6.')),
     ).toBe(true);
     const holder = line.parentElement;
     expect(holder?.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
@@ -369,7 +369,7 @@ describe('Screen', () => {
     expect(scrollOf(STATES.homeAppBar.testID).contains(mark)).toBe(true);
     // The bar is the first thing in the scroll content.
     expect(
-      follows(mark, within(home).getByText('Filing opens on January 12 and closes on March 6.')),
+      follows(mark, within(home).getByText('Filing opens Mon, Jan 12 and closes Fri, Mar 6.')),
     ).toBe(true);
 
     const stays = drawState('screenAppBar');
@@ -384,7 +384,7 @@ describe('Screen', () => {
     expect(
       follows(
         screen.getByRole('img'),
-        screen.getByText('Filing opens on January 12 and closes on March 6.'),
+        screen.getByText('Filing opens Mon, Jan 12 and closes Fri, Mar 6.'),
       ),
     ).toBe(true);
   });

@@ -118,7 +118,7 @@ describe('RightColumn', () => {
     const labels = [...column.querySelectorAll('[dir="auto"]')].map((line) => line.textContent);
     expect(labels).toEqual([
       'Deadlines near you',
-      'County Treasurer, Wren County. Filing closes in 12 days.',
+      'County Treasurer, Wren County. Filing closes in 12 days, on Fri, Nov 20.',
       'People in your races',
       'Carol Wynn holds the office. Dana Okafor is running.',
     ]);

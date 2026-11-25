@@ -16,13 +16,13 @@ function paragraphs(): JSX.Element {
   return (
     <View style={{ gap: space.x3, paddingVertical: space.x4 }}>
       <Text role="body">
-        Wren County elects a clerk, a sheriff, an assessor and five commissioners.
+        Wren County elects a clerk, a sheriff, an assessor and 5 commissioners.
       </Text>
       <Text role="body">
-        The clerk keeps county records and runs county elections. The term is four years.
+        The clerk keeps county records and runs county elections. The term is 4 years.
       </Text>
       <Text role="body" tone="secondary">
-        Filing opens on January 12 and closes on March 6.
+        Filing opens Mon, Jan 12 and closes Fri, Mar 6.
       </Text>
     </View>
   );

@@ -11,8 +11,8 @@ export const STATES = {
   heading: { role: 'heading', children: 'Offices near you' },
   body: { role: 'body', children: 'Filing opens in March and closes in May.' },
   bodyStrong: { role: 'bodyStrong', children: 'Carol Wynn' },
-  label: { role: 'label', children: 'Filing closes May 14' },
-  caption: { role: 'caption', children: 'Updated two days ago' },
+  label: { role: 'label', children: 'Filing closes Fri, Nov 27' },
+  caption: { role: 'caption', children: 'Updated Mon, Nov 23' },
   captionStrong: { role: 'captionStrong', children: 'Alder city council' },
   monoLabel: { role: 'monoLabel', children: 'Cost to run' },
   mono: { role: 'mono', children: 'dana_okafor' },
@@ -25,10 +25,10 @@ export const STATES = {
   initialsLg: { role: 'initialsLg', children: 'A' },
   // The tones other than primary, each on the ground it is made for.
   secondary: { role: 'body', tone: 'secondary', children: 'Seat held since 2019' },
-  inverse: { role: 'body', tone: 'inverse', children: 'Three seats are open' },
+  inverse: { role: 'body', tone: 'inverse', children: '3 seats are open' },
   inverseSecondary: { role: 'body', tone: 'inverseSecondary', children: 'Nobody has filed yet' },
   onAccent: { role: 'body', tone: 'onAccent', children: 'Run for this office' },
-  onHighlight: { role: 'body', tone: 'onHighlight', children: 'Closes in five days' },
+  onHighlight: { role: 'body', tone: 'onHighlight', children: 'Closes in 5 days, on Fri, Nov 27' },
   danger: { role: 'body', tone: 'danger', children: 'Filing has closed' },
   success: { role: 'body', tone: 'success', children: 'Your filing was received' },
   disabled: { role: 'body', tone: 'disabled', children: 'Filing closed' },
@@ -39,7 +39,7 @@ export const STATES = {
     role: 'body',
     numberOfLines: 2,
     children:
-      'Filing for the Wren County clerk opens on the first Monday of March and closes at five in the afternoon on the last day.',
+      'Filing for the Wren County clerk opens on the first Monday of March and closes at 5 p.m. on the last Wednesday of April.',
   },
   // A name the bundled face cannot draw: the whole string is set in the system font.
   fallback: { role: 'body', children: 'Nguyễn Văn An' },
