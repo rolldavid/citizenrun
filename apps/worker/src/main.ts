@@ -1,6 +1,7 @@
-import { createEnqueue, waitForDatabase } from '@citizenrun/db';
+import { createEnqueue, waitForDatabase, withEmailCounters } from '@citizenrun/db';
 import { EnvError, createLogger } from '@citizenrun/shared';
 import type { Logger } from '@citizenrun/shared';
+import { loadKeyRing } from '@citizenrun/shared/crypto';
 import { createBoss } from './boss.ts';
 import type { WorkerRuntime } from './context.ts';
 import { loadEnv, logMissingOwnerInputs } from './env.ts';
@@ -9,7 +10,9 @@ import { processStartedAt, writeHeartbeat } from './jobs/ops/heartbeat.ts';
 import { errorClassOf } from './jobs/types.ts';
 import { createWorkerDb, createWorkerPool } from './lib/db.ts';
 import { createMailer } from './lib/mailer.ts';
+import { createOutboundFetch } from './lib/outbound-fetch.ts';
 import { installProcessErrorHandlers } from './lib/process-errors.ts';
+import { configureSharp } from './lib/sharp-setup.ts';
 import { createShutdown, installShutdown } from './lib/shutdown.ts';
 import { createWorkerBuckets } from './lib/storage.ts';
 import { QUEUE_REGISTRY, registerQueues, registerSchedules } from './queues.ts';
@@ -33,8 +36,14 @@ async function start(env: WorkerEnv, logger: Logger): Promise<void> {
   await waitForDatabase(pool);
   const db = createWorkerDb(pool);
   const storage = createWorkerBuckets(env);
-  const mailer = createMailer(env, logger);
+  const clock = { now: () => new Date() };
+  // Every message handed to Resend or the capture mailer is counted (D-428).
+  const mailer = withEmailCounters(createMailer(env, logger), db, clock, logger);
+  const keys = loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS);
+  const outbound = createOutboundFetch(env);
   const abort = new AbortController();
+  // Boot step 3: the image library's process settings, before any job can run (D-250).
+  configureSharp();
 
   const boss = createBoss({ connectionString: env.DATABASE_URL, logger });
   await boss.start();
@@ -46,7 +55,9 @@ async function start(env: WorkerEnv, logger: Logger): Promise<void> {
     enqueue: createEnqueue(boss),
     storage,
     mailer,
-    clock: { now: () => new Date() },
+    keys,
+    outbound,
+    clock,
     abort,
   };
   await registerQueues(boss, runtime);

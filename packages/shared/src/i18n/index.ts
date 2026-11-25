@@ -8,6 +8,9 @@ import { notifications } from './en/notifications.ts';
 import { system } from './en/system.ts';
 import { hello } from './en/hello.ts';
 
+export { formatDate } from './format/date.ts';
+export type { DateStyle } from './format/date.ts';
+
 export const RESOURCES = {
   en: { common, errors, native, notifications, system, hello },
 } as const;

@@ -28,6 +28,7 @@ const missingBucketLine: CostLine = {
       ...ctx,
       storage: {
         backups: { client: ctx.storage.backups.client, bucket: 'fixture-bucket-that-is-missing' },
+        media: ctx.storage.media,
       },
     });
   },

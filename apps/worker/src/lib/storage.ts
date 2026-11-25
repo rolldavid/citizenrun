@@ -13,8 +13,8 @@ export type ListedObject = { key: string; size: number; lastModified: Date };
 // ListObjectsV2's own page limit.
 const DEFAULT_PAGE_SIZE = 1000;
 
-/** The buckets the worker holds keys for: `backups` for now. Opens no connection itself. */
-export function createWorkerBuckets(env: WorkerEnv): { backups: Bucket } {
+/** The buckets the worker holds keys for: `backups` and `media`. Opens no connection itself. */
+export function createWorkerBuckets(env: WorkerEnv): { backups: Bucket; media: Bucket } {
   return {
     backups: {
       client: createS3Client({
@@ -25,6 +25,16 @@ export function createWorkerBuckets(env: WorkerEnv): { backups: Bucket } {
         forcePathStyle: env.S3_FORCE_PATH_STYLE,
       }),
       bucket: env.BACKUPS_BUCKET,
+    },
+    media: {
+      client: createS3Client({
+        endpoint: env.MEDIA_ENDPOINT,
+        region: env.MEDIA_REGION,
+        accessKeyId: env.MEDIA_ACCESS_KEY_ID,
+        secretAccessKey: env.MEDIA_SECRET_ACCESS_KEY,
+        forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      }),
+      bucket: env.MEDIA_BUCKET,
     },
   };
 }
@@ -45,16 +55,17 @@ export function bucketHost(input: {
 /**
  * Every object under `prefix`, page by page (`pageSize` keys a request, default 1,000), in the
  * store's key order. Throws on any store error, so a job's caller lets pg-boss retry it. Each
- * request is abandoned after the bucket timeout (CTL-37).
+ * request is abandoned after the bucket timeout (CTL-37) or when `signal` aborts.
  */
 export async function* listAllObjects(
   bucket: Bucket,
   prefix: string,
-  options: { pageSize?: number } = {},
+  options: { pageSize?: number; signal?: AbortSignal } = {},
 ): AsyncIterable<ListedObject> {
   const pageSize = options.pageSize ?? DEFAULT_PAGE_SIZE;
   let token: string | undefined;
   do {
+    const timeout = AbortSignal.timeout(OUTBOUND_TIMEOUT_MS.bucket);
     const page = await bucket.client.send(
       new ListObjectsV2Command({
         Bucket: bucket.bucket,
@@ -62,7 +73,10 @@ export async function* listAllObjects(
         MaxKeys: pageSize,
         ...(token === undefined ? {} : { ContinuationToken: token }),
       }),
-      { abortSignal: AbortSignal.timeout(OUTBOUND_TIMEOUT_MS.bucket) },
+      {
+        abortSignal:
+          options.signal === undefined ? timeout : AbortSignal.any([options.signal, timeout]),
+      },
     );
     for (const item of page.Contents ?? []) {
       if (item.Key === undefined || item.Size === undefined || item.LastModified === undefined) {

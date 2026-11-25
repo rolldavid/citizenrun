@@ -3,9 +3,13 @@ import type { WorkerEnv } from '../env.ts';
 import { bucketHost } from './storage.ts';
 
 /** The fixed hosts the worker calls (INV-39); the bucket hosts come from the environment. */
-export const OUTBOUND_HOSTS = { resend: 'api.resend.com' } as const;
+export const OUTBOUND_HOSTS = { resend: 'api.resend.com', apple: 'appleid.apple.com' } as const;
 /** Every outbound call settles or is abandoned within its host's time (CTL-37). */
-export const OUTBOUND_TIMEOUT_MS = { resend: 10_000, bucket: 30_000 } as const;
+export const OUTBOUND_TIMEOUT_MS = {
+  resend: 10_000,
+  apple: 5_000, // CTL-37
+  bucket: 30_000,
+} as const;
 
 // CTL-37: `<slug>-worker/<version>`.
 const USER_AGENT = `${BRAND.slug}-worker/0.0.0`;
@@ -22,7 +26,7 @@ export class OutboundHostNotAllowedError extends Error {
 /** The one way a worker job calls an outside host: a fixed host and a path starting with `/`. */
 export type OutboundFetch = (host: string, path: string, init?: RequestInit) => Promise<Response>;
 
-/** OUTBOUND_HOSTS plus the host of every bucket the worker holds keys for (`BACKUPS_*`). */
+/** OUTBOUND_HOSTS plus the host of every bucket the worker holds keys for (`BACKUPS_*`, `MEDIA_*`). */
 export function allowedHosts(env: WorkerEnv): ReadonlySet<string> {
   return new Set<string>([
     ...Object.values(OUTBOUND_HOSTS),
@@ -31,18 +35,31 @@ export function allowedHosts(env: WorkerEnv): ReadonlySet<string> {
       endpoint: env.BACKUPS_ENDPOINT,
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
     }),
+    bucketHost({
+      bucket: env.MEDIA_BUCKET,
+      endpoint: env.MEDIA_ENDPOINT,
+      forcePathStyle: env.S3_FORCE_PATH_STYLE,
+    }),
   ]);
 }
 
 function timeoutFor(host: string): number {
-  return host === OUTBOUND_HOSTS.resend ? OUTBOUND_TIMEOUT_MS.resend : OUTBOUND_TIMEOUT_MS.bucket;
+  switch (host) {
+    case OUTBOUND_HOSTS.resend:
+      return OUTBOUND_TIMEOUT_MS.resend;
+    case OUTBOUND_HOSTS.apple:
+      return OUTBOUND_TIMEOUT_MS.apple;
+    default:
+      return OUTBOUND_TIMEOUT_MS.bucket;
+  }
 }
 
 /**
  * The worker's outbound fetch (INV-39): refuses a host outside `allowedHosts(env)` and a
  * path that does not start with `/` before calling `fetchImpl`, then calls `https://<host><path>`
- * with the service `User-Agent` and the host's timeout. It adds no header it was not given. The
- * only place in the worker's source that calls the global fetch.
+ * with the service `User-Agent` and the host's timeout, which applies beside the caller's own
+ * signal. It never follows a redirect: a 3xx answer rejects as a network error (D-851). It adds no
+ * header it was not given. The only place in the worker's source that calls the global fetch.
  */
 export function createOutboundFetch(
   env: WorkerEnv,
@@ -60,6 +77,7 @@ export function createOutboundFetch(
     headers.set('User-Agent', USER_AGENT);
     const timeout = AbortSignal.timeout(timeoutFor(host));
     const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
-    return fetchImpl(`https://${host}${path}`, { ...init, headers, signal });
+    // `redirect` after the spread, so no caller can turn following back on (D-851).
+    return fetchImpl(`https://${host}${path}`, { ...init, headers, signal, redirect: 'error' });
   };
 }

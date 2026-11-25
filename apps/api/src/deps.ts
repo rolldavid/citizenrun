@@ -1,4 +1,4 @@
-import { waitForDatabase } from '@citizenrun/db';
+import { waitForDatabase, withEmailCounters } from '@citizenrun/db';
 import type { Db, Enqueue } from '@citizenrun/db';
 import type { Clock, Logger, Mailer } from '@citizenrun/shared';
 import type { BucketHandle } from '@citizenrun/shared/storage';
@@ -60,7 +60,7 @@ export async function createDeps(
     db,
     queue: { enqueue: queue.enqueue },
     storage: { media: createMediaBucket(env) },
-    mailer: createMailer(env, logger),
+    mailer: withEmailCounters(createMailer(env, logger), db, systemClock, logger),
     clock: systemClock,
     logger,
     lifecycle: createLifecycle(),

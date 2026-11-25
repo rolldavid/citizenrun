@@ -10,6 +10,8 @@ import {
 import type { CapturedLine } from '@citizenrun/db/testing';
 import { createLogger, newId } from '@citizenrun/shared';
 import type { JobName, JobPayload } from '@citizenrun/shared';
+import { loadKeyRing } from '@citizenrun/shared/crypto';
+import type { KeyRing } from '@citizenrun/shared/crypto';
 import { FakeClock } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import type { PgBoss } from 'pg-boss';
@@ -18,20 +20,41 @@ import { deadLetterSource } from '../boss.ts';
 import type { DeadLetterSource } from '../boss.ts';
 import { createJobContext } from '../context.ts';
 import type { JobContext, WorkerRuntime } from '../context.ts';
+import type { WorkerEnv } from '../env.ts';
 import { JobFailedError, errorClassOf } from '../jobs/types.ts';
 import type { AnyJobDefinition, JobDefinition } from '../jobs/types.ts';
+import type { OutboundFetch } from '../lib/outbound-fetch.ts';
+import type { Bucket } from '../lib/storage.ts';
 import { QUEUE_OPTIONS } from '../queue-options.ts';
 import { QUEUE_REGISTRY, executeJob } from '../queues.ts';
 import { testWorkerEnv } from './env.ts';
 import { CaptureMailer } from './fakes/mailer.ts';
+import { createFakeOutbound } from './fakes/outbound.ts';
+
+/**
+ * Changes to the test environment, in which every owner value is null (rule 2.8). A string, or
+ * `undefined` to remove one, is a raw variable read through loadEnv as the worker reads it, so
+ * the values derived from it follow (`APP_ENV: 'local'`, `ADMIN_EMAILS: 'a@example.test'`). Any
+ * other value (a number, a boolean, null, a list), and any value of a derived member, replaces
+ * the parsed value as given (`EMAIL_DAILY_QUOTA: 0`).
+ */
+export type RunJobEnv = Partial<WorkerEnv> | Readonly<Record<string, string | undefined>>;
 
 export type RunJobOverrides = {
   clock?: FakeClock;
   mailer?: CaptureMailer;
-  env?: Record<string, string | undefined>;
+  env?: RunJobEnv;
   db?: Db;
   enqueue?: Enqueue;
   storage?: Partial<JobContext['storage']>;
+  /** Default: the test `media` bucket (the same as `storage.media`). */
+  media?: Bucket;
+  /** Default: the key ring of the test environment's APP_SECRET, `'0123456789abcdef'.repeat(4)`. */
+  keys?: KeyRing;
+  /** Default: a fake with no routes, so any outside call throws UnexpectedOutboundCall. */
+  outbound?: OutboundFetch;
+  /** The job's metadata: drives `isFinalAttempt` and the replay key. */
+  job?: Partial<{ id: string; retryCount: number; createdOn: Date }>;
   retryCount?: number;
   jobId?: string;
   signal?: AbortSignal;
@@ -68,29 +91,63 @@ afterAll(async () => {
 // No-op: a job run here holds no pg-boss claim whose heartbeat could be refreshed.
 const touch = (): Promise<void> => Promise.resolve();
 
+// Members of WorkerEnv that loadEnv derives and no variable sets.
+const DERIVED_ENV_MEMBERS: ReadonlySet<string> = new Set([
+  'ownerInputReport',
+  'captureMail',
+  'envLabel',
+]);
+
+function buildEnv(base: Record<string, string>, overrides: RunJobEnv | undefined): WorkerEnv {
+  const raw: Record<string, string | undefined> = {};
+  const replaced: Record<string, unknown> = {};
+  for (const entry of Object.entries(overrides ?? {})) {
+    const name = entry[0];
+    const value: unknown = entry[1];
+    if (!DERIVED_ENV_MEMBERS.has(name) && (typeof value === 'string' || value === undefined)) {
+      raw[name] = value;
+    } else {
+      replaced[name] = value;
+    }
+  }
+  const parsed = testWorkerEnv({ ...base, ...raw });
+  if (Object.keys(replaced).length === 0) {
+    return parsed;
+  }
+  // Each replaced value is a member of the Partial<WorkerEnv> the test passed.
+  return Object.freeze({ ...parsed, ...replaced });
+}
+
 async function testRuntime(input: {
   clock: FakeClock;
   mailer: CaptureMailer;
-  env?: Record<string, string | undefined>;
+  env?: RunJobEnv;
   db?: Db;
   enqueue?: Enqueue;
   storage?: Partial<JobContext['storage']>;
+  media?: Bucket;
+  keys?: KeyRing;
+  outbound?: OutboundFetch;
 }): Promise<WorkerRuntime> {
   const backups = input.storage?.backups ?? (await getTestBucket('backups'));
-  const media = await getTestBucket('media');
-  const env = testWorkerEnv({
-    DATABASE_URL: getTestDatabaseUrl(),
-    BACKUPS_BUCKET: backups.bucket,
-    MEDIA_BUCKET: media.bucket,
-    ...input.env,
-  });
+  const media = input.media ?? input.storage?.media ?? (await getTestBucket('media'));
+  const env = buildEnv(
+    {
+      DATABASE_URL: getTestDatabaseUrl(),
+      BACKUPS_BUCKET: backups.bucket,
+      MEDIA_BUCKET: media.bucket,
+    },
+    input.env,
+  );
   return {
     env,
     logger: createLogger({ service: 'worker', level: 'debug', sink: captureLogs().sink }),
     db: input.db ?? getTestDb(),
     enqueue: input.enqueue ?? createEnqueue(await testBoss()),
-    storage: { backups },
+    storage: { backups, media },
     mailer: input.mailer,
+    keys: input.keys ?? loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS),
+    outbound: input.outbound ?? createFakeOutbound().fetch,
     clock: input.clock,
     abort: new AbortController(),
   };
@@ -98,10 +155,11 @@ async function testRuntime(input: {
 
 /**
  * Runs one handler in process with the test dependencies (TEST-harness-job): this worker's
- * database, a send-only boss, the test `backups` bucket, a new CaptureMailer, the log capture, the
- * test environment, a FakeClock, a no-op `touch` and `retryLimit` 2. The payload is parsed as the
- * worker parses it; a payload that fails its schema never reaches `handle` and is `permanent`.
- * Reports `completed`, `permanent` or `failed` without throwing.
+ * database, a send-only boss, the test `backups` and `media` buckets, a new CaptureMailer, the
+ * test key ring, an outbound fake with no routes, the log capture, the test environment, a
+ * FakeClock, a no-op `touch` and `retryLimit` 2. The payload is parsed as the worker parses it; a
+ * payload that fails its schema never reaches `handle` and is `permanent`. Reports `completed`,
+ * `permanent` or `failed` without throwing.
  */
 export async function runJob<N extends JobName>(
   definition: JobDefinition<N>,
@@ -117,15 +175,18 @@ export async function runJob<N extends JobName>(
     ...(overrides.db === undefined ? {} : { db: overrides.db }),
     ...(overrides.enqueue === undefined ? {} : { enqueue: overrides.enqueue }),
     ...(overrides.storage === undefined ? {} : { storage: overrides.storage }),
+    ...(overrides.media === undefined ? {} : { media: overrides.media }),
+    ...(overrides.keys === undefined ? {} : { keys: overrides.keys }),
+    ...(overrides.outbound === undefined ? {} : { outbound: overrides.outbound }),
   });
   const built = createJobContext(
     runtime,
     {
-      id: overrides.jobId ?? newId(),
+      id: overrides.job?.id ?? overrides.jobId ?? newId(),
       name: definition.name,
-      retryCount: overrides.retryCount ?? 0,
+      retryCount: overrides.job?.retryCount ?? overrides.retryCount ?? 0,
       retryLimit: QUEUE_OPTIONS[definition.name].queue.retryLimit,
-      createdOn: clock.now(),
+      createdOn: overrides.job?.createdOn ?? clock.now(),
       deadLetter: overrides.deadLetter ?? null,
     },
     touch,
@@ -160,7 +221,8 @@ async function oldestReadyQueue(names: readonly JobName[]): Promise<JobName | nu
  * Fetches queued jobs from the test boss and runs the handler `registry` (default QUEUE_REGISTRY)
  * gives each queue, oldest first, completing or failing each job, until no ready job is left in
  * `queues` (default every registry queue) or `max` (default 50) ran. A permanent failure completes
- * its job. Throws when a ready job's queue has no handler in the registry.
+ * its job. Throws when a ready job's queue has no handler in the registry. The contexts get
+ * runJob's defaults: the test buckets and key ring and an outbound fake with no routes.
  */
 export async function runQueued(
   options: {
