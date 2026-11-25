@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createRouter } from '../router.ts';
+import { testPublicUrl } from '../testing/env.ts';
 import { createUnitDeps } from '../testing/unit-deps.ts';
 import { handleError, notFound } from './handle-error.ts';
 import { httpsRedirect } from './https-redirect.ts';
@@ -26,6 +27,8 @@ function buildApp(env: Record<string, string | undefined>) {
 }
 
 const OVER_HTTP = { 'X-Forwarded-Proto': 'http', Host: 'evil.example.test' };
+// The deployed fixture's PUBLIC_URL: the staging site origin once brand.json holds its host.
+const PUBLIC_ORIGIN = testPublicUrl(DEPLOYED_FIXTURE.APP_ENV);
 
 describe('httpsRedirect', () => {
   it('a deployed http GET is redirected with 308 to PUBLIC_URL', async () => {
@@ -35,15 +38,16 @@ describe('httpsRedirect', () => {
     });
     expect(response.status).toBe(308);
     const location = response.headers.get('location') ?? '';
-    expect(location.startsWith('https://app.example.test/')).toBe(true);
-    expect(location).toBe('https://app.example.test/some/page?tab=2&x=y');
+    expect(PUBLIC_ORIGIN.startsWith('https://')).toBe(true);
+    expect(location.startsWith(`${PUBLIC_ORIGIN}/`)).toBe(true);
+    expect(location).toBe(`${PUBLIC_ORIGIN}/some/page?tab=2&x=y`);
 
     const head = await app.request('http://evil.example.test/some/page', {
       method: 'HEAD',
       headers: OVER_HTTP,
     });
     expect(head.status).toBe(308);
-    expect(head.headers.get('location')).toBe('https://app.example.test/some/page');
+    expect(head.headers.get('location')).toBe(`${PUBLIC_ORIGIN}/some/page`);
 
     // Over https the request is served.
     const secure = await app.request('/some/page', { headers: { 'X-Forwarded-Proto': 'https' } });

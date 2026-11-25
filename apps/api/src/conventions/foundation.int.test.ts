@@ -8,6 +8,7 @@ import { createApp } from '../app.ts';
 import { V1_CSP } from '../config/csp.ts';
 import { createRouteMetaIndex } from '../middleware/route-meta.ts';
 import { createTestApp } from '../testing/app.ts';
+import { testPublicUrl } from '../testing/env.ts';
 import type { TestApp } from '../testing/app.ts';
 import { createTestClient } from '../testing/request.ts';
 import type { TestClient } from '../testing/request.ts';
@@ -225,7 +226,7 @@ describe('TEST-api-foundation', () => {
     });
     const response = await plainGet(testApp, '/', { 'X-Forwarded-Proto': 'http' });
     expect(response.status).toBe(308);
-    expect(response.headers.get('location')).toBe('https://app.example.test/');
+    expect(response.headers.get('location')).toBe(`${testPublicUrl('staging')}/`);
   });
 
   it('logs the route pattern only', async () => {

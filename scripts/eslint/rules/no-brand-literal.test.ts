@@ -66,19 +66,38 @@ ruleTester().run('no-brand-literal', testable(noBrandLiteral), {
   ],
 });
 
+/** The committed brand with the domain and every host and admin host unset. */
+const UNHOSTED: Brand = {
+  ...BRAND,
+  domain: null,
+  variants: {
+    development: { ...BRAND.variants.development, host: null, adminHost: null },
+    staging: { ...BRAND.variants.staging, host: null, adminHost: null },
+    production: { ...BRAND.variants.production, host: null, adminHost: null },
+  },
+};
+
 describe('brandForbiddenStrings', () => {
   it('forbids no host while every host and the domain are null', () => {
-    const expected = new Set<string>([BRAND.displayName]);
-    for (const variant of Object.values(BRAND.variants)) {
-      expect(variant.host).toBeNull();
-      expect(variant.adminHost).toBeNull();
+    const expected = new Set<string>([UNHOSTED.displayName]);
+    for (const variant of Object.values(UNHOSTED.variants)) {
       expected.add(variant.displayName);
       expected.add(variant.iosBundleId);
       expected.add(variant.androidPackage);
       expected.add(`${variant.scheme}://`);
     }
-    expect(BRAND.domain).toBeNull();
-    expect(new Set(BRAND_FORBIDDEN)).toEqual(expected);
+    expect(new Set(brandForbiddenStrings(UNHOSTED))).toEqual(expected);
+  });
+
+  it('the rule forbids the strings of the committed brand.json, its set hosts among them', () => {
+    expect(new Set(BRAND_FORBIDDEN)).toEqual(new Set(brandForbiddenStrings(BRAND)));
+    const written = [
+      BRAND.domain,
+      ...Object.values(BRAND.variants).flatMap((variant) => [variant.host, variant.adminHost]),
+    ].filter((value): value is string => value !== null);
+    for (const value of written) {
+      expect(BRAND_FORBIDDEN).toContain(value);
+    }
   });
 
   it('adds the domain, the hosts and the derived mail and go hosts once they are set', () => {

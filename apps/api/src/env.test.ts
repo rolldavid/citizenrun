@@ -1,13 +1,16 @@
-import { EnvError, createLogger } from '@citizenrun/shared';
+import { EnvError, brandVariant, createLogger, variantForAppEnv } from '@citizenrun/shared';
 import { marker } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { checkPublicUrlHost, loadEnv, logMissingOwnerInputs, missingOwnerInputs } from './env.ts';
 import type { ApiEnv } from './env.ts';
+import { testPublicUrl } from './testing/env.ts';
 
 const DEFAULT_WEB_DIST_DIR = '/srv/fixture/web/dist';
 const FIXTURE_KEY = 're_fixture_0000000000';
 const FIXTURE_FROM = 'Fixture <alerts@mail.example.test>';
 const FIXTURE_ADMINS = 'admin@example.test';
+// The origin of a test environment whose brand variant has no host.
+const FIXTURE_PUBLIC_URL = 'https://app.example.test';
 
 type Source = Record<string, string | undefined>;
 
@@ -17,7 +20,7 @@ function infra(appEnv: string, extra: Source = {}): Source {
     APP_ENV: appEnv,
     PORT: '8080',
     DATABASE_URL: 'postgresql://fixture:fixture@localhost:5432/fixture',
-    PUBLIC_URL: 'https://app.example.test',
+    PUBLIC_URL: FIXTURE_PUBLIC_URL,
     MEDIA_BUCKET: 'media',
     MEDIA_ENDPOINT: 'http://localhost:8333',
     MEDIA_REGION: 'us-east-1',
@@ -27,8 +30,10 @@ function infra(appEnv: string, extra: Source = {}): Source {
   };
 }
 
+// A deployed environment serves at its variant's host once brand.json holds one.
 function deployed(appEnv: 'staging' | 'production', extra: Source = {}): Source {
   return infra(appEnv, {
+    PUBLIC_URL: testPublicUrl(appEnv),
     RESEND_API_KEY: FIXTURE_KEY,
     EMAIL_FROM: FIXTURE_FROM,
     ADMIN_EMAILS: FIXTURE_ADMINS,
@@ -332,6 +337,16 @@ describe('loadEnv', () => {
     expect(checkPublicUrlHost('staging', 'https://a.example.test', null)).toBeNull();
     expect(checkPublicUrlHost('local', 'https://a.example.test', 'b.example.test')).toBeNull();
     expect(checkPublicUrlHost('production', 'https://b.example.test', 'b.example.test')).toBeNull();
+
+    // loadEnv applies it with the committed brand: a host written there refuses any other.
+    for (const appEnv of ['staging', 'production'] as const) {
+      const other = deployed(appEnv, { PUBLIC_URL: FIXTURE_PUBLIC_URL });
+      if (brandVariant(variantForAppEnv(appEnv)).host === null) {
+        expect(load(other).PUBLIC_URL).toBe(FIXTURE_PUBLIC_URL);
+      } else {
+        expect(refusal(other).variables).toEqual(['PUBLIC_URL']);
+      }
+    }
   });
 
   it('the client address header is optional', () => {
@@ -382,10 +397,11 @@ describe('loadEnv', () => {
 
   it('a deployed service needs an https PUBLIC_URL', () => {
     for (const appEnv of ['staging', 'production'] as const) {
-      expect(
-        refusal(deployed(appEnv, { PUBLIC_URL: 'http://app.example.test' })).variables,
-      ).toEqual(['PUBLIC_URL']);
-      expect(load(deployed(appEnv)).PUBLIC_URL).toBe('https://app.example.test');
+      const origin = testPublicUrl(appEnv);
+      const overHttp = origin.replace(/^https:/, 'http:');
+      expect(new URL(overHttp).hostname).toBe(new URL(origin).hostname);
+      expect(refusal(deployed(appEnv, { PUBLIC_URL: overHttp })).variables).toEqual(['PUBLIC_URL']);
+      expect(load(deployed(appEnv)).PUBLIC_URL).toBe(origin);
     }
     for (const appEnv of ['local', 'ci'] as const) {
       expect(load(infra(appEnv, { PUBLIC_URL: 'http://localhost:8081' })).PUBLIC_URL).toBe(

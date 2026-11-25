@@ -1,4 +1,5 @@
 import { fileURLToPath } from 'node:url';
+import { brandVariant, siteOrigin, variantForAppEnv } from '@citizenrun/shared';
 import { loadEnv } from '../env.ts';
 import type { ApiEnv } from '../env.ts';
 
@@ -16,6 +17,22 @@ function testSetting(name: string, fallback: string): string {
   return value === undefined || value === '' ? fallback : value;
 }
 
+// The origin of a test environment whose brand variant has no host.
+const FIXTURE_PUBLIC_URL = 'https://app.example.test';
+
+/**
+ * The `PUBLIC_URL` a test environment of `appEnv` uses. A deployed environment's must name its
+ * variant's host once brand.json holds one (01 section 10.3), so it is that variant's site origin;
+ * every other environment, and a variant with no host yet, uses the fixture origin.
+ */
+export function testPublicUrl(appEnv: string | undefined): string {
+  if (appEnv !== 'staging' && appEnv !== 'production') {
+    return FIXTURE_PUBLIC_URL;
+  }
+  const variant = variantForAppEnv(appEnv);
+  return brandVariant(variant).host === null ? FIXTURE_PUBLIC_URL : siteOrigin(variant);
+}
+
 /**
  * The API environment of a test (TEST-harness-app's values), passed through loadEnv so
  * every derived value comes from env.ts. An override replaces a value; `undefined` removes it.
@@ -27,7 +44,7 @@ export function testApiEnv(overrides: Record<string, string | undefined> = {}): 
     PORT: '8080',
     LOG_LEVEL: 'debug',
     DATABASE_URL: UNIT_DATABASE_URL,
-    PUBLIC_URL: 'https://app.example.test',
+    PUBLIC_URL: testPublicUrl(overrides.APP_ENV ?? 'ci'),
     WEB_DIST_DIR: FIXTURE_WEB_DIST_DIR,
     ENABLE_DEV_ROUTES: 'false',
     MIN_CLIENT_VERSION_IOS: '1.0.0',

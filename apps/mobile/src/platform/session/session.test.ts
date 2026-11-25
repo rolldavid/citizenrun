@@ -159,16 +159,26 @@ describe('session', () => {
       }),
     ).toBe('http://api.example.test:9000');
 
-    const staging = shared.brandVariant('staging');
+    const variants = {
+      development: shared.brandVariant('development'),
+      staging: shared.brandVariant('staging'),
+      production: shared.brandVariant('production'),
+    };
     vi.mocked(shared.brandVariant).mockImplementation((name) =>
-      name === 'staging' ? { ...staging, host: 'example.test' } : staging,
+      name === 'staging' ? { ...variants.staging, host: 'example.test' } : variants[name],
     );
     vi.mocked(shared.siteOrigin).mockImplementation(() => 'https://example.test');
     expect(
       resolvePhoneApiOrigin({ extraApiOrigin: null, variant: 'staging', hostUri: DEV_HOST_URI }),
     ).toBe('https://example.test');
-    vi.mocked(shared.brandVariant).mockRestore();
     vi.mocked(shared.siteOrigin).mockRestore();
+
+    // From here no variant has a host, whatever brand.json holds.
+    vi.mocked(shared.brandVariant).mockImplementation((name) => ({
+      ...variants[name],
+      host: null,
+      adminHost: null,
+    }));
 
     expect(
       resolvePhoneApiOrigin({
@@ -220,6 +230,7 @@ describe('session', () => {
       module: 'session',
       code: 'session.no_origin',
     });
+    vi.mocked(shared.brandVariant).mockRestore();
   });
 
   it('the web origin is empty', async () => {

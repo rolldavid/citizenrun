@@ -60,13 +60,24 @@ const VARIANTS = ['development', 'staging', 'production'] as const;
 
 const FIXTURE_HOST = 'staging.example.test';
 
-/** The committed brand with fixture owner values and a fixture staging host. */
-const fixtureBrand: BrandJson = {
+/** The committed brand with no host written in any variant. */
+const unhostedBrand: BrandJson = {
   ...brand,
+  domain: null,
+  variants: {
+    development: { ...brand.variants.development, host: null, adminHost: null },
+    staging: { ...brand.variants.staging, host: null, adminHost: null },
+    production: { ...brand.variants.production, host: null, adminHost: null },
+  },
+};
+
+/** Fixture owner values and a fixture staging host; production keeps no host. */
+const fixtureBrand: BrandJson = {
+  ...unhostedBrand,
   expo: { owner: 'fixture-owner', projectId: 'fixture-project' },
   variants: {
-    ...brand.variants,
-    staging: { ...brand.variants.staging, host: FIXTURE_HOST },
+    ...unhostedBrand.variants,
+    staging: { ...unhostedBrand.variants.staging, host: FIXTURE_HOST },
   },
 };
 
@@ -240,9 +251,18 @@ describe('buildConfig', () => {
       build('production', { brand: fixtureBrand, env: { API_VARIANT: 'staging' } }).extra,
     ).toMatchObject({ apiOrigin: 'https://staging.example.test', apiVariant: 'staging' });
 
-    expect(() => build('production', { env: { API_VARIANT: 'staging' } })).toThrow(
-      'brand.json variants.staging.host is not set',
-    );
+    expect(() =>
+      build('production', { brand: unhostedBrand, env: { API_VARIANT: 'staging' } }),
+    ).toThrow('brand.json variants.staging.host is not set');
+
+    // The committed staging host, once written, is the origin a build for it gets.
+    const stagingHost = brand.variants.staging.host;
+    if (stagingHost !== null) {
+      expect(build('production', { env: { API_VARIANT: 'staging' } }).extra).toMatchObject({
+        apiOrigin: `https://${stagingHost}`,
+        apiVariant: 'staging',
+      });
+    }
 
     const unset = build('development').extra;
     expect(unset).toMatchObject({ variant: 'development' });
