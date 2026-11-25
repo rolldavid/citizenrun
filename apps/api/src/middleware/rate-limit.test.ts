@@ -266,14 +266,14 @@ describe('rate limits', () => {
     const iterate = Reflect.get(Map.prototype, Symbol.iterator) as () => Iterator<unknown>;
     let counting = false;
     let walks = 0;
-    const spy = vi
-      .spyOn(Map.prototype, Symbol.iterator)
-      .mockImplementation(function (this: Map<unknown, unknown>) {
-        if (counting) {
-          walks += 1;
-        }
-        return Reflect.apply(iterate, this, []) as MapIterator<[unknown, unknown]>;
-      });
+    const spy = vi.spyOn(Map.prototype, Symbol.iterator).mockImplementation(function (
+      this: Map<unknown, unknown>,
+    ) {
+      if (counting) {
+        walks += 1;
+      }
+      return Reflect.apply(iterate, this, []) as MapIterator<[unknown, unknown]>;
+    });
     const hits = (keys: readonly string[], at: Date): unknown[] => {
       counting = true;
       try {
