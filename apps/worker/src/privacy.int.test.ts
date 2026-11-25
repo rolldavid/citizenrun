@@ -1,16 +1,31 @@
-import { users } from '@citizenrun/db';
-import { captureLogs, createTestBoss, getTestDb, insertUser } from '@citizenrun/db/testing';
+import { generateKeyPairSync } from 'node:crypto';
+import { dataExports, markAccountDeleting, users } from '@citizenrun/db';
+import {
+  captureLogs,
+  createTestBoss,
+  getTestBucket,
+  getTestDb,
+  insertDataExport,
+  insertUser,
+} from '@citizenrun/db/testing';
 import { JOB_NAMES, newId } from '@citizenrun/shared';
 import type { JobName } from '@citizenrun/shared';
+import { loadKeyRing } from '@citizenrun/shared/crypto';
 import { marker } from '@citizenrun/shared/testing';
 import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { accountDelete } from './jobs/account/delete.ts';
+import { accountExport } from './jobs/account/export.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { opsDeadJob } from './jobs/ops/dead.ts';
 import { PermanentJobError } from './jobs/types.ts';
 import { QUEUE_REGISTRY } from './queues.ts';
+import { testWorkerEnv } from './testing/env.ts';
+import { insertEveryKind } from './testing/every-kind.ts';
+import type { EveryKind } from './testing/every-kind.ts';
 import { CaptureMailer } from './testing/fakes/mailer.ts';
+import { createFakeOutbound } from './testing/fakes/outbound.ts';
 import { runJob, runQueued } from './testing/job.ts';
 
 // TEST-privacy-logscan's worker suite: every queue runs over values carrying the marker on its
@@ -143,6 +158,102 @@ async function notifyEmailPaths(): Promise<void> {
   expect(anyLineHolds('example.test')).toBe(false);
 }
 
+// The scenario of the deletion and export tests; the user's address carries the marker.
+async function everyKind(): Promise<EveryKind> {
+  const env = testWorkerEnv();
+  const kind = await insertEveryKind(
+    getTestDb(),
+    await getTestBucket('media'),
+    loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS),
+    new Date(Math.floor(Date.now() / 1000) * 1000),
+  );
+  expect(kind.user.email).toContain(marker());
+  return kind;
+}
+
+function expectNoUserValueLogged(kind: EveryKind): void {
+  expect(captureLogs().lines.length).toBeGreaterThan(0);
+  expect(anyLineHolds(marker())).toBe(false);
+  expect(anyLineHolds(kind.user.email)).toBe(false);
+  expect(anyLineHolds(kind.user.id)).toBe(false);
+  expect(anyLineHolds(kind.user.handle)).toBe(false);
+  expect(anyLineHolds('example.test')).toBe(false);
+  for (const value of kind.forbidden) {
+    expect(anyLineHolds(value), 'a secret of the scenario').toBe(false);
+  }
+}
+
+async function accountDeletePaths(): Promise<void> {
+  const kind = await everyKind();
+  await getTestDb().transaction((tx) => markAccountDeleting(tx, kind.user.id));
+  const payload = { userId: kind.user.id, skipDeferral: false };
+
+  // Retry: Apple is configured and answers 503, so the job throws before it deletes anything.
+  const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
+  const down = createFakeOutbound();
+  down.on('appleid.apple.com', 'POST', '/auth/revoke', () => ({ status: 503 }));
+  const retried = await runJob(accountDelete, payload, {
+    env: {
+      APPLE_TEAM_ID: 'FIXTURETM1',
+      APPLE_KEY_ID: 'FIXTUREKY1',
+      APPLE_PRIVATE_KEY: privateKey.export({ format: 'pem', type: 'pkcs8' }).toString(),
+    },
+    outbound: down.fetch,
+  });
+  expect(retried.outcome).toBe('failed');
+  expect(down.calls).toHaveLength(1);
+
+  // Success: the account is deleted and the confirmation goes to the address.
+  const deleted = await runJob(accountDelete, payload);
+  expect(deleted.outcome).toBe('completed');
+  expect(deleted.mailer.sent).toHaveLength(1);
+  expect(deleted.mailer.sent[0]?.to).toEqual([kind.user.email]);
+
+  // Permanent: the user row is already gone, so the job returns.
+  const gone = await runJob(accountDelete, payload);
+  expect(gone.outcome).toBe('completed');
+  expect(
+    captureLogs().lines.some(
+      (line) => line.parsed.event === 'account.delete.skipped' && line.parsed.reason === 'gone',
+    ),
+  ).toBe(true);
+
+  expectNoUserValueLogged(kind);
+}
+
+async function accountExportPaths(): Promise<void> {
+  const kind = await everyKind();
+
+  // Success: the file is written and the row is ready.
+  const ready = await insertDataExport(getTestDb(), { userId: kind.user.id, status: 'queued' });
+  const exported = await runJob(accountExport, { exportId: ready.id });
+  expect(exported.outcome).toBe('completed');
+
+  // Retry: the media bucket does not exist, so the write fails and the job throws. The local
+  // store creates a bucket on its first write, so the name is one no bucket can have.
+  const media = await getTestBucket('media');
+  const retrying = await insertDataExport(getTestDb(), { userId: kind.user.id, status: 'queued' });
+  const retried = await runJob(
+    accountExport,
+    { exportId: retrying.id },
+    { media: { client: media.client, bucket: `${media.bucket}_gone` } },
+  );
+  expect(retried.outcome).toBe('failed');
+
+  // Permanent: the user is being deleted, so the row ends failed.
+  const refused = await insertDataExport(getTestDb(), { userId: kind.user.id, status: 'queued' });
+  await getTestDb().transaction((tx) => markAccountDeleting(tx, kind.user.id));
+  const failed = await runJob(accountExport, { exportId: refused.id });
+  expect(failed.outcome).toBe('completed');
+  const [row] = await getTestDb()
+    .select({ status: dataExports.status })
+    .from(dataExports)
+    .where(eq(dataExports.id, refused.id));
+  expect(row?.status).toBe('failed');
+
+  expectNoUserValueLogged(kind);
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -150,6 +261,8 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'backup.check': { covered: false, reason: EMPTY_PAYLOAD },
   'db.connections-check': { covered: false, reason: EMPTY_PAYLOAD },
   'cost.check': { covered: false, reason: EMPTY_PAYLOAD },
+  'account.delete': { covered: true, run: accountDeletePaths },
+  'account.export': { covered: true, run: accountExportPaths },
   'notify.email': { covered: true, run: notifyEmailPaths },
 };
 
@@ -184,5 +297,13 @@ describe('worker privacy', () => {
 
   it('user emails never log the address', async () => {
     await runCovered('notify.email');
+  });
+
+  it('account deletion never logs the account', async () => {
+    await runCovered('account.delete');
+  });
+
+  it('account export never logs the account', async () => {
+    await runCovered('account.export');
   });
 });

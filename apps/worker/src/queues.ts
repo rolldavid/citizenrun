@@ -5,6 +5,8 @@ import type { z } from 'zod';
 import { deadLetterSource } from './boss.ts';
 import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
+import { accountDelete } from './jobs/account/delete.ts';
+import { accountExport } from './jobs/account/export.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { backupCheckJob } from './jobs/ops/backup-check.ts';
@@ -34,6 +36,8 @@ export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
   backupCheckJob,
   connectionsCheckJob,
   costCheckJob,
+  accountDelete,
+  accountExport,
   notifyEmail,
 ];
 

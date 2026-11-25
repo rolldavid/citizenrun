@@ -202,6 +202,8 @@ describe('the queue registry', () => {
       'backup.check': ['stately', 300, 3600, 300, null],
       'db.connections-check': ['stately', 300, 3600, 120, null],
       'cost.check': ['stately', 300, 3600, 1800, 60],
+      'account.delete': ['standard', 60, 3600, 3600, 60],
+      'account.export': ['standard', 60, 1800, 1800, 60],
       'notify.email': ['standard', 60, 1800, 120, null],
     };
     const boss = await startBoss();
