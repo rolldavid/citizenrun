@@ -11,7 +11,7 @@ import type { ShellLayoutProps } from '@/ui/shells/app-shell';
 import { STATES as SHELL_STATES } from '@/ui/shells/app-shell.fixtures';
 import { useBottomChromeHeight } from '@/ui/shells/bottom-chrome';
 import { emitReselect } from '@/ui/shells/reselect';
-import { layoutFor } from '@/ui/shells/use-breakpoint';
+import { layoutFor, useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { color, gutter, size, space } from '@/ui/tokens';
 
 import { InteractionPreview } from './pressable';
@@ -414,6 +414,58 @@ describe('Screen', () => {
     expect(covers(onPhone({ ...STATES.homeAppBar, scroll: false }))).toHaveLength(0);
   });
 
+  it('keeps the top inset clear where it draws no bar', () => {
+    const insets = { top: 47, right: 0, bottom: 34, left: 0 };
+    const onPhone = (props: ScreenProps): HTMLElement => {
+      draw(
+        <SafeAreaInsetsContext.Provider value={insets}>
+          <Screen {...props} />
+        </SafeAreaInsetsContext.Provider>,
+      );
+      return screen.getByTestId(props.testID);
+    };
+    const heading = (): HTMLElement => screen.getByText('Find an office');
+    const bare: ScreenProps = {
+      testID: 'probe.screen',
+      children: <Text role="body">Find an office</Text>,
+    };
+    const plain: ScreenProps = { ...bare, appBar: null };
+
+    // No bar: the inset stands in its place, on the page ground, above everything the screen draws.
+    setViewport(...COMPACT);
+    for (const props of [plain, { ...plain, scroll: false }, bare]) {
+      const root = onPhone(props);
+      const strip = root.firstElementChild;
+      if (!(strip instanceof HTMLElement)) {
+        throw new Error('the screen is empty');
+      }
+      expect(strip.style.height).toBe('47px');
+      expect(strip.style.backgroundColor).toBe(written(color.light.bg));
+      expect(strip.style.position).not.toBe('absolute');
+      expect(strip.contains(heading())).toBe(false);
+      expect(follows(strip, heading())).toBe(true);
+    }
+
+    // The bar of Home is not drawn from medium up: there the inset alone scrolls in its place, and
+    // the cover keeps the status bar's ground.
+    setViewport(...MEDIUM);
+    const home = onPhone({ ...STATES.homeAppBar });
+    const area = scrollOf(STATES.homeAppBar.testID);
+    const scrolled = [...area.querySelectorAll<HTMLElement>('div')].filter(
+      (element) => element.style.height === '47px' && element.style.position !== 'absolute',
+    );
+    expect(scrolled).toHaveLength(1);
+    expect(scrolled[0]?.style.backgroundColor).toBe(written(color.light.bg));
+    expect(home.contains(scrolled[0] ?? null)).toBe(true);
+
+    // Where there is no inset, as on the web, nothing is added.
+    setViewport(...COMPACT);
+    draw(<Screen {...plain} />);
+    const web = screen.getByTestId('probe.screen');
+    expect(web.children).toHaveLength(1);
+    expect(web.querySelectorAll('[style*="height: 47px"]')).toHaveLength(0);
+  });
+
   it('scrolls to the top on a reselect of its tab', () => {
     setViewport(...COMPACT);
     const state = STATES.screenAppBar;
@@ -542,6 +594,36 @@ describe('Screen', () => {
     const expandedLayout = layoutFor({ width: 1440, height: 900, fontScale: 1, topBarHeight: 0 });
     expect(expanded.style.width).toBe(`${String(expandedLayout.feedColumnWidth)}px`);
     expect(expanded.style.alignSelf).toBe('center');
+  });
+
+  it('a full-bleed feed stops at the side insets, and so does the layout under it', () => {
+    /** Writes out the canvas width the layout gives where it is drawn. */
+    function Canvas(props: { testID: string }): JSX.Element {
+      return (
+        <Text role="body" testID={props.testID}>
+          {String(useBreakpoint().canvasWidth)}
+        </Text>
+      );
+    }
+    setViewport(...COMPACT);
+    draw(
+      <SafeAreaInsetsContext.Provider value={SIDE_INSETS}>
+        <Canvas testID="probe.outside" />
+        <Screen testID="probe.screen" appBar={null} width="feed">
+          <View testID={PROBE} />
+          <Canvas testID="probe.inside" />
+        </Screen>
+      </SafeAreaInsetsContext.Provider>,
+    );
+    // The box keeps no gutter, and starts and ends at the safe edges.
+    const box = screen.getByTestId(PROBE).parentElement;
+    expect(box?.style.paddingLeft).toBe(`${String(SIDE_INSETS.left)}px`);
+    expect(box?.style.paddingRight).toBe(`${String(SIDE_INSETS.right)}px`);
+    // Under the screen a canvas is as wide as the safe area; outside it, as wide as the window.
+    expect(screen.getByTestId('probe.inside').textContent).toBe(
+      String(COMPACT[0] - SIDE_INSETS.left - SIDE_INSETS.right),
+    );
+    expect(screen.getByTestId('probe.outside').textContent).toBe(String(COMPACT[0]));
   });
 
   it('a page with an aside keeps its gutter at the left and the right column beside it', () => {

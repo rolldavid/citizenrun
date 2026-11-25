@@ -7,13 +7,13 @@ import type { HostInstance, ScrollViewInstance, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useReducedMotion } from '@/ui/motion';
-import { AppBar, AppBarInsetCover } from '@/ui/shells/app-bar';
+import { AppBar, AppBarInset, AppBarInsetCover } from '@/ui/shells/app-bar';
 import type { AppBarProps } from '@/ui/shells/app-bar';
 import { useMainLandmark, useShell } from '@/ui/shells/app-shell';
 import { useReportBottomChrome } from '@/ui/shells/bottom-chrome';
 import { useOnReselect } from '@/ui/shells/reselect';
 import { RightColumn } from '@/ui/shells/right-column';
-import { useBreakpoint } from '@/ui/shells/use-breakpoint';
+import { SideInsetsProvider, useBreakpoint } from '@/ui/shells/use-breakpoint';
 import type { Layout } from '@/ui/shells/use-breakpoint';
 import { useTheme } from '@/ui/theme';
 import { gutter, size, space } from '@/ui/tokens';
@@ -90,7 +90,12 @@ function frameFor(
       return single({ flexDirection: 'row' }, sides);
     case 'feed': {
       if (layout.breakpoint === 'compact') {
-        return single({}, sides);
+        // Edge to edge, where the edges are the safe ones: a side inset is never drawn under.
+        const safe: ViewStyle =
+          insets.left > 0 || insets.right > 0
+            ? { paddingLeft: insets.left, paddingRight: insets.right }
+            : {};
+        return single(safe, sides);
       }
       const inside: ViewStyle = { paddingHorizontal: gutter.feedColumnWide };
       if (besideAside) {
@@ -131,10 +136,12 @@ function frameFor(
 }
 
 /**
- * C-Screen: the frame of one screen inside the shell's content slot. From the top: the app bar, the
- * shell's banner, the offline line, the children at the width asked for, and a footer that the
- * keyboard pushes up. At expanded the right column stands beside the main column and scrolls by
- * itself. Its content is the page's `main` where no shell above marks one.
+ * C-Screen: the frame of one screen inside the shell's content slot. From the top: the app bar, or
+ * the top inset alone where the screen has no bar, the shell's banner, the offline line, the
+ * children at the width asked for, and a footer that the keyboard pushes up. At expanded the right
+ * column stands beside the main column and scrolls by itself. Its content is the page's `main`
+ * where no shell above marks one. It gives the side insets it reads to the layout of everything
+ * under it.
  */
 export function Screen({
   appBar,
@@ -174,7 +181,8 @@ export function Screen({
     (width === 'feed' || width === 'page');
   const frame = frameFor(width, layout, insets, showsAside);
 
-  const bar = appBar === undefined || appBar === null ? null : <AppBar {...appBar} />;
+  // A screen with no bar keeps the top inset clear in the bar's place.
+  const bar = appBar === undefined || appBar === null ? <AppBarInset /> : <AppBar {...appBar} />;
   // The bar of Home scrolls away with the page; every other bar stays.
   const barScrolls = appBar?.variant === 'home' && scroll;
 
@@ -199,42 +207,44 @@ export function Screen({
   return (
     <View style={[FILL, { backgroundColor: theme.color.bg }]} testID={testID}>
       {barScrolls ? null : bar}
-      <KeyboardAvoidingView behavior="padding" style={FILL}>
-        <View ref={contentRef} style={FILL}>
-          <View style={frame.row}>
-            {scroll ? (
-              <ScrollView
-                ref={scrollRef}
-                style={frame.column}
-                contentContainerStyle={GROW}
-                keyboardShouldPersistTaps="handled"
-                testID={`${testID}-scroll`}
+      <SideInsetsProvider left={insets.left} right={insets.right}>
+        <KeyboardAvoidingView behavior="padding" style={FILL}>
+          <View ref={contentRef} style={FILL}>
+            <View style={frame.row}>
+              {scroll ? (
+                <ScrollView
+                  ref={scrollRef}
+                  style={frame.column}
+                  contentContainerStyle={GROW}
+                  keyboardShouldPersistTaps="handled"
+                  testID={`${testID}-scroll`}
+                >
+                  {barScrolls ? bar : null}
+                  {shell.banner}
+                  {offlineLine}
+                  <View style={[frame.box, GROW]}>{children}</View>
+                </ScrollView>
+              ) : (
+                <View style={frame.column}>
+                  {shell.banner}
+                  {offlineLine}
+                  <View style={[frame.box, FILL]}>{children}</View>
+                </View>
+              )}
+              {showsAside ? <RightColumn>{aside}</RightColumn> : null}
+            </View>
+            {footer === undefined || footer === null ? null : (
+              <View
+                onLayout={(event) => {
+                  setFooterHeight(event.nativeEvent.layout.height);
+                }}
               >
-                {barScrolls ? bar : null}
-                {shell.banner}
-                {offlineLine}
-                <View style={[frame.box, GROW]}>{children}</View>
-              </ScrollView>
-            ) : (
-              <View style={frame.column}>
-                {shell.banner}
-                {offlineLine}
-                <View style={[frame.box, FILL]}>{children}</View>
+                {footer}
               </View>
             )}
-            {showsAside ? <RightColumn>{aside}</RightColumn> : null}
           </View>
-          {footer === undefined || footer === null ? null : (
-            <View
-              onLayout={(event) => {
-                setFooterHeight(event.nativeEvent.layout.height);
-              }}
-            >
-              {footer}
-            </View>
-          )}
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SideInsetsProvider>
       {barScrolls ? <AppBarInsetCover /> : null}
     </View>
   );

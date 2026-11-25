@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { describe, expect, it, vi } from 'vitest';
 
 import { linksFake } from '@/test/platform/links';
@@ -35,6 +36,12 @@ import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
 import { GalleryScreen } from './gallery-screen';
 import type { GalleryScreenProps } from './gallery-screen';
 
+// react-native-safe-area-context 5.11.1 names its CommonJS build as `main`. The test resolver picks
+// that build, and it loads the phone's React Native; the module build is the one that runs on the web:
+// https://github.com/AppAndFlow/react-native-safe-area-context/blob/v5.11.1/package.json
+vi.mock('react-native-safe-area-context', () =>
+  vi.importActual('react-native-safe-area-context/lib/module/index.js'),
+);
 // react-native-svg 15.16.0 names its CommonJS build as `main`. The test resolver picks that build,
 // and it loads the phone files; the module build is the one that draws real svg elements on the web.
 vi.mock('react-native-svg', () => vi.importActual('react-native-svg/lib/module/index.js'));
@@ -287,6 +294,27 @@ describe('GalleryScreen', () => {
     expect(screen.getByText('No component named nope.')).toBeDefined();
     // The controls stay.
     expect(screen.getByTestId('gallery.theme-dark')).toBeDefined();
+  });
+
+  it('keeps its heading clear of the status bar', () => {
+    cleanup();
+    renderWithProviders(
+      <SafeAreaInsetsContext.Provider value={{ top: 47, right: 0, bottom: 34, left: 0 }}>
+        <GalleryScreen {...DEFAULTS} only="rule" />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    // The top inset stands above the page, on its ground, and the page scrolls under it.
+    const strip = screen.getByTestId('gallery.scroll').previousElementSibling;
+    if (!(strip instanceof HTMLElement)) {
+      throw new Error('nothing stands above the page');
+    }
+    expect(strip.style.height).toBe('47px');
+    expect(strip.style.backgroundColor).toBe(written('#F1EFE7'));
+    expect(strip.contains(screen.getByRole('heading', { level: 1 }))).toBe(false);
+
+    // With no inset, as on the web, the page is the first thing drawn.
+    draw({ only: 'rule' });
+    expect(screen.getByTestId('gallery.scroll').previousElementSibling).toBeNull();
   });
 
   it('the theme control switches the theme', () => {

@@ -1,5 +1,6 @@
 import { cleanup, fireEvent, screen } from '@testing-library/react';
 import type { ReactElement } from 'react';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { headFake } from '@/test/platform/head';
@@ -135,6 +136,24 @@ describe('CardSpikeScreen', () => {
     expect(bleed?.style.marginLeft).toBe(`${String(-gutter.regular)}px`);
     expect(bleed?.style.marginRight).toBe(`${String(-gutter.regular)}px`);
     expect(caption()).toBe('HelloCard, 390.0 points wide, light theme');
+  });
+
+  it('the card stops at a side inset on a phone', () => {
+    setViewport(430, 932);
+    draw(
+      <SafeAreaInsetsContext.Provider value={{ top: 59, right: 28, bottom: 34, left: 0 }}>
+        <CardSpikeScreen />
+      </SafeAreaInsetsContext.Provider>,
+    );
+    // The window less the strip the system keeps at the right.
+    expect(canvas().getAttribute('width')).toBe('402');
+    expect(card().style.width).toBe('402px');
+    expect(caption()).toBe('HelloCard, 402.0 points wide, light theme');
+    // The frame's padding holds the inset; the card leaves only the gutter.
+    const bleed = card().parentElement;
+    expect(bleed?.style.marginLeft).toBe(`${String(-gutter.regular)}px`);
+    expect(bleed?.style.marginRight).toBe(`${String(-gutter.regular)}px`);
+    expect(bleed?.parentElement?.style.paddingRight).toBe(`${String(gutter.regular + 28)}px`);
   });
 
   it('the card stands at the left edge of the gutter on a wider window', () => {

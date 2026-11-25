@@ -60,6 +60,7 @@ import * as toastFixtures from '@/ui/components/toast.fixtures';
 import * as tooltipFixtures from '@/ui/components/tooltip.fixtures';
 import * as wordmarkFixtures from '@/ui/components/wordmark.fixtures';
 import { ReducedMotionOverride } from '@/ui/motion';
+import { AppBarInset } from '@/ui/shells/app-bar';
 import * as appBarFixtures from '@/ui/shells/app-bar.fixtures';
 import * as appShellFixtures from '@/ui/shells/app-shell.fixtures';
 import * as railFixtures from '@/ui/shells/rail.fixtures';
@@ -506,46 +507,50 @@ function GalleryPage({
   const sections =
     only === null ? GALLERY_SECTIONS : GALLERY_SECTIONS.filter((entry) => entry.slug === only);
   return (
-    <ScrollView
-      testID="gallery.scroll"
-      contentContainerStyle={{
-        alignSelf: 'center',
-        width: '100%',
-        maxWidth: size.contentMax,
-        paddingHorizontal: layout.gutter,
-        paddingTop: space.x6,
-        paddingBottom: space.x12,
-      }}
-    >
-      <View role="main">
-        <Text ref={headingRef} role="title" heading={1}>
-          Gallery
-        </Text>
-        <View style={CONTROLS}>
-          <ControlRow label="Theme" options={THEME_OPTIONS} selected={theme} onSelect={onTheme} />
-          <ControlRow
-            label="Text"
-            options={TEXT_OPTIONS}
-            selected={textScale}
-            onSelect={onTextScale}
-          />
-          <ControlRow
-            label="Motion"
-            options={MOTION_OPTIONS}
-            selected={reducedMotion}
-            onSelect={onReducedMotion}
-          />
+    <>
+      {/* The gallery draws no bar: the top inset keeps its heading clear of the status bar. */}
+      <AppBarInset />
+      <ScrollView
+        testID="gallery.scroll"
+        contentContainerStyle={{
+          alignSelf: 'center',
+          width: '100%',
+          maxWidth: size.contentMax,
+          paddingHorizontal: layout.gutter,
+          paddingTop: space.x6,
+          paddingBottom: space.x12,
+        }}
+      >
+        <View role="main">
+          <Text ref={headingRef} role="title" heading={1}>
+            Gallery
+          </Text>
+          <View style={CONTROLS}>
+            <ControlRow label="Theme" options={THEME_OPTIONS} selected={theme} onSelect={onTheme} />
+            <ControlRow
+              label="Text"
+              options={TEXT_OPTIONS}
+              selected={textScale}
+              onSelect={onTextScale}
+            />
+            <ControlRow
+              label="Motion"
+              options={MOTION_OPTIONS}
+              selected={reducedMotion}
+              onSelect={onReducedMotion}
+            />
+          </View>
+          <View style={HEADER_RULE}>
+            <Rule variant="strong" />
+          </View>
+          {only !== null && sections.length === 0 ? (
+            <Text role="body">{`No component named ${only}.`}</Text>
+          ) : (
+            sections.map((entry) => <Section key={entry.slug} entry={entry} />)
+          )}
         </View>
-        <View style={HEADER_RULE}>
-          <Rule variant="strong" />
-        </View>
-        {only !== null && sections.length === 0 ? (
-          <Text role="body">{`No component named ${only}.`}</Text>
-        ) : (
-          sections.map((entry) => <Section key={entry.slug} entry={entry} />)
-        )}
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </>
   );
 }
 

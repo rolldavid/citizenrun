@@ -73,9 +73,9 @@ function HomeBar({ unreadMessages, onOpenMessages }: HomeBarProps): JSX.Element 
   const layout = useBreakpoint();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('common');
-  // At medium and expanded the mark and Messages are in the rail.
+  // At medium and expanded the mark and Messages are in the rail: only the top inset is kept.
   if (layout.breakpoint !== 'compact') {
-    return null;
+    return <AppBarInset />;
   }
   const messages = t('ui.nav.messages');
   return (
@@ -160,8 +160,8 @@ function ScreenBar({ title, onBack, backLabel, action, center }: ScreenBarProps)
 }
 
 /**
- * C-AppBar: the bar at the top of a screen, and the one place that reads the top inset, which it
- * fills with its own ground. It has no rule under it.
+ * C-AppBar: the bar at the top of a screen. This file is the one place that reads the top inset,
+ * which the bar fills with its own ground. It has no rule under it.
  */
 export function AppBar(props: AppBarProps): JSX.Element | null {
   switch (props.variant) {
@@ -172,6 +172,20 @@ export function AppBar(props: AppBarProps): JSX.Element | null {
     default:
       return assertNever(props);
   }
+}
+
+/**
+ * The top inset alone, filled with the bar's ground: what stands in the bar's place on a screen that
+ * draws none, so its first line never sits under the status bar. It draws nothing where there is no
+ * inset.
+ */
+export function AppBarInset(): JSX.Element | null {
+  const theme = useTheme();
+  const insets = useSafeAreaInsets();
+  if (insets.top <= 0) {
+    return null;
+  }
+  return <View style={{ height: insets.top, backgroundColor: theme.color.bg }} />;
 }
 
 /**

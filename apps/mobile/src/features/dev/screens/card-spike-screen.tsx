@@ -42,6 +42,10 @@ const UNDER: ViewStyle = {
   paddingBottom: space.x6,
 };
 
+/**
+ * The card, its caption and the theme button. Drawn inside the frame, so the layout it reads is the
+ * frame's: a full-bleed card stops at a side inset.
+ */
 function CardSpikeBody({
   choice,
   onCycleTheme,
@@ -56,15 +60,15 @@ function CardSpikeBody({
   const width = layout.canvasWidth;
   const compact = layout.breakpoint === 'compact';
 
-  // At compact the card is as wide as the window, like every feed canvas, so it leaves the frame's
-  // gutters; wider, it stands at the gutter's left edge and the line under it ends where it ends.
+  // At compact the card is as wide as the safe area, like every feed canvas, so it leaves the
+  // frame's gutters; wider, it stands at the gutter's left edge and the line under it ends where it
+  // ends.
   const bleed: ViewStyle = compact ? { marginHorizontal: -layout.gutter } : {};
   const cardBox: ViewStyle = { width, alignSelf: 'flex-start' };
   const under: ViewStyle = compact ? {} : { width };
 
   return (
-    <Screen width="full" scroll={true} appBar={null} testID="dev.card-spike">
-      <head.Title>Card spike</head.Title>
+    <>
       <View style={HEADER}>
         <Text role="heading" heading={1}>
           Card spike
@@ -100,7 +104,7 @@ function CardSpikeBody({
           testID="dev.card-spike-theme"
         />
       </View>
-    </Screen>
+    </>
   );
 }
 
@@ -111,12 +115,15 @@ export function CardSpikeScreen(): JSX.Element {
   const [choice, setChoice] = useState<ThemeChoice>('system');
   return (
     <ThemeProvider choice={choice} textScale={outer.textScale}>
-      <CardSpikeBody
-        choice={choice}
-        onCycleTheme={() => {
-          setChoice((current) => NEXT_THEME[current]);
-        }}
-      />
+      <Screen width="full" scroll={true} appBar={null} testID="dev.card-spike">
+        <head.Title>Card spike</head.Title>
+        <CardSpikeBody
+          choice={choice}
+          onCycleTheme={() => {
+            setChoice((current) => NEXT_THEME[current]);
+          }}
+        />
+      </Screen>
     </ThemeProvider>
   );
 }
