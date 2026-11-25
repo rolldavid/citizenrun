@@ -143,6 +143,25 @@ function frameOf(control: HTMLElement): HTMLElement {
   return frame;
 }
 
+/** The view that moves on press and carries the fills: the one with a transform. */
+function mover(control: HTMLElement): HTMLElement | null {
+  return control.querySelector<HTMLElement>('[style*="transform"]');
+}
+
+/** The control and the parts inside it that draw an outline. */
+function ringed(control: HTMLElement): HTMLElement[] {
+  return [control, ...control.querySelectorAll<HTMLElement>('*')].filter(
+    (part) => part.style.outlineStyle !== '',
+  );
+}
+
+/** A mouse pointer entering or leaving the element, as the web's hover tracking hears it. */
+function movePointer(element: HTMLElement, type: 'pointerenter' | 'pointerleave'): void {
+  act(() => {
+    element.dispatchEvent(new window.PointerEvent(type, { pointerType: 'mouse' }));
+  });
+}
+
 function row(value: string, testID: string = PROBE): HTMLElement {
   return screen.getByTestId(`${testID}-${value}`);
 }
@@ -182,10 +201,19 @@ describe('Select', () => {
           const fixture = ALL[state];
           const off = fixture.disabled === true;
           const chosen = fixture.options.find((each) => each.value === fixture.value);
-          // The frame of a text field.
+          // The frame of a text field, on its own ground until a pointer or a press fills it.
           const frame = frameOf(control);
+          const fill =
+            state === 'hovered'
+              ? color[theme].hoverBg
+              : state === 'pressed'
+                ? color[theme].pressedBg
+                : null;
           expect(frame.style.backgroundColor, name).toBe(
-            written(off ? color[theme].disabledBg : color[theme].surface),
+            fill === null ? written(off ? color[theme].disabledBg : color[theme].surface) : '',
+          );
+          expect(mover(control)?.style.backgroundColor, name).toBe(
+            fill === null ? '' : written(fill),
           );
           expect(frame.style.borderRadius, name).toBe('4px');
           expect(frame.style.borderWidth, name).toBe(
@@ -194,7 +222,9 @@ describe('Select', () => {
           if (fixture.status === 'error') {
             expect(frame.style.borderColor, name).toBe(written(color[theme].danger));
           }
-          expect(frame.style.outlineStyle, name).toBe(state === 'focused' ? 'solid' : '');
+          // The ring is the control's own; the frame inside it draws none.
+          expect(control.style.outlineStyle, name).toBe(state === 'focused' ? 'solid' : '');
+          expect(frame.style.outlineStyle, name).toBe('');
           // The chosen label in the text color, or the placeholder in the secondary color.
           const words = within(frame).getByText(chosen?.label ?? fixture.placeholder);
           expect(words.style.fontSize, name).toBe(`${String(16 * scale)}px`);
@@ -334,6 +364,105 @@ describe('Select', () => {
         expect(AT_REST, String(reducedMotion)).toContain(part.style.transform);
       }
     }
+  });
+
+  it('a pointer and a press fill the control inside its border', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      for (const [state, token] of [
+        ['hovered', color[theme].hoverBg],
+        ['pressed', color[theme].pressedBg],
+      ] as const) {
+        const control = drawState(state, { theme });
+        const name = `${state} ${theme}`;
+        const frame = frameOf(control);
+        // The press target paints the fill to the frame's corners, and the frame over it keeps its
+        // hairline and gives up its ground.
+        expect(mover(control)?.style.backgroundColor, name).toBe(written(token));
+        expect(mover(control)?.style.borderRadius, name).toBe('4px');
+        expect(frame.style.borderRadius, name).toBe('4px');
+        expect(frame.parentElement, name).toBe(mover(control));
+        expect(frame.style.backgroundColor, name).toBe('');
+        expect(frame.style.borderWidth, name).toBe('1px');
+        expect(frame.style.borderColor, name).toBe(written(color[theme].rule));
+      }
+    }
+    // A press moves the control as well; a pointer over it does not.
+    expect(mover(drawState('pressed'))?.style.transform).toBe(MOVED);
+    expect(AT_REST).toContain(mover(drawState('hovered'))?.style.transform);
+    // Under reduced motion a press still fills it, and moves nothing.
+    const still = drawState('pressed', { reducedMotion: true });
+    expect(mover(still)?.style.backgroundColor).toBe(written(color.light.pressedBg));
+    expect(AT_REST).toContain(mover(still)?.style.transform);
+    // An error keeps its border over the fill.
+    const marked = frameOf(drawState('error', {}, { hovered: true }));
+    expect(marked.style.backgroundColor).toBe('');
+    expect(marked.style.borderWidth).toBe('2px');
+    expect(marked.style.borderColor).toBe(written(color.light.danger));
+
+    // A real pointer fills the control, and takes the fill with it when it leaves.
+    const control = draw();
+    expect(mover(control)?.style.backgroundColor).toBe('');
+    expect(frameOf(control).style.backgroundColor).toBe(written(color.light.surface));
+    movePointer(control, 'pointerenter');
+    expect(mover(control)?.style.backgroundColor).toBe(written(color.light.hoverBg));
+    expect(frameOf(control).style.backgroundColor).toBe('');
+    movePointer(control, 'pointerleave');
+    expect(mover(control)?.style.backgroundColor).toBe('');
+    expect(frameOf(control).style.backgroundColor).toBe(written(color.light.surface));
+    // A real press fills it and moves it until it is let go.
+    fireEvent.keyDown(control, { key: 'Enter' });
+    expect(mover(control)?.style.backgroundColor).toBe(written(color.light.pressedBg));
+    expect(mover(control)?.style.transform).toBe(MOVED);
+    expect(frameOf(control).style.backgroundColor).toBe('');
+    fireEvent.keyUp(control, { key: 'Enter' });
+    expect(mover(control)?.style.backgroundColor).toBe('');
+    expect(frameOf(control).style.backgroundColor).toBe(written(color.light.surface));
+
+    // A disabled control answers no pointer, and keeps its disabled fill whatever is forced on it.
+    const off = draw({ disabled: true });
+    movePointer(off, 'pointerenter');
+    expect(mover(off)?.style.backgroundColor).toBe('');
+    for (const preview of [{ hovered: true }, { pressed: true }]) {
+      expect(frameOf(drawState('disabled', {}, preview)).style.backgroundColor).toBe(
+        written(color.light.disabledBg),
+      );
+    }
+  });
+
+  it("the focus ring is the control's own, so a pointer press leaves none on the frame", () => {
+    // Forced, as the gallery shows it: the ring stands outside the control and follows its corners.
+    for (const theme of ['light', 'dark'] as const) {
+      const forced = drawState('focused', { theme });
+      expect(ringed(forced), theme).toEqual([forced]);
+      expect(forced.style.outlineStyle, theme).toBe('solid');
+      expect(forced.style.outlineWidth, theme).toBe('2px');
+      expect(forced.style.outlineOffset, theme).toBe('2px');
+      expect(forced.style.outlineColor, theme).toBe(written(color[theme].focusRing));
+      expect(forced.style.borderRadius, theme).toBe('4px');
+      expect(frameOf(forced).style.borderRadius, theme).toBe('4px');
+    }
+
+    // Real focus, which a pointer press gives as the keyboard does. The page hides the ring of a
+    // pointer's focus on the element that has the focus and on no other, so only that element may
+    // draw one.
+    const control = draw({ value: 'pay' });
+    expect(ringed(control)).toEqual([]);
+    act(() => {
+      control.focus();
+    });
+    expect(document.activeElement).toBe(control);
+    expect(ringed(control)).toEqual([control]);
+
+    // A choice made with a pointer hands the focus back to the control, and it is the same there.
+    fireEvent.click(control);
+    fireEvent.click(row('name'));
+    leave();
+    expect(document.activeElement).toBe(control);
+    expect(ringed(control)).toEqual([control]);
+    act(() => {
+      control.blur();
+    });
+    expect(ringed(control)).toEqual([]);
   });
 
   it('placeholder and no choice', () => {

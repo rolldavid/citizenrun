@@ -12,6 +12,12 @@ export type FieldFrameProps = {
   /** Draws the focus ring round the frame: the input inside it draws none of its own. */
   focused: boolean;
   disabled?: boolean;
+  /**
+   * True while the press target round the frame paints a hover or a pressed fill: the frame leaves
+   * its own ground out, so the fill shows inside its border. A field that is typed in never passes
+   * it.
+   */
+  clear?: boolean;
   /** Before the text, `space.x2` from it. */
   leading?: ReactNode;
   /** After the text, `space.x2` from it. */
@@ -63,12 +69,14 @@ export function useFieldTextStyle(disabled: boolean): TextStyle {
  * The box every field shares, so they cannot drift: a row at least `size.input` high on `surface`
  * with a hairline of `rule`. An error or a valid state thickens the border in its color, and a
  * disabled field gives its border up for the disabled fill. The room inside takes back what the
- * border gains or loses, so the text never moves when the state changes.
+ * border gains or loses, so the text never moves when the state changes. A frame that is pressed,
+ * not typed in, is `clear` while its press target fills it.
  */
 export function FieldFrame({
   status,
   focused,
   disabled = false,
+  clear = false,
   leading,
   trailing,
   onPress,
@@ -81,7 +89,12 @@ export function FieldFrame({
   const extra = border - rule.hairline;
   const style: ViewStyle = {
     ...ROW,
-    backgroundColor: disabled ? theme.color.disabledBg : theme.color.surface,
+    // The disabled fill is the frame's own, whatever is under it.
+    ...(disabled
+      ? { backgroundColor: theme.color.disabledBg }
+      : clear
+        ? {}
+        : { backgroundColor: theme.color.surface }),
     borderWidth: border,
     borderColor:
       status === 'error'

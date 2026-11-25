@@ -308,6 +308,27 @@ describe('FieldFrame', () => {
     expect(inner(off)).toBe(plain);
   });
 
+  it('a clear frame leaves its ground out and keeps its border', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      const frame = drawFrame({ clear: true }, { theme });
+      expect(frame.style.backgroundColor, theme).toBe('');
+      expect(frame.style.borderWidth, theme).toBe(`${String(rule.hairline)}px`);
+      expect(frame.style.borderColor, theme).toBe(written(color[theme].rule));
+      expect(frame.style.paddingLeft, theme).toBe(`${String(space.x4)}px`);
+    }
+    // A state keeps its border over whatever fills the frame.
+    const marked = drawFrame({ clear: true, status: 'error' });
+    expect(marked.style.backgroundColor).toBe('');
+    expect(marked.style.borderWidth).toBe(`${String(rule.fieldState)}px`);
+    expect(marked.style.borderColor).toBe(written(color.light.danger));
+    // The disabled fill is the frame's own.
+    expect(drawFrame({ clear: true, disabled: true }).style.backgroundColor).toBe(
+      written(color.light.disabledBg),
+    );
+    // A frame that is not asked to be clear stands on the surface.
+    expect(drawFrame({ clear: false }).style.backgroundColor).toBe(written(color.light.surface));
+  });
+
   it('the ring is drawn round the frame when it is focused', () => {
     const frame = drawFrame({ focused: true });
     expect(frame.style.outlineStyle).toBe('solid');

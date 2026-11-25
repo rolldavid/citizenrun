@@ -185,15 +185,21 @@ function Control({
         label={named.accessibilityLabel}
         state={{ expanded: open }}
         disabled={disabled}
+        hover="fill"
+        feedback="moveAndFill"
         testID={testID}
         onPress={show}
         {...(named.accessibilityHint === undefined ? {} : { hint: named.accessibilityHint })}
       >
-        {({ focused }) => (
+        {({ hovered, pressed }) => (
           <FieldFrame
             status={status}
-            focused={focused}
+            // The ring is the press target's own, which the page shows for the keyboard alone; a
+            // ring on the frame would stay after a pointer press.
+            focused={false}
             disabled={disabled}
+            // The press target paints its hover and pressed fills under the frame.
+            clear={hovered || pressed}
             trailing={
               <Icon name="chevronDown" size="medium" tone={disabled ? 'disabled' : 'secondary'} />
             }
@@ -275,10 +281,11 @@ function Control({
 
 /**
  * C-Select: one choice from a list too long for radio rows on the page. The control is the frame of
- * a text field holding the chosen label, or the placeholder while nothing is chosen, and a chevron.
- * It opens a sheet of radio rows on a phone and a popover list on a wider screen, where the arrow
- * keys, Home, End and a typed letter move through the rows. Nothing is ever chosen for the person,
- * and opening the list chooses nothing.
+ * a text field holding the chosen label, or the placeholder while nothing is chosen, and a chevron;
+ * it is pressed, not typed in, so it fills under a pointer and a press and shows its focus ring for
+ * the keyboard alone. It opens a sheet of radio rows on a phone and a popover list on a wider
+ * screen, where the arrow keys, Home, End and a typed letter move through the rows. Nothing is ever
+ * chosen for the person, and opening the list chooses nothing.
  */
 export function Select({
   label,
