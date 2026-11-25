@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 // and never a day count without its date.
 
 // Read as text: a fixtures file loaded as a module would draw its components.
-const FIXTURES = import.meta.glob<string>('./**/*.fixtures.tsx', {
+const FIXTURES = import.meta.glob('./**/*.fixtures.tsx', {
   query: '?raw',
   import: 'default',
   eager: true,
