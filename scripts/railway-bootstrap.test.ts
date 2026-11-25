@@ -652,6 +652,14 @@ describe('the inputs file', () => {
     });
   });
 
+  it('an empty project id counts as absent', () => {
+    expect(parseInputsFile(`RAILWAY_PROJECT_ID=\nMAIL_HOST=${MAIL_HOST}`)).toEqual({ MAIL_HOST });
+    expect(parseInputsFile('RAILWAY_PROJECT_ID=""')).toEqual({});
+    expect(() => parseInputsFile(`RAILWAY_PROJECT_ID=\nRAILWAY_PROJECT_ID=${PROJECT_ID}`)).toThrow(
+      'RAILWAY_PROJECT_ID is given twice',
+    );
+  });
+
   it('formats are checked and errors never carry the value', () => {
     for (const line of [
       'RAILWAY_PROJECT_ID=fixture-not-a-uuid',
@@ -781,6 +789,14 @@ describe('environment', { timeout: 30_000 }, () => {
     expect(result.calls.some((call) => call.args[0] === 'link' || call.args[0] === 'config')).toBe(
       false,
     );
+  });
+
+  it('an empty project id line is a first run, not an invalid inputs file', async () => {
+    const result = await runCase(['--env', 'staging'], { inputs: { RAILWAY_PROJECT_ID: '' } });
+    expect(result.code).toBe(0);
+    expect(result.output).not.toContain('RAILWAY_PROJECT_ID is not valid');
+    expect(result.calls.map(joined)).toContain(`railway init --name ${BRAND.slug} --json`);
+    expect(result.output).toContain(`RAILWAY_PROJECT_ID=${NEW_PROJECT_ID}`);
   });
 
   it('the first run passes RAILWAY_WORKSPACE to init as --workspace', async () => {

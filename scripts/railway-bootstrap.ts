@@ -286,6 +286,7 @@ function unquote(value: string): string {
 /** Parses `.env.railway.<env>`; throws InputsFileError naming keys (or a line number), never values. */
 export function parseInputsFile(text: string): Inputs {
   const values: Record<string, string> = {};
+  const seen = new Set<string>();
   const lines = text.split(/\r?\n/);
   for (const [index, rawLine] of lines.entries()) {
     const line = rawLine.trim();
@@ -305,10 +306,16 @@ export function parseInputsFile(text: string): Inputs {
           : `inputs file line ${String(index + 1)} has an unknown key`,
       );
     }
-    if (Object.hasOwn(values, key)) {
+    if (seen.has(key)) {
       throw new InputsFileError(`inputs file: ${key} is given twice`);
     }
-    values[key] = unquote((match[2] ?? '').trim());
+    seen.add(key);
+    const value = unquote((match[2] ?? '').trim());
+    // An empty project id is the line the first run leaves for it to fill in (D-849).
+    if (key === 'RAILWAY_PROJECT_ID' && value === '') {
+      continue;
+    }
+    values[key] = value;
   }
   const parsed = InputsFileSchema.safeParse(values);
   if (!parsed.success) {
