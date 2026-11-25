@@ -1,9 +1,10 @@
 import { assertNever, typeRoles } from '@citizenrun/shared';
-import { useRef } from 'react';
+import type { TypeRole } from '@citizenrun/shared';
+import { useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
-import type { TextInstance, ViewStyle } from 'react-native';
+import type { LayoutChangeEvent, TextInstance, ViewStyle } from 'react-native';
 
 import type { HelloData, HelloViewModel } from '@/features/hello/view-models/hello.types';
 import { useHelloViewModel } from '@/features/hello/view-models/use-hello-view-model';
@@ -46,8 +47,24 @@ const ROW: ViewStyle = {
 };
 const CELL: ViewStyle = { flexShrink: 1, maxWidth: '100%' };
 const ACTION: ViewStyle = { marginTop: space.x6 };
+// A text that has not come stands in its place, unseen, so its box is the size the text takes.
+const UNSEEN: ViewStyle = { opacity: 0, pointerEvents: 'none' };
+// One line of the same text, out of the flow: the height of a line at the text size in use.
+const ONE_LINE: ViewStyle = { position: 'absolute', top: 0, right: 0, left: 0 };
+// The bars lie over the box and never past it.
+const BARS: ViewStyle = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  overflow: 'hidden',
+};
+// Bars that stand for body text or a label keep to the middle of the box.
+const MIDDLE: ViewStyle = { flex: 1, justifyContent: 'center' };
 // The title's bars: each a line of the title less the room between two lines.
 const TITLE_BARS: ViewStyle = { paddingVertical: space.x1, gap: space.x2 };
+// A title on one line stops short of its column.
 const TITLE_WIDE: ViewStyle = { width: '80%' };
 // The last line of a title stops short, as a last line does.
 const TITLE_LAST: ViewStyle = { width: '60%' };
@@ -177,47 +194,101 @@ function SkeletonRow(): JSX.Element {
 }
 
 /**
- * The ready screen as flat blocks, each in the box its text stands in, so nothing moves when the
- * answer comes: the title on as many lines as it takes, the intro, the group's rule and heading,
- * the three checks with a bar at each end, and the button. The rules are the ready screen's own.
+ * The box of a text that has not come. The text itself, unseen and unsaid, gives the box its size,
+ * so what stands under it does not move when the text arrives, at any width and any text size.
+ * `children` draws the bars for the lines the text takes and the height of one line; until the box
+ * is measured those are `guess` and the role's own line.
+ */
+function TextBox({
+  role,
+  text,
+  guess,
+  children,
+}: {
+  role: TypeRole;
+  text: string;
+  guess: number;
+  children: (lines: number, line: number) => ReactNode;
+}): JSX.Element {
+  const [box, setBox] = useState<number | null>(null);
+  const [one, setOne] = useState<number | null>(null);
+  const measured = box !== null && one !== null && one > 0;
+  const lines = measured ? Math.max(1, Math.round(box / one)) : guess;
+  const line = measured ? one : typeRoles[role].lineHeight;
+  return (
+    <View>
+      <Quiet style={UNSEEN}>
+        <View
+          onLayout={(event: LayoutChangeEvent) => {
+            setBox(event.nativeEvent.layout.height);
+          }}
+        >
+          <Text role={role}>{text}</Text>
+        </View>
+        <View
+          style={ONE_LINE}
+          onLayout={(event: LayoutChangeEvent) => {
+            setOne(event.nativeEvent.layout.height);
+          }}
+        >
+          <Text role={role} numberOfLines={1}>
+            {text}
+          </Text>
+        </View>
+      </Quiet>
+      <View style={BARS}>{children(lines, line)}</View>
+    </View>
+  );
+}
+
+/**
+ * The ready screen as flat blocks, so nothing moves when the answer comes: the title, the intro and
+ * the group's heading each in the box its text takes, on as many lines as it takes; the three
+ * checks with a bar at each end; and the button. The rules are the ready screen's own.
  * The first block is the one progress bar a screen reader meets; the others pulse with it and stay
  * out of its way, so "Loading" is said once.
  */
 function Loading(): JSX.Element {
+  const { t } = useTranslation(['hello']);
   const layout = useBreakpoint();
   const compact = layout.breakpoint === 'compact';
-  const titleLine = typeRoles[layout.isTight ? 'title' : 'display'].lineHeight;
-  const titleBar = titleLine - space.x2;
-  // The title breaks once at compact and stands on one line of a wider column.
-  const introLines = compact ? 2 : 1;
+  // Until a box is measured: the title and the intro break once at compact and stand on one line
+  // of a wider column.
+  const guess = compact ? 2 : 1;
   return (
     <>
-      <View style={[TITLE_BARS, compact ? null : TITLE_WIDE]}>
-        <Skeleton shape="block" height={titleBar} />
-        {compact ? (
-          <Quiet style={TITLE_LAST}>
-            <Skeleton shape="block" height={titleBar} />
-          </Quiet>
-        ) : null}
-      </View>
+      <TextBox role={layout.isTight ? 'title' : 'display'} text={t('hello:title')} guess={guess}>
+        {(lines, line) => (
+          <View style={[TITLE_BARS, lines === 1 ? TITLE_WIDE : null]}>
+            <Skeleton shape="block" height={line - space.x2} />
+            {Array.from({ length: lines - 1 }, (_, index) => (
+              <Quiet key={index} {...(index === lines - 2 ? { style: TITLE_LAST } : {})}>
+                <Skeleton shape="block" height={line - space.x2} />
+              </Quiet>
+            ))}
+          </View>
+        )}
+      </TextBox>
       <Quiet>
-        <View
-          style={[
-            INTRO,
-            { minHeight: typeRoles.body.lineHeight * introLines, justifyContent: 'center' },
-          ]}
-        >
-          <Skeleton shape="line" lines={introLines} />
+        <View style={INTRO}>
+          <TextBox role="body" text={t('hello:intro')} guess={guess}>
+            {(lines) => (
+              <View style={MIDDLE}>
+                <Skeleton shape="line" lines={lines} />
+              </View>
+            )}
+          </TextBox>
         </View>
         <View style={STATUS}>
           <Rule variant="strong" />
-          <View
-            style={[
-              STATUS_HEADING,
-              { minHeight: typeRoles.monoLabel.lineHeight, justifyContent: 'center' },
-            ]}
-          >
-            <Skeleton shape="block" width={size.target} height={space.x3} />
+          <View style={STATUS_HEADING}>
+            <TextBox role="monoLabel" text={t('hello:status.heading')} guess={1}>
+              {() => (
+                <View style={MIDDLE}>
+                  <Skeleton shape="block" width={size.target} height={space.x3} />
+                </View>
+              )}
+            </TextBox>
           </View>
           <SkeletonRow />
           <Rule variant="soft" />

@@ -1,5 +1,5 @@
-import { BRAND } from '@citizenrun/shared';
-import { cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { BRAND, typeRoles } from '@citizenrun/shared';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as fixtures from '@/features/hello/view-models/hello.fixtures';
@@ -8,6 +8,7 @@ import { getI18n } from '@/lib/i18n';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import { setPageLoad } from '@/ui/first-screen';
+import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
 import { space } from '@/ui/tokens';
 
 import { HelloScreenView } from './hello-screen';
@@ -30,6 +31,24 @@ vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
   },
 }));
 
+// The layout the screen reads: the window's own, made tight when a case asks for it. The page
+// never reports a text size above the default, so no window makes a layout tight by itself.
+const layout = vi.hoisted(() => {
+  const state: { isTight: boolean } = { isTight: false };
+  return state;
+});
+
+vi.mock('@/ui/shells/use-breakpoint', async (importOriginal) => {
+  const actual = await importOriginal<typeof UseBreakpoint>();
+  return {
+    ...actual,
+    useBreakpoint: (): UseBreakpoint.Layout => {
+      const own = actual.useBreakpoint();
+      return layout.isTight ? { ...own, isTight: true } : own;
+    },
+  };
+});
+
 type HelloReady = Extract<HelloViewModel, { status: 'ready' }>;
 
 const FIXTURES = {
@@ -45,6 +64,7 @@ const DRAWN: readonly HelloViewModel[] = Object.values(FIXTURES);
 
 const NARROW = [360, 740] as const;
 const COMPACT = [390, 844] as const;
+const LARGE = [430, 932] as const;
 const MEDIUM = [820, 1180] as const;
 const EXPANDED = [1440, 900] as const;
 
@@ -94,6 +114,81 @@ function contentBox(): HTMLElement {
     throw new Error('the title has no box');
   }
   return box;
+}
+
+/** The boxes drawn unseen: each holds words that only give a box its size. */
+function unseen(root: HTMLElement): HTMLElement[] {
+  return [...root.querySelectorAll<HTMLElement>('*')].filter(
+    (element) => element.style.opacity === '0',
+  );
+}
+
+/** The words a person can read: the text outside every box that is drawn unseen. */
+function shown(root: HTMLElement): string {
+  const boxes = unseen(root);
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let words = '';
+  for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+    const text = node;
+    if (!boxes.some((box) => box.contains(text))) {
+      words += text.textContent ?? '';
+    }
+  }
+  return words;
+}
+
+/** How a text is set: its face, its size and the line it stands on. */
+function face(text: HTMLElement): string[] {
+  const { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing } = text.style;
+  return [fontFamily, fontSize, fontWeight, lineHeight, letterSpacing];
+}
+
+/**
+ * Tells a view its height, as the page does once it is laid out. jsdom lays nothing out, so the
+ * handler the page keeps on the element is called directly:
+ * https://github.com/necolas/react-native-web/blob/0.21.2/packages/react-native-web/src/modules/useElementLayout/index.js
+ */
+function layOut(element: Element | undefined, height: number): void {
+  const handler: unknown =
+    element === undefined ? undefined : Reflect.get(element, '__reactLayoutHandler');
+  if (typeof handler !== 'function') {
+    throw new Error('the view listens for no layout');
+  }
+  act(() => {
+    Reflect.apply(handler, element, [
+      { nativeEvent: { layout: { x: 0, y: 0, width: 390, height } } },
+    ]);
+  });
+}
+
+/** Lays out the words of a loading box: the height they take as they wrap, and that of one line. */
+function measure(box: HTMLElement | undefined, height: number, line: number): void {
+  layOut(box?.children[0], height);
+  layOut(box?.children[1], line);
+}
+
+/** The title's bars as drawn: the width of their box, then each bar's width and height. */
+function titleBars(root: HTMLElement): { box: string; bars: [width: string, height: string][] } {
+  const box = root.querySelector('[role="progressbar"]')?.parentElement;
+  if (box === null || box === undefined) {
+    throw new Error('the title has no bars');
+  }
+  return {
+    box: box.style.width,
+    bars: [...box.querySelectorAll<HTMLElement>('[role="progressbar"]')].map((bar) => [
+      bar.parentElement === box ? '' : (bar.parentElement?.style.width ?? ''),
+      bar.querySelector<HTMLElement>('[style*="height"]')?.style.height ?? '',
+    ]),
+  };
+}
+
+/** The widths of the intro's bars as drawn: the block after the title's. */
+function introBars(root: HTMLElement): string[] {
+  const blocks = [...root.querySelectorAll<HTMLElement>('[role="progressbar"]')];
+  const intro = blocks[titleBars(root).bars.length];
+  return [...(intro?.querySelectorAll<HTMLElement>('[style*="height"]') ?? [])].map(
+    (bar) => bar.style.width,
+  );
 }
 
 describe('HelloScreenView', () => {
@@ -267,7 +362,12 @@ describe('HelloScreenView', () => {
     expect(drawn.filter((block) => block.closest('[aria-hidden="true"]') === null)).toEqual(bars);
     expect(titles()).toEqual([]);
     expect(screen.queryByTestId('hello.refresh')).toBeNull();
-    expect(root.textContent).toBe('');
+    // Nothing is written yet. The only words are the ones that size their boxes, unseen and unsaid.
+    expect(shown(root)).toBe('');
+    for (const box of unseen(root)) {
+      expect(box.getAttribute('aria-hidden')).toBe('true');
+      expect(box.querySelector('[role="heading"], [data-testid]')).toBeNull();
+    }
   });
 
   it('the loading skeleton has the shape of the ready screen', () => {
@@ -316,8 +416,131 @@ describe('HelloScreenView', () => {
       const button = blocks.at(-1)?.querySelector<HTMLElement>('[style*="height: 44px"]');
       expect(button, String(viewport[0])).not.toBeNull();
       expect(blocks.at(-1)?.style.width, String(viewport[0])).toBe('120px');
-      expect(loading.textContent, String(viewport[0])).toBe('');
+      expect(shown(loading), String(viewport[0])).toBe('');
     }
+  });
+
+  it('a loading box takes the size of the words to come, and its bars the lines they take', () => {
+    const cases: [Viewport, RenderWithProvidersOptions, tight: boolean][] = [
+      [NARROW, {}, false],
+      [COMPACT, {}, false],
+      [MEDIUM, {}, false],
+      [EXPANDED, {}, false],
+      [NARROW, { textScale: 1.3 }, false],
+      [NARROW, {}, true],
+    ];
+    for (const [viewport, options, tight] of cases) {
+      const name = `${String(viewport[0])} ${JSON.stringify(options)} ${String(tight)}`;
+      sized(viewport);
+      layout.isTight = tight;
+      const ready = draw(fixtures.helloReady, options);
+      const words = [
+        getI18n().t('hello:title'),
+        getI18n().t('hello:intro'),
+        getI18n().t('hello:status.heading'),
+      ];
+      const faces = [
+        face(screen.getByTestId('hello.title')),
+        face(within(ready).getByText(words[1] ?? '')),
+        face(screen.getByRole('heading', { level: 2 })),
+      ];
+      // A tight layout sets the title one role down.
+      expect(faces[0]?.[1], name).toBe(
+        `${String(typeRoles[tight ? 'title' : 'display'].size * (options.textScale ?? 1))}px`,
+      );
+
+      const loading = draw(fixtures.helloLoading, options);
+      const boxes = unseen(loading);
+      // The title, the intro and the group's heading, in the order the ready screen draws them.
+      expect(boxes, name).toHaveLength(3);
+      boxes.forEach((box, index) => {
+        // The words as they wrap, then one line of them: the height of a line at this text size.
+        const texts = within(box).getAllByText(words[index] ?? '');
+        expect(texts, name).toHaveLength(2);
+        expect(box.textContent, name).toBe(`${words[index] ?? ''}${words[index] ?? ''}`);
+        for (const text of texts) {
+          expect(face(text), name).toEqual(faces[index]);
+        }
+        // Neither stands in the way of a press or of a screen reader.
+        expect(box.getAttribute('aria-hidden'), name).toBe('true');
+        expect(box.style.pointerEvents, name).toBe('none');
+      });
+      expect(shown(loading), name).toBe('');
+    }
+    layout.isTight = false;
+
+    // The bars follow the lines the words take, once the boxes are laid out.
+    const title = typeRoles.display.lineHeight;
+    const body = typeRoles.body.lineHeight;
+    const bar = `${String(title - space.x2)}px`;
+
+    // A wide phone: the title breaks once and the intro stands on one line.
+    sized(LARGE);
+    let root = draw(fixtures.helloLoading);
+    // Before a box is measured, both break once at compact.
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', bar],
+        ['60%', bar],
+      ],
+    });
+    expect(introBars(root)).toEqual(['100%', '60%']);
+    let [titleWords, introWords] = unseen(root);
+    measure(titleWords, title * 2, title);
+    measure(introWords, body, body);
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', bar],
+        ['60%', bar],
+      ],
+    });
+    expect(introBars(root)).toEqual(['60%']);
+    // One progress bar still, and it is the first block.
+    expect(screen.getAllByRole('progressbar')).toEqual([
+      root.querySelector('[role="progressbar"]'),
+    ]);
+
+    // Wider yet and still compact: the title fits on one line, which stops short of its column.
+    measure(titleWords, title, title);
+    expect(titleBars(root)).toEqual({ box: '80%', bars: [['', bar]] });
+
+    // Larger text on a narrow phone: three lines each, on a higher line.
+    sized(NARROW);
+    root = draw(fixtures.helloLoading, { textScale: 1.3 });
+    [titleWords, introWords] = unseen(root);
+    measure(titleWords, title * 1.3 * 3, title * 1.3);
+    measure(introWords, body * 1.3 * 3, body * 1.3);
+    const grown = `${String(title * 1.3 - space.x2)}px`;
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', grown],
+        ['', grown],
+        ['60%', grown],
+      ],
+    });
+    expect(introBars(root)).toEqual(['100%', '100%', '60%']);
+    expect(screen.getAllByRole('progressbar')).toHaveLength(1);
+
+    // A wider column where the title still breaks: two bars, across the column.
+    sized(MEDIUM);
+    root = draw(fixtures.helloLoading);
+    expect(titleBars(root)).toEqual({ box: '80%', bars: [['', bar]] });
+    expect(introBars(root)).toEqual(['60%']);
+    [titleWords, introWords] = unseen(root);
+    measure(titleWords, title * 2, title);
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', bar],
+        ['60%', bar],
+      ],
+    });
+    // A box that has no height yet keeps the lines it started with.
+    measure(introWords, 0, 0);
+    expect(introBars(root)).toEqual(['60%']);
   });
 
   it('the home bar shows at compact only', () => {
