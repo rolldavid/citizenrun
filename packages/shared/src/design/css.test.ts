@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { EMAIL_STYLES, FONT_FACE_CSS, SHELL_CSS, tokensCss } from './css.ts';
+import { DOCUMENT_PAGE_CSS, EMAIL_STYLES, FONT_FACE_CSS, SHELL_CSS, tokensCss } from './css.ts';
 import { color, fixed, radius } from './tokens.ts';
 import type { ThemeName } from './tokens.ts';
 import { FONT_STACKS } from './type.ts';
@@ -23,6 +23,61 @@ const TOKENS_CSS_LINES = [
   ':root{color-scheme:light;--bg:#F1EFE7;--surface:#FDFCF9;--well:#E3E0D5;--text:#141412;--text-secondary:#535148;--rule:#141412;--rule-soft:#D5D2C7;--accent:#F04E14;--on-accent:#141412;--highlight:#D9F23E;--on-highlight:#141412;--success:#17683A;--danger:#B3202A;--inverse-bg:#141412;--inverse-text:#F3F1EA;--inverse-hover:#2A2A26;--focus-ring:#141412;--font-sans:"Special Gothic","Special Gothic Fallback","Helvetica Neue",Arial,sans-serif;--font-mono:"Chivo Mono",ui-monospace,Menlo,Consolas,monospace;--radius-tag:2px;--radius-control:4px}',
   '@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#121210;--surface:#1F1F1C;--well:#2A2A26;--text:#F3F1EA;--text-secondary:#A9A69B;--rule:#A9A69B;--rule-soft:#33332E;--accent:#F04E14;--on-accent:#141412;--highlight:#D9F23E;--on-highlight:#141412;--success:#6FD08C;--danger:#FD8692;--inverse-bg:#F3F1EA;--inverse-text:#141412;--inverse-hover:#E3E0D5;--focus-ring:#F3F1EA}}',
 ];
+
+const DOCUMENT_PAGE_RULE_LINES = [
+  '*,*::before,*::after{box-sizing:border-box}',
+  'html{-webkit-text-size-adjust:100%}',
+  'body{margin:0;background:var(--bg);color:var(--text);font:400 16px/22px var(--font-sans)}',
+  'header,main,footer{max-width:688px;margin:0 auto;padding:0 16px}',
+  '@media (min-width:380px){header,main,footer{padding:0 24px}}',
+  'header{display:flex;align-items:center;min-height:48px;border-bottom:1px solid var(--rule)}',
+  'header a{font:500 16px/22px var(--font-sans);color:var(--text);text-decoration:none}',
+  'main{padding-top:32px;padding-bottom:48px}',
+  'h1{font:500 28px/32px var(--font-sans);letter-spacing:-0.015em;margin:0 0 24px}',
+  'h2{font:500 20px/26px var(--font-sans);letter-spacing:-0.01em;margin:32px 0 12px}',
+  'h3{font:500 16px/22px var(--font-sans);margin:24px 0 8px}',
+  'p{margin:0 0 12px}',
+  'ul,ol{margin:0 0 12px;padding-left:24px}',
+  'ul{list-style:none}',
+  'ul>li{position:relative}',
+  'ul>li::before{content:"";position:absolute;left:-16px;top:9px;width:4px;height:4px;background:var(--text)}',
+  'li{margin:0 0 4px}',
+  'strong{font-weight:500}',
+  'a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:0.18em}',
+  'a:hover,a:focus-visible{text-decoration-thickness:2px}',
+  ':focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}',
+  'footer{padding-top:16px;padding-bottom:32px;border-top:1px solid var(--rule);display:flex;flex-wrap:wrap;gap:8px 24px;font:400 13px/18px var(--font-sans);color:var(--text-secondary)}',
+  'footer a{color:var(--text-secondary);min-height:44px;display:inline-flex;align-items:center}',
+  'form{display:grid;gap:16px;margin:24px 0}',
+  'label{display:grid;gap:8px;font:500 14px/18px var(--font-sans)}',
+  'input,textarea,select{width:100%;min-height:48px;padding:12px 16px;border:1px solid var(--rule);border-radius:var(--radius-control);background:var(--surface);color:var(--text);font:400 16px/22px var(--font-sans)}',
+  'textarea{min-height:144px;resize:vertical}',
+  'input[type=checkbox],input[type=radio]{width:20px;min-height:20px;height:20px;padding:0;accent-color:var(--inverse-bg)}',
+  'label:has(input[type=checkbox]),label:has(input[type=radio]){grid-template-columns:20px 1fr;align-items:center;min-height:44px;font:400 16px/22px var(--font-sans)}',
+  'button{min-height:44px;padding:8px 16px;border:1px solid var(--inverse-bg);border-radius:var(--radius-control);background:var(--inverse-bg);color:var(--inverse-text);font:500 16px/22px var(--font-sans);cursor:pointer;justify-self:start}',
+  'button:hover{background:var(--inverse-hover);border-color:var(--inverse-hover)}',
+  'button:active{transform:translateY(1px) scale(0.98)}',
+  '[aria-invalid=true]{border:2px solid var(--danger)}',
+  '[role=alert]{color:var(--danger);font:400 13px/18px var(--font-sans)}',
+  '[role=status]{background:var(--well);border-radius:var(--radius-control);padding:12px}',
+  'input[name=website],label:has(input[name=website]){display:none}',
+  '[hidden]{display:none}',
+];
+
+/** What the document page stylesheet opens with: the font faces, then the custom properties. */
+const DOCUMENT_PAGE_HEAD = `${FONT_FACE_CSS}\n${tokensCss()}\n`;
+
+/** The document page stylesheet after its font faces and custom properties. */
+function documentPageRules(): string {
+  return DOCUMENT_PAGE_CSS.slice(DOCUMENT_PAGE_HEAD.length);
+}
+
+/** The value of one declaration of a `selector{name:value;...}` rule, or undefined when it has none. */
+function declarationValue(ruleText: string, name: string): string | undefined {
+  const body = /\{(.*)\}$/.exec(ruleText)?.[1] ?? '';
+  const declaration = body.split(';').find((part) => part.startsWith(`${name}:`));
+  return declaration?.slice(name.length + 1);
+}
 
 /** The `--name:value` declarations of one `:root{...}` block. */
 function declarations(block: string): Map<string, string> {
@@ -109,10 +164,13 @@ describe('server CSS from tokens', () => {
   });
 
   it('both themes are present', () => {
-    const css = tokensCss();
-    expect(declarationsOf(css, 'color-scheme:light')).toBe(1);
-    expect(declarationsOf(css, 'color-scheme:dark')).toBe(1);
-    expect(count(css, '@media (prefers-color-scheme:dark)')).toBe(1);
+    for (const css of [tokensCss(), DOCUMENT_PAGE_CSS]) {
+      expect(declarationsOf(css, 'color-scheme:light')).toBe(1);
+      expect(declarationsOf(css, 'color-scheme:dark')).toBe(1);
+      expect(count(css, '@media (prefers-color-scheme:dark)')).toBe(1);
+    }
+    expect(DOCUMENT_PAGE_CSS).toContain(':root{color-scheme:light;');
+    expect(DOCUMENT_PAGE_CSS).toContain('@media (prefers-color-scheme:dark)');
   });
 
   it('every hex color is a token value', () => {
@@ -121,7 +179,7 @@ describe('server CSS from tokens', () => {
       ...Object.values(color.dark),
       ...Object.values(fixed),
     ]);
-    const sources = [tokensCss(), ...Object.values(EMAIL_STYLES)];
+    const sources = [tokensCss(), DOCUMENT_PAGE_CSS, ...Object.values(EMAIL_STYLES)];
     let seen = 0;
     for (const source of sources) {
       for (const match of source.matchAll(/#[0-9A-Fa-f]{6}\b/g)) {
@@ -130,6 +188,54 @@ describe('server CSS from tokens', () => {
       }
     }
     expect(seen).toBeGreaterThan(0);
+  });
+
+  it('document page stylesheet starts with the fonts and the tokens', () => {
+    expect(DOCUMENT_PAGE_CSS.startsWith(DOCUMENT_PAGE_HEAD)).toBe(true);
+    const headLines = [...FONT_FACE_LINES, ...TOKENS_CSS_LINES];
+    expect(DOCUMENT_PAGE_CSS.split('\n').slice(0, headLines.length)).toEqual(headLines);
+  });
+
+  it('document page rules equal the contract text', () => {
+    expect(DOCUMENT_PAGE_RULE_LINES.length).toBe(37);
+    expect(DOCUMENT_PAGE_CSS.startsWith(DOCUMENT_PAGE_HEAD)).toBe(true);
+    expect(documentPageRules().split('\n')).toEqual(DOCUMENT_PAGE_RULE_LINES);
+    expect(documentPageRules()).toBe(DOCUMENT_PAGE_RULE_LINES.join('\n'));
+  });
+
+  it('document page stylesheet has no stray hex color', () => {
+    const themeValues = new Set([...Object.values(color.light), ...Object.values(color.dark)]);
+    const found = [...DOCUMENT_PAGE_CSS.matchAll(/#[0-9A-Za-z]+/g)].map((match) => match[0]);
+    expect(found.length).toBeGreaterThan(0);
+    for (const value of found) {
+      expect(themeValues.has(value), value).toBe(true);
+    }
+    // The rules name colors only through the custom properties.
+    expect(documentPageRules()).not.toMatch(/#|rgba?\(|hsla?\(/);
+  });
+
+  it('document page rules use only declared custom properties', () => {
+    const [lightLine, darkLine] = tokensCss().split('\n');
+    const light = declarations(lightLine ?? '');
+    const dark = declarations(darkLine ?? '');
+    const used = new Set(
+      [...documentPageRules().matchAll(/var\(--([a-z-]+)\)/g)].map((match) => match[1] ?? ''),
+    );
+    expect(used.size).toBeGreaterThan(0);
+    expect(count(documentPageRules(), 'var(')).toBe(count(documentPageRules(), 'var(--'));
+    for (const name of used) {
+      expect(light.has(name), `--${name}`).toBe(true);
+      if (!FONT_PROPERTIES.has(name)) {
+        expect(dark.has(name), `dark --${name}`).toBe(true);
+      }
+    }
+  });
+
+  it('the submit button is ink', () => {
+    const button = DOCUMENT_PAGE_CSS.split('\n').find((line) => line.startsWith('button{'));
+    expect(button).toBeDefined();
+    expect(declarationValue(button ?? '', 'background')).toBe('var(--inverse-bg)');
+    expect(DOCUMENT_PAGE_CSS).not.toContain('var(--accent)');
   });
 
   it("EMAIL_STYLES has the layout's members", () => {

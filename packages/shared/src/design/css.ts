@@ -1,10 +1,18 @@
 // Plain CSS for the web shell, for the pages the server writes and for email (DS-css). Every color,
 // size and family is read from the token modules, so these strings cannot drift from the app.
 // Lint rule citizenrun/tokens-only is off in this file; it still states no color of its own.
-import { color, fixed, radius } from './tokens.ts';
+import { motion } from './motion.ts';
+import { color, fixed, gutter, radius, rule, size, space } from './tokens.ts';
 import type { ColorToken, ThemeName } from './tokens.ts';
-import { FONT_CSS, FONT_FALLBACK_METRICS, FONT_FILES, FONT_STACKS, FONT_URL_BASE } from './type.ts';
-import type { FontFace } from './type.ts';
+import {
+  FONT_CSS,
+  FONT_FALLBACK_METRICS,
+  FONT_FILES,
+  FONT_STACKS,
+  FONT_URL_BASE,
+  typeRoles,
+} from './type.ts';
+import type { FontFace, TypeRole } from './type.ts';
 
 type FallbackFace = keyof typeof FONT_FALLBACK_METRICS;
 
@@ -137,6 +145,73 @@ export function tokensCss(): string {
   const dark = ['color-scheme:dark', colorProperties('dark')].join(';');
   return [`:root{${light}}`, `@media (prefers-color-scheme:dark){:root{${dark}}}`].join('\n');
 }
+
+const px = (n: number): string => `${String(n)}px`;
+
+/** `font` shorthand for a type role: weight, size/line height, and the sans or mono stack's custom property. */
+function cssFont(role: TypeRole): string {
+  const r = typeRoles[role];
+  return `${String(FONT_CSS[r.face].weight)} ${px(r.size)}/${px(r.lineHeight)} var(--font-${r.face === 'mono' ? 'mono' : 'sans'})`;
+}
+
+/** How far a link's underline sits under the baseline: the one size here that no token holds. */
+const LINK_UNDERLINE_OFFSET = '0.18em';
+
+/**
+ * The rules of a document page, one per line: a single column on the page's ground, its header
+ * and footer, long-form text, and the fields and the one button of a public form.
+ */
+function documentPageRules(): string[] {
+  const body = cssFont('body');
+  const strong = cssFont('bodyStrong');
+  const caption = cssFont('caption');
+  const hairline = px(rule.hairline);
+  const checkbox = px(size.checkbox);
+  const marker = px(size.listMarker);
+  return [
+    '*,*::before,*::after{box-sizing:border-box}',
+    'html{-webkit-text-size-adjust:100%}',
+    `body{margin:0;background:var(--bg);color:var(--text);font:${body}}`,
+    `header,main,footer{max-width:${px(size.longForm + 2 * gutter.regular)};margin:0 auto;padding:0 ${px(gutter.narrow)}}`,
+    `@media (min-width:${px(gutter.narrowBelow)}){header,main,footer{padding:0 ${px(gutter.regular)}}}`,
+    `header{display:flex;align-items:center;min-height:${px(size.appBar)};border-bottom:${hairline} solid var(--rule)}`,
+    `header a{font:${strong};color:var(--text);text-decoration:none}`,
+    `main{padding-top:${px(space.x8)};padding-bottom:${px(space.x12)}}`,
+    `h1{font:${cssFont('title')};letter-spacing:${String(typeRoles.title.tracking)}em;margin:0 0 ${px(space.x6)}}`,
+    `h2{font:${cssFont('heading')};letter-spacing:${String(typeRoles.heading.tracking)}em;margin:${px(space.x8)} 0 ${px(space.x3)}}`,
+    `h3{font:${strong};margin:${px(space.x6)} 0 ${px(space.x2)}}`,
+    `p{margin:0 0 ${px(space.x3)}}`,
+    `ul,ol{margin:0 0 ${px(space.x3)};padding-left:${px(space.x6)}}`,
+    'ul{list-style:none}',
+    'ul>li{position:relative}',
+    `ul>li::before{content:"";position:absolute;left:${px(-space.x4)};top:${px((typeRoles.body.lineHeight - size.listMarker) / 2)};width:${marker};height:${marker};background:var(--text)}`,
+    `li{margin:0 0 ${px(space.x1)}}`,
+    `strong{font-weight:${String(FONT_CSS.medium.weight)}}`,
+    `a{color:var(--text);text-decoration:underline;text-decoration-thickness:${px(rule.underline)};text-underline-offset:${LINK_UNDERLINE_OFFSET}}`,
+    `a:hover,a:focus-visible{text-decoration-thickness:${px(rule.underlineHover)}}`,
+    `:focus-visible{outline:${px(rule.focus)} solid var(--focus-ring);outline-offset:${px(rule.focusGap)}}`,
+    `footer{padding-top:${px(space.x4)};padding-bottom:${px(space.x8)};border-top:${hairline} solid var(--rule);display:flex;flex-wrap:wrap;gap:${px(space.x2)} ${px(space.x6)};font:${caption};color:var(--text-secondary)}`,
+    `footer a{color:var(--text-secondary);min-height:${px(size.target)};display:inline-flex;align-items:center}`,
+    `form{display:grid;gap:${px(space.x4)};margin:${px(space.x6)} 0}`,
+    `label{display:grid;gap:${px(space.x2)};font:${cssFont('label')}}`,
+    `input,textarea,select{width:100%;min-height:${px(size.input)};padding:${px(space.x3)} ${px(space.x4)};border:${hairline} solid var(--rule);border-radius:var(--radius-control);background:var(--surface);color:var(--text);font:${body}}`,
+    `textarea{min-height:${px(size.input * 3)};resize:vertical}`,
+    `input[type=checkbox],input[type=radio]{width:${checkbox};min-height:${checkbox};height:${checkbox};padding:0;accent-color:var(--inverse-bg)}`,
+    `label:has(input[type=checkbox]),label:has(input[type=radio]){grid-template-columns:${checkbox} 1fr;align-items:center;min-height:${px(size.target)};font:${body}}`,
+    `button{min-height:${px(size.button)};padding:${px(space.x2)} ${px(space.x4)};border:${hairline} solid var(--inverse-bg);border-radius:var(--radius-control);background:var(--inverse-bg);color:var(--inverse-text);font:${strong};cursor:pointer;justify-self:start}`,
+    'button:hover{background:var(--inverse-hover);border-color:var(--inverse-hover)}',
+    `button:active{transform:translateY(${px(motion.distance.press)}) scale(${String(motion.scale.press)})}`,
+    `[aria-invalid=true]{border:${px(rule.fieldState)} solid var(--danger)}`,
+    `[role=alert]{color:var(--danger);font:${caption}}`,
+    `[role=status]{background:var(--well);border-radius:var(--radius-control);padding:${px(space.x3)}}`,
+    'input[name=website],label:has(input[name=website]){display:none}',
+    '[hidden]{display:none}',
+  ];
+}
+
+/** The stylesheet of the legal and public information pages the API writes (DS-css). */
+export const DOCUMENT_PAGE_CSS: string =
+  FONT_FACE_CSS + '\n' + tokensCss() + '\n' + documentPageRules().join('\n');
 
 const EMAIL_SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const EMAIL_MONO = 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
