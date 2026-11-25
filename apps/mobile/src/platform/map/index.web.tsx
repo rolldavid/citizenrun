@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { StyleSheet, View } from 'react-native';
 import type * as MapLibre from 'maplibre-gl';
 
+import { applyCameraLimits } from './camera-limits';
 import { diffLayers, toStyleLayer } from './layer-diff';
 import type { LayerOp } from './layer-diff';
 import { centrePoint, featureFacts, queryArea } from './query-geometry';
@@ -439,13 +440,7 @@ function Surface(props: MapSurfaceProps): JSX.Element {
       west === undefined || south === undefined || east === undefined || north === undefined
         ? null
         : [west, south, east, north];
-    try {
-      surface.map.setMaxBounds(bounds);
-      surface.map.setMinZoom(minZoom);
-      surface.map.setMaxZoom(maxZoom);
-    } catch {
-      // Library errors stay inside the module (PM-map-spike).
-    }
+    applyCameraLimits(surface.map, bounds, minZoom, maxZoom);
   }, [surface, west, south, east, north, minZoom, maxZoom]);
 
   // The library has no setter for either value, so the control is replaced and exactly one exists (D-544).
