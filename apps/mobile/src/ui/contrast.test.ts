@@ -9,7 +9,7 @@ import {
 } from '@citizenrun/shared';
 import { describe, expect, it } from 'vitest';
 
-import { color, fixed, opacity } from './tokens';
+import { BONE, color, fixed, INK, issue, ISSUE_IDS, opacity } from './tokens';
 import type { ColorToken, ThemeName } from './tokens';
 
 const THEMES: readonly ThemeName[] = ['light', 'dark'];
@@ -197,5 +197,117 @@ describe('the contrast rules', () => {
   it('the notification tint is at least 3:1', () => {
     expect(contrastRatio(fixed.notificationTint, color.light.bg)).toBeGreaterThanOrEqual(3);
     expect(contrastRatio(fixed.notificationTint, color.dark.bg)).toBeGreaterThanOrEqual(3);
+  });
+});
+
+/** The shorter way round the hue circle between two hues in degrees. */
+function hueDistance(a: number, b: number): number {
+  const difference = Math.abs(a - b);
+  return Math.min(difference, 360 - difference);
+}
+
+/** Every issue color, light and dark: 38 values, each named for its failure message. */
+function issueValues(): { name: string; value: string }[] {
+  return ISSUE_IDS.flatMap((id) => [
+    { name: `${id} light`, value: issue[id].light },
+    { name: `${id} dark`, value: issue[id].dark },
+  ]);
+}
+
+describe('the issue colors', () => {
+  it('every issue color is at least 3:1 on bg and on surface', () => {
+    const failures: string[] = [];
+    for (const id of ISSUE_IDS) {
+      for (const theme of THEMES) {
+        for (const ground of ['bg', 'surface'] as const) {
+          const value = contrastRatio(issue[id][theme], color[theme][ground]);
+          if (value < 3) failures.push(`${id} ${theme} on ${ground} is ${value.toFixed(2)}`);
+        }
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every glyph is at least 3:1 on its tile', () => {
+    const failures: string[] = [];
+    for (const id of ISSUE_IDS) {
+      for (const theme of THEMES) {
+        const value = contrastRatio(issue[id].on, issue[id][theme]);
+        if (value < 3) failures.push(`${id} glyph on ${theme} is ${value.toFixed(2)}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('every issue color is at least 3:1 on the poster ground', () => {
+    const failures: string[] = [];
+    for (const id of ISSUE_IDS) {
+      for (const theme of THEMES) {
+        const value = contrastRatio(issue[id].dark, color[theme].posterBg);
+        if (value < 3) failures.push(`${id} dark on ${theme} posterBg is ${value.toFixed(2)}`);
+      }
+    }
+    expect(failures).toEqual([]);
+  });
+
+  it('no issue color passes the chroma cap', () => {
+    const values = issueValues();
+    expect(values).toHaveLength(38);
+    const failures = values
+      .filter(({ value }) => oklab(value).chroma > 0.166)
+      .map(({ name, value }) => `${name} has chroma ${oklab(value).chroma.toFixed(4)}`);
+    expect(failures).toEqual([]);
+  });
+
+  it('issue hues stay clear of orange', () => {
+    const accentHue = oklab(color.light.accent).hue;
+    const failures = issueValues()
+      .filter(({ value }) => hueDistance(oklab(value).hue, accentHue) <= 20)
+      .map(
+        ({ name, value }) =>
+          `${name} hue is ${hueDistance(oklab(value).hue, accentHue).toFixed(1)} from the accent`,
+      );
+    expect(failures).toEqual([]);
+  });
+
+  it('bright issue hues stay clear of volt', () => {
+    const voltHue = oklab(color.light.highlight).hue;
+    const bright = ISSUE_IDS.filter((id) => issue[id].tone === 'bright');
+    expect(bright.length).toBeGreaterThan(0);
+    const failures = bright.flatMap((id) =>
+      THEMES.filter((theme) => hueDistance(oklab(issue[id][theme]).hue, voltHue) <= 20).map(
+        (theme) => `${id} ${theme} hue is within 20 degrees of volt`,
+      ),
+    );
+    expect(failures).toEqual([]);
+  });
+
+  it('the spot stays a spot', () => {
+    const failures = issueValues()
+      .filter(({ value }) => oklabDistance(value, color.light.accent) < 0.11)
+      .map(
+        ({ name, value }) =>
+          `${name} is ${oklabDistance(value, color.light.accent).toFixed(3)} from the accent`,
+      );
+    expect(failures).toEqual([]);
+  });
+
+  it('issue colors stay away from volt', () => {
+    const failures = issueValues()
+      .filter(({ value }) => oklabDistance(value, color.light.highlight) < 0.25)
+      .map(
+        ({ name, value }) =>
+          `${name} is ${oklabDistance(value, color.light.highlight).toFixed(3)} from volt`,
+      );
+    expect(failures).toEqual([]);
+  });
+
+  it('there are 19 issues and each has a tone and a glyph color', () => {
+    expect(ISSUE_IDS).toHaveLength(19);
+    expect(new Set(ISSUE_IDS).size).toBe(19);
+    for (const id of ISSUE_IDS) {
+      expect(['bright', 'mid', 'deep'], id).toContain(issue[id].tone);
+      expect(issue[id].on, id).toBe(issue[id].tone === 'bright' ? INK : BONE);
+    }
   });
 });

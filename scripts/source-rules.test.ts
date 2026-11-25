@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { issue, ISSUE_IDS } from '@citizenrun/shared';
 import { repoRoot } from './lib/repo-root.ts';
 
 const ROOT = repoRoot();
@@ -218,5 +219,82 @@ describe('no text turns font scaling off', () => {
       ),
     );
     expect(offenders).toEqual([]);
+  });
+});
+
+/** One row of the issue data file, in the shape the pipeline loads. */
+type IssueRow = {
+  id: string;
+  name: string;
+  sort: number;
+  icon: string;
+  colorLight: string;
+  colorDark: string;
+};
+
+const ISSUE_ROW =
+  /^- \{ id: ([a-z0-9-]+),\s+name: (.+),\s+sort: (\d+),\s+icon: ([a-z0-9-]+),\s+color_light: "(#[0-9A-F]{6})",\s+color_dark: "(#[0-9A-F]{6})" \}$/;
+
+/**
+ * Reads the issue data file line by line. A line that is not blank, not a comment and not a row in the
+ * expected shape throws with its line number, so a change of format fails loudly.
+ */
+function readIssueRows(text: string): IssueRow[] {
+  const rows: IssueRow[] = [];
+  text.split('\n').forEach((line, index) => {
+    if (line.trim() === '' || line.startsWith('#')) return;
+    const match = ISSUE_ROW.exec(line);
+    if (match === null) {
+      throw new Error(`data/issues.yaml line ${String(index + 1)} is not an issue row: ${line}`);
+    }
+    const [, id = '', name = '', sort = '', icon = '', colorLight = '', colorDark = ''] = match;
+    rows.push({ id, name, sort: Number(sort), icon, colorLight, colorDark });
+  });
+  return rows;
+}
+
+describe('issue art and data', () => {
+  const rows = (): IssueRow[] =>
+    readIssueRows(readFileSync(join(ROOT, 'data', 'issues.yaml'), 'utf8'));
+  const sorted = (ids: readonly string[]): string[] => [...ids].sort();
+
+  it('reads a row and refuses a line in another shape', () => {
+    const row =
+      '- { id: fixture-issue, name: "Fixture, issue", sort: 1,  icon: fixture-issue, color_light: "#0A0B0C", color_dark: "#1A1B1C" }';
+    expect(readIssueRows(`# comment\n\n${row}\n`)).toEqual([
+      {
+        id: 'fixture-issue',
+        name: '"Fixture, issue"',
+        sort: 1,
+        icon: 'fixture-issue',
+        colorLight: '#0A0B0C',
+        colorDark: '#1A1B1C',
+      },
+    ]);
+    expect(() => readIssueRows(`${row}\n- id: fixture-issue\n`)).toThrow('line 2');
+    expect(() => readIssueRows(row.replace('#0A0B0C', '#0a0b0c'))).toThrow('line 1');
+  });
+
+  it('issue icon files are the issue ids', () => {
+    const files = readdirSync(join(ROOT, 'packages', 'cards', 'art', 'issues'))
+      .filter((file) => file.endsWith('.svg'))
+      .map((file) => file.slice(0, -'.svg'.length));
+    const data = rows();
+    expect(data).toHaveLength(19);
+    expect(sorted(files)).toEqual(sorted(data.map((row) => row.id)));
+    expect(sorted(files)).toEqual(sorted(ISSUE_IDS));
+    for (const row of data) {
+      expect(row.icon, row.id).toBe(row.id);
+    }
+  });
+
+  it('issue ids match the data file', () => {
+    const data = [...rows()].sort((a, b) => a.sort - b.sort);
+    expect(data.map((row) => row.id)).toEqual([...ISSUE_IDS]);
+    for (const row of data) {
+      const tokens: Readonly<Partial<Record<string, { light: string; dark: string }>>> = issue;
+      expect(row.colorLight, `${row.id} light`).toBe(tokens[row.id]?.light);
+      expect(row.colorDark, `${row.id} dark`).toBe(tokens[row.id]?.dark);
+    }
   });
 });

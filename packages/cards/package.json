@@ -15,7 +15,8 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "gen": "tsx scripts/gen-illustrations.ts"
   },
   "dependencies": {
     "@citizenrun/shared": "workspace:*",
@@ -35,6 +36,9 @@
     "react": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "19.3.0",
-    "sharp": "~0.35.5"
+    "sharp": "~0.35.5",
+    "@svgr/core": "8.1.0",
+    "@svgr/plugin-jsx": "8.1.0",
+    "svgo": "4.1.0"
   }
 }
