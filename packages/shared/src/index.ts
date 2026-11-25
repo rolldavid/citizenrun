@@ -6,6 +6,8 @@ export * from './log/index.ts';
 export * from './i18n/index.ts';
 export * from './brand.ts';
 export * from './policy/index.ts';
+export * from './text/index.ts';
+export * from './web/index.ts';
 export type * from './email/types.ts';
 export * from './schemas/index.ts';
 export * from './http/index.ts';

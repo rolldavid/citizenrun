@@ -1,5 +1,9 @@
 export const SAFE_URL_MAX = 200; // L-links
 export const SOURCE_URL_MAX = 2048; // L-links, D-536
+export const LINK_REL = 'nofollow ugc noopener noreferrer'; // L-links
+
+export type TextSegment =
+  { type: 'text'; value: string } | { type: 'link'; value: string; href: string; domain: string };
 
 const SCHEME_AND_REST = /^https:\/\/([^/?#]*)([\s\S]*)$/i;
 const HOST_AND_PORT = /^([^:]+)(:\d{1,5})?$/;
@@ -63,4 +67,59 @@ export function parseSafeUrl(
     url: `https://${host}${port}${rest}`,
     domain: host.startsWith('www.') ? host.slice('www.'.length) : host,
   };
+}
+
+const HTTPS_RUN = /https:\/\/[^\s<>"']*/gi;
+const TRAILING_PUNCTUATION = '.,;:!?)]}\'"';
+const SCHEME_ANYWHERE = /\bhttps?:\/\//i;
+const WWW_ANYWHERE = /\bwww\./i;
+const BARE_DOMAIN = /\b[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,24}\b/i;
+
+function pushText(segments: TextSegment[], value: string): void {
+  if (value === '') {
+    return;
+  }
+  const last = segments[segments.length - 1];
+  if (last !== undefined && last.type === 'text') {
+    last.value += value;
+    return;
+  }
+  segments.push({ type: 'text', value });
+}
+
+/**
+ * Splits text into plain text and clickable https links; joining every segment's value gives the
+ * text back, and an empty text gives no segment. http links and bare domains stay text.
+ */
+export function linkify(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  let position = 0;
+  for (const match of text.matchAll(HTTPS_RUN)) {
+    const run = match[0];
+    const start = match.index;
+    let end = run.length;
+    while (end > 0 && TRAILING_PUNCTUATION.includes(run.charAt(end - 1))) {
+      end -= 1;
+    }
+    const value = run.slice(0, end);
+    const parsed = parseSafeUrl(value);
+    if (parsed === null) {
+      continue;
+    }
+    pushText(segments, text.slice(position, start));
+    segments.push({ type: 'link', value, href: parsed.url, domain: parsed.domain });
+    position = start + value.length;
+  }
+  pushText(segments, text.slice(position));
+  return segments;
+}
+
+/** True when text holds a link or something that reads as one, an email address included. */
+export function containsLink(text: string): boolean {
+  return (
+    linkify(text).some((segment) => segment.type === 'link') ||
+    SCHEME_ANYWHERE.test(text) ||
+    WWW_ANYWHERE.test(text) ||
+    BARE_DOMAIN.test(text)
+  );
 }
