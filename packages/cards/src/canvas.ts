@@ -16,7 +16,7 @@ export const CANVAS = {
   minType: 40,
   thumbnailMinType: 72, // smallest type on a feed canvas and on a thumbnail
   // Each is false only when a phone draws tracked text, or a tilted group, unlike the server.
-  trackingEnabled: true,
+  trackingEnabled: false, // D-837: Android shifts tracked text by half its spacing
   stickerTiltEnabled: true,
   photoSlotEnabled: false, // the photo variant: off until the ten-portrait test passes
   track: { number: -0.03, title: -0.015, statement: -0.02, headline: -0.02, caps: 0.04 }, // em

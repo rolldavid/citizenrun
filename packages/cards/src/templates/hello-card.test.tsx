@@ -114,25 +114,23 @@ describe('HelloCard', () => {
     expect(parts[0]?.props).toEqual({ x: 0, y: 0, width: 1080, height: 1350, fill: 'c-surface' });
   });
 
-  it('2: the mono label is tracked caps in the mono face', () => {
+  it('2: the mono label is caps in the mono face', () => {
     expect(parts[1]?.props).toEqual({
       x: 66,
       y: 110,
       ...MONO,
       fontSize: 40,
-      letterSpacing: 1.6,
       fill: 'c-text-secondary',
       children: 'SPIKE 7 · FOUR FACES',
     });
   });
 
-  it('3: the title is the medium face, tracked tight', () => {
+  it('3: the title is the medium face', () => {
     expect(parts[2]?.props).toEqual({
       x: 66,
       y: 200,
       ...MEDIUM,
       fontSize: 92,
-      letterSpacing: -1.4,
       fill: 'c-text',
       children: 'Treasurer',
     });
@@ -164,7 +162,6 @@ describe('HelloCard', () => {
       y: 560,
       ...BOLD,
       fontSize: 330,
-      letterSpacing: -9.9,
       fill: 'c-text',
       children: '14',
     });
@@ -202,7 +199,6 @@ describe('HelloCard', () => {
       y: 740,
       ...MONO,
       fontSize: 40,
-      letterSpacing: 1.6,
       fill: 'c-on-highlight',
       children: 'OPEN SEAT',
     });
@@ -334,16 +330,9 @@ describe('HelloCard', () => {
     expect(hrefs).toHaveLength(2);
   });
 
-  it('tracks the caps, the title and the big number, and nothing else', () => {
-    const tracked = walk(card)
-      .filter((element) => 'letterSpacing' in element.props)
-      .map((element) => [element.props.children, element.props.letterSpacing]);
-    expect(tracked).toEqual([
-      ['SPIKE 7 · FOUR FACES', 1.6],
-      ['Treasurer', -1.4],
-      ['14', -9.9],
-      ['OPEN SEAT', 1.6],
-    ]);
+  it('tracks no line while tracked text is switched off', () => {
+    const tracked = walk(card).filter((element) => 'letterSpacing' in element.props);
+    expect(tracked).toEqual([]);
   });
 
   it('writes every number with at most one decimal place, the two transforms aside', () => {

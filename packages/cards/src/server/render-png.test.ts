@@ -418,9 +418,7 @@ describe('hello card', () => {
 
   it('hello card tracks and tilts', () => {
     const markup = renderToStaticMarkup(helloElement());
-    expect(markup).toContain('letter-spacing="1.6"');
-    expect(markup).toContain('letter-spacing="-1.4"');
-    expect(markup).toContain('letter-spacing="-9.9"');
+    expect(markup).not.toContain('letter-spacing');
     expect(countOf(markup, 'transform="rotate(-3 236 726)"')).toBe(1);
   });
 });
