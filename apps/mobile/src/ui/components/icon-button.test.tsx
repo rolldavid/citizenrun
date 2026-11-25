@@ -493,7 +493,10 @@ describe('IconButton', () => {
     const { target } = draw({ label: 'Bookmark' });
     // At rest the name is a label alone: no words are drawn.
     expect(screen.queryByText('Bookmark')).toBeNull();
-    fireEvent.focus(target);
+    // The Tab key brings focus, which the page marks as the keyboard's.
+    act(() => {
+      target.focus();
+    });
     // The page says where the button is on the next turn.
     await act(async () => {
       await new Promise<void>((resolve) => {

@@ -41,6 +41,36 @@ const BUBBLE: ViewStyle = {
 // Drawn clear until the control has been measured, so the bubble never shows on the wrong side.
 const UNPLACED: ViewStyle = { opacity: 0 };
 
+/** An element that can say whether a selector matches it: the web's can, a phone's view cannot. */
+type Matcher = { matches: (selector: string) => boolean };
+
+function isMatcher(element: unknown): element is Matcher {
+  return (
+    typeof element === 'object' &&
+    element !== null &&
+    'matches' in element &&
+    typeof element.matches === 'function'
+  );
+}
+
+/**
+ * True when the focus is one a keyboard brought. The browser marks that focus and no other: a
+ * press brings focus without the mark, and so does an overlay that hands focus back to its control
+ * as it closes after a press or a touch. Where the element cannot say, focus is the keyboard's: a
+ * phone moves focus for nothing else.
+ */
+function isKeyboardFocus(focused: unknown): boolean {
+  if (!isMatcher(focused)) {
+    return true;
+  }
+  try {
+    return focused.matches(':focus-visible');
+  } catch {
+    // A browser that does not know the selector: every focus counts, as before the mark existed.
+    return true;
+  }
+}
+
 /**
  * C-Tooltip: names an icon-only control for a pointer or a keyboard. It shows at once on keyboard
  * focus and after a pause under a pointer, never from a touch, and leaves on blur, pointer-out, a
@@ -102,12 +132,14 @@ export function Tooltip({ text, children }: TooltipProps): JSX.Element {
           pressed.current = true;
           hide();
         }}
-        onFocus={() => {
+        onFocus={(event) => {
           if (pressed.current) {
             pressed.current = false;
             return;
           }
-          show();
+          if (isKeyboardFocus(event.target)) {
+            show();
+          }
         }}
         onBlur={() => {
           pressed.current = false;

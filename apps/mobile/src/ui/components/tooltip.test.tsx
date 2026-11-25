@@ -111,8 +111,32 @@ function measure(): void {
   wait(1);
 }
 
+/** Moves focus to the control as the Tab key does: the page marks that focus as the keyboard's. */
 function focus(control: HTMLElement): void {
-  fireEvent.focus(control);
+  if (document.activeElement === control) {
+    // The cases blur with an event alone, so the control still holds the page's focus.
+    fireEvent.focus(control);
+    return;
+  }
+  act(() => {
+    control.focus();
+  });
+}
+
+/**
+ * Moves focus to the control as code does after a press or a touch elsewhere: an overlay that
+ * closes and hands focus back. The browser leaves that focus unmarked.
+ */
+function focusWithoutKeyboard(control: HTMLElement): void {
+  const matches = control.matches.bind(control);
+  const unmarked = vi
+    .spyOn(control, 'matches')
+    .mockImplementation((selector: string) => selector !== ':focus-visible' && matches(selector));
+  try {
+    focus(control);
+  } finally {
+    unmarked.mockRestore();
+  }
 }
 
 function enter(control: HTMLElement, pointerType: string): void {
@@ -285,6 +309,42 @@ describe('Tooltip', () => {
     expect(bubbles()).toHaveLength(1);
     escape();
     expect(bubbles()).toHaveLength(0);
+  });
+
+  it('shows on focus from the keyboard only, not when a closing overlay hands focus back', () => {
+    const control = draw();
+    // A dialog closed by a press or a touch gives focus back to the control that opened it.
+    focusWithoutKeyboard(control);
+    expect(bubbles()).toHaveLength(0);
+    wait(gesture.tooltipHoverDelayMs);
+    expect(bubbles()).toHaveLength(0);
+    fireEvent.blur(control);
+
+    // The same hand-back to someone using the keyboard carries the mark, and the bubble shows.
+    focus(control);
+    expect(bubbles()).toHaveLength(1);
+    fireEvent.blur(control);
+    expect(bubbles()).toHaveLength(0);
+
+    // A pointer still gets its bubble by resting on the control.
+    focusWithoutKeyboard(control);
+    enter(control, 'mouse');
+    wait(gesture.tooltipHoverDelayMs);
+    expect(bubbles()).toHaveLength(1);
+  });
+
+  it('counts every focus where the element cannot say what brought it', () => {
+    const control = draw();
+    const matches = control.matches.bind(control);
+    // A browser without the selector throws on it.
+    vi.spyOn(control, 'matches').mockImplementation((selector: string) => {
+      if (selector === ':focus-visible') {
+        throw new SyntaxError('unknown selector');
+      }
+      return matches(selector);
+    });
+    focus(control);
+    expect(bubbles()).toHaveLength(1);
   });
 
   it('is hidden from assistive technology', () => {

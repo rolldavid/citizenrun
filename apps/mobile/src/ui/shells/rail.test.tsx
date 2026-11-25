@@ -507,7 +507,10 @@ describe('Rail', () => {
     const rail = drawState('iconsHome');
     // The icons rail draws no word, so nothing names an icon for the eye until it has the focus.
     expect(within(rail).queryByText('Explore')).toBeNull();
-    fireEvent.focus(item('explore'));
+    // The Tab key brings focus, which the page marks as the keyboard's.
+    act(() => {
+      item('explore').focus();
+    });
     // The page says where the cell is on the next turn.
     await act(async () => {
       await new Promise<void>((resolve) => {
@@ -525,7 +528,10 @@ describe('Rail', () => {
 
     // The count is in the item's name; the tooltip says the word alone.
     drawState('iconsUnread');
-    fireEvent.focus(item('messages'));
+    // The Tab key brings focus, which the page marks as the keyboard's.
+    act(() => {
+      item('messages').focus();
+    });
     await act(async () => {
       await new Promise<void>((resolve) => {
         setTimeout(resolve, 0);
@@ -535,7 +541,9 @@ describe('Rail', () => {
 
     // The labeled rail shows its words already, so it has no tooltip.
     drawState('labeledHome');
-    fireEvent.focus(item('explore'));
+    act(() => {
+      item('explore').focus();
+    });
     expect(screen.getAllByText('Explore')).toHaveLength(1);
   });
 });
