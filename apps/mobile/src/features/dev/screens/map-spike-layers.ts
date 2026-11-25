@@ -28,6 +28,12 @@ export type MapSpikeToggles = {
 
 /** The fixture tile 8/71/100, which holds the nine cells. */
 export const SPIKE_BOUNDS: LngLatBounds = [-80.15625, 35.4607, -78.75, 36.5979];
+/**
+ * The nine cells, from the west end of the line to its east end, with none of the tile round them:
+ * the view a phone starts on, where the whole tile would draw each cell smaller than the tag, pin
+ * and ring on it.
+ */
+export const SPIKE_CLOSE_BOUNDS: LngLatBounds = [-79.8047, 35.7465, -79.1, 36.3038];
 /** The fixture tile's centre, beside cell 5's point. */
 export const SPIKE_CENTRE: LngLat = [-79.4531, 36.0283];
 /** The lower 48's `max` box (MAP-regions). */

@@ -8,6 +8,7 @@ import {
   ALASKA_MAX,
   LOWER48_MAX,
   SPIKE_BOUNDS,
+  SPIKE_CLOSE_BOUNDS,
   SPIKE_CENTRE,
   SPIKE_MAX_ZOOM,
   SPIKE_MIN_ZOOM,
@@ -426,6 +427,39 @@ describe('the spike sources and camera boxes', () => {
     expect(SPIKE_CENTRE[0]).toBeLessThan(east);
     expect(SPIKE_CENTRE[1]).toBeGreaterThan(south);
     expect(SPIKE_CENTRE[1]).toBeLessThan(north);
+  });
+
+  it('the close view holds the nine cells and the line through them, inside the tile', () => {
+    const [west, south, east, north] = SPIKE_CLOSE_BOUNDS;
+    expect(SPIKE_CLOSE_BOUNDS).toEqual([-79.8047, 35.7465, -79.1, 36.3038]);
+    // The cells take the tile from a quarter to 74 hundredths of its width and of its height.
+    const [tileWest, tileSouth, tileEast, tileNorth] = SPIKE_BOUNDS;
+    const y = (lat: number): number => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+    const lat = (value: number): number => (Math.atan(Math.exp(value)) * 360) / Math.PI - 90;
+    const across = (share: number): number => tileWest + (tileEast - tileWest) * share;
+    const up = (share: number): number => lat(y(tileSouth) + (y(tileNorth) - y(tileSouth)) * share);
+    expect(west).toBeCloseTo(across(0.25), 3);
+    expect(east).toBeGreaterThanOrEqual(across(0.74));
+    expect(south).toBeCloseTo(up(0.25), 3);
+    expect(north).toBeCloseTo(up(0.74), 3);
+    // The west-to-east line ends inside it, and the centre is in it.
+    for (const feature of spikeGeoJson('a').data.features) {
+      if (feature.geometry.type !== 'Point') continue;
+      const [lng, at] = feature.geometry.coordinates;
+      expect(lng).toBeGreaterThanOrEqual(west);
+      expect(lng).toBeLessThanOrEqual(east);
+      expect(at).toBeGreaterThan(south);
+      expect(at).toBeLessThan(north);
+    }
+    expect(SPIKE_CENTRE[0]).toBeGreaterThan(west);
+    expect(SPIKE_CENTRE[0]).toBeLessThan(east);
+    expect(SPIKE_CENTRE[1]).toBeGreaterThan(south);
+    expect(SPIKE_CENTRE[1]).toBeLessThan(north);
+    // Nothing of it leaves the tile, so the wide view shows all the close one does.
+    expect(west).toBeGreaterThan(tileWest);
+    expect(south).toBeGreaterThan(tileSouth);
+    expect(east).toBeLessThan(tileEast);
+    expect(north).toBeLessThan(tileNorth);
   });
 
   it('the two line data sets', () => {
