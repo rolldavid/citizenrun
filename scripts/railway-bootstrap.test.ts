@@ -1,8 +1,11 @@
+import { execFile } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
+import { pathToFileURL } from 'node:url';
 import { GetBucketCorsCommand, PutBucketCorsCommand } from '@aws-sdk/client-s3';
 import type { CORSRule } from '@aws-sdk/client-s3';
 import { BRAND } from '@citizenrun/shared';
@@ -12,6 +15,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 import { mediaCorsRules } from './lib/cors.ts';
 import { repoRoot } from './lib/repo-root.ts';
 import {
+  createPrompt,
   fillRoleMarkers,
   parseInputsFile,
   runBootstrap,
@@ -1873,6 +1877,59 @@ describe('custom domains', { timeout: 30_000 }, () => {
     expect(result.lines).toContain(
       `apply ok dry-run: domain ${API_HOST} not added; it is added when railway domain list does not show it`,
     );
+  });
+});
+
+describe('prompts on standard input', { timeout: 60_000 }, () => {
+  it('a prompt answers a line, then null once its input has ended, every time', async () => {
+    const input = new PassThrough();
+    const output = new PassThrough();
+    const prompt = createPrompt(input, output);
+    const first = prompt('Done? [y/N]', { hidden: false });
+    input.end('y\n');
+    expect(await first).toBe('y');
+    expect(await prompt('Again?', { hidden: false })).toBeNull();
+    expect(await prompt('And again?', { hidden: true })).toBeNull();
+  });
+
+  // The script's own prompt, in a child process whose standard input is /dev/null: the second
+  // prompt meets an input that ended at the first, and must answer empty instead of hanging.
+  it('a prompt after the end of standard input answers empty', async () => {
+    const fake = await createFakeCli(defaultRules('staging', {}));
+    cleanups.push(() => fake.cleanup());
+    const root = await tempFolder('bootstrap-root-');
+    const home = await tempFolder('bootstrap-home-');
+    const driver = join(root, 'driver.mjs');
+    await writeFile(
+      driver,
+      [
+        `const { runBootstrap } = await import(${JSON.stringify(pathToFileURL(join(repoRoot(), 'scripts', 'railway-bootstrap.ts')).href)});`,
+        `const io = { repoRoot: ${JSON.stringify(root)}, home: ${JSON.stringify(home)}, env: process.env, out: (line) => console.log(line) };`,
+        "for (const step of ['volume-backups', 'tokens']) {",
+        "  console.log('exit ' + String(await runBootstrap(['--env', 'staging', '--only', step], io)));",
+        '}',
+      ].join('\n'),
+    );
+    const child = await new Promise<{ code: number | null; stdout: string }>((resolveChild) => {
+      execFile(
+        process.execPath,
+        ['--import', 'tsx', driver],
+        {
+          cwd: repoRoot(),
+          env: fake.env({ PATH: process.env.PATH, HOME: home, RAILWAY_API_TOKEN: WORKSPACE_TOKEN }),
+          timeout: 50_000,
+        },
+        (error, stdout) => {
+          resolveChild({
+            code: error === null ? 0 : typeof error.code === 'number' ? error.code : null,
+            stdout,
+          });
+        },
+      ).stdin?.end();
+    });
+    expect(child.stdout).toContain('volume-backups owner-check volume backups for staging');
+    expect(child.stdout).toContain('tokens owner-check project token github-actions-staging');
+    expect(child.code).toBe(0);
   });
 });
 

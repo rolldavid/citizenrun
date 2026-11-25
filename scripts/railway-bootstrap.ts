@@ -22,6 +22,7 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
+import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { GetBucketCorsCommand, PutBucketCorsCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
@@ -2238,34 +2239,56 @@ async function runStep(
   return out.failed;
 }
 
-function defaultPrompt(question: string, options: { hidden: boolean }): Promise<string | null> {
-  return new Promise((resolvePromise) => {
-    let muted = false;
-    const output = new Writable({
-      write(chunk: Buffer, _encoding, callback) {
-        if (!muted) {
-          process.stdout.write(chunk);
-        }
-        callback();
-      },
-    });
-    const rl = createInterface({ input: process.stdin, output, terminal: process.stdin.isTTY });
-    let answered = false;
-    rl.on('close', () => {
-      if (!answered) {
-        resolvePromise(null);
-      }
-    });
-    rl.question(`${question} `, (answer) => {
-      answered = true;
-      if (options.hidden) {
-        process.stdout.write('\n');
-      }
-      rl.close();
-      resolvePromise(answer);
-    });
-    muted = options.hidden;
+type Prompt = (question: string, options: { hidden: boolean }) => Promise<string | null>;
+
+/**
+ * A prompt on a line stream. Once the input has ended, every later prompt answers null at once, as
+ * the first one to meet the end does (D-849): readline never closes on a stream that ended before.
+ */
+export function createPrompt(input: Readable & { isTTY?: boolean }, output: Writable): Prompt {
+  let ended = input.readableEnded;
+  input.once('end', () => {
+    ended = true;
   });
+  return (question, options) =>
+    new Promise((resolvePromise) => {
+      if (ended || input.readableEnded) {
+        resolvePromise(null);
+        return;
+      }
+      let muted = false;
+      const echo = new Writable({
+        write(chunk: Buffer, _encoding, callback) {
+          if (!muted) {
+            output.write(chunk);
+          }
+          callback();
+        },
+      });
+      const rl = createInterface({ input, output: echo, terminal: input.isTTY === true });
+      let answered = false;
+      rl.on('close', () => {
+        if (!answered) {
+          resolvePromise(null);
+        }
+      });
+      rl.question(`${question} `, (answer) => {
+        answered = true;
+        if (options.hidden) {
+          output.write('\n');
+        }
+        rl.close();
+        resolvePromise(answer);
+      });
+      muted = options.hidden;
+    });
+}
+
+let stdinPrompt: Prompt | null = null;
+
+function defaultPrompt(question: string, options: { hidden: boolean }): Promise<string | null> {
+  stdinPrompt ??= createPrompt(process.stdin, process.stdout);
+  return stdinPrompt(question, options);
 }
 
 /** Runs the bootstrap; resolves with the exit code: 0 done, 1 a step failed, 2 a usage error. */
