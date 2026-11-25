@@ -1,5 +1,5 @@
 import { assertNever, typeRoles } from '@citizenrun/shared';
-import type { TypeRole } from '@citizenrun/shared';
+import type { ErrorCode, TypeRole } from '@citizenrun/shared';
 import { useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,14 @@ import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { size, space } from '@/ui/tokens';
 
 type HelloReady = Extract<HelloViewModel, { status: 'ready' }>;
+
+// The codes whose text needs a value this screen does not have. The readiness check answers with
+// none of them; one that comes anyway reads the generic text, never a gap where the value goes.
+type CodeWithValue = 'handle_change_too_soon';
+
+function isPlainCode(code: ErrorCode): code is Exclude<ErrorCode, CodeWithValue> {
+  return code !== 'handle_change_too_soon';
+}
 
 // The bar of Home with no way to Messages: the wordmark alone, and only at compact.
 const HOME_BAR: NonNullable<ScreenProps['appBar']> = {
@@ -329,7 +337,7 @@ function Content({ vm }: { vm: HelloViewModel }): JSX.Element {
           kind="error"
           art="chair"
           headingLevel={1}
-          title={t(`errors:${vm.code}`)}
+          title={isPlainCode(vm.code) ? t(`errors:${vm.code}`) : t('errors:generic')}
           action={{
             label: t('common:ui.retry'),
             onPress: vm.onRetry,

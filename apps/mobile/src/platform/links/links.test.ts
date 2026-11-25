@@ -20,9 +20,18 @@ const rn = vi.hoisted(() => {
   };
 });
 
+// The sign-in ids stay unset: the links read the two store listings only.
+const NO_SIGN_IN = { googleIosClientId: null, googleWebClientId: null, appleServicesId: null };
+
 const env = vi.hoisted(() => {
-  const state: { value: { appStoreUrl: string | null; playStoreUrl: string | null } } = {
-    value: { appStoreUrl: null, playStoreUrl: null },
+  const state: { value: AppEnv } = {
+    value: {
+      appStoreUrl: null,
+      playStoreUrl: null,
+      googleIosClientId: null,
+      googleWebClientId: null,
+      appleServicesId: null,
+    },
   };
   return state;
 });
@@ -48,7 +57,7 @@ let openSettings: MockInstance<() => Promise<void>>;
 
 beforeEach(async () => {
   rn.Platform.OS = 'ios';
-  env.value = { appStoreUrl: null, playStoreUrl: null };
+  env.value = { appStoreUrl: null, playStoreUrl: null, ...NO_SIGN_IN };
   openURL = vi.spyOn(rn.Linking, 'openURL').mockResolvedValue(true);
   openSettings = vi.spyOn(rn.Linking, 'openSettings').mockResolvedValue(undefined);
   page.open.mockReset().mockReturnValue(null);
@@ -153,7 +162,11 @@ describe('links', () => {
     expect(openURL).not.toHaveBeenCalled();
 
     rn.Platform.OS = 'ios';
-    env.value = { appStoreUrl: 'https://apps.example.test/app/id1', playStoreUrl: null };
+    env.value = {
+      appStoreUrl: 'https://apps.example.test/app/id1',
+      playStoreUrl: null,
+      ...NO_SIGN_IN,
+    };
     expect(phone.storeListingSupported).toBe(true);
     expect(await phone.openStoreListing()).toBe(true);
     expect(openURL).toHaveBeenLastCalledWith('https://apps.example.test/app/id1');
@@ -164,6 +177,7 @@ describe('links', () => {
     env.value = {
       appStoreUrl: 'https://apps.example.test/app/id1',
       playStoreUrl: 'https://play.example.test/store/apps',
+      ...NO_SIGN_IN,
     };
     expect(phone.storeListingSupported).toBe(true);
     expect(await phone.openStoreListing()).toBe(true);

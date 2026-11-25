@@ -349,6 +349,13 @@ describe('HelloScreenView', () => {
     ]);
   });
 
+  it('error with a code whose text needs a value reads the generic text', () => {
+    sized(COMPACT);
+    draw({ status: 'error', code: 'handle_change_too_soon', onRetry: () => undefined });
+    expect(titles().map((title) => title.textContent)).toEqual([getI18n().t('errors:generic')]);
+    expect(titles()[0]?.textContent).toBe('Something went wrong. Try again.');
+  });
+
   it('loading is one progressbar named Loading', () => {
     sized(COMPACT);
     const root = draw(fixtures.helloLoading);
