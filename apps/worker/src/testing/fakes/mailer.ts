@@ -1,6 +1,6 @@
 import { registerScanSource } from '@citizenrun/db/testing';
 import type { EmailMessage, Mailer } from '@citizenrun/shared';
-import { RetryableJobError } from '../../jobs/types.ts';
+import { PermanentJobError, RetryableJobError } from '../../jobs/types.ts';
 import { CAPTURE_KEEP, createCaptureStore } from '../../lib/mailer.ts';
 import type { CapturedEmail } from '../../lib/mailer.ts';
 
@@ -15,7 +15,7 @@ let mailers = 0;
  */
 export class CaptureMailer implements Mailer {
   readonly #store = createCaptureStore(CAPTURE_KEEP);
-  #failNext: '5xx' | '429' | null = null;
+  #failNext: '5xx' | '429' | '4xx' | null = null;
 
   constructor() {
     // A name of its own per mailer: a second registration under one name replaces the first.
@@ -31,10 +31,15 @@ export class CaptureMailer implements Mailer {
   }
 
   sendEmail(message: EmailMessage): Promise<void> {
-    if (this.#failNext !== null) {
+    const failure = this.#failNext;
+    if (failure !== null) {
       this.#failNext = null;
-      // The Resend mailer answers a provider 5xx and a 429 alike.
-      return Promise.reject(new RetryableJobError('provider_unavailable'));
+      // As the Resend mailer answers: a 5xx and a 429 alike may pass later; another 4xx never will.
+      return Promise.reject(
+        failure === '4xx'
+          ? new PermanentJobError('The email provider refused the message.')
+          : new RetryableJobError('provider_unavailable'),
+      );
     }
     this.#store.add(message);
     return Promise.resolve();
@@ -61,8 +66,11 @@ export class CaptureMailer implements Mailer {
     return SIX_DIGIT_CODE.exec(message.text)?.[0] ?? null;
   }
 
-  /** Makes the next send throw RetryableJobError, as a provider 5xx or 429 does. */
-  failNext(kind: '5xx' | '429'): void {
+  /**
+   * Makes the next send throw as the Resend mailer does: RetryableJobError for a provider 5xx or
+   * 429, PermanentJobError for any other provider 4xx.
+   */
+  failNext(kind: '5xx' | '429' | '4xx'): void {
     this.#failNext = kind;
   }
 }

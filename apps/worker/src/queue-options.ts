@@ -112,4 +112,21 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 10, // J-cost.check
     },
   },
+  'notify.email': {
+    queue: {
+      policy: JOB_POLICIES['notify.email'], // J-notify.email
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-notify.email
+      retryBackoff: true, // D-238
+      retryDelayMax: 1800, // J-notify.email
+      expireInSeconds: 120, // J-notify.email
+      heartbeatSeconds: null, // J-notify.email
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 4, // J-notify.email
+      pollingIntervalSeconds: 2, // J-notify.email
+    },
+  },
 };

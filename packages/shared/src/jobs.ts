@@ -3,6 +3,7 @@ import { z } from 'zod';
 // Every queue name and payload schema, so the API enqueues exactly what the worker consumes. A
 // payload holds ids and small scalars only. A name and its schema arrive with the job's handler.
 
+const Id = z.uuid();
 const Empty = z.object({}).strict();
 
 export const JOB_NAMES = [
@@ -12,6 +13,7 @@ export const JOB_NAMES = [
   'backup.check',
   'db.connections-check',
   'cost.check',
+  'notify.email',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -29,6 +31,7 @@ export const JOB_POLICIES = {
   'backup.check': 'stately',
   'db.connections-check': 'stately',
   'cost.check': 'stately',
+  'notify.email': 'standard',
 } as const satisfies Record<JobName, QueuePolicy>;
 
 /** The kinds of ops alert whose sending step exists. */
@@ -39,6 +42,16 @@ export const OpsAlertKindSchema = z.enum([
   'cost_projection',
 ]);
 export type OpsAlertKind = z.infer<typeof OpsAlertKindSchema>;
+
+/** The kinds of moderation entry in the replay log (OPS-replay-log). */
+export const ReplayKindSchema = z.enum([
+  'post_removed',
+  'post_restored',
+  'comment_removed',
+  'comment_restored',
+  'user_suspended',
+  'user_restored',
+]);
 
 export const JOB_PAYLOADS = {
   // The dead job's own payload; never parsed or logged.
@@ -57,6 +70,15 @@ export const JOB_PAYLOADS = {
   'backup.check': Empty,
   'db.connections-check': Empty,
   'cost.check': Empty,
+  'notify.email': z.discriminatedUnion('template', [
+    z
+      .object({
+        template: z.literal('signin_method_added'),
+        userId: Id,
+        provider: z.enum(['email', 'apple', 'google']),
+      })
+      .strict(),
+  ]),
 } as const satisfies Record<JobName, z.ZodType>;
 
 export type JobPayload<N extends JobName> = z.infer<(typeof JOB_PAYLOADS)[N]>;

@@ -1,9 +1,11 @@
-import { captureLogs, createTestBoss, getTestDb } from '@citizenrun/db/testing';
+import { users } from '@citizenrun/db';
+import { captureLogs, createTestBoss, getTestDb, insertUser } from '@citizenrun/db/testing';
 import { JOB_NAMES, newId } from '@citizenrun/shared';
 import type { JobName } from '@citizenrun/shared';
 import { marker } from '@citizenrun/shared/testing';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { opsDeadJob } from './jobs/ops/dead.ts';
 import { PermanentJobError } from './jobs/types.ts';
@@ -104,6 +106,43 @@ async function opsAlertPaths(): Promise<void> {
   expect(anyLineHolds(SUBJECT_WORDS)).toBe(false);
 }
 
+async function notifyEmailPaths(): Promise<void> {
+  // The factory user's address carries the marker.
+  const user = await insertUser(getTestDb());
+  const address = user.email ?? '';
+  expect(address).toContain(marker());
+  const payload = { template: 'signin_method_added', userId: user.id, provider: 'apple' } as const;
+
+  // Success: one message to that address; the address is in no log line.
+  const sent = await runJob(notifyEmail, payload);
+  expect(sent.outcome).toBe('completed');
+  expect(sent.mailer.sent).toHaveLength(1);
+  expect(sent.mailer.sent[0]?.to).toEqual([address]);
+
+  // Retry: a provider outage makes the job throw.
+  const retrying = new CaptureMailer();
+  retrying.failNext('5xx');
+  const retried = await runJob(notifyEmail, payload, { mailer: retrying });
+  expect(retried.outcome).toBe('failed');
+  expect(retrying.sent).toHaveLength(0);
+
+  // Permanent: the user row is gone, so the job skips and completes.
+  await getTestDb().delete(users).where(eq(users.id, user.id));
+  const gone = await runJob(notifyEmail, payload);
+  expect(gone.outcome).toBe('completed');
+  expect(gone.mailer.sent).toHaveLength(0);
+  expect(
+    captureLogs().lines.some(
+      (line) => line.parsed.event === 'email.skipped' && line.parsed.reason === 'no_user',
+    ),
+  ).toBe(true);
+
+  expect(captureLogs().lines.length).toBeGreaterThan(0);
+  expect(anyLineHolds(marker())).toBe(false);
+  expect(anyLineHolds(address)).toBe(false);
+  expect(anyLineHolds('example.test')).toBe(false);
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -111,6 +150,7 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'backup.check': { covered: false, reason: EMPTY_PAYLOAD },
   'db.connections-check': { covered: false, reason: EMPTY_PAYLOAD },
   'cost.check': { covered: false, reason: EMPTY_PAYLOAD },
+  'notify.email': { covered: true, run: notifyEmailPaths },
 };
 
 async function runCovered(name: JobName): Promise<void> {
@@ -140,5 +180,9 @@ describe('worker privacy', () => {
 
   it('ops alerts carry only their values', async () => {
     await runCovered('ops.alert');
+  });
+
+  it('user emails never log the address', async () => {
+    await runCovered('notify.email');
   });
 });

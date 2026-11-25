@@ -12,5 +12,7 @@ export {
   withEmailCounters,
 } from './usage-counters.ts';
 export type { UsageCounterName } from './usage-counters.ts';
+export { markAccountDeleting } from './accounts/index.ts';
+export type { MarkDeletingResult } from './accounts/index.ts';
 export * from './schema/index.ts';
 export * from './schema/partitioned.ts';

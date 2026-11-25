@@ -94,6 +94,7 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'backup.check': {},
   'db.connections-check': {},
   'cost.check': {},
+  'notify.email': { template: 'signin_method_added', userId: SAMPLE_ID, provider: 'apple' },
 };
 
 const LONG = 'a'.repeat(65);
@@ -176,6 +177,47 @@ describe('the job list', () => {
     const alert = JOB_PAYLOADS['ops.alert'];
     expect(alert.safeParse({ kind: 'db_size_high', values: {} }).success).toBe(false);
     expect(alert.safeParse({ kind: 'job_failed', values: {}, extra: 1 }).success).toBe(false);
+  });
+
+  it('a signin_method_added payload parses', () => {
+    const parsed = JOB_PAYLOADS['notify.email'].safeParse({
+      template: 'signin_method_added',
+      userId: SAMPLE_ID,
+      provider: 'google',
+    });
+    expect(parsed.success).toBe(true);
+    expect(
+      JOB_PAYLOADS['notify.email'].safeParse({
+        template: 'signin_method_added',
+        userId: SAMPLE_ID,
+        provider: 'github',
+      }).success,
+    ).toBe(false);
+    expect(
+      JOB_PAYLOADS['notify.email'].safeParse({
+        template: 'signin_method_added',
+        userId: 'not-a-uuid',
+        provider: 'google',
+      }).success,
+    ).toBe(false);
+  });
+
+  it('an unknown email template is refused', () => {
+    expect(
+      JOB_PAYLOADS['notify.email'].safeParse({
+        template: 'deadline_reminder',
+        notificationId: SAMPLE_ID,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('extra payload keys are refused', () => {
+    expect(
+      JOB_PAYLOADS['notify.email'].safeParse({
+        ...SAMPLE_PAYLOADS['notify.email'],
+        email: 'x@example.test',
+      }).success,
+    ).toBe(false);
   });
 
   it('empty payloads refuse extra keys', () => {

@@ -5,6 +5,7 @@ import type { z } from 'zod';
 import { deadLetterSource } from './boss.ts';
 import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
+import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { backupCheckJob } from './jobs/ops/backup-check.ts';
 import { connectionsCheckJob } from './jobs/ops/connections-check.ts';
@@ -33,6 +34,7 @@ export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
   backupCheckJob,
   connectionsCheckJob,
   costCheckJob,
+  notifyEmail,
 ];
 
 /** Every schedule, crons in UTC; nothing else calls pg-boss `schedule`. */

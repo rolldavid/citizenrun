@@ -1,5 +1,21 @@
 export const notifications = {
-  email: { footerOps: 'Operational alert for the {{appName}} {{env}} environment.' },
+  email: {
+    footerOps: 'Operational alert for the {{appName}} {{env}} environment.',
+    footerAddress: '{{appName}}, {{postalAddress}}',
+  },
+  emailSigninMethod: {
+    subject: 'A sign-in method was added to your {{appName}} account',
+    bodyApple: 'Sign in with Apple was added to your account on {{date}}.',
+    bodyGoogle: 'Sign in with Google was added to your account on {{date}}.',
+    bodyEmail: 'Sign-in with an email code was added to your account on {{date}}.',
+    notYou: "If this wasn't you, email {{supportEmail}} right away.",
+  },
+  emailAccountDeleted: {
+    subject: 'Your {{appName}} account has been deleted',
+    body: 'Your account, posts, messages and other data have been deleted.',
+    retained:
+      'We keep only what the law or our policy requires: reports you filed with your name removed, moderation records, and material preserved under a legal hold. Backups age out within 27 days.',
+  },
   opsAlert: {
     jobFailed: {
       subject: '[{{appName}} {{env}}] A job failed three times: {{queue}}',
