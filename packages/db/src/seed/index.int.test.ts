@@ -2,7 +2,7 @@ import { readdirSync } from 'node:fs';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import type { Db } from '../client.ts';
-import { getTestDb } from '../testing/index.ts';
+import { KEEP_TABLES, getTestDb } from '../testing/index.ts';
 import { SEED_STEPS, SeedError, SeedRefusedError, runSeed } from './index.ts';
 import type { SeedStep } from './index.ts';
 import { step as sanity } from './steps/000-sanity.ts';
@@ -70,6 +70,7 @@ describe('runSeed', () => {
 
   it('is idempotent', async () => {
     const db = getTestDb();
+    const before = await rowCounts(db);
     await runSeed(db, { appEnv: 'local', allowStaging: false, now: NOW });
     const first = await rowCounts(db);
     await runSeed(db, {
@@ -78,7 +79,17 @@ describe('runSeed', () => {
       now: new Date(NOW.getTime() + 60 * 60_000),
     });
     expect(await rowCounts(db)).toEqual(first);
-    expect(Object.values(first).every((count) => count === 0)).toBe(true);
+
+    // The reference tables a migration fills keep their rows across resets: the seed leaves
+    // them as it found them. Every other table stays empty.
+    const keep = new Set(KEEP_TABLES);
+    for (const name of KEEP_TABLES) {
+      expect(first[name]).toBeGreaterThan(0);
+      expect(first[name]).toBe(before[name]);
+    }
+    const others = Object.entries(first).filter(([name]) => !keep.has(name));
+    expect(others.length).toBeGreaterThan(0);
+    expect(others.filter(([, count]) => count !== 0)).toEqual([]);
   });
 
   it('refuses where it must', async () => {
