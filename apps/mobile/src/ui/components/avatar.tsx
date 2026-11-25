@@ -1,9 +1,12 @@
 import { typeRoles } from '@citizenrun/shared';
+import { lazy, Suspense, useState } from 'react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
+import Animated from 'react-native-reanimated';
 
+import { motion, useFade, useReducedMotion } from '@/ui/motion';
 import { useTheme } from '@/ui/theme';
 import { radius, size } from '@/ui/tokens';
 
@@ -63,8 +66,49 @@ export function avatarInitials(name: string | null, handle: string | null): stri
 }
 
 /**
+ * The image library's view. It is loaded when the first photo is drawn, so a screen with no photo
+ * does not carry it; until it arrives the flat disc shows, as it does while a photo loads.
+ */
+const PhotoImage = lazy(async () => ({ default: (await import('expo-image')).Image }));
+
+// Typed by what it holds: the same box is the style of a view and of an image.
+const COVER = { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 } as const;
+
+/**
+ * The photo of an avatar, filling its disc. It is drawn once it has loaded, by a fade, and a photo
+ * that never loads leaves the disc. Nothing is drawn over it, and no blurred preview stands in for
+ * it (D-471).
+ */
+function Photo({ image }: { image: { key: string; url: string } }): JSX.Element {
+  const reduced = useReducedMotion();
+  // The key of the photo that has loaded: a recycled row that takes another person's photo starts
+  // unloaded, with nothing to reset.
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const fade = useFade(
+    loadedKey === image.key,
+    reduced ? motion.duration.fade : motion.duration.photoFade,
+  );
+  return (
+    <Animated.View style={[COVER, fade]}>
+      <Suspense fallback={null}>
+        <PhotoImage
+          source={{ uri: image.url }}
+          recyclingKey={image.key}
+          contentFit="cover"
+          style={COVER}
+          onLoad={() => {
+            setLoadedKey(image.key);
+          }}
+        />
+      </Suspense>
+    </Animated.View>
+  );
+}
+
+/**
  * C-Avatar: a person, always round. Without a photo it is the initials on a flat disc; a photo
- * keeps the bare disc as its placeholder. No ring, no status dot, no silhouette.
+ * fades in over the same bare disc, which is its placeholder. No ring, no status dot, no
+ * silhouette, and nothing over the photo.
  */
 export function Avatar({
   size: sizeName,
@@ -87,9 +131,13 @@ export function Avatar({
     backgroundColor: theme.color.well,
     alignItems: 'center',
     justifyContent: 'center',
+    // A photo is cut to the disc.
+    ...(image === null ? {} : { overflow: 'hidden' }),
   };
   const letters =
-    initials === '' ? null : (
+    image !== null ? (
+      <Photo image={image} />
+    ) : initials === '' ? null : (
       <TextScaleLimit max={(side * LARGEST_INITIALS_SHARE) / typeRoles[role].size}>
         <Text role={role} tone="primary">
           {initials}

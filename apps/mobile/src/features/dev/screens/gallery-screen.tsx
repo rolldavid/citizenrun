@@ -22,19 +22,25 @@ import {
   Icon,
   IconButton,
   InteractionPreview,
+  IssueChip,
+  IssueGrid,
+  IssueTile,
   Link,
   List,
+  ListRow,
   MediumShell,
   Notice,
   Popover,
   Pressable,
   Progress,
+  Prose,
   Radio,
   RadioGroup,
   Rail,
   RightColumn,
   Rule,
   Screen,
+  SectionHeader,
   Select,
   Sheet,
   Skeleton,
@@ -57,6 +63,9 @@ import type {
   DialogProps,
   HandleFieldProps,
   InteractionPreviewState,
+  IssueChipProps,
+  IssueGridProps,
+  IssueTileProps,
   ListProps,
   PopoverProps,
   RadioGroupProps,
@@ -82,16 +91,22 @@ import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
 import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
+import * as issueChipFixtures from '@/ui/components/issue-chip.fixtures';
+import * as issueGridFixtures from '@/ui/components/issue-grid.fixtures';
+import * as issueTileFixtures from '@/ui/components/issue-tile.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
+import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
+import * as proseFixtures from '@/ui/components/prose.fixtures';
 import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
 import * as radioFixtures from '@/ui/components/radio.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as sectionHeaderFixtures from '@/ui/components/section-header.fixtures';
 import * as selectFixtures from '@/ui/components/select.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
@@ -112,7 +127,7 @@ import * as rightColumnFixtures from '@/ui/shells/right-column.fixtures';
 import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
 import { ThemeProvider, useTheme } from '@/ui/theme';
 import type { ThemeChoice } from '@/ui/theme';
-import { rule, size, space } from '@/ui/tokens';
+import { gutter, rule, size, space } from '@/ui/tokens';
 import type { ColorToken } from '@/ui/tokens';
 
 export type GalleryScreenProps = {
@@ -524,6 +539,160 @@ function StickyFooterSpecimen({ fixture }: { fixture: StickyFooterProps }): JSX.
   );
 }
 
+const CHIP_ROW: ViewStyle = { flexDirection: 'row' };
+
+/** One state of C-IssueChip, selected and starred by its own presses; a display chip stays as it is. */
+function IssueChipSpecimen({ fixture }: { fixture: IssueChipProps }): JSX.Element {
+  const [selected, setSelected] = useState(fixture.selected === true);
+  const [starred, setStarred] = useState(fixture.star?.starred === true);
+  const { onPress, star, ...props } = fixture;
+  return (
+    // In a row, as a chip stands in the product: as wide as its name.
+    <View style={CHIP_ROW}>
+      <IssueChip
+        {...props}
+        selected={selected}
+        {...(onPress === undefined
+          ? {}
+          : {
+              onPress: () => {
+                setSelected(!selected);
+              },
+            })}
+        {...(star === undefined || star === null
+          ? {}
+          : {
+              star: {
+                ...star,
+                starred,
+                onToggle: () => {
+                  setStarred(!starred);
+                },
+              },
+            })}
+      />
+    </View>
+  );
+}
+
+/** The 19 issues with the short names the grid's fixtures print. */
+const ISSUES: IssueGridProps['issues'] = issueGridFixtures.STATES.none.issues;
+
+const TILE_STRIP: ViewStyle = { flexDirection: 'row', flexWrap: 'wrap', gap: space.x1 };
+
+/** Every issue's tile in the order of the issues, each named for a screen reader. */
+function IssueTileStrip(): JSX.Element {
+  return (
+    <View style={TILE_STRIP}>
+      {ISSUES.map((item) => (
+        <IssueTile key={item.id} issueId={item.id} label={item.name} />
+      ))}
+    </View>
+  );
+}
+
+/** The state of the C-IssueTile section that is no fixture: all 19 tiles in one strip. */
+const EVERY_TILE = 'everyIssue';
+const TILE_STATES: Readonly<Record<string, IssueTileProps>> = issueTileFixtures.STATES;
+
+/**
+ * The width of the phone the sign-up grid is laid out for, in points. It is the size of a window,
+ * which no design token holds.
+ */
+const PHONE_WINDOW = 390;
+/** The column a screen gives the grid at medium and expanded. */
+const COLUMN_WINDOW = size.feedColumn;
+const GRID_NOTE: ViewStyle = { marginTop: space.x2 };
+
+/**
+ * A frame that stands in for a window `width` points wide: outlined, with the gutters such a
+ * window has. In a gallery narrower than the frame the gallery's own column is the window, so the
+ * frame takes the column, with no outline and no gutters of its own.
+ */
+function WindowFrame({ width, children }: { width: number; children: ReactNode }): JSX.Element {
+  const theme = useTheme();
+  const layout = useBreakpoint();
+  const column = Math.min(layout.width, size.contentMax) - layout.gutter * 2;
+  const fits = column >= width + rule.hairline * 2;
+  return (
+    <View
+      style={
+        fits
+          ? {
+              alignSelf: 'flex-start',
+              width: width + rule.hairline * 2,
+              paddingHorizontal: width < gutter.narrowBelow ? gutter.narrow : gutter.regular,
+              paddingVertical: space.x3,
+              borderWidth: rule.hairline,
+              borderColor: theme.color.ruleSoft,
+            }
+          : // The cell's own room at each side is taken back, so the grid is as wide as on a phone.
+            { marginHorizontal: -space.x3, width: column }
+      }
+    >
+      {children}
+    </View>
+  );
+}
+
+/**
+ * One state of C-IssueGrid in a window frame, holding what is picked and starred. A tap past a
+ * limit changes nothing, and the line under the grid says which limit was met.
+ */
+function IssueGridSpecimen({
+  fixture,
+  width,
+  testID,
+}: {
+  fixture: IssueGridProps;
+  width: number;
+  testID: string;
+}): JSX.Element {
+  const [selectedIds, setSelectedIds] = useState(fixture.selectedIds);
+  const [starredIds, setStarredIds] = useState(fixture.starredIds);
+  const [limit, setLimit] = useState<'selected' | 'starred' | null>(null);
+  const counts = `${String(selectedIds.length)} picked, ${String(starredIds.length)} starred`;
+  const most = limit === 'selected' ? fixture.maxSelected : fixture.maxStarred;
+  return (
+    <WindowFrame width={width}>
+      <IssueGrid
+        {...fixture}
+        testID={testID}
+        selectedIds={selectedIds}
+        starredIds={starredIds}
+        onToggle={(id) => {
+          setLimit(null);
+          // An issue that is no longer picked keeps no star.
+          setStarredIds(starredIds.filter((starred) => starred !== id));
+          setSelectedIds(
+            selectedIds.includes(id)
+              ? selectedIds.filter((selected) => selected !== id)
+              : [...selectedIds, id],
+          );
+        }}
+        onToggleStar={(id) => {
+          setLimit(null);
+          setStarredIds(
+            starredIds.includes(id)
+              ? starredIds.filter((starred) => starred !== id)
+              : [...starredIds, id],
+          );
+        }}
+        onLimit={setLimit}
+      />
+      <View style={GRID_NOTE}>
+        <Text role="caption" tone="secondary">
+          {limit === null ? counts : `${counts}. ${String(most)} is the most.`}
+        </Text>
+      </View>
+    </WindowFrame>
+  );
+}
+
+/** The state of the C-IssueGrid section that is no fixture: `three` in the column of a wide window. */
+const GRID_IN_COLUMN = 'threeInColumn';
+const GRID_STATES: Readonly<Record<string, IssueGridProps>> = issueGridFixtures.STATES;
+
 const SHEET_STATES: Readonly<Record<string, SheetProps>> = sheetFixtures.STATES;
 const DIALOG_STATES: Readonly<Record<string, DialogProps>> = dialogFixtures.STATES;
 const TOAST_STATES: Readonly<Record<string, Parameters<typeof showToast>[0]>> =
@@ -641,6 +810,53 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     stickyFooterFixtures,
     (fixture) => <StickyFooterSpecimen fixture={fixture} />,
   ),
+  section('C-SectionHeader', 'section-header', 'wide', SectionHeader, sectionHeaderFixtures),
+  section('C-ListRow', 'list-row', 'wide', ListRow, listRowFixtures),
+  section('C-Prose', 'prose', 'full', Prose, proseFixtures),
+  {
+    id: 'C-IssueTile',
+    slug: 'issue-tile',
+    cell: 'wide',
+    states: [...Object.keys(TILE_STATES), EVERY_TILE],
+    preview: issueTileFixtures.PREVIEW,
+    ground: issueTileFixtures.GROUND,
+    frame: () => null,
+    render: (state) => {
+      if (state === EVERY_TILE) {
+        return <IssueTileStrip />;
+      }
+      const fixture = TILE_STATES[state];
+      return fixture === undefined ? null : <IssueTile {...fixture} />;
+    },
+  },
+  fixtureSection<IssueChipProps>(
+    'C-IssueChip',
+    'issue-chip',
+    'wide',
+    issueChipFixtures,
+    (fixture) => <IssueChipSpecimen fixture={fixture} />,
+  ),
+  {
+    id: 'C-IssueGrid',
+    slug: 'issue-grid',
+    cell: 'full',
+    states: [...Object.keys(GRID_STATES), GRID_IN_COLUMN],
+    preview: issueGridFixtures.PREVIEW,
+    ground: issueGridFixtures.GROUND,
+    frame: () => null,
+    render: (state) => {
+      // The same picks in a wide window's column, under ids of its own.
+      const inColumn = state === GRID_IN_COLUMN;
+      const fixture = GRID_STATES[inColumn ? 'three' : state];
+      return fixture === undefined ? null : (
+        <IssueGridSpecimen
+          fixture={fixture}
+          width={inColumn ? COLUMN_WINDOW : PHONE_WINDOW}
+          testID={inColumn ? 'gallery.issue-grid-three-in-column' : fixture.testID}
+        />
+      );
+    },
+  },
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };

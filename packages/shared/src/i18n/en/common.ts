@@ -21,8 +21,10 @@ export const common = {
     sheet: { close: 'Close' },
     link: { external: '{{label}}, opens in your browser' },
     list: { label: 'Scrolling list' },
+    row: { unread: 'Unread. {{label}}' },
     avatar: { label: 'Photo of {{name}}' },
     badge: { overflow: '99+' },
+    issueGrid: { star: 'Star {{name}}' },
     nav: {
       main: 'Main',
       skipToContent: 'Skip to content',

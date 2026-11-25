@@ -1,10 +1,12 @@
-import { cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { createElement } from 'react';
+import type { ReactElement } from 'react';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { linksFake } from '@/test/platform/links';
 import { sessionFake } from '@/test/platform/session';
-import { renderWithProviders } from '@/test/render';
+import { renderWithProviders, setViewport } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
@@ -20,16 +22,22 @@ import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
 import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
+import * as issueChipFixtures from '@/ui/components/issue-chip.fixtures';
+import * as issueGridFixtures from '@/ui/components/issue-grid.fixtures';
+import * as issueTileFixtures from '@/ui/components/issue-tile.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
+import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
+import * as proseFixtures from '@/ui/components/prose.fixtures';
 import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
 import * as radioFixtures from '@/ui/components/radio.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
+import * as sectionHeaderFixtures from '@/ui/components/section-header.fixtures';
 import * as selectFixtures from '@/ui/components/select.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
@@ -46,7 +54,7 @@ import * as appShellFixtures from '@/ui/shells/app-shell.fixtures';
 import * as railFixtures from '@/ui/shells/rail.fixtures';
 import * as rightColumnFixtures from '@/ui/shells/right-column.fixtures';
 import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
-import { gutter, size } from '@/ui/tokens';
+import { ISSUE_IDS, gutter, issue, size } from '@/ui/tokens';
 
 import { GalleryScreen } from './gallery-screen';
 import type { GalleryScreenProps } from './gallery-screen';
@@ -67,6 +75,13 @@ vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
   resolveAssetUri: (): never => {
     throw new Error('an interface icon loads no asset');
   },
+}));
+
+// The image library does not load in this environment: this stands in for the view an avatar draws
+// its photo with.
+vi.mock('expo-image', () => ({
+  Image: (props: Record<string, unknown>): ReactElement =>
+    createElement('div', { 'data-photo': props['recyclingKey'] }),
 }));
 
 /** Every state of C-AppShell through each of its three layouts: `signedOutHome` at compact is `compactSignedOutHome`. */
@@ -121,6 +136,26 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-AgeGate', slug: 'age-gate', states: Object.keys(ageGateFixtures.STATES) },
   { id: 'C-Progress', slug: 'progress', states: Object.keys(progressFixtures.STATES) },
   { id: 'C-StickyFooter', slug: 'sticky-footer', states: Object.keys(stickyFooterFixtures.STATES) },
+  {
+    id: 'C-SectionHeader',
+    slug: 'section-header',
+    states: Object.keys(sectionHeaderFixtures.STATES),
+  },
+  { id: 'C-ListRow', slug: 'list-row', states: Object.keys(listRowFixtures.STATES) },
+  { id: 'C-Prose', slug: 'prose', states: Object.keys(proseFixtures.STATES) },
+  // After the states of its fixtures, the strip of every issue's tile.
+  {
+    id: 'C-IssueTile',
+    slug: 'issue-tile',
+    states: [...Object.keys(issueTileFixtures.STATES), 'everyIssue'],
+  },
+  { id: 'C-IssueChip', slug: 'issue-chip', states: Object.keys(issueChipFixtures.STATES) },
+  // After the states of its fixtures, `three` again in the column of a wide window.
+  {
+    id: 'C-IssueGrid',
+    slug: 'issue-grid',
+    states: [...Object.keys(issueGridFixtures.STATES), 'threeInColumn'],
+  },
 ];
 
 const DEFAULTS: GalleryScreenProps = {
@@ -213,6 +248,16 @@ function press(testID: string): void {
   fireEvent.click(screen.getByTestId(testID));
 }
 
+// An avatar takes the image library in when its first photo is drawn. The gallery is drawn once
+// here before any case, so every case after it draws its photos at once.
+beforeAll(async () => {
+  renderWithProviders(<GalleryScreen {...DEFAULTS} only="avatar" />);
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
+  cleanup();
+});
+
 describe('GalleryScreen', () => {
   it('draws every component in order', () => {
     draw();
@@ -257,6 +302,12 @@ describe('GalleryScreen', () => {
       'C-AgeGate',
       'C-Progress',
       'C-StickyFooter',
+      'C-SectionHeader',
+      'C-ListRow',
+      'C-Prose',
+      'C-IssueTile',
+      'C-IssueChip',
+      'C-IssueGrid',
     ]);
     expect(COMPONENTS.map((component) => component.id)).toEqual(sectionHeadings());
     // The gallery's own heading is the page's, and the page has one main landmark of its own, which
@@ -354,6 +405,109 @@ describe('GalleryScreen', () => {
     expect(tall).toBe(size.listRowMin * 13);
     expect(tall).toBeLessThanOrEqual(740);
     expect(tall).toBeGreaterThan(740 - size.listRowMin);
+  });
+
+  it('the tile strip holds every issue, each named', () => {
+    draw({ only: 'issue-tile', initialTheme: 'light' });
+    const strip = boxOf('gallery.cell-issue-tile-every-issue');
+    const tiles = within(strip).getAllByRole('img');
+    expect(tiles).toHaveLength(ISSUE_IDS.length);
+    // Each tile in its issue's color, in the order of the issues, and no two named alike.
+    expect(tiles.map((tile) => tile.style.backgroundColor)).toEqual(
+      ISSUE_IDS.map((id) => written(issue[id].light)),
+    );
+    const names = tiles.map((tile) => tile.getAttribute('aria-label') ?? '');
+    expect(new Set(names).size).toBe(ISSUE_IDS.length);
+    for (const name of names) {
+      expect(name.length).toBeGreaterThan(0);
+    }
+    // The keylined tile stands on the ground its keyline is for.
+    expect(boxOf('gallery.cell-issue-tile-keyline').style.backgroundColor).toBe(written('#E3E0D5'));
+  });
+
+  it('the issue grid stands in a phone frame, and once in the column of a wide window', () => {
+    const frameOf = (testID: string): HTMLElement => {
+      const frame = screen.getByTestId(testID).parentElement;
+      if (frame === null) {
+        throw new Error(`the grid ${testID} has no frame`);
+      }
+      return frame;
+    };
+    // The window this file's other cases are drawn in, put back when this one ends.
+    const root = document.documentElement;
+    const before = [
+      [root, 'clientWidth', root.clientWidth],
+      [root, 'clientHeight', root.clientHeight],
+      [window, 'innerWidth', window.innerWidth],
+      [window, 'innerHeight', window.innerHeight],
+    ] as const;
+    try {
+      setViewport(1440, 900);
+      draw({ only: 'issue-grid' });
+      // A window 390 points wide, with its gutters, inside a hairline.
+      for (const state of ['none', 'three', 'ten']) {
+        const frame = frameOf(`gallery.issue-grid-${state}`);
+        expect(frame.style.width, state).toBe('392px');
+        expect(frame.style.paddingLeft, state).toBe(`${String(gutter.regular)}px`);
+        expect(frame.style.paddingRight, state).toBe(`${String(gutter.regular)}px`);
+        expect(frame.style.borderWidth, state).toBe('1px');
+      }
+      // The same three picks in a column 600 points wide.
+      const column = frameOf('gallery.issue-grid-three-in-column');
+      expect(column.style.width).toBe(`${String(size.feedColumn + 2)}px`);
+      expect(size.feedColumn).toBe(600);
+      const picked = (testID: string): string[] =>
+        within(screen.getByTestId(testID))
+          .getAllByRole('checkbox', { checked: true })
+          .map((chip) => chip.getAttribute('aria-label') ?? '');
+      expect(picked('gallery.issue-grid-three-in-column')).toEqual(
+        picked('gallery.issue-grid-three'),
+      );
+
+      // On a phone the window itself is the frame: the grid is as wide as the page between its
+      // gutters, with no outline round it.
+      setViewport(360, 740);
+      draw({ only: 'issue-grid' });
+      for (const state of ['none', 'three', 'ten', 'three-in-column']) {
+        const frame = frameOf(`gallery.issue-grid-${state}`);
+        expect(frame.style.width, state).toBe(`${String(360 - gutter.narrow * 2)}px`);
+        expect(frame.style.borderWidth, state).toBe('');
+        expect(frame.style.paddingLeft, state).toBe('');
+      }
+    } finally {
+      for (const [target, name, value] of before) {
+        Object.defineProperty(target, name, { configurable: true, value });
+      }
+      act(() => {
+        window.dispatchEvent(new Event('resize'));
+      });
+    }
+  });
+
+  it('a pick and a star in the issue grid are the specimen’s own, and a limit is said', () => {
+    draw({ only: 'issue-grid' });
+    const cell = screen.getByTestId('gallery.cell-issue-grid-three');
+    expect(within(cell).getByText('3 picked, 1 starred')).toBeDefined();
+    press('gallery.issue-grid-three-climate');
+    expect(within(cell).getByText('4 picked, 1 starred')).toBeDefined();
+    expect(
+      screen.getByTestId('gallery.issue-grid-three-climate').getAttribute('aria-checked'),
+    ).toBe('true');
+    press('gallery.issue-grid-three-climate-star');
+    expect(within(cell).getByText('4 picked, 2 starred')).toBeDefined();
+    // An issue that is no longer picked keeps no star.
+    press('gallery.issue-grid-three-climate');
+    expect(within(cell).getByText('3 picked, 1 starred')).toBeDefined();
+    // The other specimens keep their own picks.
+    expect(
+      within(screen.getByTestId('gallery.cell-issue-grid-none')).getByText('0 picked, 0 starred'),
+    ).toBeDefined();
+    // Past a limit nothing changes, and the line says which limit was met.
+    const full = screen.getByTestId('gallery.cell-issue-grid-ten');
+    press('gallery.issue-grid-ten-schools');
+    expect(within(full).getByText('10 picked, 3 starred. 10 is the most.')).toBeDefined();
+    press('gallery.issue-grid-ten-utility-bills-star');
+    expect(within(full).getByText('10 picked, 3 starred. 3 is the most.')).toBeDefined();
   });
 
   it('only shows one section', () => {

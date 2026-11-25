@@ -567,4 +567,6 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
     prepare: waitForListSpike,
   },
+  // The art contact sheet: every drawing the app holds, for the art review.
+  { id: 'dev-art', path: '/dev/art', auth: 'none' },
 ];

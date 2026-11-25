@@ -1,13 +1,15 @@
 import { fontCovers } from '@citizenrun/shared';
-import { cleanup, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import { createElement } from 'react';
 import type { ReactElement } from 'react';
 import type * as ReactNative from 'react-native';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
+import type * as Motion from '@/ui/motion';
 
+import { AVATAR_PHOTO_FIXTURE } from './__fixtures__/avatar-photo';
 import { Avatar, avatarInitials } from './avatar';
 import type { AvatarProps } from './avatar';
 import { GROUND, PREVIEW, STATES } from './avatar.fixtures';
@@ -41,6 +43,37 @@ vi.mock('react-native', async (importOriginal) => {
   };
 });
 
+// The image library does not load in this environment. This stands in for its view and keeps the
+// props each photo is given, so the cases below can read them and say when a photo has loaded.
+const images = vi.hoisted(() => {
+  const state: { props: Record<string, unknown>[] } = { props: [] };
+  return state;
+});
+
+vi.mock('expo-image', () => ({
+  Image: (props: Record<string, unknown>): ReactElement => {
+    images.props.push({ ...props });
+    return createElement('div', { 'data-photo': props['recyclingKey'] });
+  },
+}));
+
+// Each fade an avatar asks for: whether the photo shows, and over how long.
+const fades = vi.hoisted(() => {
+  const state: { calls: { visible: boolean; durationMs: number | undefined }[] } = { calls: [] };
+  return state;
+});
+
+vi.mock('@/ui/motion', async (importOriginal) => {
+  const actual = await importOriginal<typeof Motion>();
+  return {
+    ...actual,
+    useFade: (visible: boolean, durationMs?: number): ReturnType<typeof actual.useFade> => {
+      fades.calls.push({ visible, durationMs });
+      return actual.useFade(visible, durationMs);
+    },
+  };
+});
+
 const STATE_NAMES = [
   'xs',
   'sm',
@@ -53,6 +86,23 @@ const STATE_NAMES = [
   'withImagePending',
   'decorative',
   'notDrawable',
+  'photoXs',
+  'photoSm',
+  'photoMd',
+  'photoLg',
+  'photoXl',
+  'photoMissing',
+] as const;
+
+/** The states that carry a photo. */
+const PHOTO_STATES = [
+  'withImagePending',
+  'photoXs',
+  'photoSm',
+  'photoMd',
+  'photoLg',
+  'photoXl',
+  'photoMissing',
 ] as const;
 
 const PROBE = 'probe.avatar';
@@ -69,8 +119,39 @@ function draw(props: AvatarProps, options: RenderWithProvidersOptions = {}): HTM
   cleanup();
   views.props = [];
   texts.props = [];
+  images.props = [];
+  fades.calls = [];
   renderWithProviders(<Avatar {...props} testID={PROBE} />, options);
   return screen.getByTestId(PROBE);
+}
+
+/** The props the photo of the avatar on the page was last given. */
+function photoProps(): Record<string, unknown> {
+  const found = images.props.at(-1);
+  if (found === undefined) {
+    throw new Error('the avatar draws no photo');
+  }
+  return found;
+}
+
+/** The view that holds a photo and fades it in: the one child of a disc with a photo. */
+function photoWrapper(disc: HTMLElement): HTMLElement {
+  const wrapper = disc.firstElementChild;
+  if (!(wrapper instanceof HTMLElement) || wrapper.querySelector('[data-photo]') === null) {
+    throw new Error('the disc holds no photo');
+  }
+  return wrapper;
+}
+
+/** Tells the avatar on the page that its photo has arrived. */
+function loadPhoto(): void {
+  const onLoad = photoProps()['onLoad'];
+  if (typeof onLoad !== 'function') {
+    throw new Error('the photo reports no load');
+  }
+  act(() => {
+    (onLoad as () => void)();
+  });
 }
 
 /** The props C-Avatar gave its disc. */
@@ -104,6 +185,16 @@ function initialsLimit(): number {
 
 const SIZES = ['xs', 'sm', 'md', 'lg', 'xl'] as const;
 
+// An avatar takes the image library in when its first photo is drawn. One photo is drawn here before
+// any case, so every case after it draws its photo at once.
+beforeAll(async () => {
+  const view = renderWithProviders(<Avatar {...STATES.photoMd} />);
+  await act(async () => {
+    await vi.dynamicImportSettled();
+  });
+  view.unmount();
+});
+
 describe('Avatar', () => {
   it('renders every state', () => {
     const errors = vi.spyOn(console, 'error');
@@ -124,7 +215,7 @@ describe('Avatar', () => {
     expect(warnings).not.toHaveBeenCalled();
   });
 
-  it('the fixtures hold the eleven states', () => {
+  it('the fixtures hold the seventeen states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     for (const size of ['xs', 'sm', 'md', 'lg', 'xl'] as const) {
       expect(STATES[size]).toEqual({ size, image: null, name: 'Carol Wynn', handle: 'carol_wynn' });
@@ -138,6 +229,21 @@ describe('Avatar', () => {
     });
     expect(STATES.decorative.decorative).toBe(true);
     expect(STATES.notDrawable.name).toBe('Nguyễn An');
+    // A photo at each of the five sizes: the same picture, held in the fixture itself.
+    for (const [state, size] of [
+      ['photoXs', 'xs'],
+      ['photoSm', 'sm'],
+      ['photoMd', 'md'],
+      ['photoLg', 'lg'],
+      ['photoXl', 'xl'],
+    ] as const) {
+      expect(STATES[state].size, state).toBe(size);
+      expect(STATES[state].image, state).toBe(AVATAR_PHOTO_FIXTURE);
+    }
+    expect(AVATAR_PHOTO_FIXTURE.key).toBe('fixture-avatar');
+    expect(AVATAR_PHOTO_FIXTURE.url).toMatch(/^data:image\/png;base64,[A-Za-z0-9+/]+=*$/);
+    // A photo that never arrives: an address no server answers.
+    expect(STATES.photoMissing.image.url).toMatch(/^https:\/\/example\.test\//);
     expect(PREVIEW).toEqual({});
     expect(GROUND).toEqual({});
   });
@@ -173,15 +279,23 @@ describe('Avatar', () => {
   it('respects reduced motion', () => {
     for (const state of STATE_NAMES) {
       cleanup();
+      fades.calls = [];
       const view = renderWithProviders(
         <InteractionPreview state={{ pressed: true }}>
           <Avatar {...STATES[state]} />
         </InteractionPreview>,
         { reducedMotion: true },
       );
+      // Nothing in an avatar moves.
       for (const element of view.container.querySelectorAll<HTMLElement>('*')) {
         expect(element.style.transform, state).toBe('');
         expect(element.style.transitionProperty, state).toBe('');
+      }
+      // Initials are drawn at once. A photo still fades in, over the short fade and no longer.
+      const withPhoto = (PHOTO_STATES as readonly string[]).includes(state);
+      expect(fades.calls.length > 0, state).toBe(withPhoto);
+      for (const fade of fades.calls) {
+        expect(fade.durationMs, state).toBe(120);
       }
     }
   });
@@ -294,12 +408,111 @@ describe('Avatar', () => {
 
   it('a photo keeps the bare disc as its placeholder', () => {
     const disc = draw(STATES.withImagePending);
-    expect(disc.childElementCount).toBe(0);
+    // Until the photo arrives its view is there and not seen: the disc shows flat, with no initials.
+    expect(disc.childElementCount).toBe(1);
+    expect(photoWrapper(disc).style.opacity).toBe('0');
     expect(disc.textContent).toBe('');
     expect(disc.style.backgroundColor).toBe(written('#E3E0D5'));
-    expect(document.querySelectorAll('img')).toHaveLength(0);
+    expect(texts.props).toHaveLength(0);
     // It is still that person's picture.
     expect(disc.getAttribute('aria-label')).toBe('Photo of Carol Wynn');
+  });
+
+  it('photo without a BlurHash', () => {
+    const disc = draw(STATES.photoMd);
+    const photo = photoProps();
+    expect(photo['source']).toEqual({ uri: AVATAR_PHOTO_FIXTURE.url });
+    expect(photo['recyclingKey']).toBe('fixture-avatar');
+    expect(photo['contentFit']).toBe('cover');
+    // No preview stands in for the photo, and the library runs no transition of its own.
+    expect('placeholder' in photo).toBe(false);
+    expect('transition' in photo).toBe(false);
+    expect('blurRadius' in photo).toBe(false);
+    expect('tintColor' in photo).toBe(false);
+    // Inside a round clip of the avatar's size, on the flat well.
+    expect(disc.style.borderRadius).toBe('9999px');
+    expect(disc.style.overflow).toBe('hidden');
+    expect(disc.style.width).toBe('48px');
+    expect(disc.style.height).toBe('48px');
+    expect(disc.style.backgroundColor).toBe(written('#E3E0D5'));
+    expect(disc.style.borderWidth).toBe('');
+    // The photo fills the disc.
+    const wrapper = photoWrapper(disc);
+    expect(wrapper.style.position).toBe('absolute');
+    expect(wrapper.style.inset).toBe('0px');
+    expect(photo['style']).toEqual({ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 });
+    // The same at every size.
+    const sides = { photoXs: '28px', photoSm: '36px', photoLg: '56px', photoXl: '80px' } as const;
+    for (const [state, side] of Object.entries(sides)) {
+      const sized = draw(STATES[state as keyof typeof sides]);
+      expect(sized.style.width, state).toBe(side);
+      expect(sized.style.borderRadius, state).toBe('9999px');
+      expect(sized.style.overflow, state).toBe('hidden');
+      expect(photoProps()['recyclingKey'], state).toBe('fixture-avatar');
+    }
+    // An avatar with no photo clips nothing and asks for no image.
+    const initials = draw(STATES.md);
+    expect(initials.style.overflow).toBe('');
+    expect(images.props).toHaveLength(0);
+  });
+
+  it('fades in once loaded', () => {
+    const disc = draw(STATES.photoMd);
+    // Before the photo has loaded it is not seen.
+    expect(photoWrapper(disc).style.opacity).toBe('0');
+    expect(fades.calls.at(-1)).toEqual({ visible: false, durationMs: 150 });
+    loadPhoto();
+    // Once it has, the fade runs to full.
+    expect(photoWrapper(disc).style.opacity).toBe('1');
+    expect(fades.calls.at(-1)).toEqual({ visible: true, durationMs: 150 });
+    // Under reduced motion a photo still fades in, over 120 ms.
+    const reduced = draw(STATES.photoMd, { reducedMotion: true });
+    expect(photoWrapper(reduced).style.opacity).toBe('0');
+    expect(fades.calls.at(-1)).toEqual({ visible: false, durationMs: 120 });
+    loadPhoto();
+    expect(photoWrapper(reduced).style.opacity).toBe('1');
+    expect(fades.calls.at(-1)).toEqual({ visible: true, durationMs: 120 });
+  });
+
+  it('a row that takes another person starts with no photo shown', () => {
+    cleanup();
+    images.props = [];
+    const view = renderWithProviders(<Avatar {...STATES.photoMd} testID={PROBE} />);
+    loadPhoto();
+    expect(photoWrapper(screen.getByTestId(PROBE)).style.opacity).toBe('1');
+    // The same view, given the next person's photo: what loaded was the other one.
+    view.rerender(
+      <Avatar
+        {...STATES.photoMd}
+        image={{ key: 'fixture-avatar-next', url: AVATAR_PHOTO_FIXTURE.url }}
+        testID={PROBE}
+      />,
+    );
+    expect(photoWrapper(screen.getByTestId(PROBE)).style.opacity).toBe('0');
+    expect(photoProps()['recyclingKey']).toBe('fixture-avatar-next');
+    loadPhoto();
+    expect(photoWrapper(screen.getByTestId(PROBE)).style.opacity).toBe('1');
+  });
+
+  it('missing photo keeps the disc', () => {
+    const disc = draw(STATES.photoMissing);
+    expect(photoProps()['source']).toEqual({ uri: STATES.photoMissing.image.url });
+    // The address never answers: the library reports an error and never a load.
+    const onError = photoProps()['onError'];
+    act(() => {
+      if (typeof onError === 'function') {
+        (onError as (event: { error: string }) => void)({ error: 'not found' });
+      }
+    });
+    // The flat disc remains, round, with nothing drawn in it and nothing put in the photo's place.
+    expect(photoWrapper(disc).style.opacity).toBe('0');
+    expect(disc.style.backgroundColor).toBe(written('#E3E0D5'));
+    expect(disc.style.borderRadius).toBe('9999px');
+    expect(disc.textContent).toBe('');
+    expect(disc.querySelectorAll('svg')).toHaveLength(0);
+    expect(fades.calls.every((fade) => !fade.visible)).toBe(true);
+    // It is still named for the person.
+    expect(disc.getAttribute('aria-label')).toBe('Photo of Dana Okafor');
   });
 
   it('is named after the person, by name before handle', () => {

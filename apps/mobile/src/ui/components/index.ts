@@ -40,5 +40,13 @@ export * from './switch';
 export * from './age-gate';
 export * from './progress';
 export * from './sticky-footer';
+export * from './section-header';
+export * from './list-row';
+export * from './prose';
+export * from './issue-tile';
+// C-IssueChip's file also exports the chip as C-IssueGrid lays it out; `@/ui` takes the chip alone.
+export { IssueChip } from './issue-chip';
+export type { IssueChipProps } from './issue-chip';
+export * from './issue-grid';
 export { ICONS, ICON_NAMES } from '@/ui/icons';
 export type { IconName } from '@/ui/icons';
