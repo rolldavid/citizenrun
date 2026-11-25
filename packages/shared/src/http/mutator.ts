@@ -38,6 +38,9 @@ export function lastRequestId(): string | null {
 }
 
 const WHOLE_SECONDS = /^\d+$/;
+// One `/` and then neither `/` nor `\`: the path stays on the configured origin. On the web the
+// origin is empty, and `//host` or `/\host` would name another host.
+const API_PATH = /^\/(?![/\\])/;
 
 function retryAfterOf(headers: Headers): number | null {
   const value = headers.get('Retry-After')?.trim();
@@ -64,12 +67,16 @@ async function errorPartsOf(response: Response): Promise<ErrorParts> {
 /**
  * The generated client's one mutator. Sends `X-OS-Client`, the session credentials and the
  * bearer value, returns the parsed JSON of a 2xx response and throws `ApiError` for any other
- * status. A network failure is rethrown unchanged. It never logs.
+ * status. A network failure is rethrown unchanged. It never logs. `url` is a path that starts with
+ * exactly one `/`; anything else is refused before a request is made.
  */
 export async function apiFetch<T>(url: string, init: RequestInit): Promise<T> {
   const config = clientConfig;
   if (config === null) {
     throw new Error('API client is not configured');
+  }
+  if (!API_PATH.test(url)) {
+    throw new Error('apiFetch takes a path that starts with exactly one /');
   }
 
   const headers = new Headers(init.headers);

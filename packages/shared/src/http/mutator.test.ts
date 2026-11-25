@@ -108,6 +108,25 @@ describe('apiFetch', () => {
     expect(headersOf(calls[0]).get('X-OS-Client')).toBe('web/1.4.0');
   });
 
+  it('refuses a path that does not start with exactly one /', async () => {
+    for (const origin of [ORIGIN, '']) {
+      configureApiClient(config({ origin }));
+      const calls = fakeFetch();
+      for (const path of [
+        '//evil.example.test/v1/me',
+        '/\\evil.example.test/v1/me',
+        'v1/me',
+        'https://evil.example.test/v1/me',
+        '',
+      ]) {
+        await expect(apiFetch(path, { method: 'GET' }), `${origin} ${path}`).rejects.toThrow(
+          'apiFetch takes a path that starts with exactly one /',
+        );
+      }
+      expect(calls).toHaveLength(0);
+    }
+  });
+
   it('forwards keepalive', async () => {
     const calls = fakeFetch({ status: 204 });
     await apiFetch('/v1/client-errors', { method: 'POST', keepalive: true, body: '{}' });
