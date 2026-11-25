@@ -146,6 +146,34 @@ describe('handleError', () => {
     });
   });
 
+  it('an error whose fields throw when read still answers 500 and logs request.error', async () => {
+    const error = new Error('fixture-private-text');
+    for (const field of ['name', 'message', 'stack']) {
+      Object.defineProperty(error, field, {
+        get(): never {
+          throw new Error('fixture getter failure');
+        },
+      });
+    }
+    const { app, deps } = buildApp(failWith(error));
+    const response = await app.request('/v1/fail');
+    expect(response.status).toBe(500);
+    expect(await response.json()).toEqual({
+      error: { code: 'internal', message: 'Internal error.', fields: {} },
+    });
+    const errorLines = deps.logs.filter((line) => line.parsed['event'] === 'request.error');
+    expect(errorLines).toHaveLength(1);
+    expect(errorLines[0]?.parsed).toMatchObject({
+      errorClass: 'Error',
+      error: {
+        errorClass: 'Error',
+        message: '(message withheld)',
+        stack: 'Error: (message withheld)',
+      },
+    });
+    expect(deps.logs.at(-1)?.parsed).toMatchObject({ event: 'request.done', status: 500 });
+  });
+
   it("a database error's text never reaches the response or the log", async () => {
     const value = marker();
     const error = new FixtureDatabaseError(

@@ -24,8 +24,14 @@ const PLAIN_TEXT_BODIES: Readonly<Record<number, string>> = {
 
 type Mapped = { code: ErrorCode; fields: Readonly<Record<string, FieldCode>> };
 
+// The class an error is logged under; 'Error' when its name is not an identifier or cannot be read.
 function errorClassOf(error: Error): string {
-  return ERROR_CLASS_PATTERN.test(error.name) ? error.name : 'Error';
+  try {
+    const name: unknown = error.name;
+    return typeof name === 'string' && ERROR_CLASS_PATTERN.test(name) ? name : 'Error';
+  } catch {
+    return 'Error';
+  }
 }
 
 function envelope(code: ErrorCode, fields: Readonly<Record<string, FieldCode>>): ErrorEnvelope {

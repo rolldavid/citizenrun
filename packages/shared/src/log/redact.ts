@@ -30,10 +30,12 @@ const MASKS: readonly (readonly [RegExp, string])[] = [
   [/-?\d{1,3}\.\d{4,}\s*,\s*-?\d{1,3}\.\d{4,}/g, '[coords]'],
 ];
 
-const V8_FRAME = /^\s+at\s/;
 // A frame line that ends in a V8 location: `:line:column`, closed by `)` when the frame names a
 // function.
 const V8_LOCATED_FRAME = /^\s+at\s.*:\d+:\d+\)?$/;
+// A frame line V8 writes without a location: a built-in (`(<anonymous>)`, `(native)`) or an
+// element of `Promise.all` and its kin (`(index N)`).
+const V8_UNLOCATED_FRAME = /^\s+at\s.*\((?:<anonymous>|native|index \d+)\)$/;
 
 // The name an error is logged under when its own is not an identifier.
 const ERROR_CLASS_PATTERN = /^[A-Za-z][A-Za-z0-9_]{0,59}$/;
@@ -96,59 +98,79 @@ function afterMessage(stack: string, message: unknown): string[] {
   return out;
 }
 
+// A line in one of the two forms V8 writes a frame in.
+function isFrameLine(line: string): boolean {
+  return V8_LOCATED_FRAME.test(line) || V8_UNLOCATED_FRAME.test(line);
+}
+
 // The frame lines of a stack and nothing else. V8 fixes the stack text when the error is built, and
 // a message can span lines, any of which can look like a frame. Where the current message closes the
-// header and is followed only by frame lines, the first of them ending in a location, those lines
-// are the frames. Otherwise (the message was replaced, prefixed or cut short after the stack was
-// captured, or is not a string) the header cannot be told from the frames, so of the lines after
-// the first only those that end in a V8 location are kept: a leftover line of an earlier message is
-// dropped unless it ends in `:line:column` itself.
+// header and is followed only by lines in V8's frame forms, the first of them ending in a location,
+// those lines are the frames. Otherwise (the message was replaced, prefixed or cut short after the
+// stack was captured, or is not a string) the header cannot be told from the frames, so only the
+// lines after the last line that is not in a frame form are kept: a leftover line of an earlier
+// message is dropped unless it and every line after it are written like frames.
 function stackFrames(stack: string, message: unknown): string[] {
   for (const rest of afterMessage(stack, message)) {
     const lines = rest.trimEnd().split('\n').slice(1);
     const first = lines[0];
-    if (
-      first !== undefined &&
-      V8_LOCATED_FRAME.test(first) &&
-      lines.every((line) => V8_FRAME.test(line))
-    ) {
+    if (first !== undefined && V8_LOCATED_FRAME.test(first) && lines.every(isFrameLine)) {
       return lines;
     }
   }
-  return stack
-    .trimEnd()
-    .split('\n')
-    .slice(1)
-    .filter((line) => V8_LOCATED_FRAME.test(line));
+  const lines = stack.trimEnd().split('\n').slice(1);
+  let start = 0;
+  lines.forEach((line, index) => {
+    if (!isFrameLine(line)) {
+      start = index + 1;
+    }
+  });
+  return lines.slice(start);
 }
 
 function isErrorCode(value: unknown): value is ErrorCode {
   return typeof value === 'string' && Object.hasOwn(ERROR_CODES, value);
 }
 
-// An ApiError is logged with its code's registry text, never its own message, which a subclass or
-// a later assignment can have replaced.
-function staticMessage(err: Error): string {
-  if (err instanceof ApiError && isErrorCode(err.code)) {
-    return ERROR_CODES[err.code].message;
+// The registry code of an ApiError, read once; null for any other error.
+function apiErrorCode(err: Error): ErrorCode | null {
+  if (!(err instanceof ApiError)) {
+    return null;
   }
-  return WITHHELD;
+  const code: unknown = err.code;
+  return isErrorCode(code) ? code : null;
 }
 
+// An error is logged as this when one of its fields cannot be read.
+const UNREADABLE_ERROR: RedactedError = {
+  errorClass: 'Error',
+  message: WITHHELD,
+  stack: `Error: ${WITHHELD}`,
+};
+
 // An error keeps its class, a static message and its stack frames, and nothing else (no `detail`,
-// `cause`, `query` or `parameters`), because a database or provider message can hold the values.
+// `cause`, `query` or `parameters`), because a database or provider message can hold the values. An
+// ApiError is logged with its code's registry text, never its own message, which a subclass or a
+// later assignment can have replaced. A getter or a proxy trap that throws while the fields are read
+// gives the class `Error`, the withheld message and the header alone.
 function redactError(err: Error): RedactedError {
-  const errorClass =
-    typeof err.name === 'string' && ERROR_CLASS_PATTERN.test(err.name) ? err.name : 'Error';
-  const message = staticMessage(err);
-  const header = `${errorClass}: ${message}`;
-  let stack = header;
-  if (typeof err.stack === 'string') {
-    stack = [maskString(header), ...stackFrames(err.stack, err.message).map(maskFrame)].join('\n');
+  try {
+    const name: unknown = err.name;
+    const errorClass = typeof name === 'string' && ERROR_CLASS_PATTERN.test(name) ? name : 'Error';
+    const code = apiErrorCode(err);
+    const message = code === null ? WITHHELD : ERROR_CODES[code].message;
+    const header = `${errorClass}: ${message}`;
+    const original: unknown = err.stack;
+    const stack =
+      typeof original === 'string'
+        ? [maskString(header), ...stackFrames(original, err.message).map(maskFrame)].join('\n')
+        : header;
+    return code === null
+      ? { errorClass, message, stack }
+      : { errorClass, errorCode: code, message, stack };
+  } catch {
+    return { ...UNREADABLE_ERROR };
   }
-  return err instanceof ApiError && isErrorCode(err.code)
-    ? { errorClass, errorCode: err.code, message, stack }
-    : { errorClass, message, stack };
 }
 
 // The byte length of a binary value (D-804): a `Buffer`, any typed array, a `DataView` or an
@@ -171,12 +193,12 @@ function redactStackText(stack: string): string {
     .join('\n');
 }
 
-// One property of a logged object. A getter that throws must not take down the log call, which is
-// often reporting an error, so its key is logged with a fixed marker. A string under `stack` is
-// read as a stack.
+// One property or array element of a logged object. A getter that throws must not take down the log
+// call, which is often reporting an error, so its key is logged with a fixed marker. A string under
+// `stack` is read as a stack.
 function walkProperty(
   value: object,
-  key: string,
+  key: string | number,
   depth: number,
   ancestors: WeakSet<object>,
 ): unknown {
@@ -205,6 +227,16 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
   if (value === null || typeof value !== 'object') {
     return value;
   }
+  // A proxy trap (`getPrototypeOf`, `ownKeys`, a revoked proxy's every trap) or an array's length
+  // getter can throw while the object is read; the object is then logged with the fixed marker.
+  try {
+    return walkObject(value, depth, ancestors);
+  } catch {
+    return UNREADABLE;
+  }
+}
+
+function walkObject(value: object, depth: number, ancestors: WeakSet<object>): unknown {
   const bytes = binaryLength(value);
   if (bytes !== null) {
     return `[binary ${String(bytes)} bytes]`;
@@ -222,10 +254,14 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
     return '[depth]';
   }
   ancestors.add(value);
-  let out: unknown;
-  if (Array.isArray(value)) {
-    out = value.map((item: unknown) => walk(item, depth + 1, ancestors));
-  } else {
+  try {
+    if (Array.isArray(value)) {
+      const items: unknown[] = [];
+      for (let index = 0; index < value.length; index += 1) {
+        items.push(walkProperty(value, index, depth, ancestors));
+      }
+      return items;
+    }
     // A key takes the masks of a string value; a forbidden key is dropped by its original text, and
     // when two keys mask to the same text the later value is kept (D-804).
     const record: Record<string, unknown> = {};
@@ -235,10 +271,10 @@ function walk(value: unknown, depth: number, ancestors: WeakSet<object>): unknow
       }
       record[maskString(key)] = walkProperty(value, key, depth, ancestors);
     }
-    out = record;
+    return record;
+  } finally {
+    ancestors.delete(value);
   }
-  ancestors.delete(value);
-  return out;
 }
 
 /**

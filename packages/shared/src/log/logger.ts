@@ -15,8 +15,16 @@ const LEVEL_RANK: Readonly<Record<LogLevel, number>> = { debug: 10, info: 20, wa
 
 const REQUIRED_KEYS = new Set(['time', 'level', 'service', 'event']);
 
+// The field a line carries in place of its fields when redact() throws (D-826).
+const UNREADABLE_FIELDS = { logFields: '[unreadable]' } as const;
+
 function redactedFields(fields: LogFields): Record<string, unknown> {
-  const redacted = redact(fields);
+  let redacted: unknown;
+  try {
+    redacted = redact(fields);
+  } catch {
+    return { ...UNREADABLE_FIELDS };
+  }
   const out: Record<string, unknown> = {};
   if (redacted !== null && typeof redacted === 'object') {
     for (const [key, value] of Object.entries(redacted)) {

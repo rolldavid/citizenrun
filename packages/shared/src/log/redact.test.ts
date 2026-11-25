@@ -218,6 +218,112 @@ describe('redact', () => {
     });
   });
 
+  describe('a message line written like a frame', () => {
+    it('cut short: a leftover located line and a later unlocated one are both dropped', () => {
+      const err = new Error('first\n    at fixture-located (y.js:1:2)\n    at fixture-plain thing');
+      expect(err.stack).toContain('fixture-plain'); // reading the stack fixes its text
+      err.message = 'first';
+      const out = stackOf(redact(err));
+      expect(out).not.toContain('fixture-located');
+      expect(out).not.toContain('fixture-plain');
+      const lines = out.split('\n');
+      expect(lines[0]).toBe('Error: (message withheld)');
+      expect(lines.length).toBeGreaterThan(1);
+      for (const line of lines.slice(1)) {
+        expect(line).toMatch(/^\s+at\s.*(?::\d+:\d+\)?|\((?:<anonymous>|native|index \d+)\))$/);
+      }
+    });
+
+    it('keeps the frames V8 writes without a location', () => {
+      const err = new Error('m');
+      err.stack = [
+        'Error: m',
+        '    at a (/app/a.js:1:2)',
+        '    at Array.map (<anonymous>)',
+        '    at async Promise.all (index 0)',
+        '    at b (native)',
+        '    at c (/app/c.js:3:4)',
+      ].join('\n');
+      expect(stackOf(redact(err)).split('\n')).toEqual([
+        'Error: (message withheld)',
+        '    at a (/app/a.js:1:2)',
+        '    at Array.map (<anonymous>)',
+        '    at async Promise.all (index 0)',
+        '    at b (native)',
+        '    at c (/app/c.js:3:4)',
+      ]);
+    });
+
+    it('replaced: only the frames after the last line that is not a frame are kept', () => {
+      const err = new Error('m');
+      err.stack = [
+        'Error: old',
+        '    at fixture-located (y.js:1:2)',
+        'fixture-text',
+        '    at a (/app/a.js:1:2)',
+        '    at new Promise (<anonymous>)',
+        '    at b (/app/b.js:3:4)',
+      ].join('\n');
+      expect(stackOf(redact(err)).split('\n')).toEqual([
+        'Error: (message withheld)',
+        '    at a (/app/a.js:1:2)',
+        '    at new Promise (<anonymous>)',
+        '    at b (/app/b.js:3:4)',
+      ]);
+    });
+  });
+
+  describe('a value whose reading throws', () => {
+    const WITHHELD_ERROR = {
+      errorClass: 'Error',
+      message: '(message withheld)',
+      stack: 'Error: (message withheld)',
+    };
+
+    function throwing(): never {
+      throw new Error('fixture getter failure');
+    }
+
+    for (const field of ['name', 'message', 'stack'] as const) {
+      it(`an error whose ${field} getter throws is the class Error and the header alone`, () => {
+        const err = new Error('fixture-private-text');
+        Object.defineProperty(err, field, { get: throwing });
+        expect(redact({ err })).toEqual({ err: WITHHELD_ERROR });
+      });
+    }
+
+    it('an ApiError whose code getter throws is the class Error and the header alone', () => {
+      const err = new ApiError('not_found');
+      Object.defineProperty(err, 'code', { get: throwing });
+      expect(redact({ err })).toEqual({ err: WITHHELD_ERROR });
+    });
+
+    it('an array element whose getter throws is [unreadable]', () => {
+      const items: unknown[] = [1, 2, 3];
+      Object.defineProperty(items, 1, { get: throwing, enumerable: true });
+      expect(redact({ items })).toEqual({ items: [1, '[unreadable]', 3] });
+    });
+
+    it('an object whose keys cannot be listed is [unreadable]', () => {
+      const value = new Proxy({}, { ownKeys: throwing });
+      expect(redact({ value, after: 1 })).toEqual({ value: '[unreadable]', after: 1 });
+    });
+
+    it('an object whose prototype cannot be read is [unreadable]', () => {
+      const value = new Proxy({}, { getPrototypeOf: throwing });
+      expect(redact({ value })).toEqual({ value: '[unreadable]' });
+    });
+
+    it('a revoked proxy is [unreadable]', () => {
+      const { proxy, revoke } = Proxy.revocable({}, {});
+      revoke();
+      expect(redact({ value: proxy, list: [proxy] })).toEqual({
+        value: '[unreadable]',
+        list: ['[unreadable]'],
+      });
+    });
+  });
+
   it('an error with an empty message keeps its frames', () => {
     const lines = stackOf(redact(new Error())).split('\n');
     expect(lines[0]).toBe('Error: (message withheld)');
@@ -238,10 +344,17 @@ describe('redact', () => {
   it('masks an address inside a frame line', () => {
     const err = new Error('fixture failure');
     err.stack =
-      'Error: fixture failure\n    at run (file:///app/x.js:1:2)\n    at handler (user@example.test)';
+      'Error: fixture failure\n    at run (file:///app/x.js:1:2)\n    at user@example.test (file:///app/y.js:3:4)';
     const stack = stackOf(redact(err));
     expect(stack).not.toContain('user@example.test');
-    expect(stack.split('\n')[2]).toBe('    at handler [email]');
+    expect(stack.split('\n')[2]).toBe('    at [email] (file:///app/y.js:3:4)');
+  });
+
+  it('drops a frame-shaped line in no form V8 writes, with every line before it', () => {
+    const err = new Error('fixture failure');
+    err.stack =
+      'Error: fixture failure\n    at run (file:///app/x.js:1:2)\n    at handler (user@example.test)';
+    expect(stackOf(redact(err))).toBe('Error: (message withheld)');
   });
 
   it('keeps the message of an ApiError', () => {

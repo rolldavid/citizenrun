@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createLogger } from './logger.ts';
 
 const NOW = new Date('2027-03-05T22:00:00.000Z');
@@ -73,6 +73,41 @@ describe('createLogger', () => {
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('[unreadable]');
     expect(JSON.parse(lines[0] ?? '')).toMatchObject({ status: 500, broken: '[unreadable]' });
+  });
+
+  it('writes a fixed marker when redact throws', async () => {
+    vi.resetModules();
+    vi.doMock('./redact.ts', () => ({
+      redact: (): never => {
+        throw new Error('fixture redact failure');
+      },
+    }));
+    try {
+      const fresh = await import('./logger.ts');
+      const lines: string[] = [];
+      const log = fresh.createLogger({
+        service: 'api',
+        level: 'debug',
+        sink: (line) => {
+          lines.push(line);
+        },
+        now: () => NOW,
+      });
+      expect(() => {
+        log.child({ requestId: 'fixture-bound' }).error('request.error', { status: 500 });
+      }).not.toThrow();
+      expect(lines).toHaveLength(1);
+      expect(JSON.parse(lines[0] ?? '')).toEqual({
+        time: NOW.toISOString(),
+        level: 'error',
+        service: 'api',
+        event: 'request.error',
+        logFields: '[unreadable]',
+      });
+    } finally {
+      vi.doUnmock('./redact.ts');
+      vi.resetModules();
+    }
   });
 
   it('cannot overwrite the required keys', () => {
