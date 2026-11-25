@@ -1,6 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it } from 'vitest';
+import { AccessibilityInfo } from 'react-native';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   clearOncePerItem,
@@ -161,5 +162,87 @@ describe('motion hooks', () => {
         hook.unmount();
       }
     }
+  });
+});
+
+/** Replaces the system's reduced-motion reports with ones the test sends, starting from `atMount`. */
+function fakeSystemSetting(atMount: boolean): {
+  send: (next: boolean) => void;
+  removed: () => number;
+  restore: () => void;
+} {
+  const handlers: ((next: boolean) => void)[] = [];
+  let removals = 0;
+  const listen = vi
+    .spyOn(AccessibilityInfo, 'addEventListener')
+    .mockImplementation((event: string, handler: (next: boolean) => void) => {
+      if (event === 'reduceMotionChanged') handlers.push(handler);
+      return {
+        remove: () => {
+          removals += 1;
+        },
+      };
+    });
+  const query = vi.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(atMount);
+  return {
+    send: (next) => {
+      for (const handler of handlers) handler(next);
+    },
+    removed: () => removals,
+    restore: () => {
+      listen.mockRestore();
+      query.mockRestore();
+    },
+  };
+}
+
+describe('the system setting', () => {
+  it('useReducedMotion follows a change of the system setting while the app runs', async () => {
+    const system = fakeSystemSetting(false);
+    const first = renderHook(() => useReducedMotion());
+    const second = renderHook(() => useReducedMotion());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(first.result.current).toBe(false);
+    act(() => {
+      system.send(true);
+    });
+    expect(first.result.current).toBe(true);
+    expect(second.result.current).toBe(true);
+    act(() => {
+      system.send(false);
+    });
+    expect(first.result.current).toBe(false);
+    first.unmount();
+    expect(system.removed()).toBe(0);
+    second.unmount();
+    expect(system.removed()).toBe(1);
+    system.restore();
+  });
+
+  it('reads the setting again when a component first listens', async () => {
+    const system = fakeSystemSetting(true);
+    const hook = renderHook(() => useReducedMotion());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(hook.result.current).toBe(true);
+    hook.unmount();
+    system.restore();
+  });
+
+  it('the override wins over a change of the system setting', async () => {
+    const system = fakeSystemSetting(false);
+    const hook = renderHook(() => useReducedMotion(), { wrapper: under(false) });
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      system.send(true);
+    });
+    expect(hook.result.current).toBe(false);
+    hook.unmount();
+    system.restore();
   });
 });

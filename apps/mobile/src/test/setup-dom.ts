@@ -1,5 +1,8 @@
 // The setup file of dom:mobile (PM-test-seam). The mocks are written here, not in a module this file
 // imports, so Vitest registers them before any test file loads.
+// First, so the stub exists before react-native-web and Reanimated read it at import.
+import './match-media';
+
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
@@ -33,24 +36,6 @@ vi.mock('expo-router', async () => {
   const { TestLink } = await import('./router');
   return { Link: TestLink };
 });
-
-// jsdom has no `window.matchMedia`; Reanimated reads it at import for reduced motion.
-if (typeof window.matchMedia !== 'function') {
-  Object.defineProperty(window, 'matchMedia', {
-    configurable: true,
-    writable: true,
-    value: (media: string) => ({
-      matches: false,
-      media,
-      onchange: null,
-      addEventListener: () => undefined,
-      removeEventListener: () => undefined,
-      addListener: () => undefined,
-      removeListener: () => undefined,
-      dispatchEvent: () => false,
-    }),
-  });
-}
 
 beforeEach(() => {
   resetPlatformFakes();

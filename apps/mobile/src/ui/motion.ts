@@ -2,8 +2,18 @@
 // Timed state changes are CSS transitions on a Reanimated view; springs, sequences and loops are
 // worklets. Both run the same way on every platform, and only transform and opacity move.
 import { motion, REDUCED_MOTION_SPEC } from '@citizenrun/shared';
-import { createContext, createElement, useContext, useEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  createElement,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import type { ComponentProps, JSX, ReactNode } from 'react';
+import { AccessibilityInfo } from 'react-native';
+import type { ViewStyle } from 'react-native';
 import {
   cancelAnimation,
   cubicBezier,
@@ -11,7 +21,7 @@ import {
   makeMutable,
   ReduceMotion,
   useAnimatedStyle,
-  useReducedMotion as useSystemReducedMotion,
+  useReducedMotion as useReducedMotionAtStart,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -20,6 +30,7 @@ import {
   withTiming,
 } from 'react-native-reanimated';
 import type Animated from 'react-native-reanimated';
+import { isWorkletFunction } from 'react-native-worklets';
 
 import { opacity } from './tokens';
 
@@ -50,6 +61,67 @@ const PULSE_HALF = { duration: motion.duration.pulse / 2, easing: EASE_OUT, redu
 /** A cut: the value is at its target on the next frame. */
 const CUT = { duration: 0, reduceMotion: NEVER };
 
+/**
+ * useAnimatedStyle, given its dependency array only where the library reads it (06a section 6.2 rule 9,
+ * D-838). Every app build runs the worklets Babel plugin, which gives the worklet its own list of what it
+ * reads, and native Reanimated warns about an array it then ignores. The component tests run without the
+ * plugin, where the array is the only way the library learns the dependencies. The updater carries the
+ * `'worklet'` directive, because the plugin turns only the functions given straight to Reanimated's own
+ * hooks into worklets without it.
+ */
+function useWorkletStyle(updater: () => ViewStyle, dependencies: unknown[]): AnimatedStyle {
+  return useAnimatedStyle(updater, isWorkletFunction(updater) ? undefined : dependencies);
+}
+
+// The system's reduced-motion setting while the app runs. Reanimated's hook gives the value at start
+// only; React Native's AccessibilityInfo (prefers-reduced-motion on the web) reports each change. One
+// subscription serves the whole app while any component listens.
+let systemReduced: boolean | null = null;
+let systemSubscription: { remove: () => void } | null = null;
+let changeSeen = false;
+const systemListeners = new Set<() => void>();
+
+function setSystemReduced(next: boolean): void {
+  if (systemReduced === next) return;
+  systemReduced = next;
+  for (const listener of systemListeners) {
+    listener();
+  }
+}
+
+function subscribeSystemReduced(listener: () => void): () => void {
+  systemListeners.add(listener);
+  if (systemSubscription === null) {
+    changeSeen = false;
+    systemSubscription = AccessibilityInfo.addEventListener('reduceMotionChanged', (next) => {
+      changeSeen = true;
+      setSystemReduced(next);
+    });
+    // The setting may have changed while nothing listened; a change reported meanwhile is newer.
+    AccessibilityInfo.isReduceMotionEnabled().then(
+      (next) => {
+        if (!changeSeen) setSystemReduced(next);
+      },
+      () => undefined,
+    );
+  }
+  return () => {
+    systemListeners.delete(listener);
+    if (systemListeners.size === 0 && systemSubscription !== null) {
+      systemSubscription.remove();
+      systemSubscription = null;
+    }
+  };
+}
+
+function systemReducedSnapshot(): boolean | null {
+  return systemReduced;
+}
+
+function noSnapshotOnServer(): null {
+  return null;
+}
+
 const ReducedMotionContext = createContext<boolean | null>(null);
 
 /** Forces reduced motion on (true) or off (false) for the tree under it; null follows the system. */
@@ -60,11 +132,19 @@ export function ReducedMotionOverride(props: {
   return createElement(ReducedMotionContext.Provider, { value: props.value }, props.children);
 }
 
-/** The nearest ReducedMotionOverride's value when it is not null, else the system's reduced-motion setting. */
+/**
+ * The nearest ReducedMotionOverride's value when it is not null, else the system's reduced-motion setting,
+ * followed while the app runs.
+ */
 export function useReducedMotion(): boolean {
   const override = useContext(ReducedMotionContext);
-  const system = useSystemReducedMotion();
-  return override ?? system;
+  const atStart = useReducedMotionAtStart();
+  const live = useSyncExternalStore(
+    subscribeSystemReduced,
+    systemReducedSnapshot,
+    noSnapshotOnServer,
+  );
+  return override ?? live ?? atStart;
 }
 
 /**
@@ -139,13 +219,12 @@ export function useStamp(
     rotate.set(withSpring(0, STAMP_SPRING));
   }, [playKey, reduced, fromScale, fromRotate, scale, rotate, fade]);
 
-  return useAnimatedStyle(
-    () =>
-      reduced
-        ? { opacity: fade.value }
-        : { transform: [{ scale: scale.value }, { rotate: `${String(-rotate.value)}deg` }] },
-    [reduced, fade, scale, rotate],
-  );
+  return useWorkletStyle(() => {
+    'worklet';
+    return reduced
+      ? { opacity: fade.value }
+      : { transform: [{ scale: scale.value }, { rotate: `${String(-rotate.value)}deg` }] };
+  }, [reduced, fade, scale, rotate]);
 }
 
 /**
@@ -166,7 +245,10 @@ export function useSpringScale(playKey: string | number | null, fromScale: numbe
     scale.set(withSpring(1, STANDARD_SPRING));
   }, [playKey, reduced, fromScale, scale]);
 
-  return useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }), [scale]);
+  return useWorkletStyle(() => {
+    'worklet';
+    return { transform: [{ scale: scale.value }] };
+  }, [scale]);
 }
 
 /**
@@ -280,10 +362,10 @@ export function usePulse(active: boolean): AnimatedStyle {
     return joinPulse();
   }, [pulses]);
 
-  return useAnimatedStyle(
-    () => ({ opacity: active && !reduced ? pulseClock.value : 1 }),
-    [pulseClock, active, reduced],
-  );
+  return useWorkletStyle(() => {
+    'worklet';
+    return { opacity: active && !reduced ? pulseClock.value : 1 };
+  }, [pulseClock, active, reduced]);
 }
 
 type OnceKind = 'meters' | 'ring' | 'number' | 'done' | 'enter';
