@@ -132,7 +132,8 @@ const COMPACT = [390, 844] as const;
 
 const TEST_ID = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 const END = 'That is every office in Wren County.';
-const FAILED = 'Something went wrong on our side. Try again.';
+// A page that failed has no error code: the notice blames no side.
+const FAILED = 'Something went wrong. Try again.';
 
 /** An item of the video cases: `d` and `b` have a video. */
 type Clip = { id: string; video: string | null };

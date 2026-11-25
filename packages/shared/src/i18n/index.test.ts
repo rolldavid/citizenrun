@@ -30,6 +30,14 @@ describe('createI18n', () => {
     }
   });
 
+  it('has the text of a failure that has no code', () => {
+    const { t } = createI18n();
+    expect(t('errors:generic')).toBe('Something went wrong. Try again.');
+    // It blames no side: a failed request may never have reached the server.
+    expect(t('errors:generic')).not.toBe(t('errors:internal'));
+    expect(Object.keys(ERROR_CODES)).not.toContain('generic');
+  });
+
   it("defaults appName to the brand's display name", () => {
     expect(createI18n().services.interpolator.interpolate('{{appName}}', {}, 'en', {})).toBe(
       BRAND.displayName,

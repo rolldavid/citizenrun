@@ -1,4 +1,6 @@
 export const errors = {
+  // Not an error code: what a failure with no code of its own, or a code with no key, reads.
+  generic: 'Something went wrong. Try again.',
   invalid_request: "Something in this request isn't right. Check it and try again.",
   invalid_cursor: "This list couldn't be loaded. Refresh it and try again.",
   client_header_required:

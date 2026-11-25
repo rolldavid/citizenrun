@@ -405,7 +405,7 @@ export function List<T>({
           <View style={[FAILED, { paddingHorizontal: layout.gutter }]}>
             <Notice
               kind="error"
-              text={t('errors:internal')}
+              text={t('errors:generic')}
               {...(onRetryMore === undefined
                 ? {}
                 : {
