@@ -1,5 +1,6 @@
 import { BRAND, EMAIL_STYLES, createI18n } from '@citizenrun/shared';
 import { describe, expect, it } from 'vitest';
+import { BYTES_PER_GB, COST_LINES } from '../../jobs/ops/cost-lines.ts';
 import { renderOpsAlert } from './ops-alert.ts';
 
 const { t } = createI18n();
@@ -112,5 +113,113 @@ describe('renderOpsAlert', () => {
       t,
     );
     expect(rendered.subject).toBe(`[${BRAND.displayName} ci] No recent database backup`);
+  });
+
+  it('a value named like an i18next option is only text', () => {
+    const plain = renderOpsAlert(JOB_FAILED, t);
+    for (const name of [
+      'count',
+      'lng',
+      'context',
+      'defaultValue',
+      'keySeparator',
+      'nsSeparator',
+      'ns',
+      'returnObjects',
+      'appName',
+    ]) {
+      const rendered = renderOpsAlert(
+        { ...JOB_FAILED, values: { ...JOB_FAILED.values, [name]: '#' } },
+        t,
+      );
+      expect({ name, ...rendered }).toEqual({ name, ...plain });
+    }
+  });
+
+  it('a value cannot replace the product name', () => {
+    const rendered = renderOpsAlert(
+      { kind: 'dump_stale', values: { hoursSinceNewest: 2, appName: 'Other' }, env: 'ci' },
+      t,
+    );
+    expect(rendered.subject).toBe(`[${BRAND.displayName} ci] No recent database backup`);
+  });
+
+  it('the storage line reads gigabytes and dollars a month', () => {
+    const rendered = renderOpsAlert(
+      {
+        kind: 'cost_projection',
+        values: { line: 'storage', value: 700_000_000_000, projected: 1050, threshold: 1000 },
+        env: 'staging',
+      },
+      t,
+    );
+    expect(rendered.subject).toBe(
+      `[${BRAND.displayName} staging] Cost projection over threshold: storage`,
+    );
+    expect(rendered.text.split('\n')[0]).toBe(
+      'The buckets hold 700 GB, projected to cost $10.50 a month, over the threshold of $10 a month.',
+    );
+  });
+
+  it('each cost line reads its numbers in its units', () => {
+    const body = (values: Record<string, string | number>): string =>
+      renderOpsAlert({ kind: 'cost_projection', values, env: 'ci' }, t).text.split('\n')[0] ?? '';
+    expect(body({ line: 'storage', value: BYTES_PER_GB, projected: 2, threshold: 1000 })).toBe(
+      'The buckets hold 1 GB, projected to cost $0.02 a month, over the threshold of $10 a month.',
+    );
+    expect(
+      body({
+        line: 'upload_growth',
+        value: 3_333_333_334,
+        projected: 100_000_000_020,
+        threshold: 100_000_000_000,
+      }),
+    ).toBe(
+      'Uploads in the last 24 hours came to 3.33 GB, projected at 100 GB a month, over the ' +
+        'threshold of 100 GB a month.',
+    );
+    expect(body({ line: 'email_month', value: 800, projected: 2400, threshold: 2400 })).toBe(
+      '800 emails were sent so far this month (UTC), projected at 2,400 for the month, at or ' +
+        'over the threshold of 2,400 emails a month.',
+    );
+    expect(body({ line: 'email_day', value: 80, projected: 80, threshold: 80 })).toBe(
+      '80 emails were sent yesterday (UTC), at or over the threshold of 80 emails a day.',
+    );
+    expect(body({ line: 'signin_ceiling', value: 1000, projected: 1000, threshold: 1000 })).toBe(
+      '1,000 sign-in code emails were sent in one UTC day, at or over the threshold of 1,000 a day.',
+    );
+  });
+
+  it('every cost line has a body with its units', () => {
+    // The job's lines, and the API's same-day sign-in alert.
+    const lines = [...COST_LINES.map((line) => line.line), 'signin_ceiling'];
+    for (const line of lines) {
+      const { text } = renderOpsAlert(
+        {
+          kind: 'cost_projection',
+          values: { line, value: 1, projected: 1, threshold: 1 },
+          env: 'ci',
+        },
+        t,
+      );
+      expect({ line, generic: text.startsWith(`${line} is at `) }).toEqual({
+        line,
+        generic: false,
+      });
+    }
+  });
+
+  it('a line with no body of its own reads the numbers as sent', () => {
+    const rendered = renderOpsAlert(
+      {
+        kind: 'cost_projection',
+        values: { line: 'other', value: 5, projected: 7, threshold: 6 },
+        env: 'ci',
+      },
+      t,
+    );
+    expect(rendered.text.split('\n')[0]).toBe(
+      'other is at 5 and projected at 7, over its threshold of 6.',
+    );
   });
 });
