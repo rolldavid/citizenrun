@@ -1778,7 +1778,10 @@ async function stepOwnerValues(ctx: Ctx, out: StepPrinter): Promise<void> {
   for (const row of OWNER_VALUE_TARGETS) {
     const value = ownerValue(ctx, row);
     if (value === null) {
-      out.line('skip', `${row.variable} (${waitingOn(ctx.args.env, row.source, row.ownerInputs)})`);
+      // A composed value is skipped for want of its one source key, named by that key's input.
+      const missing =
+        row.from === 'composed' ? [INPUT_KEYS[row.source].ownerInput] : row.ownerInputs;
+      out.line('skip', `${row.variable} (${waitingOn(ctx.args.env, row.source, missing)})`);
       continue;
     }
     for (const service of row.services) {

@@ -1333,6 +1333,13 @@ describe('seal, owner values and database', { timeout: 30_000 }, () => {
     expect(result.code).toBe(0);
     expect(result.output).toContain('skip BACKUP_PUBLIC_KEY (OI-backup-key)');
     expect(variableSets(result.calls, 'BACKUP_PUBLIC_KEY')).toEqual([]);
+    // The sender is composed from MAIL_HOST, so it waits on that key's input alone.
+    const noHost = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: { MAIL_HOST: null },
+    });
+    expect(noHost.code).toBe(0);
+    expect(noHost.lines).toContain('owner-values skip EMAIL_FROM (OI-domain)');
+    expect(variableSets(noHost.calls, 'EMAIL_FROM')).toEqual([]);
   });
 
   it('owner values compose EMAIL_FROM from the staging display name', async () => {
