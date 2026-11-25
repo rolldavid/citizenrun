@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 export type ScreenEntry = {
   id: string;
@@ -30,9 +30,41 @@ const AT_REST = /^(none|matrix\(1, 0, 0, 1, 0, 0\))$/;
 function openGalleryOverlay(overlay: string): (page: Page) => Promise<void> {
   return async (page) => {
     await page.getByTestId(`gallery.open-${overlay}`).click();
-    await page.getByTestId(`gallery.${overlay}`).waitFor();
-    await expect(page.getByTestId(`gallery.${overlay}`)).toHaveCSS('opacity', '1');
-    await expect(page.getByTestId(`gallery.${overlay}`)).toHaveCSS('transform', AT_REST);
+    await layerAtRest(page.getByTestId(`gallery.${overlay}`));
+  };
+}
+
+/** A layer over the gallery has faded in and, for a sheet on a phone, risen to where it rests. */
+async function layerAtRest(layer: Locator): Promise<void> {
+  await layer.waitFor();
+  await expect(layer).toHaveCSS('opacity', '1');
+  await expect(layer).toHaveCSS('transform', AT_REST);
+}
+
+/**
+ * Opens one C-Popover specimen of the gallery with its own control, and waits until it has faded
+ * in, then moves the pointer to the page's top corner, so no row is drawn under it.
+ */
+function openGalleryPopover(state: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByTestId(`gallery.popover-open-${state}`).click();
+    await layerAtRest(page.getByTestId(`gallery.popover-${state}`));
+    await page.mouse.move(0, 0);
+  };
+}
+
+/**
+ * Opens one C-Select of the gallery with its own control: its list in a popover on a wide window,
+ * in a sheet on a phone. Waits until the list has faded in or risen to where it rests, then moves
+ * the pointer to the page's top corner, so no row is drawn under it.
+ */
+function openGallerySelect(control: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByTestId(control).click();
+    await layerAtRest(
+      page.getByTestId(`${control}-popover`).or(page.getByTestId(`${control}-sheet`)),
+    );
+    await page.mouse.move(0, 0);
   };
 }
 
@@ -680,6 +712,60 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
     prepare: focusGalleryTooltip,
   },
+  {
+    id: 'dev-gallery-popover-below-start',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('below-start'),
+  },
+  {
+    id: 'dev-gallery-popover-below-end',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('below-end'),
+  },
+  {
+    id: 'dev-gallery-popover-above-start',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('above-start'),
+  },
+  {
+    id: 'dev-gallery-popover-above-end',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('above-end'),
+  },
+  {
+    id: 'dev-gallery-popover-end',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('end'),
+  },
+  {
+    id: 'dev-gallery-popover-padded',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('padded'),
+  },
+  {
+    id: 'dev-gallery-popover-narrow-anchor',
+    path: '/dev/gallery?only=popover',
+    auth: 'none',
+    prepare: openGalleryPopover('narrow-anchor'),
+  },
+  {
+    id: 'dev-gallery-select-long-list',
+    path: '/dev/gallery?only=select',
+    auth: 'none',
+    prepare: openGallerySelect('gallery.select-long-list'),
+  },
+  {
+    id: 'dev-gallery-age-gate-month',
+    path: '/dev/gallery?only=age-gate',
+    auth: 'none',
+    prepare: openGallerySelect('gallery.age-gate-empty-month'),
+  },
   // Each overlay again at 130% text: the section entries at that size show only its opener.
   {
     id: 'dev-gallery-sheet-open-x130',
@@ -722,6 +808,60 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/gallery?only=tooltip&textScale=1.3',
     auth: 'none',
     prepare: focusGalleryTooltip,
+  },
+  {
+    id: 'dev-gallery-popover-below-start-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('below-start'),
+  },
+  {
+    id: 'dev-gallery-popover-below-end-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('below-end'),
+  },
+  {
+    id: 'dev-gallery-popover-above-start-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('above-start'),
+  },
+  {
+    id: 'dev-gallery-popover-above-end-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('above-end'),
+  },
+  {
+    id: 'dev-gallery-popover-end-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('end'),
+  },
+  {
+    id: 'dev-gallery-popover-padded-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('padded'),
+  },
+  {
+    id: 'dev-gallery-popover-narrow-anchor-x130',
+    path: '/dev/gallery?only=popover&textScale=1.3',
+    auth: 'none',
+    prepare: openGalleryPopover('narrow-anchor'),
+  },
+  {
+    id: 'dev-gallery-select-long-list-x130',
+    path: '/dev/gallery?only=select&textScale=1.3',
+    auth: 'none',
+    prepare: openGallerySelect('gallery.select-long-list'),
+  },
+  {
+    id: 'dev-gallery-age-gate-month-x130',
+    path: '/dev/gallery?only=age-gate&textScale=1.3',
+    auth: 'none',
+    prepare: openGallerySelect('gallery.age-gate-empty-month'),
   },
   { id: 'hello', path: '/', auth: 'none' },
   { id: 'hello-hello-loading', path: '/dev/screens/hello/helloLoading', auth: 'none' },
