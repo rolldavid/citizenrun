@@ -14,7 +14,7 @@ import {
   Text as NativeText,
   TSpan as NativeTSpan,
 } from 'react-native-svg';
-import { FONT_CSS } from '@citizenrun/shared';
+import { FONT_CSS, FONT_FILES } from '@citizenrun/shared';
 import type {
   CircleProps,
   ClipPathProps,
@@ -53,10 +53,13 @@ export const Image: JSXElementConstructor<ImageProps> = NativeImage;
 export const Text: JSXElementConstructor<TextProps> = NativeText;
 export const TSpan: JSXElementConstructor<TSpanProps> = NativeTSpan;
 
-/** The family and weight that name a face in a canvas: the one place a face becomes a font name. */
+/**
+ * The per-file name and the weight that name a face in a canvas on a phone: the one place a face becomes a
+ * font name. Android finds a face only by its file name, and iOS draws Medium and Bold only with the weight
+ * (D-823 item 5).
+ */
 export function fontAttrs(face: FontFace): FontAttrs {
-  const { family, weight } = FONT_CSS[face];
-  return { fontFamily: family, fontWeight: String(weight) };
+  return { fontFamily: FONT_FILES[face], fontWeight: String(FONT_CSS[face].weight) };
 }
 
 /** What every root `Svg` spreads: the props that hide a canvas from screen readers (D-277). */
