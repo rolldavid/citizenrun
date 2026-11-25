@@ -114,6 +114,21 @@ const EXTERNAL_ANCHOR = { hrefAttrs: { target: EXTERNAL_TARGET, rel: EXTERNAL_RE
 const CURRENT_ITEM = { 'aria-current': 'page', accessibilityState: { selected: true } } as const;
 
 /**
+ * How a selected state that `aria-selected` may not carry is said. ARIA allows that attribute on a
+ * tab and an option only. A toggle button is pressed or not on the web, and every other role says
+ * nothing there; a phone, which has no pressed state, reads the selected state for all of them.
+ */
+function toggledState(
+  role: PressableProps['role'],
+  selected: boolean,
+): { accessibilityState: { selected: boolean }; 'aria-pressed'?: boolean } {
+  return {
+    accessibilityState: { selected },
+    ...(role === 'button' ? { 'aria-pressed': selected } : {}),
+  };
+}
+
+/**
  * C-Pressable: the one press target. Pressed runs MO-press on its content, paints pressedBg, or
  * both; a pointer paints hoverBg where asked; focus draws the ring. A C-Pressable never holds another.
  */
@@ -200,15 +215,17 @@ export function Pressable({
   const reach = reachFor(slop);
   // A phone lets `aria-selected` win over the selected state, so the current item never sends it.
   const selected = current ? undefined : state?.selected;
+  const takesSelected = role === 'tab' || role === 'option';
 
   const target = (
     <NativePressable
       {...(external ? EXTERNAL_ANCHOR : {})}
       {...(current ? CURRENT_ITEM : {})}
+      {...(selected === undefined || takesSelected ? {} : toggledState(role, selected))}
       role={role}
       aria-label={label === '' ? undefined : label}
       accessibilityHint={hint}
-      aria-selected={selected}
+      aria-selected={takesSelected ? selected : undefined}
       aria-checked={state?.checked}
       aria-expanded={state?.expanded}
       aria-busy={state?.busy}

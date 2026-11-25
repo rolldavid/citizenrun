@@ -739,6 +739,43 @@ describe('Pressable', () => {
     expect(nativeProps().accessibilityState).toBeUndefined();
   });
 
+  it('a toggle button is pressed on the page and selected on a phone, and never aria-selected', () => {
+    for (const selected of [true, false]) {
+      const toggle = draw({ state: { selected } });
+      expect(toggle.getAttribute('role'), String(selected)).toBe('button');
+      // ARIA does not allow aria-selected on a button: the page says pressed.
+      expect(toggle.hasAttribute('aria-selected'), String(selected)).toBe(false);
+      expect(toggle.getAttribute('aria-pressed'), String(selected)).toBe(String(selected));
+      // A phone has no pressed state: its screen reader announces the selected one.
+      expect(nativeProps().accessibilityState, String(selected)).toEqual({ selected });
+      expect(nativeProps()['aria-selected'], String(selected)).toBeUndefined();
+    }
+
+    // A button that is no toggle says neither.
+    const plain = draw();
+    expect(plain.hasAttribute('aria-pressed')).toBe(false);
+    expect(plain.hasAttribute('aria-selected')).toBe(false);
+    expect(nativeProps().accessibilityState).toBeUndefined();
+
+    // The other roles that may not carry aria-selected say nothing on the page, and a phone still
+    // reads the selected state.
+    for (const role of ['link', 'checkbox', 'radio', 'switch', 'menuitem'] as const) {
+      const element = draw({ role, state: { selected: true } });
+      expect(element.hasAttribute('aria-selected'), role).toBe(false);
+      expect(element.hasAttribute('aria-pressed'), role).toBe(false);
+      expect(nativeProps().accessibilityState, role).toEqual({ selected: true });
+      expect(nativeProps()['aria-selected'], role).toBeUndefined();
+    }
+
+    // A tab and an option keep aria-selected, and never say pressed.
+    for (const role of ['tab', 'option'] as const) {
+      const element = draw({ role, state: { selected: true } });
+      expect(element.getAttribute('aria-selected'), role).toBe('true');
+      expect(element.hasAttribute('aria-pressed'), role).toBe(false);
+      expect(nativeProps().accessibilityState, role).toBeUndefined();
+    }
+  });
+
   it('an empty label leaves the name to the text inside', () => {
     const element = draw({ role: 'link', href: '/dev/gallery', label: '' });
     expect(element.hasAttribute('aria-label')).toBe(false);
