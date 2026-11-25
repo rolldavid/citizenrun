@@ -542,6 +542,21 @@ describe('renderer guards', () => {
       }),
       names: /<rect> has a xlink:href/,
     },
+    {
+      label: 'a namespace-prefixed style',
+      child: createElement('svg:style', { key: 'svg:style' }),
+      names: /<svg:style>/,
+    },
+    {
+      label: 'a namespace-prefixed filter',
+      child: createElement('svg:filter', { key: 'svg:filter' }),
+      names: /<svg:filter>/,
+    },
+    {
+      label: 'a namespace-prefixed foreignObject',
+      child: createElement('svg:foreignObject', { key: 'svg:foreignObject' }),
+      names: /<svg:foreignObject>/,
+    },
   ];
 
   for (const { label, child, names } of hostile) {

@@ -99,11 +99,16 @@ function isHref(attributeName: string): boolean {
   return name === 'href' || name.endsWith(':href');
 }
 
+/** The element's local name in lower case: `svg:style` and `style` are the same element. */
+function localName(element: string): string {
+  return element.slice(element.lastIndexOf(':') + 1).toLowerCase();
+}
+
 /** Throws CardMarkupError at the first element the guards of CARD-render-png refuse. */
 function assertSafeMarkup(markup: string): void {
   for (const tag of markup.matchAll(TAG)) {
     const element = tag[1] ?? '';
-    const lowered = element.toLowerCase();
+    const lowered = localName(element);
     if (FORBIDDEN_ELEMENTS.has(lowered)) {
       throw new CardMarkupError(`the element <${element}> is not allowed on a canvas`);
     }
