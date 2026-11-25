@@ -17,6 +17,7 @@ import { repoRoot } from './lib/repo-root.ts';
 import {
   createPrompt,
   fillRoleMarkers,
+  OWNER_VALUE_TARGETS,
   parseInputsFile,
   runBootstrap,
   scramKeys,
@@ -90,6 +91,13 @@ const ADMIN_ADDRESS = 'admin-one@example.test';
 const MAIL_HOST = 'mail.example.test';
 const PROJECT_TOKEN = 'fixture-project-token-1234';
 const DETERMINISTIC = Buffer.alloc(32, 0xab);
+const APPLE_TEAM = 'fixture-team';
+const APPLE_KEY = 'fixture-key';
+const WEB_CLIENT = 'fixture-web-client';
+const IOS_CLIENT = 'fixture-ios-client';
+const REVIEW_ADDRESS = 'review-fixture@example.test';
+const REVIEW_CODE = '246810';
+const PREVIOUS_SECRET = 'cd'.repeat(32);
 const ROLES_SQL = readFileSync(join(repoRoot(), 'packages', 'db', 'sql', 'roles.sql'), 'utf8');
 const PSQL = ['psql', '-U', 'citizenrun', '-d', 'citizenrun', '-v', 'ON_ERROR_STOP=1', '-X', '-q'];
 const SUCCESS = '[{"status":"SUCCESS","createdAt":"2026-11-01T00:00:00Z"}]';
@@ -186,6 +194,29 @@ const ALL_KEYS_LISTED: Partial<Record<Service, Record<string, string | null>>> =
 let keyFolder = '';
 let publicKey4096 = '';
 let publicKey2048 = '';
+let appleKeyFile = '';
+let appleKeyText = '';
+let rsaPrivateKeyFile = '';
+let p384KeyFile = '';
+
+/** The three Apple keys and the two Google keys of the inputs file, with fixture values. */
+function signInInputs(): Record<string, string> {
+  return {
+    APPLE_TEAM_ID: APPLE_TEAM,
+    APPLE_KEY_ID: APPLE_KEY,
+    APPLE_PRIVATE_KEY_FILE: appleKeyFile,
+    GOOGLE_CLIENT_IDS: `${WEB_CLIENT},${IOS_CLIENT}`,
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: WEB_CLIENT,
+  };
+}
+
+/** The base64 body of the Apple key file: the part a leak would show. */
+function appleKeyBody(): string {
+  return appleKeyText
+    .split('\n')
+    .filter((line) => line !== '' && !line.startsWith('-----'))
+    .join('');
+}
 
 beforeAll(async () => {
   keyFolder = await mkdtemp(join(tmpdir(), 'bootstrap-keys-'));
@@ -198,6 +229,21 @@ beforeAll(async () => {
   publicKey2048 = join(keyFolder, 'backup-fixture-2048.pub.pem');
   await writeFile(publicKey4096, pem(4096));
   await writeFile(publicKey2048, pem(2048));
+  const pkcs8 = (key: ReturnType<typeof generateKeyPairSync>['privateKey']): string =>
+    key.export({ type: 'pkcs8', format: 'pem' }) as string; // pkcs8 with format pem is a string
+  appleKeyText = pkcs8(generateKeyPairSync('ec', { namedCurve: 'prime256v1' }).privateKey);
+  appleKeyFile = join(keyFolder, 'AuthKey_fixture.p8');
+  await writeFile(appleKeyFile, appleKeyText);
+  rsaPrivateKeyFile = join(keyFolder, 'rsa-fixture.p8');
+  await writeFile(
+    rsaPrivateKeyFile,
+    pkcs8(generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey),
+  );
+  p384KeyFile = join(keyFolder, 'p384-fixture.p8');
+  await writeFile(
+    p384KeyFile,
+    pkcs8(generateKeyPairSync('ec', { namedCurve: 'secp384r1' }).privateKey),
+  );
 }, 60_000);
 
 afterAll(async () => {
@@ -972,15 +1018,35 @@ describe('a full run', { timeout: 60_000 }, () => {
     const result = await runCase(['--env', 'staging', '--dry-run'], {
       deterministic: true,
       secretList: '[{"name":"RAILWAY_TOKEN_STAGING"}]',
+      inputs: {
+        ...signInInputs(),
+        REVIEW_SIGNIN_EMAILS: REVIEW_ADDRESS,
+        REVIEW_SIGNIN_CODE: REVIEW_CODE,
+        APP_SECRET_PREVIOUS: PREVIOUS_SECRET,
+      },
     });
     expect(result.code).toBe(0);
     expect(result.output).toContain('<redacted>');
+    for (const service of ['api', 'worker']) {
+      expect(result.lines).toContain(
+        `dry-run railway variable set APPLE_PRIVATE_KEY --stdin --service ${service} --environment staging --skip-deploys (stdin <redacted>)`,
+      );
+    }
     for (const secret of [
       DETERMINISTIC.toString('base64url'),
       DETERMINISTIC.toString('hex'),
       RESEND_KEY,
       ADMIN_ADDRESS,
       WORKSPACE_TOKEN,
+      APPLE_TEAM,
+      APPLE_KEY,
+      appleKeyBody(),
+      'PRIVATE KEY',
+      WEB_CLIENT,
+      IOS_CLIENT,
+      REVIEW_ADDRESS,
+      REVIEW_CODE,
+      PREVIOUS_SECRET,
     ]) {
       expect(result.output).not.toContain(secret);
     }
@@ -1029,12 +1095,18 @@ describe('a full run', { timeout: 60_000 }, () => {
   it('with no owner present the owner steps become owner checks', async () => {
     const result = await runCase(['--env', 'staging']);
     expect(result.code).toBe(0);
-    const generated = SEALED.filter((row) => row.key !== 'RESEND_API_KEY').map(
-      (row) => `seal owner-check seal ${row.service}/${row.key}`,
-    );
+    // The values step 4 generates; the owner values are set by step 6, after the seal step.
+    const generated = SEALED.filter(
+      (row) => row.service === 'postgres' || row.key === 'APP_SECRET',
+    ).map((row) => `seal owner-check seal ${row.service}/${row.key}`);
+    expect(generated).toHaveLength(8);
     for (const line of generated) {
       expect(result.lines).toContain(line);
     }
+    // The inputs file gives no sign-in, review or rotation value, so none is left to seal.
+    expect(
+      result.lines.filter((line) => /^(seal|owner-values) owner-check seal /.test(line)),
+    ).toHaveLength(11);
     // The Resend key is set by the step after the seal step, which leaves it to seal.
     for (const service of ['api', 'worker', 'admin']) {
       expect(result.lines).toContain(`owner-values owner-check seal ${service}/RESEND_API_KEY`);
@@ -2015,5 +2087,481 @@ describe('the next command', { timeout: 60_000 }, () => {
     expect(left.lines.at(-1)).toBe(
       `next when the owner has made the project token github-actions-staging, run: ${BOOTSTRAP} --only tokens, then: ${BOOTSTRAP} --only redeploy`,
     );
+  });
+});
+
+describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
+  it('the targets table matches the variable table', () => {
+    expect(
+      OWNER_VALUE_TARGETS.map((row) => ({
+        variable: row.variable,
+        services: [...row.services],
+        source: row.source,
+        from: row.from,
+        sealed: row.sealed,
+        ownerInputs: [...row.ownerInputs],
+      })),
+    ).toEqual([
+      {
+        variable: 'RESEND_API_KEY',
+        services: ['api', 'worker', 'admin'],
+        source: 'RESEND_API_KEY',
+        from: 'value',
+        sealed: true,
+        ownerInputs: ['OI-resend'],
+      },
+      {
+        variable: 'EMAIL_FROM',
+        services: ['api', 'worker', 'admin'],
+        source: 'MAIL_HOST',
+        from: 'composed',
+        sealed: false,
+        ownerInputs: ['OI-resend', 'OI-domain'],
+      },
+      {
+        variable: 'ADMIN_EMAILS',
+        services: ['api', 'worker', 'admin'],
+        source: 'ADMIN_EMAILS',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-admin-emails'],
+      },
+      {
+        variable: 'BACKUP_PUBLIC_KEY',
+        services: ['backup'],
+        source: 'BACKUP_PUBLIC_KEY_FILE',
+        from: 'file',
+        sealed: false,
+        ownerInputs: ['OI-backup-key'],
+      },
+      {
+        variable: 'APPLE_TEAM_ID',
+        services: ['api', 'worker'],
+        source: 'APPLE_TEAM_ID',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-apple-identifiers'],
+      },
+      {
+        variable: 'APPLE_KEY_ID',
+        services: ['api', 'worker'],
+        source: 'APPLE_KEY_ID',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-apple-identifiers'],
+      },
+      {
+        variable: 'APPLE_PRIVATE_KEY',
+        services: ['api', 'worker'],
+        source: 'APPLE_PRIVATE_KEY_FILE',
+        from: 'file',
+        sealed: true,
+        ownerInputs: ['OI-apple-identifiers'],
+      },
+      {
+        variable: 'GOOGLE_CLIENT_IDS',
+        services: ['api'],
+        source: 'GOOGLE_CLIENT_IDS',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-google-oauth'],
+      },
+      {
+        variable: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+        services: ['api'],
+        source: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-google-oauth'],
+      },
+      {
+        variable: 'REVIEW_SIGNIN_EMAILS',
+        services: ['api'],
+        source: 'REVIEW_SIGNIN_EMAILS',
+        from: 'value',
+        sealed: false,
+        ownerInputs: ['OI-store-submission'],
+      },
+      {
+        variable: 'REVIEW_SIGNIN_CODE',
+        services: ['api'],
+        source: 'REVIEW_SIGNIN_CODE',
+        from: 'value',
+        sealed: true,
+        ownerInputs: ['OI-store-submission'],
+      },
+      {
+        variable: 'APP_SECRET_PREVIOUS',
+        services: ['api', 'worker', 'admin'],
+        source: 'APP_SECRET_PREVIOUS',
+        from: 'value',
+        sealed: true,
+        ownerInputs: [],
+      },
+    ]);
+  });
+
+  it('sets the sign-in values on the services that read them', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: signInInputs(),
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    const set = (key: string, service: string): string =>
+      `railway variable set ${key} --stdin --service ${service} --environment staging --skip-deploys`;
+    for (const key of ['APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY']) {
+      expect(variableSets(result.calls, key).map(serviceOf), key).toEqual(['api', 'worker']);
+      expect(calls).toContain(set(key, 'api'));
+      expect(calls).toContain(set(key, 'worker'));
+    }
+    for (const key of ['GOOGLE_CLIENT_IDS', 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID']) {
+      expect(variableSets(result.calls, key).map(serviceOf), key).toEqual(['api']);
+    }
+    for (const key of ['RESEND_API_KEY', 'EMAIL_FROM', 'ADMIN_EMAILS']) {
+      expect(variableSets(result.calls, key).map(serviceOf), key).toEqual([
+        'api',
+        'worker',
+        'admin',
+      ]);
+    }
+    const stdinOf = (key: string): (string | undefined)[] =>
+      variableSets(result.calls, key).map((call) => call.stdin);
+    expect(stdinOf('APPLE_TEAM_ID')).toEqual([APPLE_TEAM, APPLE_TEAM]);
+    expect(stdinOf('APPLE_KEY_ID')).toEqual([APPLE_KEY, APPLE_KEY]);
+    expect(stdinOf('APPLE_PRIVATE_KEY')).toEqual([appleKeyText, appleKeyText]);
+    expect(stdinOf('GOOGLE_CLIENT_IDS')).toEqual([`${WEB_CLIENT},${IOS_CLIENT}`]);
+    expect(stdinOf('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID')).toEqual([WEB_CLIENT]);
+    for (const service of ['api', 'worker']) {
+      expect(result.lines).toContain(`owner-values owner-check seal ${service}/APPLE_PRIVATE_KEY`);
+    }
+    // Every value travels on standard input: no recorded argument and no printed line holds one.
+    const values = [
+      APPLE_TEAM,
+      APPLE_KEY,
+      appleKeyBody(),
+      'PRIVATE KEY',
+      WEB_CLIENT,
+      IOS_CLIENT,
+      RESEND_KEY,
+      ADMIN_ADDRESS,
+    ];
+    for (const call of result.calls) {
+      for (const value of values) {
+        expect(call.args.join(' '), value).not.toContain(value);
+      }
+    }
+    for (const value of values) {
+      expect(result.output).not.toContain(value);
+    }
+  });
+
+  it('skips each missing input by its id', async () => {
+    const staging = await runCase(['--env', 'staging', '--only', 'owner-values']);
+    expect(staging.code).toBe(0);
+    for (const line of [
+      'owner-values skip APPLE_TEAM_ID (OI-apple-identifiers)',
+      'owner-values skip APPLE_KEY_ID (OI-apple-identifiers)',
+      'owner-values skip APPLE_PRIVATE_KEY (OI-apple-identifiers)',
+      'owner-values skip GOOGLE_CLIENT_IDS (OI-google-oauth)',
+      'owner-values skip EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (OI-google-oauth)',
+      // Staging's pair is the perf account's, which is not an owner input.
+      'owner-values skip REVIEW_SIGNIN_EMAILS (the perf account, not an owner input on staging)',
+      'owner-values skip REVIEW_SIGNIN_CODE (the perf account, not an owner input on staging)',
+      'owner-values skip APP_SECRET_PREVIOUS (rotation only)',
+    ]) {
+      expect(staging.lines).toContain(line);
+    }
+    for (const key of [
+      'APPLE_TEAM_ID',
+      'APPLE_KEY_ID',
+      'APPLE_PRIVATE_KEY',
+      'GOOGLE_CLIENT_IDS',
+      'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+      'REVIEW_SIGNIN_EMAILS',
+      'REVIEW_SIGNIN_CODE',
+      'APP_SECRET_PREVIOUS',
+    ]) {
+      expect(variableSets(staging.calls, key), key).toEqual([]);
+    }
+
+    const production = await runCase(['--env', 'production', '--only', 'owner-values'], {
+      inputs: signInInputs(),
+    });
+    expect(production.code).toBe(0);
+    expect(production.lines).toContain(
+      'owner-values skip REVIEW_SIGNIN_EMAILS (OI-store-submission)',
+    );
+    expect(production.lines).toContain(
+      'owner-values skip REVIEW_SIGNIN_CODE (OI-store-submission)',
+    );
+    expect(variableSets(production.calls, 'REVIEW_SIGNIN_EMAILS')).toEqual([]);
+    expect(variableSets(production.calls, 'APPLE_TEAM_ID').map(serviceOf)).toEqual([
+      'api',
+      'worker',
+    ]);
+
+    const report = await runCase(['--env', 'staging', '--only', 'report']);
+    expect(report.code).toBe(0);
+    for (const line of [
+      'report absent APPLE_TEAM_ID (OI-apple-developer)',
+      'report absent APPLE_KEY_ID (OI-apple-identifiers)',
+      'report absent APPLE_PRIVATE_KEY_FILE (OI-apple-identifiers)',
+      'report absent GOOGLE_CLIENT_IDS (OI-google-oauth)',
+      'report absent EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID (OI-google-oauth)',
+      'report absent REVIEW_SIGNIN_EMAILS (the perf account, not an owner input on staging)',
+    ]) {
+      expect(report.lines).toContain(line);
+    }
+    // A value given only for a rotation is not an owner input, so its absence is not reported.
+    expect(report.output).not.toContain('APP_SECRET_PREVIOUS');
+  });
+
+  it('refuses a partial Apple set', async () => {
+    for (const keys of [
+      ['APPLE_TEAM_ID'],
+      ['APPLE_TEAM_ID', 'APPLE_KEY_ID'],
+      ['APPLE_PRIVATE_KEY_FILE'],
+    ]) {
+      const text = keys.map((key) => `${key}=${signInInputs()[key] ?? ''}`).join('\n');
+      expect(() => parseInputsFile(text), keys.join()).toThrow('OI-apple-identifiers');
+      try {
+        parseInputsFile(text);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : APPLE_TEAM;
+        expect(message).not.toContain(APPLE_TEAM);
+        expect(message).not.toContain(APPLE_KEY);
+      }
+    }
+    const result = await runCase(['--env', 'staging'], {
+      inputs: { APPLE_TEAM_ID: APPLE_TEAM },
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(
+      'preflight fail inputs file: APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY_FILE must be given together (OI-apple-identifiers)',
+    );
+    expect(variableSets(result.calls)).toEqual([]);
+  });
+
+  it('refuses an Apple key that is not P-256', async () => {
+    for (const file of [
+      rsaPrivateKeyFile,
+      p384KeyFile,
+      publicKey4096,
+      join(keyFolder, 'none.p8'),
+    ]) {
+      const result = await runCase(['--env', 'staging'], {
+        inputs: { ...signInInputs(), APPLE_PRIVATE_KEY_FILE: file },
+      });
+      expect(result.code, file).toBe(1);
+      expect(result.lines, file).toContain(
+        'preflight fail APPLE_PRIVATE_KEY_FILE (OI-apple-identifiers) is not a P-256 EC private key file',
+      );
+      expect(
+        result.calls.some((call) => call.args[0] === 'link'),
+        file,
+      ).toBe(false);
+      expect(variableSets(result.calls), file).toEqual([]);
+    }
+    const accepted = await runCase(['--env', 'staging', '--only', 'preflight'], {
+      inputs: signInInputs(),
+    });
+    expect(accepted.code).toBe(0);
+    expect(accepted.lines).toContain('preflight ok ready for staging');
+  });
+
+  it('refuses a web client id missing from the list', () => {
+    const problems = [
+      [`GOOGLE_CLIENT_IDS=${IOS_CLIENT}`, `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${WEB_CLIENT}`],
+      [`EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${WEB_CLIENT}`],
+    ];
+    for (const lines of problems) {
+      expect(() => parseInputsFile(lines.join('\n'))).toThrow(
+        'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID must be one of GOOGLE_CLIENT_IDS',
+      );
+    }
+    // The list is ids joined by commas, with no empty id and no space.
+    for (const list of [
+      `${WEB_CLIENT}, ${IOS_CLIENT}`,
+      `${WEB_CLIENT},,${IOS_CLIENT}`,
+      `${WEB_CLIENT},`,
+      `,${WEB_CLIENT}`,
+    ]) {
+      let message = '';
+      try {
+        parseInputsFile(`GOOGLE_CLIENT_IDS=${list}`);
+      } catch (error) {
+        message = error instanceof Error ? error.message : '';
+      }
+      expect(message, list).toBe('inputs file: GOOGLE_CLIENT_IDS is not valid');
+    }
+    expect(
+      parseInputsFile(
+        `GOOGLE_CLIENT_IDS=${IOS_CLIENT},${WEB_CLIENT}\nEXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=${WEB_CLIENT}`,
+      ),
+    ).toEqual({
+      GOOGLE_CLIENT_IDS: `${IOS_CLIENT},${WEB_CLIENT}`,
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: WEB_CLIENT,
+    });
+    expect(parseInputsFile(`GOOGLE_CLIENT_IDS=${IOS_CLIENT}`)).toEqual({
+      GOOGLE_CLIENT_IDS: IOS_CLIENT,
+    });
+  });
+
+  it('the previous secret is 64 lower-case hex characters', () => {
+    expect(parseInputsFile(`APP_SECRET_PREVIOUS=${PREVIOUS_SECRET}`)).toEqual({
+      APP_SECRET_PREVIOUS: PREVIOUS_SECRET,
+    });
+    for (const value of [
+      PREVIOUS_SECRET.toUpperCase(),
+      PREVIOUS_SECRET.slice(2),
+      `${PREVIOUS_SECRET}ab`,
+    ]) {
+      let message = '';
+      try {
+        parseInputsFile(`APP_SECRET_PREVIOUS=${value}`);
+      } catch (error) {
+        message = error instanceof Error ? error.message : '';
+      }
+      expect(message).toBe('inputs file: APP_SECRET_PREVIOUS is not valid');
+    }
+  });
+
+  it('seals the new secrets', async () => {
+    const expected = [
+      'postgres/POSTGRES_PASSWORD',
+      'postgres/API_DB_PASSWORD',
+      'postgres/WORKER_DB_PASSWORD',
+      'postgres/BACKUP_DB_PASSWORD',
+      'postgres/ADMIN_DB_PASSWORD',
+      'api/APP_SECRET',
+      'worker/APP_SECRET',
+      'admin/APP_SECRET',
+      'api/RESEND_API_KEY',
+      'worker/RESEND_API_KEY',
+      'admin/RESEND_API_KEY',
+      'api/APPLE_PRIVATE_KEY',
+      'worker/APPLE_PRIVATE_KEY',
+      'api/REVIEW_SIGNIN_CODE',
+      'api/APP_SECRET_PREVIOUS',
+      'worker/APP_SECRET_PREVIOUS',
+      'admin/APP_SECRET_PREVIOUS',
+    ];
+    expect(SEALED.map((row) => `${row.service}/${row.key}`)).toEqual(expected);
+
+    // Set in the run by step 6, after the seal step: each is left to seal.
+    const set = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: {
+        ...signInInputs(),
+        REVIEW_SIGNIN_EMAILS: REVIEW_ADDRESS,
+        REVIEW_SIGNIN_CODE: REVIEW_CODE,
+        APP_SECRET_PREVIOUS: PREVIOUS_SECRET,
+      },
+    });
+    expect(set.code).toBe(0);
+    expect(
+      set.lines.filter((line) => line.startsWith('owner-values owner-check seal ')).sort(),
+    ).toEqual(
+      expected
+        .filter((entry) => !entry.startsWith('postgres/') && !entry.endsWith('/APP_SECRET'))
+        .map((entry) => `owner-values owner-check seal ${entry}`)
+        .sort(),
+    );
+    expect(variableSets(set.calls, 'REVIEW_SIGNIN_EMAILS').map((call) => call.stdin)).toEqual([
+      REVIEW_ADDRESS,
+    ]);
+    expect(variableSets(set.calls, 'APP_SECRET_PREVIOUS').map(serviceOf)).toEqual([
+      'api',
+      'worker',
+      'admin',
+    ]);
+    for (const value of [REVIEW_ADDRESS, REVIEW_CODE, PREVIOUS_SECRET]) {
+      expect(set.output).not.toContain(value);
+      for (const call of set.calls) {
+        expect(call.args.join(' ')).not.toContain(value);
+      }
+    }
+
+    // A later `--only seal` asks for every sealed variable Railway lists, the new ones included.
+    const listed = {
+      postgres: ALL_KEYS_LISTED.postgres ?? {},
+      api: {
+        APP_SECRET: null,
+        RESEND_API_KEY: null,
+        APPLE_PRIVATE_KEY: null,
+        REVIEW_SIGNIN_CODE: null,
+        APP_SECRET_PREVIOUS: null,
+      },
+      worker: {
+        APP_SECRET: null,
+        RESEND_API_KEY: null,
+        APPLE_PRIVATE_KEY: null,
+        APP_SECRET_PREVIOUS: null,
+      },
+      admin: { APP_SECRET: null, RESEND_API_KEY: null, APP_SECRET_PREVIOUS: null },
+    };
+    const open = await runCase(['--env', 'staging', '--only', 'seal'], { lists: listed });
+    expect(open.code).toBe(0);
+    expect(open.lines.filter((line) => line.startsWith('seal owner-check seal '))).toEqual(
+      expected.map((entry) => `seal owner-check seal ${entry}`),
+    );
+
+    // Without the review pair or a rotation on Railway, nothing of theirs is asked for.
+    const without = await runCase(['--env', 'staging', '--only', 'seal'], {
+      lists: {
+        ...listed,
+        api: { APP_SECRET: null, RESEND_API_KEY: null, APPLE_PRIVATE_KEY: null },
+        worker: { APP_SECRET: null, RESEND_API_KEY: null, APPLE_PRIVATE_KEY: null },
+        admin: { APP_SECRET: null, RESEND_API_KEY: null },
+      },
+    });
+    expect(without.output).not.toContain('REVIEW_SIGNIN_CODE');
+    expect(without.output).not.toContain('APP_SECRET_PREVIOUS');
+    expect(without.lines).toContain('seal owner-check seal worker/APPLE_PRIVATE_KEY');
+
+    // A confirmed seal compares what Railway still returns with the key file's text.
+    const confirmed = await runCase(['--env', 'staging', '--only', 'seal'], {
+      inputs: signInInputs(),
+      lists: {
+        ...listed,
+        api: { APP_SECRET: null, APPLE_PRIVATE_KEY: appleKeyText },
+        worker: { APP_SECRET: null, APPLE_PRIVATE_KEY: null },
+        admin: { APP_SECRET: null },
+      },
+      prompt: () => Promise.resolve('y'),
+    });
+    expect(confirmed.code).toBe(0);
+    expect(confirmed.lines).toContain('seal owner-check seal api/APPLE_PRIVATE_KEY');
+    expect(confirmed.lines).toContain('seal ok sealed worker/APPLE_PRIVATE_KEY');
+    expect(confirmed.output).not.toContain(appleKeyBody());
+  });
+
+  it('a sealed Apple key is replaced only with --rotate APPLE_PRIVATE_KEY', async () => {
+    const lists = { api: { APPLE_PRIVATE_KEY: null }, worker: { APPLE_PRIVATE_KEY: null } };
+    const kept = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: signInInputs(),
+      lists,
+    });
+    expect(kept.code).toBe(0);
+    expect(variableSets(kept.calls, 'APPLE_PRIVATE_KEY')).toEqual([]);
+    expect(kept.lines).toContain(
+      'owner-values skip APPLE_PRIVATE_KEY on api is kept; pass --rotate APPLE_PRIVATE_KEY to replace it',
+    );
+    // The two ids are plain values: a different one is replaced without --rotate.
+    expect(variableSets(kept.calls, 'APPLE_TEAM_ID').map(serviceOf)).toEqual(['api', 'worker']);
+
+    const rotated = await runCase(
+      ['--env', 'staging', '--only', 'owner-values', '--rotate', 'APPLE_PRIVATE_KEY'],
+      { inputs: signInInputs(), lists },
+    );
+    expect(rotated.code).toBe(0);
+    expect(variableSets(rotated.calls, 'APPLE_PRIVATE_KEY').map(serviceOf)).toEqual([
+      'api',
+      'worker',
+    ]);
+
+    // Once set, the previous secret stays: a second rotation needs a decision.
+    const refused = await runCase(['--env', 'staging', '--rotate', 'APP_SECRET_PREVIOUS']);
+    expect(refused.code).toBe(2);
+    expect(refused.calls).toEqual([]);
   });
 });
