@@ -75,6 +75,15 @@ function hasContent(node: ReactNode): boolean {
   return node !== undefined && node !== null && node !== false;
 }
 
+/**
+ * Where a sheet rests while no drag can move it between its detents: at the tallest it is given,
+ * so everything in it can be reached.
+ */
+function restOf(detents: readonly Detent[]): Detent {
+  if (detents.includes('full')) return 'full';
+  return detents.includes('half') ? 'half' : 'content';
+}
+
 /** The height the sheet rests at, inside the window less its top inset. */
 function heightOf(detent: Detent): ViewStyle {
   switch (detent) {
@@ -96,9 +105,9 @@ type CompactSheetProps = Omit<SheetProps, 'detents' | 'dismissible'> & {
 
 /**
  * The compact form (D-035, D-843): a frame of `surface` with a hairline of `rule` on its top edge,
- * as wide as the window and standing on its bottom edge, over the flat scrim. It rests at its first
- * detent. Its content keeps clear of the side and bottom insets; the rule and the grabber belong to
- * the frame and are centered on it.
+ * as wide as the window and standing on its bottom edge, over the flat scrim. It rests at the
+ * tallest of its detents. Its content keeps clear of the side and bottom insets; the rule and the
+ * grabber belong to the frame and are centered on it.
  */
 function CompactSheet({
   open,
@@ -122,7 +131,7 @@ function CompactSheet({
   const fade = useFade(shown);
   useShortcutBlocker(open);
 
-  const detent = detents[0] ?? 'content';
+  const detent = restOf(detents);
   const fills = detent !== 'content';
   // A toast stands over the sheet's top edge where the window has the room, so it covers nothing
   // of a short sheet; on a tall one it rises from the line above the footer.

@@ -307,9 +307,13 @@ describe('Sheet', () => {
     expect(row?.style.marginRight).toBe('-84px');
   });
 
-  it('rests at its first detent', () => {
+  it('rests at the tallest of its detents', () => {
     setViewport(...COMPACT);
-    expect(draw(STATES.half).style.height).toBe('50%');
+    // Nothing moves a sheet between its detents yet, so it takes the most room it is given.
+    expect(draw(STATES.half).style.height).toBe('100%');
+    expect(draw({ ...STATES.half, detents: ['full', 'half'] }).style.height).toBe('100%');
+    expect(draw({ ...STATES.half, detents: ['half'] }).style.height).toBe('50%');
+    expect(draw({ ...STATES.half, detents: ['content', 'half'] }).style.height).toBe('50%');
     expect(draw({ ...STATES.half, detents: ['full'] }).style.height).toBe('100%');
     const fitted = draw(STATES.open);
     expect(fitted.style.height).toBe('');
