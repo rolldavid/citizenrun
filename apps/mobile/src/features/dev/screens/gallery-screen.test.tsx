@@ -328,11 +328,15 @@ describe('GalleryScreen', () => {
     expect(total).toBeGreaterThan(COMPONENTS.length);
     expect(cells()).toHaveLength(total);
     expect(screen.getByTestId('gallery.cell-button-run-hover')).toBeDefined();
-    // One cell for each state of each fixtures file, under the state's own name.
+    // One cell for each state of each fixtures file, under the state's own name. The cells are
+    // read once into a map: a query of the whole gallery per state is slow on a hosted runner.
+    const byId = new Map(cells().map((cell) => [cell.getAttribute('data-testid'), cell]));
     for (const component of COMPONENTS) {
       for (const state of component.states) {
-        const cell = screen.getByTestId(`gallery.cell-${component.slug}-${kebab(state)}`);
-        expect(cell.firstElementChild?.textContent, `${component.id} ${state}`).toBe(state);
+        const id = `gallery.cell-${component.slug}-${kebab(state)}`;
+        const cell = byId.get(id);
+        expect(cell, id).toBeDefined();
+        expect(cell?.firstElementChild?.textContent, `${component.id} ${state}`).toBe(state);
       }
     }
     expect(errors).not.toHaveBeenCalled();
