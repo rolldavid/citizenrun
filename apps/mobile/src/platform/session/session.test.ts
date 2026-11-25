@@ -496,7 +496,9 @@ describe('session tokens', () => {
     const phone = await load('native');
     const getAuthorization = authorizationOf(phone);
     for (const malformed of ['short', TOKEN + 'z', TOKEN.slice(1) + '/', TOKEN.slice(1) + ' ']) {
-      const error = await rejection(phone.session.adopt({ token: malformed, expiresAt: EXPIRES_AT }));
+      const error = await rejection(
+        phone.session.adopt({ token: malformed, expiresAt: EXPIRES_AT }),
+      );
       expect(error).toMatchObject({
         name: 'PlatformError',
         module: 'session',
@@ -515,7 +517,9 @@ describe('session tokens', () => {
     await phone.session.adopt({ token: TOKEN, expiresAt: EXPIRES_AT });
 
     secure.failures.set = 1;
-    const error = await rejection(phone.session.adopt({ token: NEXT_TOKEN, expiresAt: EXPIRES_AT }));
+    const error = await rejection(
+      phone.session.adopt({ token: NEXT_TOKEN, expiresAt: EXPIRES_AT }),
+    );
     expect(error).toMatchObject({ name: 'PlatformError', code: 'session.store_failed' });
     // the library's own error never leaves the module
     expect(String(error)).not.toContain('fixture keychain failure');
@@ -538,7 +542,9 @@ describe('session tokens', () => {
     await phone.session.adopt({ token: TOKEN, expiresAt: EXPIRES_AT });
     secure.setItemAsync.mockClear();
 
-    await expect(phone.session.adopt({ token: null, expiresAt: EXPIRES_AT })).resolves.toBeUndefined();
+    await expect(
+      phone.session.adopt({ token: null, expiresAt: EXPIRES_AT }),
+    ).resolves.toBeUndefined();
     expect(secure.setItemAsync).not.toHaveBeenCalled();
     expect(secure.deleteItemAsync).not.toHaveBeenCalled();
     expect(getAuthorization()).toBe('Bearer ' + TOKEN);

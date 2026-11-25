@@ -59,7 +59,10 @@ describe('session on the web', () => {
 
     expect(await session.hydrate()).toBe('unknown');
     await expect(
-      session.adopt({ token: 'fixtureToken-' + 'x'.repeat(30), expiresAt: '2026-12-25T00:00:00.000Z' }),
+      session.adopt({
+        token: 'fixtureToken-' + 'x'.repeat(30),
+        expiresAt: '2026-12-25T00:00:00.000Z',
+      }),
     ).resolves.toBeUndefined();
     expect(options?.getAuthorization()).toBeNull();
     expect(storageFake.calls).toEqual([]);

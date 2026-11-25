@@ -18,7 +18,8 @@ export type SessionCallbacks = {
 export type SessionPresence = 'present' | 'absent' | 'unknown';
 
 /** Why the device forgets the session. */
-export type SessionEndReason = 'logout' | 'logout_all' | 'unauthorized' | 'account_deleted' | 'account_minor';
+export type SessionEndReason =
+  'logout' | 'logout_all' | 'unauthorized' | 'account_deleted' | 'account_minor';
 
 export type SessionErrorCode = 'session.no_origin' | 'session.no_version' | 'session.store_failed';
 
