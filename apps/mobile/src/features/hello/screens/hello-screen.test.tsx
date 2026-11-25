@@ -437,6 +437,62 @@ describe('HelloScreenView', () => {
     }
   });
 
+  it('the first frame of a loading box already has the bars of the lines its words take', () => {
+    const title = typeRoles.display.lineHeight;
+    const body = typeRoles.body.lineHeight;
+    const bar = `${String(title - space.x2)}px`;
+    // Where a box can be read as soon as it is laid out, it says how high its words stand: the
+    // title on `titleLines` lines and the intro on one, whatever the guess for this width is.
+    const lay = (titleLines: number): (() => void) => {
+      const read = vi
+        .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+        .mockImplementation(function (this: HTMLElement) {
+          const box = this.parentElement;
+          const hidden = box?.style.opacity === '0';
+          const whole = hidden && box.children[0] === this;
+          const isTitle = hidden && this.textContent === getI18n().t('hello:title');
+          const line = isTitle ? title : body;
+          const height = hidden ? (whole && isTitle ? line * titleLines : line) : 0;
+          return new DOMRect(0, 0, 0, height);
+        });
+      return () => {
+        read.mockRestore();
+      };
+    };
+
+    // A phone: the guess is two lines each, and the intro in fact takes one.
+    sized(LARGE);
+    let restore = lay(2);
+    let root = draw(fixtures.helloLoading);
+    expect(introBars(root)).toEqual(['60%']);
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', bar],
+        ['60%', bar],
+      ],
+    });
+    restore();
+
+    // A wide column: the guess is one line, and the title in fact takes two.
+    sized(MEDIUM);
+    restore = lay(2);
+    root = draw(fixtures.helloLoading);
+    expect(titleBars(root)).toEqual({
+      box: '',
+      bars: [
+        ['', bar],
+        ['60%', bar],
+      ],
+    });
+    expect(introBars(root)).toEqual(['60%']);
+    restore();
+
+    // Where nothing can be read that early, the guess stands until the box is laid out.
+    root = draw(fixtures.helloLoading);
+    expect(titleBars(root)).toEqual({ box: '80%', bars: [['', bar]] });
+  });
+
   it('a loading box takes the size of the words to come, and its bars the lines they take', () => {
     const cases: [Viewport, RenderWithProvidersOptions, tight: boolean][] = [
       [NARROW, {}, false],

@@ -1,10 +1,10 @@
 import { assertNever, typeRoles } from '@citizenrun/shared';
 import type { ErrorCode, TypeRole } from '@citizenrun/shared';
-import { useRef, useState } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
-import type { LayoutChangeEvent, TextInstance, ViewStyle } from 'react-native';
+import type { HostInstance, LayoutChangeEvent, TextInstance, ViewStyle } from 'react-native';
 
 import type { HelloData, HelloViewModel } from '@/features/hello/view-models/hello.types';
 import { useHelloViewModel } from '@/features/hello/view-models/use-hello-view-model';
@@ -201,11 +201,28 @@ function SkeletonRow(): JSX.Element {
   );
 }
 
+/** The height a view is laid out at now; null where it cannot be read or the view has none yet. */
+function laidOutHeight(host: unknown): number | null {
+  if (typeof host !== 'object' || host === null || !('getBoundingClientRect' in host)) {
+    return null;
+  }
+  const read = host.getBoundingClientRect;
+  if (typeof read !== 'function') {
+    return null;
+  }
+  const rect: unknown = read.call(host);
+  if (typeof rect !== 'object' || rect === null || !('height' in rect)) {
+    return null;
+  }
+  return typeof rect.height === 'number' && rect.height > 0 ? rect.height : null;
+}
+
 /**
  * The box of a text that has not come. The text itself, unseen and unsaid, gives the box its size,
  * so what stands under it does not move when the text arrives, at any width and any text size.
- * `children` draws the bars for the lines the text takes and the height of one line; until the box
- * is measured those are `guess` and the role's own line.
+ * `children` draws the bars for the lines the text takes and the height of one line. The box is
+ * read before its first frame is drawn, so the bars are right from the start; `guess` and the
+ * role's own line stand only where the box cannot be read that early.
  */
 function TextBox({
   role,
@@ -220,6 +237,17 @@ function TextBox({
 }): JSX.Element {
   const [box, setBox] = useState<number | null>(null);
   const [one, setOne] = useState<number | null>(null);
+  const boxRef = useRef<HostInstance>(null);
+  const oneRef = useRef<HostInstance>(null);
+  // Laid out and not yet drawn: the heights are read here, and the first frame has the real bars.
+  useLayoutEffect(() => {
+    const boxHeight = laidOutHeight(boxRef.current);
+    const oneHeight = laidOutHeight(oneRef.current);
+    if (boxHeight !== null && oneHeight !== null) {
+      setBox(boxHeight);
+      setOne(oneHeight);
+    }
+  }, [role, text]);
   const measured = box !== null && one !== null && one > 0;
   const lines = measured ? Math.max(1, Math.round(box / one)) : guess;
   const line = measured ? one : typeRoles[role].lineHeight;
@@ -227,6 +255,7 @@ function TextBox({
     <View>
       <Quiet style={UNSEEN}>
         <View
+          ref={boxRef}
           onLayout={(event: LayoutChangeEvent) => {
             setBox(event.nativeEvent.layout.height);
           }}
@@ -234,6 +263,7 @@ function TextBox({
           <Text role={role}>{text}</Text>
         </View>
         <View
+          ref={oneRef}
           style={ONE_LINE}
           onLayout={(event: LayoutChangeEvent) => {
             setOne(event.nativeEvent.layout.height);
