@@ -32,6 +32,7 @@ import * as appShellFixtures from '@/ui/shells/app-shell.fixtures';
 import * as railFixtures from '@/ui/shells/rail.fixtures';
 import * as rightColumnFixtures from '@/ui/shells/right-column.fixtures';
 import * as tabBarFixtures from '@/ui/shells/tab-bar.fixtures';
+import { gutter, size } from '@/ui/tokens';
 
 import { GalleryScreen } from './gallery-screen';
 import type { GalleryScreenProps } from './gallery-screen';
@@ -277,6 +278,26 @@ describe('GalleryScreen', () => {
         written('#F1EFE7'),
       );
     }
+  });
+
+  it('the right column stands at the start of its cell, where the narrowest window holds it', () => {
+    draw({ only: 'right-column' });
+    const box = boxOf('gallery.cell-right-column-two-modules');
+    const column = [...box.querySelectorAll<HTMLElement>('*')].find(
+      (element) => element.style.width === `${String(size.rightColumn)}px`,
+    );
+    expect(column).toBeDefined();
+    // The column brings the gap that parts it from a main column, and a specimen has none beside
+    // it: from the box's edge in, the room and the margins on the way come to nothing.
+    let start = Number.parseFloat(box.style.paddingLeft);
+    for (let element = column; element !== undefined && element !== box;) {
+      start += Number.parseFloat(element.style.marginLeft || '0');
+      element = element.parentElement ?? undefined;
+    }
+    expect(start).toBe(0);
+    // So the whole column stands between the gutters of a window 360 wide.
+    expect(size.rightColumn).toBeLessThanOrEqual(360 - 2 * gutter.narrow);
+    expect(within(box).getByText('Deadlines near you')).toBeDefined();
   });
 
   it('only shows one section', () => {

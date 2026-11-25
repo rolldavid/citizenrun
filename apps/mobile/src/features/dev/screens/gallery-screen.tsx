@@ -36,7 +36,13 @@ import {
   showToast,
   useBreakpoint,
 } from '@/ui';
-import type { DialogProps, InteractionPreviewState, ListProps, SheetProps } from '@/ui';
+import type {
+  DialogProps,
+  InteractionPreviewState,
+  ListProps,
+  RightColumnProps,
+  SheetProps,
+} from '@/ui';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
@@ -183,6 +189,20 @@ function SpecimenList(props: ListProps<ListSpecimenItem>): JSX.Element {
   return <List {...props} />;
 }
 
+// C-RightColumn brings the gap that parts it from the main column. No main column stands beside a
+// specimen, so the gap and the cell's own room before it are taken back: the column starts at the
+// cell's edge, where the narrowest window holds all of it.
+const RIGHT_COLUMN_START: ViewStyle = { marginLeft: -(size.columnGap + space.x3) };
+
+/** C-RightColumn at the start of its cell. */
+function SpecimenRightColumn(props: RightColumnProps): JSX.Element {
+  return (
+    <View style={RIGHT_COLUMN_START}>
+      <RightColumn {...props} />
+    </View>
+  );
+}
+
 /** A state name as a testID writes it: `runHover` is `run-hover`. */
 function kebab(name: string): string {
   return name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`);
@@ -277,7 +297,7 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     state.startsWith('labeled') ? RAIL_FRAME : null,
   ),
   section('C-AppBar', 'app-bar', 'wide', AppBar, appBarFixtures),
-  section('C-RightColumn', 'right-column', 'full', RightColumn, rightColumnFixtures),
+  section('C-RightColumn', 'right-column', 'full', SpecimenRightColumn, rightColumnFixtures),
   section('C-Text', 'text', 'wide', Text, textFixtures),
   section('C-Pressable', 'pressable', 'wide', Pressable, pressableFixtures),
   section('C-Icon', 'icon', 'narrow', Icon, iconFixtures),
