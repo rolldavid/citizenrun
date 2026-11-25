@@ -7,10 +7,14 @@ import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import { motion } from '@/ui/motion';
+import { AppShell } from '@/ui/shells/app-shell';
 import { clearBottomChrome, reportBottomChrome } from '@/ui/shells/bottom-chrome';
+import { clearSideChrome, reportSideChrome } from '@/ui/shells/side-chrome';
 import { color, gutter, radius, size, space, z } from '@/ui/tokens';
 
+import { Dialog } from './dialog';
 import type { InteractionPreviewState } from './pressable';
+import { Sheet } from './sheet';
 import { showToast, ToastHost } from './toast';
 import { GROUND, PREVIEW, STATES } from './toast.fixtures';
 
@@ -36,6 +40,7 @@ const MEDIUM = [820, 1180] as const;
 const EXPANDED = [1440, 900] as const;
 
 const PAGE = 'probe.page';
+const OVERLAY = 'probe.overlay';
 const WARNING_HAPTIC = { method: 'notify', kind: 'warning' };
 
 // A haptic is dropped when it follows another too closely, so each case starts a minute after the last.
@@ -289,18 +294,166 @@ describe('Toast', () => {
     });
     expect(layer().style.bottom).toBe(`${String(space.x4)}px`);
 
-    // Medium: right of the icon rail.
+    // Medium, on a screen with no rail: centered in the window, which is the whole content slot.
     setViewport(...MEDIUM);
-    expect(layer().style.left).toBe(`${String(size.railIcon)}px`);
+    expect(layer().style.left).toBe('0px');
     expect(layer().style.right).toBe('0px');
     expect(layer().style.bottom).toBe(`${String(space.x6)}px`);
+    // The shell draws the icon rail and says so: the toast stands right of it.
+    act(() => {
+      reportSideChrome('probe', size.railIcon);
+    });
+    expect(layer().style.left).toBe(`${String(size.railIcon)}px`);
+    expect(layer().style.right).toBe('0px');
+    act(() => {
+      clearSideChrome('probe');
+    });
 
-    // Expanded: right of the labeled rail, inside the capped row.
+    // Expanded, with no rail: centered in the capped row, which is centered in the window.
     setViewport(...EXPANDED);
     const margin = (EXPANDED[0] - size.contentMax) / 2;
     expect(margin).toBeGreaterThan(0);
-    expect(layer().style.left).toBe(`${String(margin + size.rail)}px`);
+    expect(layer().style.left).toBe(`${String(margin)}px`);
     expect(layer().style.right).toBe(`${String(margin)}px`);
     expect(layer().style.bottom).toBe(`${String(space.x6)}px`);
+    // Right of the labeled rail, inside the capped row.
+    act(() => {
+      reportSideChrome('probe', size.rail);
+    });
+    expect(layer().style.left).toBe(`${String(margin + size.rail)}px`);
+    expect(layer().style.right).toBe(`${String(margin)}px`);
+    act(() => {
+      clearSideChrome('probe');
+    });
+    expect(layer().style.left).toBe(`${String(margin)}px`);
+  });
+
+  it('the shell says which rail it draws, and a shell without chrome says none', () => {
+    const shell = (mode: 'app' | 'bare'): JSX.Element => (
+      <ToastHost>
+        <AppShell
+          mode={mode}
+          active="home"
+          onNavigate={() => undefined}
+          onReselect={() => undefined}
+          unread={{ activity: 0, messages: 0 }}
+          place={null}
+          topBar={null}
+          banner={null}
+          signedIn={true}
+        >
+          <View testID={PAGE} />
+        </AppShell>
+      </ToastHost>
+    );
+    /** The left edge of the layer the host draws the toast in. */
+    const leftOf = (mode: 'app' | 'bare', viewport: readonly [number, number]): string => {
+      cleanup();
+      setViewport(viewport[0], viewport[1]);
+      renderWithProviders(shell(mode));
+      show(STATES.success);
+      const drawn = toast().parentElement;
+      if (drawn === null) {
+        throw new Error('the host drew no layer');
+      }
+      return drawn.style.left;
+    };
+    const margin = (EXPANDED[0] - size.contentMax) / 2;
+    expect(leftOf('app', COMPACT)).toBe('0px');
+    expect(leftOf('app', MEDIUM)).toBe(`${String(size.railIcon)}px`);
+    expect(leftOf('app', EXPANDED)).toBe(`${String(margin + size.rail)}px`);
+    // Welcome, sign-in, onboarding and the system screens have no rail: the toast is centered.
+    expect(leftOf('bare', MEDIUM)).toBe('0px');
+    expect(leftOf('bare', EXPANDED)).toBe(`${String(margin)}px`);
+  });
+
+  it('is drawn inside an open dialog, above its scrim, and nowhere else', () => {
+    function WithDialog({ open }: { open: boolean }): JSX.Element {
+      return (
+        <ToastHost>
+          <View testID={PAGE} />
+          <Dialog
+            open={open}
+            onClose={() => undefined}
+            title="Delete this post?"
+            testID={OVERLAY}
+          />
+        </ToastHost>
+      );
+    }
+    for (const viewport of [COMPACT, MEDIUM, EXPANDED]) {
+      cleanup();
+      setViewport(viewport[0], viewport[1]);
+      const view = renderWithProviders(<WithDialog open={true} />);
+      // A rail under the dialog does not move a toast that stands in the window.
+      act(() => {
+        reportSideChrome('probe', size.rail);
+        reportBottomChrome('probe', size.tabBar);
+      });
+      show(STATES.error);
+      const frame = screen.getByTestId(OVERLAY);
+      const root = frame.parentElement;
+      expect(toasts(), String(viewport[0])).toHaveLength(1);
+      // In the dialog's own layer, beside its frame and its scrim, so nothing covers it and a
+      // screen reader held inside the dialog reaches it.
+      const drawn = toast().parentElement;
+      expect(drawn?.parentElement, String(viewport[0])).toBe(root);
+      expect(view.container.contains(toast()), String(viewport[0])).toBe(false);
+      expect(drawn?.style.zIndex).toBe(String(z.toast));
+      expect(Number(drawn?.style.zIndex)).toBeGreaterThan(Number(frame.style.zIndex));
+      expect(window.getComputedStyle(drawn ?? frame).pointerEvents).toBe('none');
+      // Centered in the window the dialog covers: no rail and no tab bar count.
+      expect(drawn?.style.left, String(viewport[0])).toBe('0px');
+      expect(drawn?.style.right, String(viewport[0])).toBe('0px');
+      expect(drawn?.style.bottom, String(viewport[0])).toBe(
+        `${String(viewport === COMPACT ? space.x4 : space.x6)}px`,
+      );
+      expect(toast().getAttribute('role')).toBe('alert');
+
+      // The dialog closes and goes: the toast that still holds is the host's again.
+      view.rerender(<WithDialog open={false} />);
+      wait(motion.duration.fade);
+      expect(screen.queryByTestId(OVERLAY)).toBeNull();
+      expect(toasts(), String(viewport[0])).toHaveLength(1);
+      expect(view.container.contains(toast()), String(viewport[0])).toBe(true);
+      act(() => {
+        clearSideChrome('probe');
+        clearBottomChrome('probe');
+      });
+    }
+  });
+
+  it('is drawn inside an open sheet on a phone', () => {
+    function WithSheet({ open }: { open: boolean }): JSX.Element {
+      return (
+        <ToastHost>
+          <View testID={PAGE} />
+          <Sheet open={open} onClose={() => undefined} title="Not interested?" testID={OVERLAY}>
+            <View />
+          </Sheet>
+        </ToastHost>
+      );
+    }
+    renderWithProviders(<WithSheet open={true} />);
+    show(STATES.success);
+    const frame = screen.getByTestId(OVERLAY);
+    expect(toasts()).toHaveLength(1);
+    // Inside the sheet's frame, at its bottom edge, which is the screen's.
+    const drawn = toast().parentElement;
+    expect(drawn?.parentElement).toBe(frame);
+    expect(drawn?.style.position).toBe('absolute');
+    expect(drawn?.style.left).toBe('0px');
+    expect(drawn?.style.right).toBe('0px');
+    expect(drawn?.style.bottom).toBe(`${String(space.x4)}px`);
+    expect(drawn?.style.zIndex).toBe(String(z.toast));
+
+    // A sheet that is closed draws no toast: the host does.
+    cleanup();
+    renderWithProviders(<WithSheet open={false} />);
+    show(STATES.success);
+    expect(toasts()).toHaveLength(1);
+    expect(screen.queryByTestId(OVERLAY)?.contains(toast()) ?? false).toBe(false);
+    expect(toast().parentElement?.style.bottom).toBe(`${String(space.x4)}px`);
+    expect(toast().parentElement?.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
   });
 });

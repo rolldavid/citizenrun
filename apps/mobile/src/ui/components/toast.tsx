@@ -1,5 +1,5 @@
 import { assertNever } from '@citizenrun/shared';
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useId, useSyncExternalStore } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
@@ -10,6 +10,7 @@ import { playHaptic } from '@/ui/haptic';
 import type { IconName } from '@/ui/icons';
 import { motion, useFade } from '@/ui/motion';
 import { useBottomChromeHeight } from '@/ui/shells/bottom-chrome';
+import { useSideChromeWidth } from '@/ui/shells/side-chrome';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import type { Layout } from '@/ui/shells/use-breakpoint';
 import { useTheme } from '@/ui/theme';
@@ -50,6 +51,19 @@ function subscribe(subscriber: () => void): () => void {
 
 function getCurrent(): ShownToast | null {
   return current;
+}
+
+// The open overlays that draw the toast themselves, the latest last. A dialog and a sheet are laid
+// over the whole app, the host's layer with it, so the toast is drawn inside the one on top.
+let outlets: readonly string[] = [];
+
+function topOutlet(): string | null {
+  return outlets.at(-1) ?? null;
+}
+
+function setOutlets(next: readonly string[]): void {
+  outlets = next;
+  for (const subscriber of [...subscribers]) subscriber();
 }
 
 function stopTimer(): void {
@@ -108,28 +122,35 @@ const TOAST: ViewStyle = {
 const WORDS: ViewStyle = { flexShrink: 1 };
 
 /**
- * Where the toast stands: centered above the bottom chrome on a phone, and centered in the content
- * slot, right of the rail, at medium and expanded (PC6A-27).
+ * Where the layer stands. `shell`: over the app, centered above the bottom chrome on a phone and in
+ * the content slot at medium and expanded, right of the rail where one is drawn (PC6A-27).
+ * `window`: inside an overlay that covers the window, centered in it. `sheet`: inside a sheet on a
+ * phone, whose bottom edge is the screen's.
  */
-function placeOf(layout: Layout, bottomChrome: number, bottomInset: number): ViewStyle {
+type ToastPlace = 'shell' | 'window' | 'sheet';
+
+type Chrome = { bottomChrome: number; bottomInset: number; rail: number };
+
+function placeOf(place: ToastPlace, layout: Layout, chrome: Chrome): ViewStyle {
+  const sides: ViewStyle = { left: 0, right: 0, paddingHorizontal: layout.gutter };
+  if (place === 'sheet') {
+    return { ...sides, bottom: space.x4 };
+  }
   switch (layout.breakpoint) {
-    case 'compact':
-      return {
-        left: 0,
-        right: 0,
-        bottom: (bottomChrome > 0 ? bottomChrome : bottomInset) + space.x4,
-        paddingHorizontal: layout.gutter,
-      };
+    case 'compact': {
+      // An overlay covers the tab bar and the footer: the toast stands above the bottom inset.
+      const covered = place === 'shell' && chrome.bottomChrome > 0;
+      return { ...sides, bottom: (covered ? chrome.bottomChrome : chrome.bottomInset) + space.x4 };
+    }
     case 'medium':
-      return { left: size.railIcon, right: 0, bottom: space.x6, paddingHorizontal: layout.gutter };
+      return { ...sides, left: place === 'shell' ? chrome.rail : 0, bottom: space.x6 };
     case 'expanded': {
+      if (place !== 'shell') {
+        return { ...sides, bottom: space.x6 };
+      }
+      // The capped row the shell centers in the window, and the rail at its left.
       const margin = (layout.width - Math.min(layout.width, size.contentMax)) / 2;
-      return {
-        left: margin + size.rail,
-        right: margin,
-        bottom: space.x6,
-        paddingHorizontal: layout.gutter,
-      };
+      return { ...sides, left: margin + chrome.rail, right: margin, bottom: space.x6 };
     }
     default:
       return assertNever(layout.breakpoint);
@@ -158,24 +179,56 @@ function ToastView({ toast }: { toast: ShownToast }): JSX.Element {
   );
 }
 
-function ToastLayer(): JSX.Element {
+function ToastLayer({ place }: { place: ToastPlace }): JSX.Element {
   const toast = useSyncExternalStore(subscribe, getCurrent, getCurrent);
   const layout = useBreakpoint();
   const bottomChrome = useBottomChromeHeight();
+  const rail = useSideChromeWidth();
   const insets = useSafeAreaInsets();
   return (
-    <View style={[LAYER, placeOf(layout, bottomChrome, insets.bottom)]} pointerEvents="box-none">
+    <View
+      style={[LAYER, placeOf(place, layout, { bottomChrome, bottomInset: insets.bottom, rail })]}
+      pointerEvents="box-none"
+    >
       {toast === null ? null : <ToastView key={toast.id} toast={toast} />}
     </View>
   );
 }
 
 /**
+ * The toast's place inside an open overlay: C-Dialog's frame and C-Sheet render it, so a toast
+ * shown while they are open is drawn above them and inside what a screen reader can reach. Only the
+ * overlay on top draws it, and the host draws none meanwhile.
+ */
+export function ToastOutlet({
+  place,
+  active = true,
+}: {
+  place: 'window' | 'sheet';
+  /** False while the overlay is closed. Default true. */
+  active?: boolean;
+}): JSX.Element | null {
+  const id = useId();
+  const top = useSyncExternalStore(subscribe, topOutlet, topOutlet);
+
+  useEffect(() => {
+    if (!active) return undefined;
+    setOutlets([...outlets, id]);
+    return () => {
+      setOutlets(outlets.filter((outlet) => outlet !== id));
+    };
+  }, [active, id]);
+
+  return top === id ? <ToastLayer place={place} /> : null;
+}
+
+/**
  * The home of C-Toast: the root layout renders it once, around the app. It draws its children and,
  * above them, the one toast `showToast` asked for: ink, with one icon that carries the kind, never
- * a color and never a button.
+ * a color and never a button. While a dialog or a sheet is open the toast is drawn inside it.
  */
 export function ToastHost(props: { children: ReactNode }): JSX.Element {
+  const covered = useSyncExternalStore(subscribe, topOutlet, topOutlet) !== null;
   useEffect(() => {
     hosts += 1;
     return () => {
@@ -190,7 +243,7 @@ export function ToastHost(props: { children: ReactNode }): JSX.Element {
   return (
     <>
       {props.children}
-      <ToastLayer />
+      {covered ? null : <ToastLayer place="shell" />}
     </>
   );
 }

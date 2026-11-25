@@ -13,6 +13,7 @@ export { RightColumn } from './right-column';
 export type { RightColumnProps } from './right-column';
 export { useOnReselect } from './reselect';
 export { useBottomChromeHeight, useReportBottomChrome } from './bottom-chrome';
+export { useReportSideChrome, useSideChromeWidth } from './side-chrome';
 export {
   SideInsetsProvider,
   TopBarHeightProvider,

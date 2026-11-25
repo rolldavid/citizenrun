@@ -14,6 +14,7 @@ import { DialogFrame } from './dialog';
 import { useOverlay } from './overlay-registry';
 import { Pressable } from './pressable';
 import { Text } from './text';
+import { ToastOutlet } from './toast';
 
 export type SheetProps = {
   open: boolean;
@@ -157,6 +158,7 @@ function CompactSheet({
           )}
           {children}
           {hasContent(footer) ? <View style={FOOTER}>{footer}</View> : null}
+          <ToastOutlet place="sheet" active={open} />
         </View>
       </RNHostView>
     </BottomSheet>

@@ -15,6 +15,7 @@ import { Button } from './button';
 import { useOverlay } from './overlay-registry';
 import { Pressable } from './pressable';
 import { Text } from './text';
+import { ToastOutlet } from './toast';
 
 export type DialogProps = {
   open: boolean;
@@ -232,6 +233,7 @@ export function DialogFrame({
             </Pressable>
           ) : null}
         </Animated.View>
+        <ToastOutlet place="window" />
       </View>
     </Modal>
   );

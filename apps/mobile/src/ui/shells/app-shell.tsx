@@ -11,6 +11,7 @@ import { radius, rule, size, space, z } from '@/ui/tokens';
 
 import { Rail } from './rail';
 import { emitReselect } from './reselect';
+import { useReportSideChrome } from './side-chrome';
 import { TopBarHeightProvider, useBreakpoint } from './use-breakpoint';
 import type { Breakpoint } from './use-breakpoint';
 
@@ -213,11 +214,21 @@ export function ShellLayout({
   );
 }
 
+/** The width of the rail a shell draws: none at compact, and none without navigation chrome. */
+function railWidthOf(mode: AppShellProps['mode'], breakpoint: Breakpoint): number {
+  if (mode !== 'app' || breakpoint === 'compact') {
+    return 0;
+  }
+  return breakpoint === 'medium' ? size.railIcon : size.rail;
+}
+
 /**
  * C-AppShell: the one component the root layout renders around the navigator. It draws the chrome
  * of the window's breakpoint around the same mounted screens, and reads no route, query or session.
  */
 export function AppShell(props: AppShellProps): JSX.Element {
   const { breakpoint } = useBreakpoint();
+  // What is centered in the content slot, the toast, stands clear of the rail this shell draws.
+  useReportSideChrome(railWidthOf(props.mode, breakpoint));
   return <ShellLayout {...props} breakpoint={breakpoint} />;
 }
