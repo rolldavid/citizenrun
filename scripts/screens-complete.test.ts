@@ -6,12 +6,15 @@ import { repoRoot } from './lib/repo-root.ts';
 // TEST-screens-capture: every screen fixture has a capture entry, and every fixture entry names a
 // fixture that exists. routes.ts is read as text, so its ids and paths are single-quoted literals.
 // Every section of the gallery has a capture entry too; the gallery's source is read as text as
-// well, so each section's kebab name is a single-quoted literal.
+// well, so each section's kebab name is a single-quoted literal. An entry that is captured at some
+// viewports only lists them as single-quoted literals, each one a viewport of the capture's config.
 
 type RouteEntry = { id: string; path: string };
+type ViewportList = { id: string; viewports: string[] };
 
 const ROOT = repoRoot();
 const ROUTES_FILE = 'apps/mobile/e2e/screens/routes.ts';
+const CAPTURE_CONFIG_FILE = 'apps/mobile/playwright.screens.config.ts';
 const FEATURES_DIR = 'apps/mobile/src/features';
 const GALLERY_FILE = 'apps/mobile/src/features/dev/screens/gallery-screen.tsx';
 const FIXTURE_PREFIX = '/dev/screens/';
@@ -30,6 +33,43 @@ function parseRouteEntries(source: string): RouteEntry[] {
 /** How many objects of a routes file open with an `id:` value, however it is written; the type has none. */
 function idFieldCount(source: string): number {
   return [...source.matchAll(/\{\s*id:(?!\s*string\b)/g)].length;
+}
+
+/** The entries of a routes file that list the viewports they are captured at, with each list in
+ *  the order it is written. */
+function viewportLists(source: string): ViewportList[] {
+  return [
+    ...source.matchAll(
+      /\{\s*id:\s*'([^']*)',\s*path:\s*'[^']*',[^{}]*?\bviewports:\s*\[([^\]]*)\]/g,
+    ),
+  ].map((match) => ({
+    id: match[1] ?? '',
+    viewports: [...(match[2] ?? '').matchAll(/'([^']*)'/g)].map((each) => each[1] ?? ''),
+  }));
+}
+
+/** How many objects of a routes file carry a `viewports:` value, however it is written; the type's
+ *  own field is optional, `viewports?:`. */
+function viewportsFieldCount(source: string): number {
+  return [...source.matchAll(/\bviewports:/g)].length;
+}
+
+/** The viewports a capture config gives its projects: each `size: '<width>x<height>'`, in order. */
+function captureViewports(source: string): string[] {
+  return [...source.matchAll(/\bsize:\s*'(\d+x\d+)'/g)].map((match) => match[1] ?? '');
+}
+
+/** The lists that name no viewport, a viewport the capture has not, or one viewport twice. */
+function badViewportLists(
+  lists: readonly ViewportList[],
+  viewports: readonly string[],
+): ViewportList[] {
+  return lists.filter(
+    (list) =>
+      list.viewports.length === 0 ||
+      list.viewports.some((each) => !viewports.includes(each)) ||
+      new Set(list.viewports).size !== list.viewports.length,
+  );
 }
 
 /** The names of a fixtures module's `export const` declarations, in order. */
@@ -212,6 +252,61 @@ describe('the pure checks', () => {
     const source = `type ScreenEntry = { id: string; path: string };\n{ id: "dev-x", path: "/dev/x" }`;
     expect(parseRouteEntries(source)).toEqual([]);
     expect(idFieldCount(source)).toBe(1);
+  });
+
+  it('viewportLists reads the viewports an entry is captured at, and no other entry', () => {
+    const source = `
+      export type ScreenEntry = { id: string; path: string; viewports?: readonly ScreenViewport[] };
+      export const SCREENS: ScreenEntry[] = [
+        {
+          id: 'dev-gallery',
+          path: '/dev/gallery',
+          auth: 'none',
+          viewports: ['820x1180', '1440x900'],
+          prepare: waitForGallery,
+        },
+        { id: 'dev-art', path: '/dev/art', auth: 'none' },
+        { id: 'dev-wide', path: '/dev/wide', auth: 'none', viewports: ['1440x900'] },
+      ];
+    `;
+    expect(viewportLists(source)).toEqual([
+      { id: 'dev-gallery', viewports: ['820x1180', '1440x900'] },
+      { id: 'dev-wide', viewports: ['1440x900'] },
+    ]);
+    expect(viewportsFieldCount(source)).toBe(2);
+  });
+
+  it('counts a viewport list that is no literal, which viewportLists leaves out', () => {
+    const source = `
+      { id: 'dev-gallery', path: '/dev/gallery', auth: 'none', viewports: WIDE },
+      { id: 'dev-wide', path: '/dev/wide', auth: 'none', viewports: ['1440x900'] },
+    `;
+    expect(viewportLists(source)).toEqual([{ id: 'dev-wide', viewports: ['1440x900'] }]);
+    expect(viewportsFieldCount(source)).toBe(2);
+  });
+
+  it('captureViewports reads the size of each viewport of a capture config', () => {
+    const source = `
+      const VIEWPORTS = [
+        { size: '360x740', width: 360, height: 740, deviceScaleFactor: 2 },
+        { size: '1440x900', width: 1440, height: 900, deviceScaleFactor: 1 },
+      ] as const;
+    `;
+    expect(captureViewports(source)).toEqual(['360x740', '1440x900']);
+  });
+
+  it('badViewportLists reports an empty list, an unknown viewport and a repeated one', () => {
+    const viewports = ['360x740', '820x1180', '1440x900'];
+    const wide = { id: 'dev-gallery', viewports: ['820x1180', '1440x900'] };
+    const empty = { id: 'dev-empty', viewports: [] };
+    const unknown = { id: 'dev-unknown', viewports: ['1440x900', '390x844'] };
+    const twice = { id: 'dev-twice', viewports: ['1440x900', '1440x900'] };
+    expect(badViewportLists([wide, empty, unknown, twice], viewports)).toEqual([
+      empty,
+      unknown,
+      twice,
+    ]);
+    expect(badViewportLists([wide], viewports)).toEqual([]);
   });
 
   it('fixtureExports reads every exported constant and nothing else', () => {
@@ -476,6 +571,20 @@ describe('the real tree', () => {
     expect(entries.some((entry) => entry.path.startsWith(GALLERY_SECTION_PREFIX))).toBe(true);
     expect(missingGalleryTextScale(entries)).toEqual([]);
     expect(strayGalleryTextScale(entries)).toEqual([]);
+  });
+
+  it('every viewport list is written with literals and names viewports of the capture', () => {
+    const viewports = captureViewports(readFileSync(join(ROOT, CAPTURE_CONFIG_FILE), 'utf8'));
+    const lists = viewportLists(source);
+    expect(viewports).toEqual(['360x740', '430x932', '820x1180', '1440x900']);
+    expect(lists.length).toBe(viewportsFieldCount(source));
+    expect(badViewportLists(lists, viewports)).toEqual([]);
+  });
+
+  it('the whole gallery is captured at the two wide viewports only', () => {
+    expect(viewportLists(source).filter((list) => list.id === 'dev-gallery')).toEqual([
+      { id: 'dev-gallery', viewports: ['820x1180', '1440x900'] },
+    ]);
   });
 
   it('holds the gallery and its text-scale entry', () => {

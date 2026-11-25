@@ -1,10 +1,15 @@
 import { expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+/** A viewport of the capture, as its projects name it. */
+export type ScreenViewport = '360x740' | '430x932' | '820x1180' | '1440x900';
+
 export type ScreenEntry = {
   id: string;
   path: string;
   auth: 'none' | 'user';
+  /** The viewports the entry is captured at; every viewport when it names none. */
+  viewports?: readonly ScreenViewport[];
   prepare?: (page: Page) => Promise<void>;
 };
 
@@ -105,15 +110,23 @@ async function waitForListSpike(page: Page): Promise<void> {
 }
 
 export const SCREENS: ScreenEntry[] = [
-  { id: 'dev-gallery', path: '/dev/gallery', auth: 'none', prepare: waitForGallery },
+  // The whole gallery is taller on a phone than one capture takes, so it is captured whole at the
+  // two wide viewports only; on the two phones its section entries are the record.
+  {
+    id: 'dev-gallery',
+    path: '/dev/gallery',
+    auth: 'none',
+    viewports: ['820x1180', '1440x900'],
+    prepare: waitForGallery,
+  },
   {
     id: 'dev-gallery-text-130',
     path: '/dev/gallery?textScale=1.3',
     auth: 'none',
     prepare: waitForGallery,
   },
-  // The whole gallery is taller at 360 by 740 than one capture takes, and grows with every component,
-  // so the design review captures it one section at a time, in the gallery's order.
+  // The gallery grows with every component, so the design review captures it one section at a
+  // time, in the gallery's order.
   {
     id: 'dev-gallery-section-shells',
     path: '/dev/gallery?only=shells',

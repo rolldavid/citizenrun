@@ -2,14 +2,30 @@ import { resolve } from 'node:path';
 import { defineConfig } from '@playwright/test';
 import type { PlaywrightTestConfig } from '@playwright/test';
 
+import { SCREENS } from './e2e/screens/routes.ts';
+import type { ScreenViewport } from './e2e/screens/routes.ts';
+
+type Viewport = { size: ScreenViewport; width: number; height: number; deviceScaleFactor: number };
+
 // The four design-review viewports, each in light and dark.
 const VIEWPORTS = [
   { size: '360x740', width: 360, height: 740, deviceScaleFactor: 2 },
   { size: '430x932', width: 430, height: 932, deviceScaleFactor: 2 },
   { size: '820x1180', width: 820, height: 1180, deviceScaleFactor: 2 },
   { size: '1440x900', width: 1440, height: 900, deviceScaleFactor: 1 },
-] as const;
+] as const satisfies readonly Viewport[];
 const SCHEMES = ['light', 'dark'] as const;
+
+/**
+ * The entries a viewport's projects leave out: each lists the viewports it is captured at, and this
+ * is not one of them. A test is titled with its entry's id, which is kebab-case, and a title ends
+ * the string a project's filter reads.
+ */
+function leftOut(size: ScreenViewport): RegExp[] {
+  return SCREENS.filter(
+    (entry) => entry.viewports !== undefined && !entry.viewports.some((each) => each === size),
+  ).map((entry) => new RegExp(` ${entry.id}$`));
+}
 
 const baseUrl = process.env.SCREENS_BASE_URL;
 
@@ -26,6 +42,7 @@ export default defineConfig({
   projects: VIEWPORTS.flatMap((viewport) =>
     SCHEMES.map((scheme) => ({
       name: `${viewport.size}-${scheme}`,
+      grepInvert: leftOut(viewport.size),
       use: {
         viewport: { width: viewport.width, height: viewport.height },
         deviceScaleFactor: viewport.deviceScaleFactor,
