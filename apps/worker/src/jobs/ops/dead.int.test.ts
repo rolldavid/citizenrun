@@ -1,3 +1,4 @@
+import { createEnqueue } from '@citizenrun/db';
 import { captureLogs, createTestBoss } from '@citizenrun/db/testing';
 import { newId } from '@citizenrun/shared';
 import { marker } from '@citizenrun/shared/testing';
@@ -107,13 +108,18 @@ describe('J-ops.dead', () => {
   });
 
   it('the retry path', async () => {
+    // The send goes through the boss that deleted the queue: the file's shared boss recreates
+    // every missing queue when it starts, so it would undo the delete when this case runs first.
     const boss = await createTestBoss();
     await boss.deleteQueue('ops.alert');
     try {
       const result = await runJob(
         opsDeadJob,
         {},
-        { deadLetter: { queue: 'backup.check', jobId: newId(), errorClass: 'Error' } },
+        {
+          deadLetter: { queue: 'backup.check', jobId: newId(), errorClass: 'Error' },
+          enqueue: createEnqueue(boss),
+        },
       );
       expect(result.outcome).toBe('failed');
       expect(lines('job.failed')).toEqual([
@@ -121,6 +127,7 @@ describe('J-ops.dead', () => {
       ]);
     } finally {
       await boss.createQueue('ops.alert');
+      await boss.stop({ graceful: false });
     }
     expect(await peekQueue('ops.alert')).toEqual([]);
   });
