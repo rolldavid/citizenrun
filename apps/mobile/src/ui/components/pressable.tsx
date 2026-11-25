@@ -1,11 +1,11 @@
 import { Link } from 'expo-router';
-import type { Href } from 'expo-router';
 import { createContext, useContext, useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { Pressable as NativePressable, View } from 'react-native';
 import type { Insets, KeyDownEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { assertRouterPath } from '@/lib/router-path';
 import { focusRingStyle } from '@/ui/focus';
 import { playHaptic } from '@/ui/haptic';
 import type { HapticName } from '@/ui/haptic';
@@ -262,12 +262,9 @@ export function Pressable({
   if (href === undefined || disabled) {
     return target;
   }
+  assertRouterPath(href); // the router's generated route types cannot name a path that arrives as a prop
   return (
-    <Link
-      href={href as Href} // the router's generated route types cannot name a path that arrives as a prop
-      asChild
-      {...(external ? { target: EXTERNAL_TARGET, rel: EXTERNAL_REL } : {})}
-    >
+    <Link href={href} asChild {...(external ? { target: EXTERNAL_TARGET, rel: EXTERNAL_REL } : {})}>
       {target}
     </Link>
   );

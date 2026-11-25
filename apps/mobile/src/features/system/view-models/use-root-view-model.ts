@@ -1,9 +1,9 @@
 import { onlineManager } from '@tanstack/react-query';
 import { router, usePathname } from 'expo-router';
-import type { Href } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useMemo, useState } from 'react';
 
+import { assertRouterPath } from '@/lib/router-path';
 import { useStartup } from '@/lib/startup';
 import { links } from '@/platform/links';
 import { storage } from '@/platform/storage';
@@ -46,7 +46,9 @@ function onNavigate(item: NavItem): void {
     router.navigate('/');
     return;
   }
-  router.push(navTargetFor(item, SIGNED_IN) as Href); // the generated route types cannot name a path built at run time
+  const target = navTargetFor(item, SIGNED_IN);
+  assertRouterPath(target); // the generated route types cannot name a path built at run time
+  router.push(target);
 }
 
 /** Dismisses every pushed route above the tab; the scroll to the top is signalled by the shell before this. */
