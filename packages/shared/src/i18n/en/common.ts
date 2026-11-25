@@ -5,6 +5,7 @@ export const common = {
   documentTitle: '{{title}} · {{appName}}',
   notFound: { title: 'Page not found | {{appName}}' },
   states: {
+    errorTitle: "This didn't load.",
     offlineTitle: 'No connection.',
     offlineBody: 'This screen needs a connection the first time.',
   },

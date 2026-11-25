@@ -317,11 +317,16 @@ describe('HelloScreenView', () => {
   it('error and offline are full-screen states with a level 1 title', () => {
     sized(COMPACT);
     const onRetry = vi.fn<() => void>();
-    draw({ status: 'error', code: 'unavailable', onRetry });
-    expect(titles().map((title) => title.textContent)).toEqual([getI18n().t('errors:unavailable')]);
-    expect(titles()[0]?.textContent).toBe(
-      "This isn't available right now. Try again in a few minutes.",
-    );
+    const failed = draw({ status: 'error', code: 'unavailable', onRetry });
+    // One sentence in the title, and what the code says in the line under it.
+    expect(titles().map((title) => title.textContent)).toEqual(["This didn't load."]);
+    expect(titles()[0]?.textContent).toBe(getI18n().t('common:states.errorTitle'));
+    const reason = within(failed).getByText(getI18n().t('errors:unavailable'));
+    expect(reason.textContent).toBe("This isn't available right now. Try again in a few minutes.");
+    expect(titles()[0]?.contains(reason)).toBe(false);
+    expect(
+      (titles()[0]?.compareDocumentPosition(reason) ?? 0) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(textOf('hello.retry')).toBe('Try again');
     press('hello.retry');
     expect(onRetry).toHaveBeenCalledTimes(1);
@@ -343,17 +348,22 @@ describe('HelloScreenView', () => {
 
   it('error names the code it is given', () => {
     sized(COMPACT);
-    draw({ status: 'error', code: 'rate_limited', onRetry: () => undefined });
-    expect(titles().map((title) => title.textContent)).toEqual([
-      getI18n().t('errors:rate_limited'),
-    ]);
+    const root = draw({ status: 'error', code: 'rate_limited', onRetry: () => undefined });
+    expect(titles().map((title) => title.textContent)).toEqual(["This didn't load."]);
+    expect(within(root).getByText(getI18n().t('errors:rate_limited'))).toBeTruthy();
   });
 
   it('error with a code whose text needs a value reads the generic text', () => {
     sized(COMPACT);
-    draw({ status: 'error', code: 'handle_change_too_soon', onRetry: () => undefined });
-    expect(titles().map((title) => title.textContent)).toEqual([getI18n().t('errors:generic')]);
-    expect(titles()[0]?.textContent).toBe('Something went wrong. Try again.');
+    const root = draw({
+      status: 'error',
+      code: 'handle_change_too_soon',
+      onRetry: () => undefined,
+    });
+    expect(titles().map((title) => title.textContent)).toEqual(["This didn't load."]);
+    expect(within(root).getByText(getI18n().t('errors:generic')).textContent).toBe(
+      'Something went wrong. Try again.',
+    );
   });
 
   it('loading is one progressbar named Loading', () => {

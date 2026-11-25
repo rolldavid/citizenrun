@@ -26,7 +26,8 @@ export const STATES = {
   // The button reads "Try again" whatever its label holds.
   error: {
     kind: 'error',
-    title: "This isn't available right now. Try again in a few minutes.",
+    title: "This didn't load.",
+    body: "This isn't available right now. Try again in a few minutes.",
     action: { label: 'Reload', onPress: () => undefined, testID: 'gallery.empty-state-retry' },
   },
   // Inside a sheet, a side panel or the right column.

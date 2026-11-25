@@ -337,7 +337,8 @@ function Content({ vm }: { vm: HelloViewModel }): JSX.Element {
           kind="error"
           art="chair"
           headingLevel={1}
-          title={isPlainCode(vm.code) ? t(`errors:${vm.code}`) : t('errors:generic')}
+          title={t('common:states.errorTitle')}
+          body={isPlainCode(vm.code) ? t(`errors:${vm.code}`) : t('errors:generic')}
           action={{
             label: t('common:ui.retry'),
             onPress: vm.onRetry,
