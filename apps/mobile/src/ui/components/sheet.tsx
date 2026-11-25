@@ -157,8 +157,8 @@ function CompactSheet({
             </View>
           )}
           {children}
-          {hasContent(footer) ? <View style={FOOTER}>{footer}</View> : null}
           <ToastOutlet place="sheet" active={open} />
+          {hasContent(footer) ? <View style={FOOTER}>{footer}</View> : null}
         </View>
       </RNHostView>
     </BottomSheet>

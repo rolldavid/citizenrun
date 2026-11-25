@@ -110,6 +110,7 @@ function iconOf(kind: ToastKind): IconName {
 }
 
 const LAYER: ViewStyle = { position: 'absolute', alignItems: 'center', zIndex: z.toast };
+const SHEET_ANCHOR: ViewStyle = { height: 0, zIndex: z.toast };
 const TOAST: ViewStyle = {
   flexDirection: 'row',
   alignItems: 'center',
@@ -134,7 +135,8 @@ type Chrome = { bottomChrome: number; bottomInset: number; rail: number };
 function placeOf(place: ToastPlace, layout: Layout, chrome: Chrome): ViewStyle {
   const sides: ViewStyle = { left: 0, right: 0, paddingHorizontal: layout.gutter };
   if (place === 'sheet') {
-    return { ...sides, bottom: space.x4 };
+    // The sheet's anchor is as wide as its content and stands where the toast's foot is.
+    return { left: 0, right: 0, bottom: 0 };
   }
   switch (layout.breakpoint) {
     case 'compact': {
@@ -219,7 +221,18 @@ export function ToastOutlet({
     };
   }, [active, id]);
 
-  return top === id ? <ToastLayer place={place} /> : null;
+  if (top !== id) {
+    return null;
+  }
+  // A sheet holds the outlet in its column, above its footer: the toast rises from that line and
+  // covers no button of the sheet.
+  return place === 'sheet' ? (
+    <View style={SHEET_ANCHOR} pointerEvents="box-none">
+      <ToastLayer place={place} />
+    </View>
+  ) : (
+    <ToastLayer place={place} />
+  );
 }
 
 /**

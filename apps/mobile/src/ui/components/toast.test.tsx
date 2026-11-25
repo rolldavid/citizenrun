@@ -428,8 +428,14 @@ describe('Toast', () => {
       return (
         <ToastHost>
           <View testID={PAGE} />
-          <Sheet open={open} onClose={() => undefined} title="Not interested?" testID={OVERLAY}>
-            <View />
+          <Sheet
+            open={open}
+            onClose={() => undefined}
+            title="Not interested?"
+            footer={<View testID="sheet-footer" />}
+            testID={OVERLAY}
+          >
+            <View testID="sheet-content" />
           </Sheet>
         </ToastHost>
       );
@@ -438,13 +444,18 @@ describe('Toast', () => {
     show(STATES.success);
     const frame = screen.getByTestId(OVERLAY);
     expect(toasts()).toHaveLength(1);
-    // Inside the sheet's frame, at its bottom edge, which is the screen's.
+    // Inside the sheet's frame, rising from the line between its content and its footer, so it
+    // covers no button of the sheet.
     const drawn = toast().parentElement;
-    expect(drawn?.parentElement).toBe(frame);
+    const anchor = drawn?.parentElement;
+    expect(anchor?.parentElement).toBe(frame);
+    expect(anchor?.style.height).toBe('0px');
+    expect(anchor?.previousElementSibling).toBe(screen.getByTestId('sheet-content'));
+    expect(anchor?.nextElementSibling?.contains(screen.getByTestId('sheet-footer'))).toBe(true);
     expect(drawn?.style.position).toBe('absolute');
     expect(drawn?.style.left).toBe('0px');
     expect(drawn?.style.right).toBe('0px');
-    expect(drawn?.style.bottom).toBe(`${String(space.x4)}px`);
+    expect(drawn?.style.bottom).toBe('0px');
     expect(drawn?.style.zIndex).toBe(String(z.toast));
 
     // A sheet that is closed draws no toast: the host does.
