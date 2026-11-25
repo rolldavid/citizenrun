@@ -144,6 +144,11 @@ const SHELL_FRAME = size.listRowMin * 8;
 const LIST_FRAME = size.listRowMin * 6;
 /** The height of the frame a labeled rail is drawn in, so its foot sits at the bottom. */
 const RAIL_FRAME = size.listRowMin * 10;
+/**
+ * The height of the frame a full screen's longest text is drawn in: near enough the window of the
+ * smallest phone (360 by 740), the least room that text will really have.
+ */
+const WINDOW_FRAME = size.listRowMin * 13;
 
 /** The three layouts C-AppShell chooses between, each drawn whatever the window's width. */
 const SHELL_LAYOUTS = [
@@ -315,13 +320,8 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   section('C-EmptyState', 'empty-state', 'wide', EmptyState, emptyStateFixtures),
   section('C-Screen', 'screen', 'full', Screen, screenFixtures, () => SHELL_FRAME),
   section('C-List', 'list', 'wide', SpecimenList, listFixtures, () => LIST_FRAME),
-  section(
-    'C-SystemScreen',
-    'system-screen',
-    'full',
-    SystemScreen,
-    systemScreenFixtures,
-    () => SHELL_FRAME,
+  section('C-SystemScreen', 'system-screen', 'full', SystemScreen, systemScreenFixtures, (state) =>
+    state === 'longText' ? WINDOW_FRAME : SHELL_FRAME,
   ),
   specimenSection('C-Sheet', 'sheet', Object.keys(SHEET_STATES), (state) => {
     const fixture = SHEET_STATES[state];

@@ -300,6 +300,22 @@ describe('GalleryScreen', () => {
     expect(within(box).getByText('Deadlines near you')).toBeDefined();
   });
 
+  it('draws the longest text of a full screen in a frame as high as the smallest phone', () => {
+    draw({ only: 'system-screen' });
+    const frame = size.listRowMin * 8;
+    for (const state of ['blocking', 'noAction', 'withSecondary']) {
+      expect(boxOf(`gallery.cell-system-screen-${kebab(state)}`).style.height, state).toBe(
+        `${String(frame)}px`,
+      );
+    }
+    // At 360 wide with text at 130% the long text takes more than the short frame holds, and a
+    // window never gives it less than the smallest phone does.
+    const tall = Number.parseFloat(boxOf('gallery.cell-system-screen-long-text').style.height);
+    expect(tall).toBe(size.listRowMin * 13);
+    expect(tall).toBeLessThanOrEqual(740);
+    expect(tall).toBeGreaterThan(740 - size.listRowMin);
+  });
+
   it('only shows one section', () => {
     draw({ only: 'button' });
     expect(sectionHeadings()).toEqual(['C-Button']);
