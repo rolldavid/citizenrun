@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { getAppEnv } from '@/lib/env';
 
+import { isIssuedUrlAllowed } from './issued-url';
 import type { Links, OpenOutcome } from './types';
 
 const EmailSchema = z.email();
@@ -29,6 +30,12 @@ export const links: Links = {
       return 'refused';
     }
     return openUrl(safe.url);
+  },
+  openIssuedUrl: async (url) => {
+    if (!isIssuedUrlAllowed(url)) {
+      return 'refused';
+    }
+    return openUrl(url);
   },
   openMail: async (address) => {
     if (!EmailSchema.safeParse(address).success) {

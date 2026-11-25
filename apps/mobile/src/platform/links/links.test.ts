@@ -3,8 +3,10 @@ import type { MockInstance } from 'vitest';
 
 import type { AppEnv } from '@/lib/env';
 import { storage } from '@/platform/storage';
+import { links as fakeLinks, linksFake } from '@/test/platform/links';
 
 import nativeSource from './index.native.ts?raw';
+import { isIssuedUrlAllowed } from './issued-url';
 import webSource from './index.web.ts?raw';
 import type * as NativeIndex from './index.native';
 import type * as WebIndex from './index.web';
@@ -51,6 +53,16 @@ function httpsUrl(length: number): string {
   const base = 'https://example.test/';
   return base + 'a'.repeat(length - base.length);
 }
+
+// A presigned download is longer than SOURCE_URL_MAX; a fixture, not a real signature.
+const ISSUED_URL = httpsUrl(2100);
+const REFUSED_ISSUED_URLS = [
+  'javascript:alert(1)',
+  'data:text/html,x',
+  'file:///etc/hosts',
+  'http://example.com/x',
+];
+const LOCAL_ISSUED_URLS = ['http://localhost:9000/x', 'http://127.0.0.1:8333/x'];
 
 let openURL: MockInstance<(url: string) => Promise<unknown>>;
 let openSettings: MockInstance<() => Promise<void>>;
@@ -123,6 +135,73 @@ describe('links', () => {
       throw new Error('fixture');
     });
     expect(await web.openExternal('https://example.test/a')).toBe('failed');
+  });
+
+  it('issued URLs', async () => {
+    expect(ISSUED_URL.length).toBe(2100);
+    expect(await phone.openIssuedUrl(ISSUED_URL)).toBe('opened');
+    expect(openURL).toHaveBeenCalledWith(ISSUED_URL);
+    expect(await web.openIssuedUrl(ISSUED_URL)).toBe('opened');
+    expect(page.open).toHaveBeenCalledWith(ISSUED_URL, '_blank', 'noopener,noreferrer');
+
+    openURL.mockClear();
+    page.open.mockClear();
+    for (const url of REFUSED_ISSUED_URLS) {
+      expect(await phone.openIssuedUrl(url)).toBe('refused');
+      expect(await web.openIssuedUrl(url)).toBe('refused');
+    }
+    expect(openURL).not.toHaveBeenCalled();
+    expect(page.open).not.toHaveBeenCalled();
+
+    for (const url of LOCAL_ISSUED_URLS) {
+      expect(await phone.openIssuedUrl(url)).toBe('opened');
+      expect(openURL).toHaveBeenLastCalledWith(url);
+      expect(await web.openIssuedUrl(url)).toBe('opened');
+      expect(page.open).toHaveBeenLastCalledWith(url, '_blank', 'noopener,noreferrer');
+    }
+  });
+
+  it('the web opens an issued URL inside the caller', () => {
+    void web.openIssuedUrl(ISSUED_URL);
+    expect(page.open).toHaveBeenCalledTimes(1);
+  });
+
+  it('issued URL failure', async () => {
+    openURL.mockRejectedValue(new Error('fixture'));
+    expect(await phone.openIssuedUrl(ISSUED_URL)).toBe('failed');
+    page.open.mockImplementation(() => {
+      throw new Error('fixture');
+    });
+    expect(await web.openIssuedUrl(ISSUED_URL)).toBe('failed');
+  });
+
+  it('isIssuedUrlAllowed', () => {
+    expect(isIssuedUrlAllowed(ISSUED_URL)).toBe(true);
+    for (const url of REFUSED_ISSUED_URLS) {
+      expect(isIssuedUrlAllowed(url)).toBe(false);
+    }
+    for (const url of LOCAL_ISSUED_URLS) {
+      expect(isIssuedUrlAllowed(url)).toBe(true);
+    }
+    expect(isIssuedUrlAllowed('not a url')).toBe(false);
+    expect(isIssuedUrlAllowed('')).toBe(false);
+    // https is always allowed, whatever the host
+    expect(isIssuedUrlAllowed('https://localhost.example.test/x')).toBe(true);
+    expect(isIssuedUrlAllowed('https://10.0.0.1:9000/x')).toBe(true);
+    // http only on the two local hosts, matched exactly
+    expect(isIssuedUrlAllowed('http://localhost.example.test/x')).toBe(false);
+    expect(isIssuedUrlAllowed('http://127.0.0.2/x')).toBe(false);
+    expect(isIssuedUrlAllowed('http://localhost@example.test/x')).toBe(false);
+    expect(isIssuedUrlAllowed('ftp://localhost/x')).toBe(false);
+  });
+
+  it('the fake records no URL', async () => {
+    linksFake.scriptIssuedUrl('failed');
+    expect(await fakeLinks.openIssuedUrl(ISSUED_URL)).toBe('failed');
+    expect(linksFake.calls).toEqual([{ op: 'openIssuedUrl' }]);
+    expect(JSON.stringify(linksFake.calls)).not.toContain('example.test');
+    linksFake.reset();
+    expect(await fakeLinks.openIssuedUrl(ISSUED_URL)).toBe('opened');
   });
 
   it('mail', async () => {

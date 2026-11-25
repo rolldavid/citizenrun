@@ -6,9 +6,10 @@ import type {
   ReloadReason,
 } from '@/platform/links/types';
 
-/** openMail records no address. */
+/** openIssuedUrl records no URL (a presigned link is a secret); openMail records no address. */
 export type LinksFakeCall =
   | { op: 'openExternal'; url: string }
+  | { op: 'openIssuedUrl' }
   | { op: 'openMail' }
   | { op: 'openAppSettings' }
   | { op: 'openStoreListing' }
@@ -22,9 +23,15 @@ const calls: LinksFakeCall[] = [];
 const keyListeners = new Set<KeyListener>();
 const reloaded = new Set<ReloadReason>();
 const scriptedReloads = new Map<ReloadReason, boolean[]>();
-const state: { storeListingSupported: boolean; open: OpenOutcome; fontsReady: boolean } = {
+const state: {
+  storeListingSupported: boolean;
+  open: OpenOutcome;
+  issuedUrl: OpenOutcome;
+  fontsReady: boolean;
+} = {
   storeListingSupported: false,
   open: 'opened',
+  issuedUrl: 'opened',
   fontsReady: true,
 };
 
@@ -32,6 +39,10 @@ export const links: Links = {
   openExternal: (url) => {
     calls.push({ op: 'openExternal', url });
     return Promise.resolve(state.open);
+  },
+  openIssuedUrl: () => {
+    calls.push({ op: 'openIssuedUrl' });
+    return Promise.resolve(state.issuedUrl);
   },
   openMail: () => {
     calls.push({ op: 'openMail' });
@@ -84,6 +95,10 @@ export const linksFake = {
   scriptReloadOnce: (reason: ReloadReason, answers: readonly boolean[]): void => {
     scriptedReloads.set(reason, [...answers]);
   },
+  /** The answer of openIssuedUrl. */
+  scriptIssuedUrl: (outcome: OpenOutcome): void => {
+    state.issuedUrl = outcome;
+  },
   scriptFontsReady: (answer: boolean): void => {
     state.fontsReady = answer;
   },
@@ -98,6 +113,7 @@ export const linksFake = {
     scriptedReloads.clear();
     state.storeListingSupported = false;
     state.open = 'opened';
+    state.issuedUrl = 'opened';
     state.fontsReady = true;
   },
 };

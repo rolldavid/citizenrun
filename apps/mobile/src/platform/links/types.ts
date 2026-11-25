@@ -26,6 +26,10 @@ export interface Links {
   /** Opens an https URL outside the app: the system browser on phones, a new tab on the web.
    *  'refused' when parseSafeUrl(url, SOURCE_URL_MAX) (L-links) returns null, and nothing is opened. */
   openExternal(url: string): Promise<OpenOutcome>;
+  /** Opens a URL the API issued in the response being handled (the data export's presigned
+   *  download, E-ME-06). Not for a stored or user-entered link: those go through openExternal.
+   *  'refused' unless the URL parses and is https, or is http on the host 'localhost' or '127.0.0.1'. */
+  openIssuedUrl(url: string): Promise<OpenOutcome>;
   /** Opens the mail app on an address (support contact, suspension appeal, deletion fallback). */
   openMail(address: string): Promise<OpenOutcome>;
   /** Phones: the system settings page of this app (for a 'blocked' permission). Web: false, nothing opens. */

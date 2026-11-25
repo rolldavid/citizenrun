@@ -3,6 +3,7 @@ import { z } from 'zod';
 
 import { storage } from '@/platform/storage';
 
+import { isIssuedUrlAllowed } from './issued-url';
 import type { Links, OpenOutcome, PageKeyEvent, ReloadReason } from './types';
 
 const EmailSchema = z.email();
@@ -11,6 +12,16 @@ const TEXT_FIELD_TAGS: readonly string[] = ['INPUT', 'TEXTAREA', 'SELECT'];
 
 function reloadKey(reason: ReloadReason): 'reload.chunkReloaded' | 'reload.upgradeReloaded' {
   return reason === 'chunk_error' ? 'reload.chunkReloaded' : 'reload.upgradeReloaded';
+}
+
+/** Opens a URL that passed its check in a new tab; called inside the caller's press handler. */
+function openTab(url: string): Promise<OpenOutcome> {
+  try {
+    window.open(url, '_blank', 'noopener,noreferrer'); // returns null with noopener by design
+    return Promise.resolve<OpenOutcome>('opened');
+  } catch {
+    return Promise.resolve<OpenOutcome>('failed');
+  }
 }
 
 function isTextField(target: EventTarget | null): boolean {
@@ -38,12 +49,14 @@ export const links: Links = {
     if (safe === null) {
       return Promise.resolve<OpenOutcome>('refused');
     }
-    try {
-      window.open(safe.url, '_blank', 'noopener,noreferrer'); // returns null with noopener by design
-      return Promise.resolve<OpenOutcome>('opened');
-    } catch {
-      return Promise.resolve<OpenOutcome>('failed');
+    return openTab(safe.url);
+  },
+  // Not async, as openExternal. The URL is a secret (a presigned download): never logged or kept.
+  openIssuedUrl: (url) => {
+    if (!isIssuedUrlAllowed(url)) {
+      return Promise.resolve<OpenOutcome>('refused');
     }
+    return openTab(url);
   },
   openMail: (address) => {
     if (!EmailSchema.safeParse(address).success) {
