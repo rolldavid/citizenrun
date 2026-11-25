@@ -1,5 +1,5 @@
 import { createRoute } from '@hono/zod-openapi';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { FakeClock } from '@citizenrun/shared/testing';
 import type { RateLimitPolicyName } from '../config/rate-limits.ts';
 import { createRouter, defineRoute, registerRoute } from '../router.ts';
@@ -254,6 +254,57 @@ describe('rate limits', () => {
       count: 2,
       windowEnd: new Date('2027-03-05T13:00:00.000Z'),
     });
+  });
+
+  it('a full store walks its keys at most once per window end', () => {
+    const store = createMemoryStore(3);
+    const now = new Date('2027-03-05T12:00:10.000Z');
+    store.hit('a', '1m', now);
+    store.hit('b', '1h', now);
+    store.hit('c', '1m', now);
+    // A walk of the store is one iteration of its map; only the hits below are counted.
+    const iterate = Reflect.get(Map.prototype, Symbol.iterator) as () => Iterator<unknown>;
+    let counting = false;
+    let walks = 0;
+    const spy = vi
+      .spyOn(Map.prototype, Symbol.iterator)
+      .mockImplementation(function (this: Map<unknown, unknown>) {
+        if (counting) {
+          walks += 1;
+        }
+        return Reflect.apply(iterate, this, []) as MapIterator<[unknown, unknown]>;
+      });
+    const hits = (keys: readonly string[], at: Date): unknown[] => {
+      counting = true;
+      try {
+        return keys.map((key) => store.hit(key, '1m', at));
+      } finally {
+        counting = false;
+      }
+    };
+    try {
+      const flood = Array.from({ length: 50 }, (_, n) => `new-${String(n)}`);
+      // Nothing has ended before 12:01, so 50 new keys are refused without one walk.
+      expect(hits(flood, now)).toEqual(flood.map(() => 'full'));
+      expect(walks).toBe(0);
+
+      // The first new key after 12:01 walks once, drops 'a' and 'c' and is stored.
+      const nextMinute = new Date('2027-03-05T12:01:05.000Z');
+      expect(hits(['d', 'e'], nextMinute)).toEqual([
+        { count: 1, windowEnd: new Date('2027-03-05T12:02:00.000Z') },
+        { count: 1, windowEnd: new Date('2027-03-05T12:02:00.000Z') },
+      ]);
+      expect(walks).toBe(1);
+      // Full again; the earliest end is 12:02, so the flood walks nothing until then.
+      expect(hits(flood, nextMinute)).toEqual(flood.map(() => 'full'));
+      expect(walks).toBe(1);
+      expect(hits(['f'], new Date('2027-03-05T12:02:00.000Z'))).toEqual([
+        { count: 1, windowEnd: new Date('2027-03-05T12:03:00.000Z') },
+      ]);
+      expect(walks).toBe(2);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('a full store answers 429 with the seconds left in the window', async () => {

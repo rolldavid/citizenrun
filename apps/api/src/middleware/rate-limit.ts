@@ -45,9 +45,15 @@ function windowStartMs(window: Window, now: Date): number {
   return ms - (((ms % WINDOW_MS[window]) + WINDOW_MS[window]) % WINDOW_MS[window]);
 }
 
-/** A memory store of at most `maxKeys` keys; when full it drops past windows, then refuses new keys. */
+/**
+ * A memory store of at most `maxKeys` keys; when full it drops past windows, then refuses new keys.
+ * It keeps the earliest window end it holds, so a full store walks its keys only once a window has
+ * ended since the last walk, not on every new key (CTL-39).
+ */
 export function createMemoryStore(maxKeys: number = MEMORY_STORE_MAX_KEYS): MemoryStore {
   const entries = new Map<string, { windowStart: number; windowEnd: number; count: number }>();
+  // No entry ends before this instant: an entry's end only moves later, and a walk recomputes it.
+  let earliestEnd = Number.POSITIVE_INFINITY;
   return {
     hit(key, window, now) {
       const windowStart = windowStartMs(window, now);
@@ -59,9 +65,15 @@ export function createMemoryStore(maxKeys: number = MEMORY_STORE_MAX_KEYS): Memo
       }
       if (entry === undefined && entries.size >= maxKeys) {
         const nowMs = now.getTime();
+        if (nowMs < earliestEnd) {
+          return 'full';
+        }
+        earliestEnd = Number.POSITIVE_INFINITY;
         for (const [other, value] of entries) {
           if (value.windowEnd <= nowMs) {
             entries.delete(other);
+          } else {
+            earliestEnd = Math.min(earliestEnd, value.windowEnd);
           }
         }
         if (entries.size >= maxKeys) {
@@ -69,6 +81,7 @@ export function createMemoryStore(maxKeys: number = MEMORY_STORE_MAX_KEYS): Memo
         }
       }
       entries.set(key, { windowStart, windowEnd, count: 1 });
+      earliestEnd = Math.min(earliestEnd, windowEnd);
       return { count: 1, windowEnd: new Date(windowEnd) };
     },
   };
