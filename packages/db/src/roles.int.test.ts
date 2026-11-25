@@ -34,6 +34,7 @@ const LOCK_KEY = "hashtext('os_test_roles')";
 const LOCK_RETRY_MS = 250;
 const LOCK_WAIT_MS = 45_000;
 const READ_ONLY_TRANSACTION = '25006';
+const INSUFFICIENT_PRIVILEGE = '42501';
 
 /** A SCRAM-SHA-256 verifier for `password` with a random salt (RFC 7677, 4096 iterations). */
 function scramVerifier(password: string): string {
@@ -310,6 +311,20 @@ describe('roles.sql', () => {
         'show default_transaction_read_only',
       );
       expect(readOnly.default_transaction_read_only).toBe('on');
+      // The read-only default is a session setting; the missing privilege is what forbids a write.
+      await client.query('begin read write');
+      try {
+        await expect(
+          client.query('insert into worker_heartbeats default values'),
+        ).rejects.toMatchObject({ code: INSUFFICIENT_PRIVILEGE });
+      } finally {
+        await client.query('rollback');
+      }
+      const privilege = await one<{ allowed: boolean }>(
+        client,
+        "select has_table_privilege('app_backup', 'worker_heartbeats', 'insert') as allowed",
+      );
+      expect(privilege.allowed).toBe(false);
     });
   });
 
