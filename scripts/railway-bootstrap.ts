@@ -6,6 +6,7 @@ import { spawn } from 'node:child_process';
 import {
   createHash,
   createHmac,
+  createPrivateKey,
   createPublicKey,
   pbkdf2Sync,
   randomBytes as cryptoRandomBytes,
@@ -53,7 +54,12 @@ export const STEP_NAMES = [
 export type StepName = (typeof STEP_NAMES)[number];
 
 type EnvName = 'staging' | 'production';
-type RotateKey = 'APP_SECRET' | 'RESEND_API_KEY' | 'BACKUP_PUBLIC_KEY';
+type RotateKey =
+  | 'APP_SECRET'
+  | 'RESEND_API_KEY'
+  | 'BACKUP_PUBLIC_KEY'
+  | 'APPLE_PRIVATE_KEY'
+  | 'REVIEW_SIGNIN_CODE';
 
 export type BootstrapArgs = {
   env: EnvName;
@@ -81,7 +87,15 @@ class StepError extends Error {
   override name = 'StepError';
 }
 
-const ROTATE_KEYS: readonly RotateKey[] = ['APP_SECRET', 'RESEND_API_KEY', 'BACKUP_PUBLIC_KEY'];
+// A sealed owner value cannot be read back, so step 6 replaces one only when it is named here.
+// APP_SECRET_PREVIOUS is not: once set it stays (a second rotation needs a decision).
+const ROTATE_KEYS: readonly RotateKey[] = [
+  'APP_SECRET',
+  'RESEND_API_KEY',
+  'BACKUP_PUBLIC_KEY',
+  'APPLE_PRIVATE_KEY',
+  'REVIEW_SIGNIN_CODE',
+];
 
 function isStepName(value: string): value is StepName {
   return (STEP_NAMES as readonly string[]).includes(value);
@@ -148,7 +162,7 @@ export function parseBootstrapArgs(argv: readonly string[]): BootstrapArgs {
         break;
       default:
         if (!isRotateKey(value)) {
-          throw new UsageError('--rotate takes APP_SECRET, RESEND_API_KEY or BACKUP_PUBLIC_KEY');
+          throw new UsageError(`--rotate takes ${ROTATE_KEYS.join(', ')}`);
         }
         rotate = value;
     }
@@ -171,14 +185,14 @@ export const INPUT_KEYS = {
   RESEND_API_KEY: { ownerInput: 'OI-resend', setByThisVersion: true },
   BACKUP_PUBLIC_KEY_FILE: { ownerInput: 'OI-backup-key', setByThisVersion: true },
   CLAIMS_EMAIL: { ownerInput: 'OI-admin-emails', setByThisVersion: false },
-  APPLE_TEAM_ID: { ownerInput: 'OI-apple-developer', setByThisVersion: false },
-  APPLE_KEY_ID: { ownerInput: 'OI-apple-identifiers', setByThisVersion: false },
-  APPLE_PRIVATE_KEY_FILE: { ownerInput: 'OI-apple-identifiers', setByThisVersion: false },
-  GOOGLE_CLIENT_IDS: { ownerInput: 'OI-google-oauth', setByThisVersion: false },
-  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: { ownerInput: 'OI-google-oauth', setByThisVersion: false },
-  REVIEW_SIGNIN_EMAILS: { ownerInput: 'OI-store-submission', setByThisVersion: false },
-  REVIEW_SIGNIN_CODE: { ownerInput: 'OI-store-submission', setByThisVersion: false },
-  APP_SECRET_PREVIOUS: { ownerInput: 'rotation', setByThisVersion: false },
+  APPLE_TEAM_ID: { ownerInput: 'OI-apple-developer', setByThisVersion: true },
+  APPLE_KEY_ID: { ownerInput: 'OI-apple-identifiers', setByThisVersion: true },
+  APPLE_PRIVATE_KEY_FILE: { ownerInput: 'OI-apple-identifiers', setByThisVersion: true },
+  GOOGLE_CLIENT_IDS: { ownerInput: 'OI-google-oauth', setByThisVersion: true },
+  EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: { ownerInput: 'OI-google-oauth', setByThisVersion: true },
+  REVIEW_SIGNIN_EMAILS: { ownerInput: 'OI-store-submission', setByThisVersion: true },
+  REVIEW_SIGNIN_CODE: { ownerInput: 'OI-store-submission', setByThisVersion: true },
+  APP_SECRET_PREVIOUS: { ownerInput: 'rotation', setByThisVersion: true },
   GEO_API_KEY: { ownerInput: 'OI-geoapify', setByThisVersion: false },
   FEC_API_KEY: { ownerInput: 'OI-datagov-key', setByThisVersion: false },
   ANTHROPIC_PIPELINE_API_KEY: { ownerInput: 'OI-anthropic-workspaces', setByThisVersion: false },
@@ -219,6 +233,18 @@ const oneLine = z
   .refine((value) => !/[\r\n]/.test(value));
 
 const REVIEW_PAIR_MESSAGE = 'REVIEW_SIGNIN_EMAILS and REVIEW_SIGNIN_CODE must be given together';
+const APPLE_SET_MESSAGE =
+  'APPLE_TEAM_ID, APPLE_KEY_ID and APPLE_PRIVATE_KEY_FILE must be given together (OI-apple-identifiers)';
+const WEB_CLIENT_MESSAGE = 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID must be one of GOOGLE_CLIENT_IDS';
+/** Messages that name keys only, printed as they are. */
+const CROSS_KEY_MESSAGES: ReadonlySet<string> = new Set([
+  REVIEW_PAIR_MESSAGE,
+  APPLE_SET_MESSAGE,
+  WEB_CLIENT_MESSAGE,
+]);
+const APPLE_KEYS = ['APPLE_TEAM_ID', 'APPLE_KEY_ID', 'APPLE_PRIVATE_KEY_FILE'] as const;
+// One OAuth client id: no comma and no white space.
+const CLIENT_ID = '[^,\\s]+';
 
 export const InputsFileSchema = z
   .strictObject({
@@ -240,8 +266,16 @@ export const InputsFileSchema = z
     APPLE_TEAM_ID: oneLine.optional(),
     APPLE_KEY_ID: oneLine.optional(),
     APPLE_PRIVATE_KEY_FILE: oneLine.optional(),
-    GOOGLE_CLIENT_IDS: oneLine.optional(),
-    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: oneLine.optional(),
+    GOOGLE_CLIENT_IDS: z
+      .string()
+      .max(4096)
+      .regex(new RegExp(`^${CLIENT_ID}(?:,${CLIENT_ID})*$`))
+      .optional(),
+    EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: z
+      .string()
+      .max(512)
+      .regex(new RegExp(`^${CLIENT_ID}$`))
+      .optional(),
     REVIEW_SIGNIN_EMAILS: oneLine.optional(),
     REVIEW_SIGNIN_CODE: z
       .string()
@@ -249,7 +283,7 @@ export const InputsFileSchema = z
       .optional(),
     APP_SECRET_PREVIOUS: z
       .string()
-      .regex(/^[0-9a-f]{64}$/i)
+      .regex(/^[0-9a-f]{64}$/)
       .optional(),
     GEO_API_KEY: oneLine.optional(),
     FEC_API_KEY: oneLine.optional(),
@@ -267,6 +301,18 @@ export const InputsFileSchema = z
         code: 'custom',
         path: ['REVIEW_SIGNIN_EMAILS'],
         message: REVIEW_PAIR_MESSAGE,
+      });
+    }
+    const appleGiven = APPLE_KEYS.filter((key) => inputs[key] !== undefined).length;
+    if (appleGiven !== 0 && appleGiven !== APPLE_KEYS.length) {
+      ctx.addIssue({ code: 'custom', path: ['APPLE_TEAM_ID'], message: APPLE_SET_MESSAGE });
+    }
+    const web = inputs.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+    if (web !== undefined && !(inputs.GOOGLE_CLIENT_IDS?.split(',') ?? []).includes(web)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID'],
+        message: WEB_CLIENT_MESSAGE,
       });
     }
   });
@@ -320,8 +366,8 @@ export function parseInputsFile(text: string): Inputs {
   const parsed = InputsFileSchema.safeParse(values);
   if (!parsed.success) {
     const problems = parsed.error.issues.map((issue) => {
-      if (issue.message === REVIEW_PAIR_MESSAGE) {
-        return REVIEW_PAIR_MESSAGE;
+      if (CROSS_KEY_MESSAGES.has(issue.message)) {
+        return issue.message;
       }
       return `${String(issue.path[0] ?? 'a key')} is not valid`;
     });
@@ -436,20 +482,152 @@ export function mediaCorsOrigins(env: EnvName, host: string, adminHost: string |
   return origins;
 }
 
+type OwnerValueService = 'api' | 'worker' | 'admin' | 'backup';
+
+export type OwnerValueTarget = {
+  /** The Railway variable step 6 sets. */
+  readonly variable: string;
+  readonly services: readonly OwnerValueService[];
+  /** The inputs-file key it comes from. */
+  readonly source: InputKey;
+  /** The key's value itself, the contents of the file it names, or composed from it. */
+  readonly from: 'value' | 'file' | 'composed';
+  readonly sealed: boolean;
+  /** The owner inputs that give it; none for a value set only for a rotation. */
+  readonly ownerInputs: readonly string[];
+};
+
+/** Where step 6 puts each owner value (OPS-vars); step 5 seals the rows marked sealed. */
+export const OWNER_VALUE_TARGETS = [
+  {
+    variable: 'RESEND_API_KEY',
+    services: ['api', 'worker', 'admin'],
+    source: 'RESEND_API_KEY',
+    from: 'value',
+    sealed: true,
+    ownerInputs: ['OI-resend'],
+  },
+  {
+    variable: 'EMAIL_FROM',
+    services: ['api', 'worker', 'admin'],
+    source: 'MAIL_HOST',
+    from: 'composed',
+    sealed: false,
+    ownerInputs: ['OI-resend', 'OI-domain'],
+  },
+  {
+    variable: 'ADMIN_EMAILS',
+    services: ['api', 'worker', 'admin'],
+    source: 'ADMIN_EMAILS',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-admin-emails'],
+  },
+  {
+    variable: 'BACKUP_PUBLIC_KEY',
+    services: ['backup'],
+    source: 'BACKUP_PUBLIC_KEY_FILE',
+    from: 'file',
+    sealed: false,
+    ownerInputs: ['OI-backup-key'],
+  },
+  {
+    variable: 'APPLE_TEAM_ID',
+    services: ['api', 'worker'],
+    source: 'APPLE_TEAM_ID',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-apple-identifiers'],
+  },
+  {
+    variable: 'APPLE_KEY_ID',
+    services: ['api', 'worker'],
+    source: 'APPLE_KEY_ID',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-apple-identifiers'],
+  },
+  {
+    variable: 'APPLE_PRIVATE_KEY',
+    services: ['api', 'worker'],
+    source: 'APPLE_PRIVATE_KEY_FILE',
+    from: 'file',
+    sealed: true,
+    ownerInputs: ['OI-apple-identifiers'],
+  },
+  {
+    variable: 'GOOGLE_CLIENT_IDS',
+    services: ['api'],
+    source: 'GOOGLE_CLIENT_IDS',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-google-oauth'],
+  },
+  {
+    variable: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+    services: ['api'],
+    source: 'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-google-oauth'],
+  },
+  {
+    variable: 'REVIEW_SIGNIN_EMAILS',
+    services: ['api'],
+    source: 'REVIEW_SIGNIN_EMAILS',
+    from: 'value',
+    sealed: false,
+    ownerInputs: ['OI-store-submission'],
+  },
+  {
+    variable: 'REVIEW_SIGNIN_CODE',
+    services: ['api'],
+    source: 'REVIEW_SIGNIN_CODE',
+    from: 'value',
+    sealed: true,
+    ownerInputs: ['OI-store-submission'],
+  },
+  {
+    variable: 'APP_SECRET_PREVIOUS',
+    services: ['api', 'worker', 'admin'],
+    source: 'APP_SECRET_PREVIOUS',
+    from: 'value',
+    sealed: true,
+    ownerInputs: [],
+  },
+] as const satisfies readonly OwnerValueTarget[];
+
+type OwnerValueRow = (typeof OWNER_VALUE_TARGETS)[number];
+
+// Staging's review pair holds the perf and load accounts, which are not an owner input there.
+const REVIEW_SOURCES: ReadonlySet<InputKey> = new Set([
+  'REVIEW_SIGNIN_EMAILS',
+  'REVIEW_SIGNIN_CODE',
+]);
+const STAGING_REVIEW_LABEL = 'the perf account, not an owner input on staging';
+
+/** What a skipped or absent owner value is waiting on, named by id, never by value. */
+function waitingOn(env: EnvName, source: InputKey, ownerInputs: readonly string[]): string {
+  if (env === 'staging' && REVIEW_SOURCES.has(source)) {
+    return STAGING_REVIEW_LABEL;
+  }
+  return ownerInputs.length === 0 ? 'rotation only' : ownerInputs.join(', ');
+}
+
 /** The variables a person seals in the dashboard once they are set (OPS-vars). */
-export const SEALED = [
+export const SEALED: readonly { service: string; key: string }[] = [
   { service: 'postgres', key: 'POSTGRES_PASSWORD' },
   { service: 'postgres', key: 'API_DB_PASSWORD' },
   { service: 'postgres', key: 'WORKER_DB_PASSWORD' },
   { service: 'postgres', key: 'BACKUP_DB_PASSWORD' },
   { service: 'postgres', key: 'ADMIN_DB_PASSWORD' },
   { service: 'api', key: 'APP_SECRET' },
-  { service: 'api', key: 'RESEND_API_KEY' },
   { service: 'worker', key: 'APP_SECRET' },
-  { service: 'worker', key: 'RESEND_API_KEY' },
   { service: 'admin', key: 'APP_SECRET' },
-  { service: 'admin', key: 'RESEND_API_KEY' },
-] as const;
+  ...OWNER_VALUE_TARGETS.filter((row) => row.sealed).flatMap((row) =>
+    row.services.map((service) => ({ service, key: row.variable })),
+  ),
+];
 
 export const ENV_NAMES = {
   staging: { tokenSecret: 'RAILWAY_TOKEN_STAGING', readyVariable: 'RAILWAY_STAGING_READY' },
@@ -500,6 +678,8 @@ type Ctx = {
   readonly sleep: (ms: number) => Promise<void>;
   inputs: Inputs;
   publicKeyPem: string | null;
+  /** The contents of APPLE_PRIVATE_KEY_FILE, read and checked by preflight. */
+  applePrivateKeyPem: string | null;
   /** Values generated in this run, by variable name (one APP_SECRET for the three services). */
   readonly generated: Map<string, string>;
   /** Values set on Railway in this run, by `<service>/<KEY>`. */
@@ -870,6 +1050,18 @@ async function preflight(ctx: Ctx): Promise<boolean> {
       ctx.publicKeyPem = pem;
     }
   }
+  const appleKeyFile = ctx.inputs.APPLE_PRIVATE_KEY_FILE;
+  if (appleKeyFile !== undefined) {
+    const pem = readApplePrivateKey(resolveKeyPath(ctx, appleKeyFile));
+    if (pem === null) {
+      out.line(
+        'fail',
+        'APPLE_PRIVATE_KEY_FILE (OI-apple-identifiers) is not a P-256 EC private key file',
+      );
+    } else {
+      ctx.applePrivateKeyPem = pem;
+    }
+  }
   for (const key of Object.keys(ctx.inputs)) {
     if (isInputKey(key) && !INPUT_KEYS[key].setByThisVersion) {
       out.line(
@@ -903,6 +1095,25 @@ function readPublicKey(path: string): string | null {
   try {
     const key = createPublicKey(text);
     if (key.asymmetricKeyType !== 'rsa' || key.asymmetricKeyDetails?.modulusLength !== 4096) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return text;
+}
+
+/** The PEM text of a Sign in with Apple key (`.p8`): an EC private key on the P-256 curve, or null. */
+function readApplePrivateKey(path: string): string | null {
+  let text: string;
+  try {
+    text = readFileSync(path, 'utf8');
+  } catch {
+    return null;
+  }
+  try {
+    const key = createPrivateKey(text);
+    if (key.asymmetricKeyType !== 'ec' || key.asymmetricKeyDetails?.namedCurve !== 'prime256v1') {
       return null;
     }
   } catch {
@@ -1486,8 +1697,9 @@ function knownValue(ctx: Ctx, service: string, key: string): string | null {
   if (setNow !== undefined) {
     return setNow;
   }
-  if (key === 'RESEND_API_KEY') {
-    return ctx.inputs.RESEND_API_KEY ?? null;
+  const row = OWNER_VALUE_TARGETS.find((target) => target.variable === key);
+  if (row !== undefined) {
+    return ownerValue(ctx, row);
   }
   return ctx.generated.get(key) ?? readSecretsFile(ctx)[key] ?? null;
 }
@@ -1545,53 +1757,31 @@ async function stepSeal(ctx: Ctx, out: StepPrinter): Promise<void> {
   }
 }
 
-type OwnerValue = {
-  key: RotateKey | 'EMAIL_FROM' | 'ADMIN_EMAILS';
-  services: readonly string[];
-  input: InputKey;
-  sealed: boolean;
-  value: string | null;
-};
+/** The value step 6 sets for a row, or null when the inputs file does not give it. */
+function ownerValue(ctx: Ctx, row: OwnerValueRow): string | null {
+  const given = ctx.inputs[row.source];
+  if (given === undefined) {
+    return null;
+  }
+  switch (row.from) {
+    case 'composed':
+      return composeEmailFrom(ctx.variant.displayName, given); // EMAIL_FROM from MAIL_HOST
+    case 'file':
+      return row.source === 'APPLE_PRIVATE_KEY_FILE' ? ctx.applePrivateKeyPem : ctx.publicKeyPem;
+    case 'value':
+      return given;
+  }
+}
 
 async function stepOwnerValues(ctx: Ctx, out: StepPrinter): Promise<void> {
-  const inputs = ctx.inputs;
-  const rows: OwnerValue[] = [
-    {
-      key: 'RESEND_API_KEY',
-      services: APP_SERVICES,
-      input: 'RESEND_API_KEY',
-      sealed: true,
-      value: inputs.RESEND_API_KEY ?? null,
-    },
-    {
-      key: 'EMAIL_FROM',
-      services: APP_SERVICES,
-      input: 'MAIL_HOST',
-      sealed: false,
-      value:
-        inputs.MAIL_HOST === undefined
-          ? null
-          : composeEmailFrom(ctx.variant.displayName, inputs.MAIL_HOST),
-    },
-    {
-      key: 'ADMIN_EMAILS',
-      services: APP_SERVICES,
-      input: 'ADMIN_EMAILS',
-      sealed: false,
-      value: inputs.ADMIN_EMAILS ?? null,
-    },
-    {
-      key: 'BACKUP_PUBLIC_KEY',
-      services: ['backup'],
-      input: 'BACKUP_PUBLIC_KEY_FILE',
-      sealed: false,
-      value: inputs.BACKUP_PUBLIC_KEY_FILE === undefined ? null : ctx.publicKeyPem,
-    },
-  ];
   const lists = new Map<string, VariableList>();
-  for (const row of rows) {
-    if (row.value === null) {
-      out.line('skip', `${row.key} (${INPUT_KEYS[row.input].ownerInput})`);
+  for (const row of OWNER_VALUE_TARGETS) {
+    const value = ownerValue(ctx, row);
+    if (value === null) {
+      // A composed value is skipped for want of its one source key, named by that key's input.
+      const missing =
+        row.from === 'composed' ? [INPUT_KEYS[row.source].ownerInput] : row.ownerInputs;
+      out.line('skip', `${row.variable} (${waitingOn(ctx.args.env, row.source, missing)})`);
       continue;
     }
     for (const service of row.services) {
@@ -1604,28 +1794,28 @@ async function stepOwnerValues(ctx: Ctx, out: StepPrinter): Promise<void> {
         list = read;
         lists.set(service, list);
       }
-      const rotating = ctx.args.rotate === row.key;
-      if (list.has(row.key)) {
-        const current = list.get(row.key) ?? null;
-        if (current === row.value) {
-          out.line('skip', `${row.key} unchanged on ${service}`);
+      const rotating = ctx.args.rotate === row.variable;
+      if (list.has(row.variable)) {
+        const current = list.get(row.variable) ?? null;
+        if (current === value) {
+          out.line('skip', `${row.variable} unchanged on ${service}`);
           continue;
         }
         if ((current === null || row.sealed) && !rotating) {
           out.line(
             'skip',
-            `${row.key} on ${service} is kept; pass --rotate ${row.key} to replace it`,
+            `${row.variable} on ${service} is kept; pass --rotate ${row.variable} to replace it`,
           );
           continue;
         }
       }
-      if (!(await setVariable(ctx, out, service, row.key, row.value))) {
+      if (!(await setVariable(ctx, out, service, row.variable, value))) {
         return;
       }
-      out.line('ok', `set ${row.key} on ${service}`);
+      out.line('ok', `set ${row.variable} on ${service}`);
       if (row.sealed) {
         // The seal step runs before this one, so a sealed value set here is left to seal.
-        out.line('owner-check', `seal ${service}/${row.key}`);
+        out.line('owner-check', `seal ${service}/${row.variable}`);
       }
     }
   }
@@ -2206,8 +2396,14 @@ async function stepReport(ctx: Ctx): Promise<void> {
     out(`owner-check ${check}`);
   }
   for (const [key, row] of Object.entries(INPUT_KEYS)) {
-    if (row.setByThisVersion && isInputKey(key) && ctx.inputs[key] === undefined) {
-      out(`absent ${key} (${row.ownerInput})`);
+    // APP_SECRET_PREVIOUS is given only for a rotation, so its absence is the normal state.
+    if (
+      row.setByThisVersion &&
+      row.ownerInput.startsWith('OI-') &&
+      isInputKey(key) &&
+      ctx.inputs[key] === undefined
+    ) {
+      out(`absent ${key} (${waitingOn(ctx.args.env, key, [row.ownerInput])})`);
     }
   }
   out(`ready-variable ${ctx.readyVariableSet ? 'set' : 'not set'}`);
@@ -2336,6 +2532,7 @@ export async function runBootstrap(argv: readonly string[], io: BootstrapIo): Pr
         })),
     inputs: {},
     publicKeyPem: null,
+    applePrivateKeyPem: null,
     generated: new Map(),
     setInRun: new Map(),
     ownerChecks: [],

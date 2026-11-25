@@ -14,6 +14,7 @@ import {
   volume,
 } from 'railway/iac';
 import { BRAND } from '../packages/shared/src/brand.ts';
+import type { BrandVariant } from '../packages/shared/src/brand.ts';
 
 const REGION = 'us-east4-eqdc4a'; // D-135; a service's region is the key of its replicas (D-848)
 const BUCKET_REGION = 'iad'; // D-025, D-135; always passed (D-130)
@@ -35,6 +36,8 @@ const BACKUP_WATCH = [
   '/pnpm-lock.yaml',
   '/pnpm-workspace.yaml',
 ]; // PC9-07
+// D-574: true for an environment only once D-100 spike 13 has passed there.
+const APPLE_WEB_SIGN_IN: Readonly<Record<EnvName, boolean>> = { staging: false, production: false };
 
 type EnvName = 'staging' | 'production';
 type BucketPrefix = 'MEDIA' | 'DATA' | 'BACKUPS' | 'LEGAL';
@@ -64,7 +67,7 @@ export default defineRailway((ctx) => {
   if (name !== 'staging' && name !== 'production')
     throw new Error(`railway.ts: unknown environment ${String(name)}`);
   const env: EnvName = name;
-  const variant = BRAND.variants[env];
+  const variant: BrandVariant = BRAND.variants[env]; // read as nullable: brand.json changes in activations
   const host = required(variant.host, `variants.${env}.host`);
   const adminHost = required(variant.adminHost, `variants.${env}.adminHost`); // D-798: the admin service's host (D-801)
   // The custom domains on these hosts are added by the bootstrap, not here (D-849).
@@ -132,6 +135,19 @@ export default defineRailway((ctx) => {
       EMAIL_FROM: preserve(), // OPS-dns-email
       ADMIN_EMAILS: preserve(), // D-557
       CLIENT_IP_HEADER: 'x-real-ip', // D-240, D-848
+      APPLE_TEAM_ID: preserve(),
+      APPLE_KEY_ID: preserve(),
+      APPLE_PRIVATE_KEY: preserve(), // sealed
+      APPLE_BUNDLE_ID: variant.iosBundleId,
+      ...(variant.appleServicesId === null ? {} : { APPLE_SERVICES_ID: variant.appleServicesId }), // D-574
+      GOOGLE_CLIENT_IDS: preserve(),
+      EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: preserve(), // a build argument of the web export
+      ...(variant.appleServicesId !== null && APPLE_WEB_SIGN_IN[env]
+        ? { EXPO_PUBLIC_APPLE_SERVICES_ID: variant.appleServicesId }
+        : {}), // D-574
+      APP_SECRET_PREVIOUS: preserve(), // sealed; absent until the first APP_SECRET rotation
+      REVIEW_SIGNIN_EMAILS: preserve(),
+      REVIEW_SIGNIN_CODE: preserve(), // sealed; present exactly when REVIEW_SIGNIN_EMAILS is
     },
     deploy: {
       restartPolicyType: 'ALWAYS', // D-024
@@ -159,9 +175,15 @@ export default defineRailway((ctx) => {
       RESEND_API_KEY: preserve(), // sealed; the dead-letter email (D-238)
       EMAIL_FROM: preserve(),
       ADMIN_EMAILS: preserve(),
-      ...bucketVars('MEDIA', media), // media jobs and deletes (09 section 1.3, milestone 1)
       ...bucketVars('BACKUPS', backups), // D-028: the dump-age check
       APP_SECRET: preserve(), // sealed; same value as on api
+      ...bucketVars('MEDIA', media), // media jobs and deletes
+      APPLE_TEAM_ID: preserve(), // D-423: the account deletion revokes Apple tokens
+      APPLE_KEY_ID: preserve(), // D-423
+      APPLE_PRIVATE_KEY: preserve(), // D-423; sealed
+      APP_SECRET_PREVIOUS: preserve(), // sealed; absent until the first APP_SECRET rotation
+      EMAIL_MONTHLY_QUOTA: '3000', // D-444
+      EMAIL_DAILY_QUOTA: '100', // D-444
     },
     deploy: {
       restartPolicyType: 'ALWAYS',
@@ -212,6 +234,7 @@ export default defineRailway((ctx) => {
       EMAIL_FROM: preserve(), // OPS-dns-email
       ADMIN_EMAILS: preserve(), // D-557
       CLIENT_IP_HEADER: 'x-real-ip', // D-240, D-848
+      APP_SECRET_PREVIOUS: preserve(), // sealed; absent until the first APP_SECRET rotation
     },
     deploy: {
       restartPolicyType: 'ALWAYS',
