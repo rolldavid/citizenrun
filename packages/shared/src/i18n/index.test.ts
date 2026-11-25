@@ -22,7 +22,8 @@ describe('createI18n', () => {
     const codes = Object.keys(ERROR_CODES) as ErrorCode[]; // the keys of an as-const object
     for (const code of codes) {
       const key = `errors:${code}` as const;
-      const text = t(key);
+      // `errors:handle_change_too_soon` interpolates a date, so the typed `t` needs it for this union of keys.
+      const text = t(key, { date: '2027-01-15' });
       expect(typeof text).toBe('string');
       expect(text).not.toBe(key);
       expect(text).not.toBe(code);

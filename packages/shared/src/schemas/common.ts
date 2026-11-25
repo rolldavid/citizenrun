@@ -31,3 +31,35 @@ export function pageSchema<T extends z.ZodType>(item: T, id: string) {
 }
 
 export type Page<T> = { items: T[]; nextCursor: string | null };
+
+/** An instant on the wire: ISO 8601 UTC with milliseconds and `Z`, as `toISOString()` writes it (L-wire-format). */
+export const InstantSchema = z.iso.datetime({ precision: 3 });
+
+/** A smaller rendition of a media object: its bucket key, signed URL and pixel size (Media, L-media-url). */
+export const MediaVariantSchema = z
+  .object({
+    key: z.string(),
+    url: z.string(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+  })
+  .meta({ id: 'MediaVariant' });
+
+export type MediaVariant = z.infer<typeof MediaVariantSchema>;
+
+/** A photo or video as every response sends it, with signed URLs (Media, L-media-url, D-471). */
+export const MediaSchema = z
+  .object({
+    kind: z.enum(['image', 'video']),
+    key: z.string(),
+    url: z.string(),
+    width: z.number().int().nullable(),
+    height: z.number().int().nullable(),
+    blurhash: z.string().nullable(),
+    thumb: MediaVariantSchema.nullable(),
+    poster: MediaVariantSchema.nullable(),
+    durationMs: z.number().int().nullable(),
+  })
+  .meta({ id: 'Media' });
+
+export type Media = z.infer<typeof MediaSchema>;

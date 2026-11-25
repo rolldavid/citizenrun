@@ -1,0 +1,373 @@
+import { z } from 'zod';
+import { describe, expect, it } from 'vitest';
+import * as me from './me.ts';
+import {
+  AccountDeletionViewSchema,
+  CheckHandleQuerySchema,
+  DataExportStatusSchema,
+  ExportFileSchema,
+  HandleCheckSchema,
+  MeSchema,
+  RecordAgeSignalBodySchema,
+  RecordConsentBodySchema,
+  SetIssuesBodySchema,
+  SkipOnboardingStepBodySchema,
+  UpdateMeBodySchema,
+} from './me.ts';
+
+const USER_ID = '0195d2c4-7a1e-7c3b-9f00-1b2c3d4e5f60';
+
+/** The dot paths of every key that may be left out, walking objects, arrays and nullable values. */
+function optionalKeys(schema: z.core.$ZodType, path = ''): string[] {
+  if (schema instanceof z.ZodNullable) {
+    return optionalKeys(schema.unwrap(), path);
+  }
+  if (schema instanceof z.ZodArray) {
+    return optionalKeys(schema.element, `${path}[]`);
+  }
+  if (schema instanceof z.ZodObject) {
+    const found: string[] = [];
+    for (const [key, field] of Object.entries(schema.shape)) {
+      const fieldPath = path === '' ? key : `${path}.${key}`;
+      if (z.safeParse(field, undefined).success) {
+        found.push(fieldPath);
+      }
+      found.push(...optionalKeys(field, fieldPath));
+    }
+    return found;
+  }
+  return [];
+}
+
+function fieldIssues(result: z.ZodSafeParseResult<unknown>) {
+  return (result.error?.issues ?? []).map((issue) => ({
+    path: issue.path.join('.'),
+    code: issue.code,
+    params: 'params' in issue ? issue.params : undefined,
+  }));
+}
+
+const NEW_USER_ME = {
+  id: USER_ID,
+  handle: null,
+  name: null,
+  bio: null,
+  link: null,
+  avatar: null,
+  avatarPending: false,
+  email: 'fixture@example.test',
+  emailStatus: 'ok',
+  signInMethods: ['email'],
+  role: 'user',
+  status: 'active',
+  suspension: null,
+  onboardingStep: 'photo',
+  onboardedAt: null,
+  createdAt: '2027-01-15T10:00:00.000Z',
+  newAccountUntil: '2027-01-22T10:00:00.000Z',
+  handleChangeAvailableAt: null,
+  issues: [],
+  locale: 'en',
+  age: { method: 'self_declared', sourceTier: 'self', checkedAt: '2027-01-15T10:00:00.000Z' },
+  consents: {
+    terms: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
+    contentPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
+    privacyPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
+    aiScreening: 'not_asked',
+    needed: [],
+  },
+  session: {
+    platform: 'ios',
+    authenticatedAt: '2027-01-15T10:00:00.000Z',
+    expiresAt: '2027-04-15T10:00:00.000Z',
+    sensitiveActionsUntil: '2027-01-15T10:15:00.000Z',
+  },
+};
+
+function picks(count: number, starred = 0) {
+  return Array.from({ length: count }, (_, i) => ({
+    issueId: `issue-${String(i)}`,
+    starred: i < starred,
+  }));
+}
+
+describe('Me', () => {
+  it('Me holds exactly its current keys', () => {
+    expect(Object.keys(MeSchema.shape)).toEqual([
+      'id',
+      'handle',
+      'name',
+      'bio',
+      'link',
+      'avatar',
+      'avatarPending',
+      'email',
+      'emailStatus',
+      'signInMethods',
+      'role',
+      'status',
+      'suspension',
+      'onboardingStep',
+      'onboardedAt',
+      'createdAt',
+      'newAccountUntil',
+      'handleChangeAvailableAt',
+      'issues',
+      'locale',
+      'age',
+      'consents',
+      'session',
+    ]);
+  });
+
+  it("a new user's Me parses", () => {
+    const result = MeSchema.safeParse(NEW_USER_ME);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(NEW_USER_ME);
+  });
+
+  it('a suspended Me carries its reason', () => {
+    const suspended = {
+      ...NEW_USER_ME,
+      status: 'suspended',
+      suspension: { reason: 'spam', since: '2027-02-01T00:00:00.000Z' },
+    };
+    expect(MeSchema.safeParse(suspended).success).toBe(true);
+    expect(
+      MeSchema.safeParse({
+        ...suspended,
+        suspension: { reason: 'rude', since: '2027-02-01T00:00:00.000Z' },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('a Me with a key missing fails', () => {
+    for (const missing of Object.keys(NEW_USER_ME)) {
+      const partial = Object.fromEntries(
+        Object.entries(NEW_USER_ME).filter(([key]) => key !== missing),
+      );
+      expect(MeSchema.safeParse(partial).success).toBe(false);
+    }
+  });
+
+  it('response keys are never optional', () => {
+    for (const schema of [
+      MeSchema,
+      ExportFileSchema,
+      HandleCheckSchema,
+      DataExportStatusSchema,
+      AccountDeletionViewSchema,
+    ]) {
+      expect(optionalKeys(schema)).toEqual([]);
+    }
+    // The walk finds an optional key where one exists.
+    expect(optionalKeys(UpdateMeBodySchema)).toContain('name');
+  });
+});
+
+describe('ExportFile', () => {
+  const EMPTY_FILE = {
+    formatVersion: 1,
+    generatedAt: '2027-01-15T10:00:00.000Z',
+    account: {
+      id: USER_ID,
+      handle: null,
+      name: null,
+      bio: null,
+      link: null,
+      avatarUrl: null,
+      email: null,
+      locale: 'en',
+      status: 'active',
+      dmPolicy: 'everyone',
+      tagPolicy: 'everyone',
+      personalize: true,
+      acceptsHelp: true,
+      locationPrecision: null,
+      createdAt: '2027-01-15T10:00:00.000Z',
+      onboardedAt: null,
+      age: null,
+    },
+    signInMethods: [],
+    consents: [],
+    issues: [],
+    districts: [],
+    follows: [],
+  };
+
+  it('ExportFile holds its current sections', () => {
+    expect(Object.keys(ExportFileSchema.shape)).toEqual([
+      'formatVersion',
+      'generatedAt',
+      'account',
+      'signInMethods',
+      'consents',
+      'issues',
+      'districts',
+      'follows',
+    ]);
+    expect(Object.keys(ExportFileSchema.shape.account.shape)).not.toContain('notificationSettings');
+    expect(Object.keys(ExportFileSchema.shape.account.shape)).not.toContain('calendarTokenHash');
+    const result = ExportFileSchema.safeParse(EMPTY_FILE);
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(EMPTY_FILE);
+  });
+
+  it('refuses another format version', () => {
+    expect(ExportFileSchema.safeParse({ ...EMPTY_FILE, formatVersion: 2 }).success).toBe(false);
+  });
+});
+
+describe('UpdateMeBody', () => {
+  it('UpdateMeBody strips email and role', () => {
+    const result = UpdateMeBodySchema.safeParse({
+      name: 'Fixture Name',
+      email: 'other@example.test',
+      role: 'admin',
+    });
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual({ name: 'Fixture Name' });
+  });
+
+  it('UpdateMeBody keeps null to clear', () => {
+    const body = { name: null, bio: null, link: null, avatarUploadKey: null };
+    expect(UpdateMeBodySchema.parse(body)).toEqual(body);
+    expect(UpdateMeBodySchema.parse({})).toEqual({});
+  });
+
+  it('a 201-character name fails as too long', () => {
+    const result = UpdateMeBodySchema.safeParse({ name: 'n'.repeat(201) });
+    expect(fieldIssues(result)).toEqual([{ path: 'name', code: 'too_big', params: undefined }]);
+    expect(UpdateMeBodySchema.safeParse({ name: 'n'.repeat(200) }).success).toBe(true);
+  });
+
+  it('lengths of bio, link and upload key are bounded as sent', () => {
+    expect(UpdateMeBodySchema.safeParse({ bio: 'b'.repeat(400) }).success).toBe(true);
+    expect(UpdateMeBodySchema.safeParse({ bio: 'b'.repeat(401) }).success).toBe(false);
+    expect(UpdateMeBodySchema.safeParse({ link: `https://${'a'.repeat(193)}.test` }).success).toBe(
+      true,
+    );
+    expect(UpdateMeBodySchema.safeParse({ link: 'l'.repeat(2049) }).success).toBe(false);
+    expect(UpdateMeBodySchema.safeParse({ avatarUploadKey: '' }).success).toBe(false);
+    expect(UpdateMeBodySchema.safeParse({ avatarUploadKey: 'k'.repeat(201) }).success).toBe(false);
+  });
+
+  it('only the English locale is accepted', () => {
+    expect(UpdateMeBodySchema.safeParse({ locale: 'en' }).success).toBe(true);
+    expect(UpdateMeBodySchema.safeParse({ locale: 'fr' }).success).toBe(false);
+  });
+});
+
+describe('SetIssuesBody', () => {
+  it('2 items fail as too small', () => {
+    expect(fieldIssues(SetIssuesBodySchema.safeParse({ issues: picks(2) }))).toEqual([
+      { path: 'issues', code: 'too_small', params: undefined },
+    ]);
+  });
+
+  it('11 items fail as too big', () => {
+    expect(fieldIssues(SetIssuesBodySchema.safeParse({ issues: picks(11) }))).toEqual([
+      { path: 'issues', code: 'too_big', params: undefined },
+    ]);
+  });
+
+  it('a duplicate gives invalid_value at issues', () => {
+    const issues = [...picks(3), { issueId: 'issue-0', starred: false }];
+    expect(fieldIssues(SetIssuesBodySchema.safeParse({ issues }))).toEqual([
+      { path: 'issues', code: 'custom', params: { code: 'invalid_value' } },
+    ]);
+  });
+
+  it('4 stars give too_many at issues', () => {
+    expect(fieldIssues(SetIssuesBodySchema.safeParse({ issues: picks(5, 4) }))).toEqual([
+      { path: 'issues', code: 'custom', params: { code: 'too_many' } },
+    ]);
+  });
+
+  it('3 and 10 items pass, with up to 3 stars', () => {
+    expect(SetIssuesBodySchema.safeParse({ issues: picks(3, 3) }).success).toBe(true);
+    expect(SetIssuesBodySchema.safeParse({ issues: picks(10) }).success).toBe(true);
+  });
+
+  it('an issue id must be kebab-case', () => {
+    const issues = [...picks(2), { issueId: 'Bad_Id', starred: false }];
+    expect(fieldIssues(SetIssuesBodySchema.safeParse({ issues }))).toEqual([
+      { path: 'issues.2.issueId', code: 'invalid_format', params: undefined },
+    ]);
+  });
+});
+
+describe('RecordConsentBody', () => {
+  it('RecordConsentBody refuses a withdrawn agreement', () => {
+    for (const kind of ['terms', 'content_policy', 'privacy_policy']) {
+      const result = RecordConsentBodySchema.safeParse({
+        kind,
+        version: '2027-01-01',
+        granted: false,
+      });
+      expect(fieldIssues(result)).toEqual([
+        { path: 'granted', code: 'custom', params: { code: 'not_allowed' } },
+      ]);
+    }
+    expect(
+      RecordConsentBodySchema.safeParse({
+        kind: 'ai_screening',
+        version: '2027-01-01',
+        granted: false,
+      }).success,
+    ).toBe(true);
+    expect(
+      RecordConsentBodySchema.safeParse({ kind: 'terms', version: '2027-01-01', granted: true })
+        .success,
+    ).toBe(true);
+  });
+
+  it('a version is 1 to 32 characters', () => {
+    expect(
+      RecordConsentBodySchema.safeParse({ kind: 'terms', version: '', granted: true }).success,
+    ).toBe(false);
+    expect(
+      RecordConsentBodySchema.safeParse({ kind: 'terms', version: 'v'.repeat(33), granted: true })
+        .success,
+    ).toBe(false);
+  });
+});
+
+describe('RecordAgeSignalBody', () => {
+  it('RecordAgeSignalBody refuses the self tier', () => {
+    expect(
+      RecordAgeSignalBodySchema.safeParse({ result: 'adult', sourceTier: 'self' }).success,
+    ).toBe(false);
+    for (const result of ['adult', 'under_18', 'under_13']) {
+      expect(RecordAgeSignalBodySchema.safeParse({ result, sourceTier: 'declared' }).success).toBe(
+        true,
+      );
+    }
+  });
+});
+
+describe('handle and onboarding bodies', () => {
+  it('CheckHandleQuery refuses 41 characters', () => {
+    expect(CheckHandleQuerySchema.safeParse({ handle: 'h'.repeat(41) }).success).toBe(false);
+    expect(CheckHandleQuerySchema.safeParse({ handle: 'h'.repeat(40) }).success).toBe(true);
+    expect(CheckHandleQuerySchema.safeParse({ handle: '' }).success).toBe(false);
+  });
+
+  it('only the optional steps can be skipped', () => {
+    expect(SkipOnboardingStepBodySchema.safeParse({ step: 'photo' }).success).toBe(true);
+    expect(SkipOnboardingStepBodySchema.safeParse({ step: 'location' }).success).toBe(true);
+    expect(SkipOnboardingStepBodySchema.safeParse({ step: 'handle' }).success).toBe(false);
+  });
+});
+
+describe('component ids', () => {
+  it('component ids equal the type names', () => {
+    const named = Object.entries(me).flatMap(([name, value]) =>
+      name.endsWith('Schema') && value instanceof z.ZodType ? [{ name, schema: value }] : [],
+    );
+    expect(named.length).toBeGreaterThan(20);
+    for (const { name, schema } of named) {
+      expect(schema.meta()?.id).toBe(name.slice(0, -'Schema'.length));
+    }
+  });
+});
