@@ -159,6 +159,7 @@ export default defineRailway((ctx) => {
       RESEND_API_KEY: preserve(), // sealed; the dead-letter email (D-238)
       EMAIL_FROM: preserve(),
       ADMIN_EMAILS: preserve(),
+      ...bucketVars('MEDIA', media), // media jobs and deletes (09 section 1.3, milestone 1)
       ...bucketVars('BACKUPS', backups), // D-028: the dump-age check
       APP_SECRET: preserve(), // sealed; same value as on api
     },

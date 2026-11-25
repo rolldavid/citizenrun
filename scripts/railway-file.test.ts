@@ -68,6 +68,29 @@ describe('.railway/railway.ts', () => {
     }
   });
 
+  // 09 section 1.3: the five media references on api, worker and admin; the worker's environment
+  // check refuses to start without them.
+  it('gives api, worker and admin the five media bucket references, and backup none', async () => {
+    const nodes = await stagingNodes();
+    const media = [
+      'MEDIA_ACCESS_KEY_ID',
+      'MEDIA_BUCKET',
+      'MEDIA_ENDPOINT',
+      'MEDIA_REGION',
+      'MEDIA_SECRET_ACCESS_KEY',
+    ];
+    for (const name of SERVICES) {
+      const declared = Object.keys(serviceNode(nodes, name).variables ?? {}).filter((key) =>
+        key.startsWith('MEDIA_'),
+      );
+      if (name === 'api' || name === 'worker' || name === 'admin') {
+        expect(declared.sort(), name).toEqual(media);
+      } else {
+        expect(declared, name).toEqual([]);
+      }
+    }
+  });
+
   // `config apply` refuses a custom domain it has not seen; the bootstrap adds them (D-849).
   it('declares no custom domain on any service', async () => {
     const nodes = await stagingNodes();
