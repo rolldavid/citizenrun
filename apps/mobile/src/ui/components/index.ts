@@ -25,7 +25,14 @@ export * from './sheet';
 // C-Dialog's file also exports the frame it shares with C-Sheet; `@/ui` takes the dialog alone.
 export { Dialog } from './dialog';
 export type { DialogProps } from './dialog';
+export * from './popover';
 export * from './tooltip';
 export * from './toast';
+export * from './form-field';
+export * from './text-field';
+export * from './handle-field';
+export * from './code-field';
+export * from './progress';
+export * from './sticky-footer';
 export { ICONS, ICON_NAMES } from '@/ui/icons';
 export type { IconName } from '@/ui/icons';

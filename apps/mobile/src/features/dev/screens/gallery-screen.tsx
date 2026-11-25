@@ -1,12 +1,13 @@
 import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 import type { ComponentType, JSX, ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
-import type { TextInstance, ViewStyle } from 'react-native';
+import type { HostInstance, TextInstance, ViewStyle } from 'react-native';
 
 import {
   AppBar,
   Avatar,
   Button,
+  CodeField,
   CompactShell,
   CountBadge,
   Dialog,
@@ -14,6 +15,8 @@ import {
   EmptyState,
   ExpandedShell,
   FeedRule,
+  FormField,
+  HandleField,
   Icon,
   IconButton,
   InteractionPreview,
@@ -21,16 +24,20 @@ import {
   List,
   MediumShell,
   Notice,
+  Popover,
   Pressable,
+  Progress,
   Rail,
   RightColumn,
   Rule,
   Screen,
   Sheet,
   Skeleton,
+  StickyFooter,
   SystemScreen,
   TabBar,
   Text,
+  TextField,
   ToastOutlet,
   Tooltip,
   Wordmark,
@@ -38,30 +45,42 @@ import {
   useBreakpoint,
 } from '@/ui';
 import type {
+  CodeFieldProps,
   DialogProps,
+  HandleFieldProps,
   InteractionPreviewState,
   ListProps,
+  PopoverProps,
   RightColumnProps,
   SheetProps,
+  StickyFooterProps,
+  TextFieldProps,
 } from '@/ui';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
+import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
+import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
+import * as progressFixtures from '@/ui/components/progress.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
+import * as stickyFooterFixtures from '@/ui/components/sticky-footer.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
+import * as textFieldFixtures from '@/ui/components/text-field.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
 import * as toastFixtures from '@/ui/components/toast.fixtures';
 import * as tooltipFixtures from '@/ui/components/tooltip.fixtures';
@@ -290,6 +309,154 @@ function DialogSpecimen({ state, fixture }: { state: string; fixture: DialogProp
   );
 }
 
+/**
+ * A section whose specimens the gallery draws round each state's fixture: a field that holds what
+ * is typed into it, an overlay behind the button that opens it. `order` gives the states where
+ * the order of the fixtures would not do.
+ */
+function fixtureSection<P>(
+  id: string,
+  slug: string,
+  cell: GallerySection['cell'],
+  fixtures: Fixtures<P>,
+  draw: (fixture: P, state: string) => ReactNode,
+  order: readonly string[] = Object.keys(fixtures.STATES),
+): GallerySection {
+  return {
+    id,
+    slug,
+    cell,
+    states: order,
+    preview: fixtures.PREVIEW,
+    ground: fixtures.GROUND,
+    frame: () => null,
+    render: (state) => {
+      const fixture = fixtures.STATES[state];
+      return fixture === undefined ? null : draw(fixture, state);
+    },
+  };
+}
+
+const ANCHOR_START: ViewStyle = { alignSelf: 'flex-start' };
+// A popover whose end edge lines up with its control's needs the room before it.
+const ANCHOR_END: ViewStyle = { alignSelf: 'flex-end' };
+
+/**
+ * The states of C-Popover in the order the gallery draws them: those that open upward come last,
+ * at the bottom of the section, where there is room above them.
+ */
+const POPOVER_ORDER: readonly string[] = [
+  ...Object.keys(popoverFixtures.STATES).filter((state) => !state.startsWith('above')),
+  ...Object.keys(popoverFixtures.STATES).filter((state) => state.startsWith('above')),
+];
+
+/** The rows of a popover's fixture closing the popover when one is picked; anything else as it is. */
+function closingRows(children: ReactNode, close: () => void): ReactNode {
+  return isValidElement<{ onPick?: () => void }>(children) && 'onPick' in children.props
+    ? cloneElement(children, { onPick: close })
+    : children;
+}
+
+/**
+ * One state of C-Popover: the control that opens it, which is its anchor, and the popover, closed
+ * until then. The control stands at the end of its cell for a popover that lines up with its end
+ * edge, and the narrow anchor is an icon button.
+ */
+function PopoverSpecimen({
+  state,
+  fixture,
+}: {
+  state: string;
+  fixture: PopoverProps;
+}): JSX.Element {
+  const anchor = useRef<HostInstance>(null);
+  const [open, setOpen] = useState(false);
+  const close = (): void => {
+    setOpen(false);
+  };
+  const show = (): void => {
+    setOpen(true);
+  };
+  const testID = `gallery.popover-open-${kebab(state)}`;
+  return (
+    <>
+      <View
+        ref={anchor}
+        style={fixture.placement?.endsWith('-end') === true ? ANCHOR_END : ANCHOR_START}
+      >
+        {state === 'narrowAnchor' ? (
+          <IconButton
+            icon="more"
+            variant="framed"
+            label={`Open ${state}`}
+            testID={testID}
+            onPress={show}
+          />
+        ) : (
+          <Button variant="secondary" label={`Open ${state}`} testID={testID} onPress={show} />
+        )}
+      </View>
+      <Popover {...fixture} anchor={anchor} open={open} onClose={close}>
+        {closingRows(fixture.children, close)}
+      </Popover>
+    </>
+  );
+}
+
+/** One state of C-TextField, holding what is typed into it: a fixture's own value never changes. */
+function TextFieldSpecimen({ fixture }: { fixture: TextFieldProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return (
+    <TextField
+      {...fixture}
+      value={value}
+      onChangeText={setValue}
+      {...(fixture.onClear === undefined
+        ? {}
+        : {
+            onClear: () => {
+              setValue('');
+            },
+          })}
+    />
+  );
+}
+
+/** One state of C-HandleField, holding what is typed into it; the answer of its check stays the fixture's. */
+function HandleFieldSpecimen({ fixture }: { fixture: HandleFieldProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return <HandleField {...fixture} value={value} onChangeText={setValue} />;
+}
+
+// The six boxes are as wide as the smallest phone between its gutters, so the row takes back the
+// cell's own room at each side.
+const CODE_ROW: ViewStyle = { marginHorizontal: -space.x3 };
+
+/** One state of C-CodeField, holding the digits typed or pasted into it. */
+function CodeFieldSpecimen({ fixture }: { fixture: CodeFieldProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return (
+    <View style={CODE_ROW}>
+      <CodeField {...fixture} value={value} onChangeText={setValue} />
+    </View>
+  );
+}
+
+// The foot of a screen: a little of its ground over the footer, which is not pinned here.
+const FOOTER_BOX: ViewStyle = { marginHorizontal: -space.x3, borderWidth: rule.hairline };
+const FOOTER_GROUND: ViewStyle = { height: size.listRowMin };
+
+/** One state of C-StickyFooter at the foot of an outlined box, in place of the window it is pinned to. */
+function StickyFooterSpecimen({ fixture }: { fixture: StickyFooterProps }): JSX.Element {
+  const theme = useTheme();
+  return (
+    <View style={[FOOTER_BOX, { borderColor: theme.color.rule }]}>
+      <View style={FOOTER_GROUND} />
+      <StickyFooter {...fixture} />
+    </View>
+  );
+}
+
 const SHEET_STATES: Readonly<Record<string, SheetProps>> = sheetFixtures.STATES;
 const DIALOG_STATES: Readonly<Record<string, DialogProps>> = dialogFixtures.STATES;
 const TOAST_STATES: Readonly<Record<string, Parameters<typeof showToast>[0]>> =
@@ -332,6 +499,14 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     const fixture = DIALOG_STATES[state];
     return fixture === undefined ? null : <DialogSpecimen state={state} fixture={fixture} />;
   }),
+  fixtureSection<PopoverProps>(
+    'C-Popover',
+    'popover',
+    'wide',
+    popoverFixtures,
+    (fixture, state) => <PopoverSpecimen state={state} fixture={fixture} />,
+    POPOVER_ORDER,
+  ),
   section('C-Tooltip', 'tooltip', 'wide', Tooltip, tooltipFixtures),
   // A toast is drawn apart from what asks for it, so its specimen is the button that asks.
   specimenSection('C-Toast', 'toast', Object.keys(TOAST_STATES), (state) => {
@@ -347,6 +522,36 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
       />
     );
   }),
+  section('C-FormField', 'form-field', 'wide', FormField, formFieldFixtures),
+  fixtureSection<TextFieldProps>(
+    'C-TextField',
+    'text-field',
+    'wide',
+    textFieldFixtures,
+    (fixture) => <TextFieldSpecimen fixture={fixture} />,
+  ),
+  fixtureSection<HandleFieldProps>(
+    'C-HandleField',
+    'handle-field',
+    'wide',
+    handleFieldFixtures,
+    (fixture) => <HandleFieldSpecimen fixture={fixture} />,
+  ),
+  fixtureSection<CodeFieldProps>(
+    'C-CodeField',
+    'code-field',
+    'full',
+    codeFieldFixtures,
+    (fixture) => <CodeFieldSpecimen fixture={fixture} />,
+  ),
+  section('C-Progress', 'progress', 'wide', Progress, progressFixtures),
+  fixtureSection<StickyFooterProps>(
+    'C-StickyFooter',
+    'sticky-footer',
+    'wide',
+    stickyFooterFixtures,
+    (fixture) => <StickyFooterSpecimen fixture={fixture} />,
+  ),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };
@@ -533,6 +738,8 @@ function GalleryPage({
       <AppBarInset />
       <ScrollView
         testID="gallery.scroll"
+        // As in C-Screen: a press on a specimen's button reaches it while a field has the keyboard up.
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{
           alignSelf: 'center',
           width: '100%',

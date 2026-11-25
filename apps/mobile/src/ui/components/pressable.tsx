@@ -63,6 +63,11 @@ export function InteractionPreview(props: {
   return <PreviewContext.Provider value={props.state}>{props.children}</PreviewContext.Provider>;
 }
 
+/** The interaction state forced on the tree it is called in; none outside a preview. */
+export function useInteractionPreview(): InteractionPreviewState {
+  return useContext(PreviewContext);
+}
+
 /** The hit slop that brings a drawing smaller than the smallest target up to it, on each axis. */
 export function hitSlopFor(
   drawn: { width: number; height: number } | undefined,

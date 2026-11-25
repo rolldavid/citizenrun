@@ -8,22 +8,29 @@ import { renderWithProviders } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
+import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
+import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
 import * as iconFixtures from '@/ui/components/icon.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
+import * as progressFixtures from '@/ui/components/progress.fixtures';
 import * as ruleFixtures from '@/ui/components/rule.fixtures';
 import * as screenFixtures from '@/ui/components/screen.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
+import * as stickyFooterFixtures from '@/ui/components/sticky-footer.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
+import * as textFieldFixtures from '@/ui/components/text-field.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
 import * as toastFixtures from '@/ui/components/toast.fixtures';
 import * as tooltipFixtures from '@/ui/components/tooltip.fixtures';
@@ -93,8 +100,15 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-SystemScreen', slug: 'system-screen', states: Object.keys(systemScreenFixtures.STATES) },
   { id: 'C-Sheet', slug: 'sheet', states: Object.keys(sheetFixtures.STATES) },
   { id: 'C-Dialog', slug: 'dialog', states: Object.keys(dialogFixtures.STATES) },
+  { id: 'C-Popover', slug: 'popover', states: Object.keys(popoverFixtures.STATES) },
   { id: 'C-Tooltip', slug: 'tooltip', states: Object.keys(tooltipFixtures.STATES) },
   { id: 'C-Toast', slug: 'toast', states: Object.keys(toastFixtures.STATES) },
+  { id: 'C-FormField', slug: 'form-field', states: Object.keys(formFieldFixtures.STATES) },
+  { id: 'C-TextField', slug: 'text-field', states: Object.keys(textFieldFixtures.STATES) },
+  { id: 'C-HandleField', slug: 'handle-field', states: Object.keys(handleFieldFixtures.STATES) },
+  { id: 'C-CodeField', slug: 'code-field', states: Object.keys(codeFieldFixtures.STATES) },
+  { id: 'C-Progress', slug: 'progress', states: Object.keys(progressFixtures.STATES) },
+  { id: 'C-StickyFooter', slug: 'sticky-footer', states: Object.keys(stickyFooterFixtures.STATES) },
 ];
 
 const DEFAULTS: GalleryScreenProps = {
@@ -216,8 +230,15 @@ describe('GalleryScreen', () => {
       'C-SystemScreen',
       'C-Sheet',
       'C-Dialog',
+      'C-Popover',
       'C-Tooltip',
       'C-Toast',
+      'C-FormField',
+      'C-TextField',
+      'C-HandleField',
+      'C-CodeField',
+      'C-Progress',
+      'C-StickyFooter',
     ]);
     expect(COMPONENTS.map((component) => component.id)).toEqual(sectionHeadings());
     // The gallery's own heading is the page's, and the page has one main landmark of its own, which
