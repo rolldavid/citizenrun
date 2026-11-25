@@ -188,6 +188,38 @@ describe('framesFromStack', () => {
     ).toEqual([{ file: 'index.android.bundle', line: 1, column: 2345 }]);
   });
 
+  it('frames from an iOS release stack keep the file name alone', () => {
+    const container =
+      '/private/var/containers/Bundle/Application/0F1E2D3C-4B5A-6978-8796-A5B4C3D2E1F0/App.app';
+    expect(
+      framesFromStack(
+        [
+          'TypeError: x',
+          `    at App (address at ${container}/main.jsbundle:1:2345)`,
+          `    at run (file://${container}/main.jsbundle?x=1:2:3)`,
+          '    at load (/data/user/0/org.example.app/files/.expo-internal/abc123.bundle:4:5)',
+          `start@${container}/main.jsbundle:6:7`,
+        ].join('\n'),
+      ),
+    ).toEqual([
+      { file: 'main.jsbundle', line: 1, column: 2345 },
+      { file: 'main.jsbundle', line: 2, column: 3 },
+      { file: 'abc123.bundle', line: 4, column: 5 },
+      { file: 'main.jsbundle', line: 6, column: 7 },
+    ]);
+  });
+
+  it('a phone frame served by the dev server keeps its path', () => {
+    expect(
+      framesFromStack(
+        '    at App (http://192.168.1.5:8081/index.bundle?platform=ios&dev=true:10:20)',
+      ),
+    ).toEqual([{ file: '/index.bundle', line: 10, column: 20 }]);
+    expect(
+      framesFromStack('    at App (HTTPS://example.test/_expo/static/js/web/a.js?v=1#x:1:2)'),
+    ).toEqual([{ file: '/_expo/static/js/web/a.js', line: 1, column: 2 }]);
+  });
+
   it('frames from a Safari stack', () => {
     expect(framesFromStack('App@http://localhost:8081/node_modules/x/y.js:3:9')).toEqual([
       { file: '/node_modules/x/y.js', line: 3, column: 9 },

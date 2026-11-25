@@ -18,7 +18,8 @@ const ROUTE_MAX = 200;
 const ROUTE_PATTERN = /^\/[A-Za-z0-9_\-/[\]().+]*$/;
 const COMPONENT_LINE = /^(?:at|in)\s+([A-Za-z0-9_$.]{1,100})\b/;
 const FRAME_AT_END = /(?:^\s*|\(|@|\bat\s+)([^\s()]+):(\d+):(\d+)\)?\s*$/;
-const ORIGIN_PREFIX = /^.*?[A-Za-z][A-Za-z0-9+.-]*:\/\/[^/]*/;
+// An http or https origin, after the `<function>@` that a Safari frame line starts with.
+const WEB_ORIGIN = /^(?:[^@/]*@)?https?:\/\/[^/]*/i;
 const QUERY_OR_HASH = /[?#].*$/;
 const FILE_MAX = 200;
 const FILE_PATTERN = /^[A-Za-z0-9_\-/.@]+$/;
@@ -56,6 +57,17 @@ function isPosition(value: number): boolean {
   return Number.isInteger(value) && value >= 0 && value <= POSITION_MAX;
 }
 
+// The file a frame names (D-825): the path of a location served over http or https, which is the same
+// for every visitor; for any other location (a phone's bundle path, `file://`, another scheme), only
+// its last segment, so no folder of the device (an iOS install's container id) leaves the phone.
+function fileOf(location: string): string {
+  const path = location.replace(QUERY_OR_HASH, '');
+  if (WEB_ORIGIN.test(path)) {
+    return path.replace(WEB_ORIGIN, '');
+  }
+  return path.slice(path.lastIndexOf('/') + 1);
+}
+
 function frameFromLine(line: string): ClientErrorFrame | null {
   const match = FRAME_AT_END.exec(line);
   const location = match?.[1];
@@ -64,7 +76,7 @@ function frameFromLine(line: string): ClientErrorFrame | null {
   if (location === undefined || lineText === undefined || columnText === undefined) {
     return null;
   }
-  const file = location.replace(ORIGIN_PREFIX, '').replace(QUERY_OR_HASH, '');
+  const file = fileOf(location);
   const lineNumber = Number(lineText);
   const column = Number(columnText);
   if (
@@ -79,7 +91,7 @@ function frameFromLine(line: string): ClientErrorFrame | null {
   return { file, line: lineNumber, column };
 }
 
-/** File, line and column of each stack frame, without origin or query; at most 20. */
+/** File, line and column of each stack frame, without origin, folders off the web, or query; at most 20. */
 export function framesFromStack(stack: unknown): ClientErrorFrame[] {
   if (typeof stack !== 'string') {
     return [];
