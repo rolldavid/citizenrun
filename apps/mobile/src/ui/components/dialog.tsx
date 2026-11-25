@@ -62,7 +62,8 @@ const FRAME: ViewStyle = {
   borderRadius: radius.none,
 };
 const FRAME_SM: ViewStyle = { ...FRAME, maxWidth: size.dialogMax, padding: space.x6 };
-// Its children own their padding, and what is too tall for the frame is theirs to scroll.
+// Its children own their padding, and what is too tall for the frame is theirs to scroll. In a
+// window narrower than the frame may be, the gutter stays clear at each side.
 const FRAME_LG: ViewStyle = {
   ...FRAME,
   maxWidth: size.profileColumn,
@@ -174,8 +175,10 @@ export function DialogFrame({
         if (dismissible) onClose();
       }}
     >
-      {/* The gutter stays clear at each side of the small frame on a phone. */}
-      <View style={[ROOT, large ? null : { padding: layout.gutter }]}>
+      {/* The gutter stays clear round the small frame, and at each side of the large one. */}
+      <View
+        style={[ROOT, large ? { paddingHorizontal: layout.gutter } : { padding: layout.gutter }]}
+      >
         <Animated.View
           role={destructive ? 'alertdialog' : 'dialog'}
           aria-modal={true}

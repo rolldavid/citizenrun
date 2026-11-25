@@ -192,8 +192,26 @@ describe('Dialog', () => {
     expect(frame.parentElement?.style.justifyContent).toBe('center');
     setViewport(...NARROW);
     expect(draw(STATES.confirm).parentElement?.style.padding).toBe(`${String(gutter.narrow)}px`);
-    // The large frame reaches the edges of a phone: its children own their padding.
-    expect(draw(STATES.large).parentElement?.style.padding).toBe('');
+    // The large frame has no padding of its own, and never reaches the edges of the window: in
+    // one narrower than the frame may be, the gutter stays clear at each side.
+    for (const [viewport, clear] of [
+      [NARROW, gutter.narrow],
+      [COMPACT, gutter.regular],
+      [MEDIUM, gutter.regular],
+      [[size.profileColumn - 1, 900], gutter.regular],
+      [EXPANDED, gutter.regular],
+    ] as const) {
+      setViewport(viewport[0], viewport[1]);
+      const large = draw(STATES.large);
+      const name = String(viewport[0]);
+      expect(large.style.padding, name).toBe('');
+      expect(large.style.maxWidth, name).toBe(`${String(size.profileColumn)}px`);
+      expect(large.parentElement?.style.paddingLeft, name).toBe(`${String(clear)}px`);
+      expect(large.parentElement?.style.paddingRight, name).toBe(`${String(clear)}px`);
+      // Above and under it the frame keeps a twentieth of the window, as before.
+      expect(large.parentElement?.style.paddingTop, name).toBe('');
+      expect(large.style.maxHeight, name).toBe('90%');
+    }
   });
 
   it('is an alertdialog with a destructive action', () => {
