@@ -1,3 +1,5 @@
+import type { UploadTicket } from '@citizenrun/shared';
+
 import type { PermissionState } from '../shared';
 export type { PermissionState } from '../shared';
 
@@ -59,6 +61,12 @@ export interface UploadModule {
   pickAvatarPhoto(): Promise<PickOutcome>;
   /** Crops (when given), resizes to at most 1080 pixels wide and re-encodes as JPEG (D-175). */
   preparePhoto(item: PickedPhoto, opts: { crop: CropRect | null }): Promise<PrepareOutcome>;
+  /** Sends a prepared file under a ticket from E-UPL-01, reporting progress. */
+  send(
+    file: PreparedFile,
+    ticket: UploadTicket,
+    opts: { onProgress: (p: SendProgress) => void; signal: AbortSignal },
+  ): Promise<SendOutcome>;
   /** Frees what picking and preparing made (cache files, blob URLs). Safe to call twice. */
   release(items: readonly (PickedMedia | PreparedFile)[]): void;
 }
