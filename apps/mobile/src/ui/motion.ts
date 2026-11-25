@@ -350,12 +350,16 @@ function joinPulse(): () => void {
 }
 
 /**
- * The loading pulse between 1 and opacity.skeletonLow on motion.duration.pulse (MO-loading). Still, at
- * opacity 1, while `active` is false and under reduced motion.
+ * The loading pulse between 1 and opacity.skeletonLow on motion.duration.pulse (MO-loading). At
+ * opacity 1 while `active` is false. Under reduced motion nothing pulses: a skeleton is still at
+ * opacity 1 ('still', the default), and a control that is waiting ('held') is drawn at
+ * opacity.skeletonLow for as long as it waits, the pulse's low point held, so the wait shows
+ * without moving.
  */
-export function usePulse(active: boolean): AnimatedStyle {
+export function usePulse(active: boolean, whenReduced: 'still' | 'held' = 'still'): AnimatedStyle {
   const reduced = useReducedMotion();
   const pulses = active && !reduced;
+  const resting = active && reduced && whenReduced === 'held' ? opacity.skeletonLow : 1;
 
   useEffect(() => {
     if (!pulses) return undefined;
@@ -364,8 +368,8 @@ export function usePulse(active: boolean): AnimatedStyle {
 
   return useWorkletStyle(() => {
     'worklet';
-    return { opacity: active && !reduced ? pulseClock.value : 1 };
-  }, [pulseClock, active, reduced]);
+    return { opacity: pulses ? pulseClock.value : resting };
+  }, [pulseClock, pulses, resting]);
 }
 
 type OnceKind = 'meters' | 'ring' | 'number' | 'done' | 'enter';

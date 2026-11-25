@@ -158,7 +158,9 @@ describe('motion hooks', () => {
       expect(stagger.result.current(9)).toBeDefined();
       const pulse = renderHook(() => usePulse(true), { wrapper: under(reduced) });
       expect(pulse.result.current).toBeDefined();
-      for (const hook of [stamp, spring, stagger, pulse]) {
+      const held = renderHook(() => usePulse(true, 'held'), { wrapper: under(reduced) });
+      expect(held.result.current).toBeDefined();
+      for (const hook of [stamp, spring, stagger, pulse, held]) {
         hook.unmount();
       }
     }

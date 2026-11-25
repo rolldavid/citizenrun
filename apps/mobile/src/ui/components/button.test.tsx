@@ -8,6 +8,7 @@ import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
+import { opacity } from '@/ui/tokens';
 
 import { Button } from './button';
 import type { ButtonProps, ButtonVariant } from './button';
@@ -454,6 +455,25 @@ describe('Button', () => {
 
     const idle = drawState('primary');
     expect(idle.target.getAttribute('aria-busy')).toBe('false');
+    expect(idle.target.querySelector('[style*="opacity"]')).toBeNull();
+  });
+
+  it('under reduced motion a busy button holds its label at the low point of the pulse', () => {
+    const low = String(opacity.skeletonLow);
+    // With motion the pulse starts from full strength; nothing is held.
+    const moving = drawState('busy', { reducedMotion: false });
+    expect(moving.label.closest<HTMLElement>('[style*="opacity"]')?.style.opacity).toBe('1');
+    const busy = drawState('busy', { reducedMotion: true });
+    const held = busy.label.closest<HTMLElement>('[style*="opacity"]');
+    expect(held).not.toBeNull();
+    expect(held?.style.opacity).toBe(low);
+    // The icon and the label are held together, and the box keeps its fill at full strength.
+    expect(busy.box.contains(held)).toBe(true);
+    expect(busy.box.style.opacity).toBe('');
+    expect(busy.box.style.backgroundColor).toBe(written('#141412'));
+    expect(busy.target.getAttribute('aria-busy')).toBe('true');
+    // At rest the same button holds nothing back.
+    const idle = drawState('primary', { reducedMotion: true });
     expect(idle.target.querySelector('[style*="opacity"]')).toBeNull();
   });
 

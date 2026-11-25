@@ -121,16 +121,20 @@ const ROW: ViewStyle = {
 };
 const PULSING_ROW: ViewStyle = { ...ROW, flexShrink: 1 };
 
-/** The icon and label of a waiting button, on the loading pulse (PC6A-04). */
+/**
+ * The icon and label of a waiting button, on the loading pulse (PC6A-04). Under reduced motion
+ * they are held at the pulse's low point, so a wait still looks unlike rest.
+ */
 function PulsingRow({ children }: { children: ReactNode }): JSX.Element {
-  const pulse = usePulse(true);
+  const pulse = usePulse(true, 'held');
   return <Animated.View style={[PULSING_ROW, pulse]}>{children}</Animated.View>;
 }
 
 /**
  * C-Button: a labelled action. 'run' is the only accent fill, 'primary' is ink, and the other three
  * have no fill of their own. The label may wrap to two lines and grows the button. While busy the
- * label pulses and presses are ignored; the button keeps its fill and its width.
+ * label pulses, or is held dim under reduced motion, and presses are ignored; the button keeps its
+ * fill and its width.
  */
 export function Button({
   variant,
