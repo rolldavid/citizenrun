@@ -248,9 +248,12 @@ describe('the web shell and static files', () => {
 
   it('index.html redirects to the root', async () => {
     const testApp = await createTestApp();
-    const response = await send(testApp, 'GET', '/index.html');
-    expect(response.status).toBe(301);
-    expect(response.headers.get('location')).toBe('/');
+    // Any case: on a case-insensitive disk another case would name the raw template.
+    for (const path of ['/index.html', '/INDEX.HTML', '/Index.Html']) {
+      const response = await send(testApp, 'GET', path);
+      expect(response.status, path).toBe(301);
+      expect(response.headers.get('location'), path).toBe('/');
+    }
   });
 
   it('a missing chunk falls through to the shell', async () => {

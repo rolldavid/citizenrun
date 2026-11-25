@@ -81,8 +81,9 @@ function answerCompressed(
 
 /**
  * E-WEB-04, for `GET` and `HEAD`: files of the web export with the cache header of their path, a
- * Brotli or gzip copy from memory where the request allows one, `/index.html` sent to `/`, and a
- * path with a `..` segment refused. A path under `/v1`, or one that names no file, passes on.
+ * Brotli or gzip copy from memory where the request allows one, `/index.html` in any case sent to
+ * `/`, and a path with a `..` segment refused. A path under `/v1`, or one that names no file,
+ * passes on.
  * Each file request counts against `web_static`.
  */
 export function staticFiles(deps: Deps): MiddlewareHandler<RouterEnv> {
@@ -111,7 +112,8 @@ export function staticFiles(deps: Deps): MiddlewareHandler<RouterEnv> {
       await next();
       return;
     }
-    if (path === INDEX_PATH) {
+    // In any case: a case-insensitive disk would otherwise serve the unfilled template as a file.
+    if (path.toLowerCase() === INDEX_PATH) {
       return c.redirect('/', 301);
     }
     if (PARENT_SEGMENT.test(path)) {
