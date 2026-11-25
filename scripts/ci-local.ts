@@ -81,6 +81,8 @@ const SERVICES = ['api', 'worker', 'backup'] as const;
 // The fixed, public, local-only object store keys of docker-compose.yml.
 const STORE_KEY_ID = 'osdev';
 const STORE_SECRET = 'osdev-secret-key';
+// The local APP_SECRET of the .env.example files: a public constant, never a real secret.
+const LOCAL_APP_SECRET = '0'.repeat(64);
 
 /** Runs a command without a shell, its output streamed through; a non-zero exit fails the job. */
 async function step(
@@ -295,6 +297,7 @@ async function apiSmoke(ctx: JobContext): Promise<void> {
       MEDIA_ACCESS_KEY_ID: STORE_KEY_ID,
       MEDIA_SECRET_ACCESS_KEY: STORE_SECRET,
       S3_FORCE_PATH_STYLE: 'true',
+      APP_SECRET: LOCAL_APP_SECRET,
     };
     await step(ctx, 'docker', [
       'run',
@@ -366,7 +369,13 @@ export function workerRunArgs(): string[] {
     BACKUPS_REGION: 'us-east-1',
     BACKUPS_ACCESS_KEY_ID: STORE_KEY_ID,
     BACKUPS_SECRET_ACCESS_KEY: STORE_SECRET,
+    MEDIA_BUCKET: 'media',
+    MEDIA_ENDPOINT: 'http://seaweedfs:8333',
+    MEDIA_REGION: 'us-east-1',
+    MEDIA_ACCESS_KEY_ID: STORE_KEY_ID,
+    MEDIA_SECRET_ACCESS_KEY: STORE_SECRET,
     S3_FORCE_PATH_STYLE: 'true',
+    APP_SECRET: LOCAL_APP_SECRET,
   };
   return [
     'run',

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import source from './env.ts?raw';
 import * as envModule from './env';
 
-const { parseAppEnv } = envModule;
+const { parseAppEnv, readSignInIds } = envModule;
 
 const SECRET_VARIABLES = [
   'DATABASE_URL',
@@ -80,6 +80,56 @@ describe('app env', () => {
     const url = 'https://apps.example.test/app/id1';
     expect(parseAppEnv({ EXPO_PUBLIC_APP_STORE_URL: url }).appStoreUrl).toBe(url);
     expect(parseAppEnv({ EXPO_PUBLIC_PLAY_STORE_URL: ` ${url} ` }).playStoreUrl).toBe(url);
+  });
+
+  it('readSignInIds reads empty as unset', () => {
+    for (const value of ['', '   ', undefined]) {
+      expect(
+        readSignInIds({
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: value,
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: value,
+          EXPO_PUBLIC_APPLE_SERVICES_ID: value,
+        }),
+      ).toEqual({ googleIosClientId: null, googleWebClientId: null, appleServicesId: null });
+    }
+  });
+
+  it('readSignInIds trims', () => {
+    expect(
+      readSignInIds({
+        EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: ' 123-abc.apps.googleusercontent.com ',
+        EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: '456-def.apps.googleusercontent.com\n',
+        EXPO_PUBLIC_APPLE_SERVICES_ID: ' org.example.fixture.web',
+      }),
+    ).toEqual({
+      googleIosClientId: '123-abc.apps.googleusercontent.com',
+      googleWebClientId: '456-def.apps.googleusercontent.com',
+      appleServicesId: 'org.example.fixture.web',
+    });
+  });
+
+  it('getAppEnv() carries the three ids', async () => {
+    vi.stubEnv('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID', 'fixture-ios.apps.googleusercontent.com');
+    vi.stubEnv('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID', ' fixture-web.apps.googleusercontent.com ');
+    vi.stubEnv('EXPO_PUBLIC_APPLE_SERVICES_ID', '');
+    vi.resetModules();
+    const { getAppEnv } = await vi.importActual<typeof envModule>('./env');
+    expect(getAppEnv()).toMatchObject({
+      googleIosClientId: 'fixture-ios.apps.googleusercontent.com',
+      googleWebClientId: 'fixture-web.apps.googleusercontent.com',
+      appleServicesId: null,
+    });
+    vi.unstubAllEnvs();
+  });
+
+  it('every sign-in id is read by a literal member access', () => {
+    for (const name of [
+      'EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID',
+      'EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID',
+      'EXPO_PUBLIC_APPLE_SERVICES_ID',
+    ]) {
+      expect(source).toContain(`process.env.${name}`);
+    }
   });
 
   it('getAppEnv reads the inlined variables once', async () => {

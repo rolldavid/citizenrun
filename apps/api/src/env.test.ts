@@ -1,7 +1,21 @@
-import { EnvError, brandVariant, createLogger, variantForAppEnv } from '@citizenrun/shared';
+import { generateKeyPairSync } from 'node:crypto';
+import {
+  BrandValueMissingError,
+  EnvError,
+  brandVariant,
+  createLogger,
+  variantForAppEnv,
+} from '@citizenrun/shared';
 import { marker } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
-import { checkPublicUrlHost, loadEnv, logMissingOwnerInputs, missingOwnerInputs } from './env.ts';
+import {
+  API_OWNER_INPUTS,
+  checkPublicUrlHost,
+  checkReviewSignIn,
+  loadEnv,
+  logMissingOwnerInputs,
+  missingOwnerInputs,
+} from './env.ts';
 import type { ApiEnv } from './env.ts';
 import { testPublicUrl } from './testing/env.ts';
 
@@ -11,6 +25,41 @@ const FIXTURE_FROM = 'Fixture <alerts@mail.example.test>';
 const FIXTURE_ADMINS = 'admin@example.test';
 // The origin of a test environment whose brand variant has no host.
 const FIXTURE_PUBLIC_URL = 'https://app.example.test';
+// The local constant of the API's .env.example: never a real secret.
+const LOCAL_APP_SECRET = '0'.repeat(64);
+const FIXTURE_APPLE = {
+  APPLE_TEAM_ID: 'FIXTURE001',
+  APPLE_KEY_ID: 'FIXTURE002',
+  APPLE_BUNDLE_ID: 'org.example.fixture',
+  APPLE_SERVICES_ID: 'org.example.fixture.web',
+} as const;
+const APPLE_VARIABLES = [
+  'APPLE_TEAM_ID',
+  'APPLE_KEY_ID',
+  'APPLE_PRIVATE_KEY',
+  'APPLE_BUNDLE_ID',
+  'APPLE_SERVICES_ID',
+] as const;
+// Owner inputs a deployed service may run without (D-557), in report order.
+const OPTIONAL_OWNER_INPUTS = [
+  { variable: 'REVIEW_SIGNIN_EMAILS', ownerInput: 'OI-store-submission' },
+  { variable: 'REVIEW_SIGNIN_CODE', ownerInput: 'OI-store-submission' },
+  { variable: 'APPLE_TEAM_ID', ownerInput: 'OI-apple-identifiers' },
+  { variable: 'APPLE_KEY_ID', ownerInput: 'OI-apple-identifiers' },
+  { variable: 'APPLE_PRIVATE_KEY', ownerInput: 'OI-apple-identifiers' },
+  { variable: 'APPLE_BUNDLE_ID', ownerInput: 'OI-apple-identifiers' },
+  { variable: 'APPLE_SERVICES_ID', ownerInput: 'OI-apple-identifiers' },
+  { variable: 'GOOGLE_CLIENT_IDS', ownerInput: 'OI-google-oauth' },
+];
+
+/** A PKCS#8 PEM made for the test, never a real key. */
+function fixturePem(): string {
+  return generateKeyPairSync('ec', {
+    namedCurve: 'P-256',
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+  }).privateKey;
+}
 
 type Source = Record<string, string | undefined>;
 
@@ -26,6 +75,7 @@ function infra(appEnv: string, extra: Source = {}): Source {
     MEDIA_REGION: 'us-east-1',
     MEDIA_ACCESS_KEY_ID: 'fixture-access',
     MEDIA_SECRET_ACCESS_KEY: 'fixture-secret',
+    APP_SECRET: LOCAL_APP_SECRET,
     ...extra,
   };
 }
@@ -34,6 +84,7 @@ function infra(appEnv: string, extra: Source = {}): Source {
 function deployed(appEnv: 'staging' | 'production', extra: Source = {}): Source {
   return infra(appEnv, {
     PUBLIC_URL: testPublicUrl(appEnv),
+    CLIENT_IP_HEADER: 'x-real-ip',
     RESEND_API_KEY: FIXTURE_KEY,
     EMAIL_FROM: FIXTURE_FROM,
     ADMIN_EMAILS: FIXTURE_ADMINS,
@@ -88,14 +139,10 @@ describe('loadEnv', () => {
       expect(env.RESEND_API_KEY).toBeNull();
       expect(env.EMAIL_FROM).toBeNull();
       expect(env.ADMIN_EMAILS).toBeNull();
-      expect(missingOwnerInputs(env)).toEqual([
-        { variable: 'RESEND_API_KEY', ownerInput: 'OI-resend' },
-        { variable: 'EMAIL_FROM', ownerInput: 'OI-resend' },
-        { variable: 'ADMIN_EMAILS', ownerInput: 'OI-admin-emails' },
-      ]);
+      expect(missingOwnerInputs(env)).toEqual(API_OWNER_INPUTS);
       const log = captured();
       logMissingOwnerInputs(env, log.logger);
-      expect(log.lines).toHaveLength(3);
+      expect(log.lines).toHaveLength(API_OWNER_INPUTS.length);
       for (const line of log.lines) {
         expect(line.level).toBe('warn');
         expect(line.event).toBe('env.input_missing');
@@ -105,8 +152,289 @@ describe('loadEnv', () => {
         ['RESEND_API_KEY', 'OI-resend'],
         ['EMAIL_FROM', 'OI-resend'],
         ['ADMIN_EMAILS', 'OI-admin-emails'],
+        ...OPTIONAL_OWNER_INPUTS.map((row) => [row.variable, row.ownerInput]),
       ]);
     }
+  });
+
+  it('starts in local with no owner input', () => {
+    // The local values of the API's .env.example without its one owner value, ADMIN_EMAILS.
+    const env = load({
+      NODE_ENV: 'development',
+      APP_ENV: 'local',
+      PORT: '8080',
+      LOG_LEVEL: 'debug',
+      DATABASE_URL: 'postgresql://citizenrun:citizenrun@localhost:5432/citizenrun',
+      PUBLIC_URL: 'http://localhost:8081',
+      ENABLE_DEV_ROUTES: 'true',
+      MEDIA_BUCKET: 'media',
+      MEDIA_ENDPOINT: 'http://localhost:8333',
+      MEDIA_REGION: 'us-east-1',
+      MEDIA_ACCESS_KEY_ID: 'osdev',
+      MEDIA_SECRET_ACCESS_KEY: 'osdev-secret-key',
+      S3_FORCE_PATH_STYLE: 'true',
+      APP_SECRET: LOCAL_APP_SECRET,
+      GEO_PROVIDER: 'none',
+    });
+    for (const variable of APPLE_VARIABLES) {
+      expect(env[variable]).toBeNull();
+    }
+    expect(env.GOOGLE_CLIENT_IDS).toBeNull();
+    expect(env.REVIEW_SIGNIN_EMAILS).toBeNull();
+    expect(env.REVIEW_SIGNIN_CODE).toBeNull();
+    expect(env.ADMIN_EMAILS).toBeNull();
+    expect(env.CLIENT_IP_HEADER).toBeNull();
+    expect(env.APP_SECRET_PREVIOUS).toBeNull();
+    expect(env.captureMail).toBe(true);
+    const log = captured();
+    logMissingOwnerInputs(env, log.logger);
+    expect(log.lines.map((line) => line.variable)).toEqual(
+      API_OWNER_INPUTS.map((row) => row.variable),
+    );
+    for (const line of log.lines) {
+      expect(line.event).toBe('env.input_missing');
+      expect(Object.keys(line).sort()).toEqual([...LOGGER_KEYS, 'ownerInput', 'variable'].sort());
+    }
+  });
+
+  it('stops without APP_SECRET in every environment', () => {
+    for (const source of [
+      infra('local', { APP_SECRET: undefined }),
+      infra('ci', { APP_SECRET: undefined }),
+      deployed('staging', { APP_SECRET: undefined }),
+      deployed('production', { APP_SECRET: '' }),
+    ]) {
+      expect(refusal(source).variables).toEqual(['APP_SECRET']);
+    }
+  });
+
+  it('refuses a malformed APP_SECRET', () => {
+    for (const value of ['a'.repeat(63), `${'a'.repeat(63)}g`, 'a'.repeat(65)]) {
+      for (const variable of ['APP_SECRET', 'APP_SECRET_PREVIOUS']) {
+        const error = refusal(infra('local', { [variable]: value }));
+        expect(error.variables).toEqual([variable]);
+        expect(error.message).toContain(variable);
+        expect(error.message).not.toContain(value);
+        expect(JSON.stringify(error)).not.toContain(value);
+      }
+    }
+  });
+
+  it('stores the secret lower-case', () => {
+    const upper = 'ABCDEF0123456789'.repeat(4);
+    const env = load(infra('ci', { APP_SECRET: upper, APP_SECRET_PREVIOUS: upper }));
+    expect(env.APP_SECRET).toBe(upper.toLowerCase());
+    expect(env.APP_SECRET_PREVIOUS).toBe(upper.toLowerCase());
+  });
+
+  it('staging needs CLIENT_IP_HEADER', () => {
+    for (const appEnv of ['staging', 'production'] as const) {
+      expect(refusal(deployed(appEnv, { CLIENT_IP_HEADER: undefined })).variables).toEqual([
+        'CLIENT_IP_HEADER',
+      ]);
+    }
+    expect(load(deployed('staging')).CLIENT_IP_HEADER).toBe('x-real-ip');
+    expect(load(infra('ci', { CLIENT_IP_HEADER: undefined })).CLIENT_IP_HEADER).toBeNull();
+  });
+
+  it('apple values', () => {
+    const pem = fixturePem();
+    const all = load(infra('local', { ...FIXTURE_APPLE, APPLE_PRIVATE_KEY: pem }));
+    expect(all.APPLE_TEAM_ID).toBe('FIXTURE001');
+    expect(all.APPLE_KEY_ID).toBe('FIXTURE002');
+    expect(all.APPLE_PRIVATE_KEY).toBe(pem.trim());
+    expect(all.APPLE_BUNDLE_ID).toBe('org.example.fixture');
+    expect(all.APPLE_SERVICES_ID).toBe('org.example.fixture.web');
+    expect(missingOwnerInputs(all).map((row) => row.variable)).not.toContain('APPLE_TEAM_ID');
+
+    // Each field carries its own value: four set leave the fifth null and reported.
+    for (const left of APPLE_VARIABLES) {
+      const env = load(
+        infra('local', { ...FIXTURE_APPLE, APPLE_PRIVATE_KEY: pem, [left]: undefined }),
+      );
+      for (const variable of APPLE_VARIABLES) {
+        if (variable === left) {
+          expect(env[variable]).toBeNull();
+        } else {
+          expect(env[variable]).not.toBeNull();
+        }
+      }
+      const log = captured();
+      logMissingOwnerInputs(env, log.logger);
+      expect(
+        log.lines
+          .filter((line) => line.event === 'env.input_missing')
+          .map((line) => line.variable)
+          .filter((variable) => String(variable).startsWith('APPLE_')),
+      ).toEqual([left]);
+    }
+
+    // A key written with literal \n sequences, as in a .env file, gives the same key.
+    const escaped = pem.trim().replaceAll('\n', '\\n');
+    expect(escaped).not.toContain('\n');
+    expect(load(infra('local', { APPLE_PRIVATE_KEY: escaped })).APPLE_PRIVATE_KEY).toBe(pem.trim());
+
+    // A key that is not a PKCS#8 PEM is malformed.
+    const ec = pem.replace('BEGIN PRIVATE KEY', 'BEGIN EC PRIVATE KEY');
+    expect(load(infra('ci', { APPLE_PRIVATE_KEY: ec })).ownerInputReport.invalid).toEqual([
+      { variable: 'APPLE_PRIVATE_KEY', ownerInput: 'OI-apple-identifiers' },
+    ]);
+    expect(load(infra('ci', { APPLE_TEAM_ID: 'fixture001' })).APPLE_TEAM_ID).toBeNull();
+    expect(
+      load(infra('ci', { APPLE_BUNDLE_ID: 'org.example/fixture' })).APPLE_BUNDLE_ID,
+    ).toBeNull();
+  });
+
+  it('google ids', () => {
+    const raw = ' a.apps.googleusercontent.com , ,b.apps.googleusercontent.com ';
+    const env = load(infra('local', { GOOGLE_CLIENT_IDS: raw }));
+    expect(env.GOOGLE_CLIENT_IDS).toBe(raw);
+    expect(env.ownerInputReport.invalid).toEqual([]);
+    expect(load(infra('local', { GOOGLE_CLIENT_IDS: '' })).GOOGLE_CLIENT_IDS).toBeNull();
+    const commas = load(infra('local', { GOOGLE_CLIENT_IDS: ' , ' }));
+    expect(commas.GOOGLE_CLIENT_IDS).toBeNull();
+    expect(missingOwnerInputs(commas)).toContainEqual({
+      variable: 'GOOGLE_CLIENT_IDS',
+      ownerInput: 'OI-google-oauth',
+    });
+  });
+
+  it('admin emails', () => {
+    expect(
+      load(infra('local', { ADMIN_EMAILS: 'Admin@Example.Test, other@example.test' })).ADMIN_EMAILS,
+    ).toEqual(['admin@example.test', 'other@example.test']);
+  });
+
+  it('review sign-in needs a six-digit code', () => {
+    const emails = 'review@example.test';
+    for (const code of ['12345', undefined, '1234567', 'abcdef']) {
+      const error = refusal(
+        infra('local', { REVIEW_SIGNIN_EMAILS: emails, REVIEW_SIGNIN_CODE: code }),
+      );
+      expect(error.variables).toEqual(['REVIEW_SIGNIN_CODE', 'REVIEW_SIGNIN_EMAILS']);
+      if (code !== undefined) {
+        expect(error.message).not.toContain(code);
+      }
+    }
+    const env = load(
+      infra('local', { REVIEW_SIGNIN_EMAILS: emails, REVIEW_SIGNIN_CODE: '123456' }),
+    );
+    expect(env.REVIEW_SIGNIN_EMAILS).toBe(emails);
+    expect(env.REVIEW_SIGNIN_CODE).toBe('123456');
+    // The code alone turns nothing on and stops nothing.
+    expect(load(infra('local', { REVIEW_SIGNIN_CODE: '123456' })).REVIEW_SIGNIN_EMAILS).toBeNull();
+  });
+
+  it('a review address in ADMIN_EMAILS stops the API', () => {
+    const error = refusal(
+      infra('ci', {
+        ADMIN_EMAILS: 'admin@example.test',
+        REVIEW_SIGNIN_EMAILS: 'perf_01@example.test, Admin@Example.Test',
+        REVIEW_SIGNIN_CODE: '123456',
+      }),
+    );
+    expect(error.variables).toEqual(['ADMIN_EMAILS', 'REVIEW_SIGNIN_EMAILS']);
+    expect(error.message).not.toContain('admin@example.test');
+    const apart = load(
+      infra('ci', {
+        ADMIN_EMAILS: 'admin@example.test',
+        REVIEW_SIGNIN_EMAILS: 'perf_01@example.test',
+        REVIEW_SIGNIN_CODE: '123456',
+      }),
+    );
+    expect(apart.REVIEW_SIGNIN_EMAILS).toBe('perf_01@example.test');
+  });
+
+  it('with APP_ENV=production an @example.test review address stops the API, with APP_ENV=staging it is accepted', () => {
+    const review = { REVIEW_SIGNIN_EMAILS: 'perf_01@example.test', REVIEW_SIGNIN_CODE: '123456' };
+    expect(refusal(deployed('production', review)).variables).toEqual(['REVIEW_SIGNIN_EMAILS']);
+    expect(load(deployed('staging', review)).REVIEW_SIGNIN_EMAILS).toBe('perf_01@example.test');
+  });
+
+  it('the production mail-host check compares the host part lower-case', () => {
+    const base = {
+      reviewEmailsSet: true,
+      reviewCode: '123456',
+      adminEmails: null,
+      mailHostOf: () => 'Mail.Example.Test',
+    } as const;
+    expect(
+      checkReviewSignIn({
+        ...base,
+        appEnv: 'production',
+        reviewAddresses: ['review@mail.example.test'],
+      }),
+    ).toEqual([]);
+    expect(
+      checkReviewSignIn({
+        ...base,
+        appEnv: 'production',
+        reviewAddresses: ['review@mail.example.test', 'perf_01@example.test'],
+      }),
+    ).toEqual(['REVIEW_SIGNIN_EMAILS']);
+    expect(
+      checkReviewSignIn({ ...base, appEnv: 'staging', reviewAddresses: ['perf_01@example.test'] }),
+    ).toEqual([]);
+    // With no domain in the brand there is no mail host, so every review address fails.
+    expect(
+      checkReviewSignIn({
+        ...base,
+        appEnv: 'production',
+        reviewAddresses: ['review@mail.example.test'],
+        mailHostOf: () => {
+          throw new BrandValueMissingError('domain', 'OI-domain');
+        },
+      }),
+    ).toEqual(['REVIEW_SIGNIN_EMAILS', 'OI-domain']);
+  });
+
+  it('cookie name follows PUBLIC_URL', () => {
+    const https = load(infra('ci', { PUBLIC_URL: 'https://app.example.test' }));
+    expect(https.SESSION_COOKIE_NAME).toBe('__Host-os_session');
+    expect(https.sessionCookieSecure).toBe(true);
+    const http = load(infra('local', { PUBLIC_URL: 'http://localhost:8081' }));
+    expect(http.SESSION_COOKIE_NAME).toBe('os_session');
+    expect(http.sessionCookieSecure).toBe(false);
+  });
+
+  it('refuses LEGAL_ variables', () => {
+    for (const source of [
+      infra('local', { LEGAL_BUCKET: 'x' }),
+      infra('ci', { LEGAL_BUCKET: 'x' }),
+      deployed('staging', { LEGAL_BUCKET: 'x' }),
+      deployed('production', { LEGAL_BUCKET: 'x' }),
+    ]) {
+      expect(refusal(source).variables).toEqual(['LEGAL_BUCKET']);
+    }
+  });
+
+  it('never logs a value', () => {
+    const value = marker();
+    const source = infra('local', {
+      RESEND_API_KEY: `re_${value}`,
+      EMAIL_FROM: `bad ${value}`,
+      ADMIN_EMAILS: value,
+      REVIEW_SIGNIN_CODE: value,
+      APPLE_TEAM_ID: value,
+      APPLE_KEY_ID: value,
+      APPLE_PRIVATE_KEY: value,
+      APPLE_BUNDLE_ID: `${value}/x`,
+      APPLE_SERVICES_ID: `${value}/x`,
+      GOOGLE_CLIENT_IDS: `${value} x`,
+      APP_SECRET_PREVIOUS: undefined,
+    });
+    const env = load(source);
+    const log = captured();
+    logMissingOwnerInputs(env, log.logger);
+    expect(log.lines.length).toBeGreaterThan(0);
+    expect(log.raw.join('\n')).not.toContain(value);
+    for (const line of log.lines) {
+      expect(Object.keys(line).sort()).toEqual([...LOGGER_KEYS, 'ownerInput', 'variable'].sort());
+    }
+    // A refused value is named, never shown.
+    const error = refusal(infra('local', { APP_SECRET: value, REVIEW_SIGNIN_EMAILS: value }));
+    expect(JSON.stringify(error)).not.toContain(value);
+    expect(error.message).not.toContain(value);
   });
 
   it('a deployed service needs its required inputs', () => {
@@ -114,7 +442,12 @@ describe('loadEnv', () => {
     expect(env.RESEND_API_KEY).toBe(FIXTURE_KEY);
     expect(env.EMAIL_FROM).toBe(FIXTURE_FROM);
     expect(env.ADMIN_EMAILS).toEqual([FIXTURE_ADMINS]);
-    expect(missingOwnerInputs(env)).toEqual([]);
+    // The five Apple variables, the Google ids and the review sign-in may be unset (D-557).
+    for (const variable of APPLE_VARIABLES) {
+      expect(env[variable]).toBeNull();
+    }
+    expect(env.GOOGLE_CLIENT_IDS).toBeNull();
+    expect(missingOwnerInputs(env)).toEqual(OPTIONAL_OWNER_INPUTS);
     expect(env.ownerInputReport.invalid).toEqual([]);
     for (const variable of ['RESEND_API_KEY', 'EMAIL_FROM', 'ADMIN_EMAILS']) {
       expect(refusal(deployed('staging', { [variable]: undefined })).variables).toEqual([variable]);
@@ -150,6 +483,7 @@ describe('loadEnv', () => {
     expect(configured.EMAIL_FROM).toBe(FIXTURE_FROM);
     expect(missingOwnerInputs(configured)).toEqual([
       { variable: 'ADMIN_EMAILS', ownerInput: 'OI-admin-emails' },
+      ...OPTIONAL_OWNER_INPUTS,
     ]);
     expect(load(deployed('staging')).captureMail).toBe(false);
   });
@@ -229,6 +563,7 @@ describe('loadEnv', () => {
     // The well-formed partner is in neither list.
     expect(pair.ownerInputReport.missing).toEqual([
       { variable: 'ADMIN_EMAILS', ownerInput: 'OI-admin-emails' },
+      ...OPTIONAL_OWNER_INPUTS,
     ]);
     const pairLog = captured();
     logMissingOwnerInputs(pair, pairLog.logger);
@@ -236,6 +571,22 @@ describe('loadEnv', () => {
     expect(pairInvalid).toHaveLength(1);
     expect(pairInvalid[0]?.variable).toBe('RESEND_API_KEY');
     expect(pairLog.raw.join('\n')).not.toContain(value);
+
+    const google = load(infra('local', { GOOGLE_CLIENT_IDS: 'bad id with spaces' }));
+    expect(google.GOOGLE_CLIENT_IDS).toBeNull();
+    const googleLog = captured();
+    logMissingOwnerInputs(google, googleLog.logger);
+    expect(googleLog.lines.filter((line) => line.event === 'env.input_invalid')).toEqual([
+      expect.objectContaining({
+        level: 'warn',
+        variable: 'GOOGLE_CLIENT_IDS',
+        ownerInput: 'OI-google-oauth',
+      }),
+    ]);
+    expect(googleLog.raw.join('\n')).not.toContain('bad id');
+    const error = refusal(deployed('staging', { GOOGLE_CLIENT_IDS: 'bad id with spaces' }));
+    expect(error.variables).toEqual(['GOOGLE_CLIENT_IDS']);
+    expect(error.message).not.toContain('bad id');
   });
 
   it('a malformed owner value stops a deployed service', () => {

@@ -11,6 +11,9 @@ const UNIT_DATABASE_URL =
 // A bucket no unit test reaches; createTestApp passes the worker's media bucket instead.
 const UNIT_MEDIA_BUCKET = 'unit-tests-never-connect';
 
+// A visibly fixed test key, never a real secret.
+const TEST_APP_SECRET = '0123456789abcdef'.repeat(4);
+
 // The harness's object-store settings and their local defaults.
 function testSetting(name: string, fallback: string): string {
   const value = process.env[name];
@@ -56,6 +59,7 @@ export function testApiEnv(overrides: Record<string, string | undefined> = {}): 
     MEDIA_ACCESS_KEY_ID: testSetting('TEST_S3_ACCESS_KEY_ID', 'osdev'),
     MEDIA_SECRET_ACCESS_KEY: testSetting('TEST_S3_SECRET_ACCESS_KEY', 'osdev-secret-key'),
     S3_FORCE_PATH_STYLE: 'true',
+    APP_SECRET: TEST_APP_SECRET,
     CLIENT_IP_HEADER: 'x-real-ip',
     ADMIN_EMAILS: 'admin@example.test',
     ...overrides,

@@ -77,9 +77,11 @@ async function testRuntime(input: {
   storage?: Partial<JobContext['storage']>;
 }): Promise<WorkerRuntime> {
   const backups = input.storage?.backups ?? (await getTestBucket('backups'));
+  const media = await getTestBucket('media');
   const env = testWorkerEnv({
     DATABASE_URL: getTestDatabaseUrl(),
     BACKUPS_BUCKET: backups.bucket,
+    MEDIA_BUCKET: media.bucket,
     ...input.env,
   });
   return {

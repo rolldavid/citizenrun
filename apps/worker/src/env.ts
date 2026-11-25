@@ -4,8 +4,14 @@ import { z } from 'zod';
 
 /** One owner-input variable the worker reads and the owner input that provides it (D-416). */
 export type WorkerOwnerInputVariable = {
-  variable: 'RESEND_API_KEY' | 'EMAIL_FROM' | 'ADMIN_EMAILS';
-  ownerInput: 'OI-resend' | 'OI-admin-emails';
+  variable:
+    | 'RESEND_API_KEY'
+    | 'EMAIL_FROM'
+    | 'ADMIN_EMAILS'
+    | 'APPLE_TEAM_ID'
+    | 'APPLE_KEY_ID'
+    | 'APPLE_PRIVATE_KEY';
+  ownerInput: 'OI-resend' | 'OI-admin-emails' | 'OI-apple-identifiers';
 };
 
 /** The worker's validated environment and the named values derived from it. */
@@ -20,11 +26,28 @@ export type WorkerEnv = Readonly<{
   BACKUPS_REGION: string;
   BACKUPS_ACCESS_KEY_ID: string;
   BACKUPS_SECRET_ACCESS_KEY: string;
+  MEDIA_BUCKET: string;
+  MEDIA_ENDPOINT: string;
+  MEDIA_REGION: string;
+  MEDIA_ACCESS_KEY_ID: string;
+  MEDIA_SECRET_ACCESS_KEY: string;
   S3_FORCE_PATH_STYLE: boolean;
+  /** 64 lower-case hex characters, the same value as the API's (D-244). */
+  APP_SECRET: string;
+  /** The secret in force before the last rotation, or null (no rotation). */
+  APP_SECRET_PREVIOUS: string | null;
+  /** J-cost.check's monthly email line. */
+  EMAIL_MONTHLY_QUOTA: number;
+  /** J-cost.check's daily email line; 0 turns the line off. */
+  EMAIL_DAILY_QUOTA: number;
   RAILWAY_GIT_COMMIT_SHA: string | null;
   RESEND_API_KEY: string | null;
   EMAIL_FROM: string | null;
   ADMIN_EMAILS: readonly string[] | null;
+  APPLE_TEAM_ID: string | null;
+  APPLE_KEY_ID: string | null;
+  /** The PKCS#8 PEM with its line feeds restored, or null. */
+  APPLE_PRIVATE_KEY: string | null;
   /** What loadEnv found for the owner inputs, for the start-up report. */
   ownerInputReport: Readonly<{
     missing: readonly WorkerOwnerInputVariable[];
@@ -40,6 +63,16 @@ export const WORKER_OWNER_INPUTS: readonly WorkerOwnerInputVariable[] = Object.f
   Object.freeze({ variable: 'RESEND_API_KEY', ownerInput: 'OI-resend' } as const),
   Object.freeze({ variable: 'EMAIL_FROM', ownerInput: 'OI-resend' } as const),
   Object.freeze({ variable: 'ADMIN_EMAILS', ownerInput: 'OI-admin-emails' } as const),
+  Object.freeze({ variable: 'APPLE_TEAM_ID', ownerInput: 'OI-apple-identifiers' } as const),
+  Object.freeze({ variable: 'APPLE_KEY_ID', ownerInput: 'OI-apple-identifiers' } as const),
+  Object.freeze({ variable: 'APPLE_PRIVATE_KEY', ownerInput: 'OI-apple-identifiers' } as const),
+]);
+
+// The owner inputs a deployed worker cannot start without (D-557); the Apple ones are optional.
+const REQUIRED_WHEN_DEPLOYED: ReadonlySet<string> = new Set([
+  'RESEND_API_KEY',
+  'EMAIL_FROM',
+  'ADMIN_EMAILS',
 ]);
 
 type OwnerVariable = WorkerOwnerInputVariable['variable'];
@@ -57,6 +90,14 @@ const RESEND_API_KEY_PATTERN = /^re_[A-Za-z0-9_-]{10,200}$/;
 const EMAIL_FROM_MAX_LENGTH = 320;
 const EMAIL_FROM_PATTERN = /^([^<>\r\n]{1,100} <[^\s@<>]+@[^\s@<>]+>|[^\s@<>]+@[^\s@<>]+)$/;
 const COMMIT_SHA_PATTERN = /^[0-9a-f]{7,40}$/;
+const APP_SECRET_PATTERN = /^[0-9a-fA-F]{64}$/;
+const APPLE_ID_PATTERN = /^[A-Z0-9]{10}$/;
+const APPLE_PRIVATE_KEY_MAX_LENGTH = 8192;
+const PEM_HEADER = '-----BEGIN PRIVATE KEY-----';
+const PEM_FOOTER = '-----END PRIVATE KEY-----';
+const EMAIL_QUOTA_MAX = 10_000_000;
+const DEFAULT_EMAIL_MONTHLY_QUOTA = 3000;
+const DEFAULT_EMAIL_DAILY_QUOTA = 100;
 
 // Refused at any value, the empty one included: with it set, the email provider's library prints
 // the provider's raw error text outside the logger (D-807).
@@ -97,6 +138,22 @@ const originUrl = z
 
 const bucketValue = z.string().min(1).max(MAX_BUCKET_VALUE_LENGTH);
 
+// 64 hex characters, stored lower-case.
+const appSecret = z
+  .string()
+  .regex(APP_SECRET_PATTERN)
+  .transform((value) => value.toLowerCase());
+
+// A whole number from 0 to 10,000,000, written in decimal digits.
+function emailQuota(fallback: number) {
+  return z
+    .string()
+    .regex(/^[0-9]{1,8}$/)
+    .transform(Number)
+    .pipe(z.number().int().min(0).max(EMAIL_QUOTA_MAX))
+    .default(fallback);
+}
+
 const WorkerEnvSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -107,7 +164,17 @@ const WorkerEnvSchema = z.object({
   BACKUPS_REGION: bucketValue,
   BACKUPS_ACCESS_KEY_ID: bucketValue,
   BACKUPS_SECRET_ACCESS_KEY: bucketValue,
+  // The same parsers as the API's media set.
+  MEDIA_BUCKET: bucketValue,
+  MEDIA_ENDPOINT: urlWithProtocol(['http:', 'https:']),
+  MEDIA_REGION: bucketValue,
+  MEDIA_ACCESS_KEY_ID: bucketValue,
+  MEDIA_SECRET_ACCESS_KEY: bucketValue,
   S3_FORCE_PATH_STYLE: booleanFlag,
+  APP_SECRET: appSecret,
+  APP_SECRET_PREVIOUS: appSecret.optional().transform((value) => value ?? null),
+  EMAIL_MONTHLY_QUOTA: emailQuota(DEFAULT_EMAIL_MONTHLY_QUOTA),
+  EMAIL_DAILY_QUOTA: emailQuota(DEFAULT_EMAIL_DAILY_QUOTA),
   // Set by Railway on every deployment; null when unset.
   RAILWAY_GIT_COMMIT_SHA: z
     .string()
@@ -118,28 +185,46 @@ const WorkerEnvSchema = z.object({
 
 const AdminEmailSchema = z.email().max(MAX_ADMIN_EMAIL_LENGTH);
 
-type AdminEmailsResult =
-  { kind: 'unset' } | { kind: 'invalid' } | { kind: 'ok'; value: readonly string[] };
+type Parsed<T> = { kind: 'unset' } | { kind: 'invalid' } | { kind: 'ok'; value: T };
+
+const UNSET = Object.freeze({ kind: 'unset' } as const);
+const INVALID = Object.freeze({ kind: 'invalid' } as const);
 
 // Trimmed and lower-cased items, empty items dropped; an empty result is unset.
-function parseAdminEmails(raw: string): AdminEmailsResult {
+function parseAdminEmails(raw: string): Parsed<readonly string[]> {
   if (raw.length > MAX_ADMIN_EMAILS_RAW_LENGTH) {
-    return { kind: 'invalid' };
+    return INVALID;
   }
   const items = raw
     .split(',')
     .map((item) => item.trim().toLowerCase())
     .filter((item) => item !== '');
   if (items.length === 0) {
-    return { kind: 'unset' };
+    return UNSET;
   }
   if (items.length > MAX_ADMIN_EMAILS) {
-    return { kind: 'invalid' };
+    return INVALID;
   }
   if (!items.every((item) => AdminEmailSchema.safeParse(item).success)) {
-    return { kind: 'invalid' };
+    return INVALID;
   }
   return { kind: 'ok', value: Object.freeze(items) };
+}
+
+function matching(test: (raw: string) => boolean): (raw: string) => Parsed<string> {
+  return (raw) => (test(raw) ? { kind: 'ok', value: raw } : INVALID);
+}
+
+// Each two-character sequence `\n` becomes a line feed (a key pasted into a .env file); a key
+// set with real line feeds is unchanged.
+function parseApplePrivateKey(raw: string): Parsed<string> {
+  if (raw.length > APPLE_PRIVATE_KEY_MAX_LENGTH) {
+    return INVALID;
+  }
+  const pem = raw.replaceAll('\\n', '\n').trim();
+  return pem.startsWith(PEM_HEADER) && pem.endsWith(PEM_FOOTER)
+    ? { kind: 'ok', value: pem }
+    : INVALID;
 }
 
 function isResendApiKey(value: string): boolean {
@@ -148,6 +233,10 @@ function isResendApiKey(value: string): boolean {
 
 function isEmailFrom(value: string): boolean {
   return value.length <= EMAIL_FROM_MAX_LENGTH && EMAIL_FROM_PATTERN.test(value);
+}
+
+function isAppleId(value: string): boolean {
+  return APPLE_ID_PATTERN.test(value);
 }
 
 function inReportOrder(variables: ReadonlySet<OwnerVariable>): readonly WorkerOwnerInputVariable[] {
@@ -173,33 +262,54 @@ type OwnerValues = {
   RESEND_API_KEY: string | null;
   EMAIL_FROM: string | null;
   ADMIN_EMAILS: readonly string[] | null;
+  APPLE_TEAM_ID: string | null;
+  APPLE_KEY_ID: string | null;
+  APPLE_PRIVATE_KEY: string | null;
   missing: readonly WorkerOwnerInputVariable[];
   invalid: readonly WorkerOwnerInputVariable[];
 };
 
-// The owner inputs (D-416): null when unset in local and ci, required in staging and
-// production (D-557), the key and the sender together, and a malformed value treated as unset in
-// local and ci (reported as invalid) and refused in staging and production.
+function valueOf<T>(parsed: Parsed<T>): T | null {
+  return parsed.kind === 'ok' ? parsed.value : null;
+}
+
+// The owner inputs (D-416): null when unset; RESEND_API_KEY, EMAIL_FROM and ADMIN_EMAILS required
+// in staging and production (D-557), the Apple ones optional everywhere; the key and the sender
+// together; and a malformed value treated as unset in local and ci (reported as invalid) and
+// refused in staging and production. The worker reads no other Apple variable (D-423).
 function parseOwnerInputs(
   appEnv: WorkerEnv['APP_ENV'],
   source: Source,
   problems: Set<string>,
 ): OwnerValues {
   const isDeployed = appEnv === 'staging' || appEnv === 'production';
+  const read = <T>(name: OwnerVariable, parse: (raw: string) => Parsed<T>): Parsed<T> => {
+    const raw = source[name];
+    return raw === undefined ? UNSET : parse(raw);
+  };
   const rawKey = source.RESEND_API_KEY;
   const rawFrom = source.EMAIL_FROM;
-  const rawAdmins = source.ADMIN_EMAILS;
-  const admins =
-    rawAdmins === undefined ? ({ kind: 'unset' } as const) : parseAdminEmails(rawAdmins);
+  const parsed = {
+    RESEND_API_KEY: read('RESEND_API_KEY', matching(isResendApiKey)),
+    EMAIL_FROM: read('EMAIL_FROM', matching(isEmailFrom)),
+    ADMIN_EMAILS: read('ADMIN_EMAILS', parseAdminEmails),
+    APPLE_TEAM_ID: read('APPLE_TEAM_ID', matching(isAppleId)),
+    APPLE_KEY_ID: read('APPLE_KEY_ID', matching(isAppleId)),
+    APPLE_PRIVATE_KEY: read('APPLE_PRIVATE_KEY', parseApplePrivateKey),
+  } satisfies Record<OwnerVariable, Parsed<unknown>>;
 
   const unset = new Set<OwnerVariable>();
-  if (rawKey === undefined) unset.add('RESEND_API_KEY');
-  if (rawFrom === undefined) unset.add('EMAIL_FROM');
-  if (admins.kind === 'unset') unset.add('ADMIN_EMAILS');
+  const invalid = new Set<OwnerVariable>();
+  for (const row of WORKER_OWNER_INPUTS) {
+    const kind = parsed[row.variable].kind;
+    if (kind === 'unset') unset.add(row.variable);
+    if (kind === 'invalid') invalid.add(row.variable);
+  }
 
-  if (isDeployed && unset.size > 0) {
-    // A deployed service needs every owner input (D-557); each missing one is named alone.
-    for (const variable of unset) {
+  const missingRequired = [...unset].filter((variable) => REQUIRED_WHEN_DEPLOYED.has(variable));
+  if (isDeployed && missingRequired.length > 0) {
+    // A deployed service needs these owner inputs (D-557); each missing one is named alone.
+    for (const variable of missingRequired) {
       problems.add(variable);
     }
   } else if ((rawKey === undefined) !== (rawFrom === undefined)) {
@@ -207,11 +317,6 @@ function parseOwnerInputs(
     problems.add('RESEND_API_KEY');
     problems.add('EMAIL_FROM');
   }
-
-  const invalid = new Set<OwnerVariable>();
-  if (rawKey !== undefined && !isResendApiKey(rawKey)) invalid.add('RESEND_API_KEY');
-  if (rawFrom !== undefined && !isEmailFrom(rawFrom)) invalid.add('EMAIL_FROM');
-  if (admins.kind === 'invalid') invalid.add('ADMIN_EMAILS');
 
   if (isDeployed) {
     for (const variable of invalid) {
@@ -221,11 +326,18 @@ function parseOwnerInputs(
 
   // RESEND_API_KEY and EMAIL_FROM are one input: a malformed half leaves both unset in local and ci.
   const pairUsable = !invalid.has('RESEND_API_KEY') && !invalid.has('EMAIL_FROM');
+  // Each variable reported missing is one a deployed service may run without.
+  const reportedMissing = isDeployed
+    ? new Set([...unset].filter((variable) => !REQUIRED_WHEN_DEPLOYED.has(variable)))
+    : unset;
   return {
-    RESEND_API_KEY: pairUsable && rawKey !== undefined ? rawKey : null,
-    EMAIL_FROM: pairUsable && rawFrom !== undefined ? rawFrom : null,
-    ADMIN_EMAILS: admins.kind === 'ok' ? admins.value : null,
-    missing: isDeployed ? Object.freeze([]) : inReportOrder(unset),
+    RESEND_API_KEY: pairUsable ? valueOf(parsed.RESEND_API_KEY) : null,
+    EMAIL_FROM: pairUsable ? valueOf(parsed.EMAIL_FROM) : null,
+    ADMIN_EMAILS: valueOf(parsed.ADMIN_EMAILS),
+    APPLE_TEAM_ID: valueOf(parsed.APPLE_TEAM_ID),
+    APPLE_KEY_ID: valueOf(parsed.APPLE_KEY_ID),
+    APPLE_PRIVATE_KEY: valueOf(parsed.APPLE_PRIVATE_KEY),
+    missing: inReportOrder(reportedMissing),
     invalid: isDeployed ? Object.freeze([]) : inReportOrder(invalid),
   };
 }
@@ -280,6 +392,9 @@ export function loadEnv(source: Source = process.env): WorkerEnv {
     RESEND_API_KEY: owner.RESEND_API_KEY,
     EMAIL_FROM: owner.EMAIL_FROM,
     ADMIN_EMAILS: owner.ADMIN_EMAILS,
+    APPLE_TEAM_ID: owner.APPLE_TEAM_ID,
+    APPLE_KEY_ID: owner.APPLE_KEY_ID,
+    APPLE_PRIVATE_KEY: owner.APPLE_PRIVATE_KEY,
     ownerInputReport: Object.freeze({ missing: owner.missing, invalid: owner.invalid }),
     captureMail: (appEnv === 'local' || appEnv === 'ci') && owner.RESEND_API_KEY === null,
     envLabel: appEnv,

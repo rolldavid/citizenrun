@@ -47,6 +47,8 @@ const LOCAL_STORE_HOSTS: ReadonlySet<string> = new Set([
 ]);
 /** The compose store's public development constants. */
 const STORE = { region: 'us-east-1', accessKeyId: 'osdev', secretAccessKey: 'osdev-secret-key' };
+/** The local APP_SECRET of the .env.example files, a public constant the API and worker share. */
+const LOCAL_APP_SECRET = '0'.repeat(64);
 
 /** The only variables of the calling shell a child receives; no owner value is among them. */
 const PASSED_THROUGH = ['PATH', 'HOME', 'TMPDIR', 'TZ', 'LANG', 'NODE_OPTIONS'] as const;
@@ -209,6 +211,7 @@ export function stackEnv(input: {
     LOG_LEVEL: 'info',
     DATABASE_URL: stackDatabaseUrl(mode, base),
     S3_FORCE_PATH_STYLE: 'true',
+    APP_SECRET: LOCAL_APP_SECRET,
     ADMIN_EMAILS: 'admin@example.test',
     ...bucketSet('MEDIA', buckets.media, endpoint),
   };
