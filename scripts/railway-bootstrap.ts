@@ -1113,9 +1113,18 @@ async function stepEnvironment(ctx: Ctx, out: StepPrinter): Promise<void> {
 /**
  * Applies the file. The apply that creates a service leaves its `source.checkSuites` false, and a
  * second apply sets it (D-848), so a first apply that created a service, or one whose effect on
- * the service count cannot be read, is followed by a second.
+ * the service count cannot be read, is followed by a second. Then adds the custom domains, which
+ * the file cannot declare (D-849).
  */
 async function stepApply(ctx: Ctx, out: StepPrinter): Promise<void> {
+  if (!(await applyConfig(ctx, out))) {
+    return;
+  }
+  await addCustomDomains(ctx, out);
+}
+
+/** Resolves false when an apply failed. */
+async function applyConfig(ctx: Ctx, out: StepPrinter): Promise<boolean> {
   const env = ctx.args.env;
   const projectId = ctx.inputs.RAILWAY_PROJECT_ID;
   const count = async (): Promise<number | null> =>
@@ -1127,27 +1136,249 @@ async function stepApply(ctx: Ctx, out: StepPrinter): Promise<void> {
   const first = await apply();
   if (first.code !== 0) {
     out.line('fail', `config apply: exit ${String(first.code)}`);
-    return;
+    return false;
   }
   if (ctx.args.dryRun) {
     out.line('ok', 'dry-run: config not applied');
-    return;
+    return true;
   }
   const after = await count();
   if (before !== null && after !== null && after <= before) {
     out.line('ok', 'config applied');
-    return;
+    return true;
   }
   const second = await apply();
   if (second.code !== 0) {
     out.line('fail', `config apply (second): exit ${String(second.code)}`);
-    return;
+    return false;
   }
   const why =
     before === null || after === null
       ? 'the service count could not be read'
       : `the first apply created ${String(after - before)} service(s)`;
   out.line('ok', `config applied twice: ${why}`);
+  return true;
+}
+
+const SERVICE_PORT = 8080; // D-130
+
+/** Each service with a custom domain and the brand variant key of its host (D-798, D-801, D-849). */
+const CUSTOM_DOMAINS = [
+  { service: 'api', hostKey: 'host' },
+  { service: 'admin', hostKey: 'adminHost' },
+] as const;
+
+/** One DNS record the owner enters at the DNS provider. */
+export type DnsRecord = { type: string; name: string; value: string };
+
+function normalHost(value: string): string {
+  return value.trim().toLowerCase().replace(/\.$/, '');
+}
+
+function collectStrings(value: unknown, into: Set<string>): void {
+  if (typeof value === 'string') {
+    into.add(normalHost(value));
+    try {
+      into.add(normalHost(new URL(value).hostname));
+    } catch {
+      // not a URL
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStrings(item, into);
+    }
+    return;
+  }
+  if (typeof value === 'object' && value !== null) {
+    for (const item of Object.values(value)) {
+      collectStrings(item, into);
+    }
+  }
+}
+
+/**
+ * The host names `railway domain list --json` shows, or null for output it cannot read. The JSON's
+ * shape is not documented, so every string in it counts (a URL by its host name); the text the CLI
+ * prints for a service with no domain counts as an empty list.
+ */
+export function listedHosts(text: string): Set<string> | null {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return /no domains found/i.test(text) ? new Set() : null;
+  }
+  const hosts = new Set<string>();
+  collectStrings(value, hosts);
+  return hosts;
+}
+
+const DNS_TYPE = /^(?:DNS_RECORD_TYPE_)?([A-Z]+)$/;
+const DNS_TYPES = new Set(['A', 'AAAA', 'CNAME', 'TXT', 'NS', 'MX', 'CAA']);
+const DNS_FIELD = /^[\x21-\x7e]{1,1024}$/;
+
+function dnsType(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const match = DNS_TYPE.exec(value.trim().toUpperCase());
+  const type = match?.[1];
+  return type !== undefined && DNS_TYPES.has(type) ? type : null;
+}
+
+function firstString(record: Record<string, unknown>, names: readonly string[]): string | null {
+  for (const name of names) {
+    const value = record[name];
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
+function collectRecords(value: unknown, into: DnsRecord[]): void {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectRecords(item, into);
+    }
+    return;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return;
+  }
+  const record = value as Record<string, unknown>; // a JSON object, read field by field
+  const type = dnsType(record.recordType ?? record.record_type ?? record.type);
+  const name = firstString(record, [
+    'hostlabel',
+    'hostLabel',
+    'host_label',
+    'name',
+    'host',
+    'fqdn',
+  ]);
+  const required = firstString(record, ['requiredValue', 'required_value', 'value']);
+  if (type !== null && name !== null && required !== null) {
+    into.push({ type, name, value: required });
+    return;
+  }
+  for (const item of Object.values(record)) {
+    collectRecords(item, into);
+  }
+}
+
+/**
+ * The DNS records `railway domain <host> --json` returns, or null when none can be read. The JSON
+ * is read leniently (the GraphQL names `recordType`, `hostlabel` and `requiredValue`, or snake or
+ * plain forms); output that is not JSON is read as the CLI's "DNS records:" table.
+ */
+export function dnsRecordsOf(text: string): DnsRecord[] | null {
+  const found: DnsRecord[] = [];
+  let value: unknown;
+  let isJson = true;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    isJson = false;
+  }
+  if (isJson) {
+    collectRecords(value, found);
+  } else {
+    for (const line of text.split(/\r?\n/)) {
+      const cells = line.replace(/[│|]/g, ' ').trim().split(/\s+/);
+      if (cells.length !== 3) {
+        continue;
+      }
+      const type = dnsType(cells[0]);
+      const [, name = '', required = ''] = cells;
+      if (type !== null && DNS_FIELD.test(name) && DNS_FIELD.test(required)) {
+        found.push({ type, name, value: required });
+      }
+    }
+  }
+  const unique = new Map<string, DnsRecord>();
+  for (const record of found) {
+    if (!DNS_FIELD.test(record.name) || !DNS_FIELD.test(record.value)) {
+      return null;
+    }
+    unique.set(`${record.type} ${record.name} ${record.value}`, record);
+  }
+  return unique.size === 0 ? null : [...unique.values()];
+}
+
+/** Adds each service's custom domain that `railway domain list` does not show (D-849). */
+async function addCustomDomains(ctx: Ctx, out: StepPrinter): Promise<void> {
+  const env = ctx.args.env;
+  for (const { service, hostKey } of CUSTOM_DOMAINS) {
+    const host = ctx.variant[hostKey];
+    if (host === null) {
+      out.line('fail', `brand.json: variants.${env}.${hostKey} is not set (OI-domain)`);
+      return;
+    }
+    if (!ctx.args.dryRun) {
+      // A dry run applied nothing, so the service may not exist yet: it reads no list.
+      const listed = await cli(
+        ctx,
+        'railway',
+        ['domain', 'list', '--service', service, '--environment', env, '--json'],
+        { mutating: false },
+      );
+      if (listed.code !== 0) {
+        out.line('fail', `domain list --service ${service}: exit ${String(listed.code)}`);
+        return;
+      }
+      const hosts = listedHosts(listed.stdout);
+      if (hosts === null) {
+        out.line('fail', `domain list --service ${service}: unexpected output`);
+        return;
+      }
+      if (hosts.has(normalHost(host))) {
+        out.line('ok', `domain ${host} exists`);
+        continue;
+      }
+    }
+    const created = await cli(
+      ctx,
+      'railway',
+      [
+        'domain',
+        host,
+        '--service',
+        service,
+        '--port',
+        String(SERVICE_PORT),
+        '--environment',
+        env,
+        '--json',
+      ],
+      { mutating: true },
+    );
+    if (created.code !== 0) {
+      out.line('fail', `domain ${host} --service ${service}: exit ${String(created.code)}`);
+      return;
+    }
+    if (ctx.args.dryRun) {
+      out.line(
+        'ok',
+        `dry-run: domain ${host} not added; it is added when railway domain list does not show it`,
+      );
+      continue;
+    }
+    out.line('ok', `domain ${host} added`);
+    // Public DNS records, not secrets: the owner enters them at the DNS provider, DNS only.
+    const records = dnsRecordsOf(created.stdout);
+    if (records === null) {
+      out.line(
+        'owner-check',
+        `dns ${host}: read the records with railway domain status ${host} --service ${service} --environment ${env}`,
+      );
+      continue;
+    }
+    for (const record of records) {
+      out.line('owner-check', `dns ${record.type} ${record.name} ${record.value}`);
+    }
+  }
 }
 
 const POSTGRES_SECRETS = [

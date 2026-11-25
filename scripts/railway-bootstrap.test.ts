@@ -116,6 +116,35 @@ function statusRule(env: Env, services: number, once = false): FakeRule {
   };
 }
 
+function envHosts(env: Env): { api: string | null; admin: string | null } {
+  return env === 'staging'
+    ? { api: hosts.stagingHost, admin: hosts.stagingAdminHost }
+    : { api: hosts.productionHost, admin: hosts.productionAdminHost };
+}
+
+function domainList(service: 'api' | 'admin', env: Env = 'staging'): string[] {
+  return ['domain', 'list', '--service', service, '--environment', env, '--json'];
+}
+
+function domainCreate(host: string, service: 'api' | 'admin', env: Env = 'staging'): string[] {
+  return ['domain', host, '--service', service, '--port', '8080', '--environment', env, '--json'];
+}
+
+/** `railway domain list --json` showing the service's custom domain, as on a later run. */
+function domainListRules(env: Env): FakeRule[] {
+  return (['api', 'admin'] as const).map((service) => {
+    const host = envHosts(env)[service];
+    return {
+      args: domainList(service, env),
+      stdout: JSON.stringify({
+        serviceDomains: [],
+        customDomains:
+          host === null ? [] : [{ id: `fixture-${service}`, domain: host, targetPort: 8080 }],
+      }),
+    };
+  });
+}
+
 // The database's deployments around a redeploy: the old one alone before it and once after it
 // (the list lags the redeploy), then the new one building, then the new one up.
 function redeployedDatabase(): FakeRule[] {
@@ -302,6 +331,7 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
       { args: ['environment', 'delete', 'production', '--yes'] },
       { args: ['config', 'apply', '--environment', env, '--yes'] },
       statusRule(env, 5),
+      ...domainListRules(env),
       ...listRules,
       {
         args: [
@@ -1694,6 +1724,155 @@ describe('apply', { timeout: 30_000 }, () => {
     });
     expect(result.code).toBe(1);
     expect(result.lines).toContain('apply fail config apply (second): exit 4');
+  });
+});
+
+describe('custom domains', { timeout: 30_000 }, () => {
+  const API_HOST = 'staging.example.test';
+  const ADMIN_HOST = 'admin.staging.example.test';
+  const NO_DOMAINS = JSON.stringify({ serviceDomains: [], customDomains: [] });
+  // The fields of the CLI's customDomainCreate query; the type comes back as the enum name.
+  const created = (host: string, label: string): string =>
+    JSON.stringify({
+      id: 'fixture-domain',
+      domain: host,
+      targetPort: 8080,
+      status: {
+        dnsRecords: [
+          {
+            hostlabel: label,
+            fqdn: host,
+            recordType: 'DNS_RECORD_TYPE_CNAME',
+            requiredValue: 'fixture1.up.railway.app',
+            currentValue: '',
+            status: 'DNS_RECORD_STATUS_REQUIRES_UPDATE',
+            zone: 'example.test',
+            purpose: 'DNS_RECORD_PURPOSE_TRAFFIC_ROUTE',
+          },
+          {
+            hostlabel: `_railway-verify.${label}`,
+            fqdn: `_railway-verify.${host}`,
+            recordType: 'DNS_RECORD_TYPE_TXT',
+            requiredValue: 'railway-verify=0123abcd',
+            currentValue: '',
+            status: 'DNS_RECORD_STATUS_REQUIRES_UPDATE',
+            zone: 'example.test',
+            purpose: 'DNS_RECORD_PURPOSE_VERIFICATION',
+          },
+        ],
+      },
+    });
+
+  it('a domain the list does not show is added and its DNS records printed', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        { args: domainList('api'), stdout: NO_DOMAINS },
+        { args: domainList('admin'), stdout: '[]' },
+        { args: domainCreate(API_HOST, 'api'), stdout: created(API_HOST, 'staging') },
+        { args: domainCreate(ADMIN_HOST, 'admin'), stdout: created(ADMIN_HOST, 'admin.staging') },
+      ],
+    });
+    expect(result.code).toBe(0);
+    const calls = result.calls.map(joined);
+    expect(calls).toContain(`railway ${domainCreate(API_HOST, 'api').join(' ')}`);
+    expect(calls).toContain(`railway ${domainCreate(ADMIN_HOST, 'admin').join(' ')}`);
+    expect(calls.indexOf(APPLY)).toBeLessThan(
+      calls.indexOf(`railway ${domainList('api').join(' ')}`),
+    );
+    expect(result.lines).toEqual(
+      expect.arrayContaining([
+        `apply ok domain ${API_HOST} added`,
+        'apply owner-check dns CNAME staging fixture1.up.railway.app',
+        'apply owner-check dns TXT _railway-verify.staging railway-verify=0123abcd',
+        `apply ok domain ${ADMIN_HOST} added`,
+        'apply owner-check dns CNAME admin.staging fixture1.up.railway.app',
+        'apply owner-check dns TXT _railway-verify.admin.staging railway-verify=0123abcd',
+      ]),
+    );
+  });
+
+  it('records printed as the CLI table are read, and unreadable ones name domain status', async () => {
+    const table = [
+      `Created custom domain ${API_HOST}`,
+      'DNS records:',
+      'Type                    Name                     Value',
+      'DNS_RECORD_TYPE_CNAME   staging                  fixture2.up.railway.app',
+      'TXT                     _railway-verify.staging  railway-verify=4567ef',
+    ].join('\n');
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        {
+          args: domainList('api'),
+          stdout: `No domains found for service api in environment staging\n`,
+        },
+        { args: domainList('admin'), stdout: NO_DOMAINS },
+        { args: domainCreate(API_HOST, 'api'), stdout: table },
+        { args: domainCreate(ADMIN_HOST, 'admin'), stdout: '{"id":"fixture-domain"}' },
+      ],
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toEqual(
+      expect.arrayContaining([
+        'apply owner-check dns CNAME staging fixture2.up.railway.app',
+        'apply owner-check dns TXT _railway-verify.staging railway-verify=4567ef',
+        `apply ok domain ${ADMIN_HOST} added`,
+        `apply owner-check dns ${ADMIN_HOST}: read the records with railway domain status ${ADMIN_HOST} --service admin --environment staging`,
+      ]),
+    );
+  });
+
+  it('a domain the list shows is not added again', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        {
+          args: domainList('admin'),
+          stdout: JSON.stringify([{ domain: `https://${ADMIN_HOST}/`, type: 'custom' }]),
+        },
+      ],
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain(`apply ok domain ${API_HOST} exists`);
+    expect(result.lines).toContain(`apply ok domain ${ADMIN_HOST} exists`);
+    expect(result.calls.some((call) => call.args[0] === 'domain' && call.args[1] !== 'list')).toBe(
+      false,
+    );
+    expect(result.lines.some((line) => line.includes('owner-check dns'))).toBe(false);
+  });
+
+  it('a domain that cannot be added fails the step', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [
+        { args: domainList('api'), stdout: NO_DOMAINS },
+        { args: domainCreate(API_HOST, 'api'), exitCode: 1 },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain(`apply fail domain ${API_HOST} --service api: exit 1`);
+    expect(result.calls.map(joined)).not.toContain(`railway ${domainList('admin').join(' ')}`);
+  });
+
+  it('a list that cannot be read fails the step and adds nothing', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply'], {
+      railway: [{ args: domainList('api'), stdout: 'fixture: not json' }],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('apply fail domain list --service api: unexpected output');
+    expect(result.calls.some((call) => call.args[0] === 'domain' && call.args[1] !== 'list')).toBe(
+      false,
+    );
+  });
+
+  it('a dry run prints the domains it would add and runs nothing mutating', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'apply', '--dry-run']);
+    expect(result.code).toBe(0);
+    expect(result.calls.some((call) => call.args[0] === 'domain')).toBe(false);
+    expect(result.lines).toContain(`dry-run railway ${domainCreate(API_HOST, 'api').join(' ')}`);
+    expect(result.lines).toContain(
+      `dry-run railway ${domainCreate(ADMIN_HOST, 'admin').join(' ')}`,
+    );
+    expect(result.lines).toContain(
+      `apply ok dry-run: domain ${API_HOST} not added; it is added when railway domain list does not show it`,
+    );
   });
 });
 

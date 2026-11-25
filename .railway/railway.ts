@@ -67,6 +67,7 @@ export default defineRailway((ctx) => {
   const variant = BRAND.variants[env];
   const host = required(variant.host, `variants.${env}.host`);
   const adminHost = required(variant.adminHost, `variants.${env}.adminHost`); // D-798: the admin service's host (D-801)
+  // The custom domains on these hosts are added by the bootstrap, not here (D-849).
   const repo = required(BRAND.github.repository, 'github.repository');
   const source = github(repo, { branch: env, checkSuites: true }); // D-102, D-134
 
@@ -118,7 +119,6 @@ export default defineRailway((ctx) => {
     healthcheck: '/readyz', // D-024, D-145
     healthcheckTimeout: 60,
     replicas: inRegion(API_REPLICAS[env]),
-    domains: [{ domain: host, port: PORT }],
     env: {
       APP_ENV: env,
       PORT: String(PORT),
@@ -198,7 +198,6 @@ export default defineRailway((ctx) => {
     healthcheck: '/readyz', // holds a deploy until every migration it was built against is applied
     healthcheckTimeout: 60,
     replicas: inRegion(1),
-    domains: [{ domain: adminHost, port: PORT }], // D-798, D-801: the admin host is this service's one domain
     env: {
       APP_ENV: env,
       PORT: String(PORT),

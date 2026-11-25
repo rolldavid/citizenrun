@@ -12,6 +12,7 @@ type Node = {
   deploy?: Record<string, unknown>;
   variables?: Record<string, unknown>;
   config?: Record<string, unknown>;
+  networking?: { customDomains?: Record<string, unknown> };
   volumeAttachments?: Record<string, { volumeConfig?: Record<string, unknown> }>;
 };
 
@@ -64,6 +65,15 @@ describe('.railway/railway.ts', () => {
       } else {
         expect(variable, name).toBeUndefined();
       }
+    }
+  });
+
+  // `config apply` refuses a custom domain it has not seen; the bootstrap adds them (D-849).
+  it('declares no custom domain on any service', async () => {
+    const nodes = await stagingNodes();
+    for (const node of nodes.filter((item) => item.type === 'service')) {
+      expect(node.networking?.customDomains, node.name).toBeUndefined();
+      expect(node, node.name).not.toHaveProperty('domains');
     }
   });
 });
