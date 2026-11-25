@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { linksFake } from '@/test/platform/links';
 import { sessionFake } from '@/test/platform/session';
 import { renderWithProviders } from '@/test/render';
+import { ToastHost } from '@/ui/components/toast';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
@@ -410,6 +411,31 @@ describe('GalleryScreen', () => {
       ).style.fontSize,
     ).toBe('20.8px');
     expect(fillOf('gallery.text-130')).not.toBe('');
+  });
+
+  it('a toast raised from the gallery follows the gallery’s theme and text size', () => {
+    cleanup();
+    // The app around the gallery is light, at 100% text.
+    renderWithProviders(
+      <ToastHost>
+        <GalleryScreen {...DEFAULTS} only="toast" initialTheme="dark" initialTextScale={1.3} />
+      </ToastHost>,
+    );
+    press('gallery.show-toast-success');
+    const toast = screen.getByTestId('toast');
+    const words = within(toast).getByText(toastFixtures.STATES.success.text);
+    expect(screen.getAllByTestId('toast')).toHaveLength(1);
+    expect(toast.style.backgroundColor).toBe(written('#F3F1EA'));
+    expect(words.style.fontSize).toBe('18.2px');
+
+    // The gallery's controls reach the toast that is showing.
+    press('gallery.text-100');
+    expect(
+      within(screen.getByTestId('toast')).getByText(toastFixtures.STATES.success.text).style
+        .fontSize,
+    ).toBe('14px');
+    press('gallery.theme-light');
+    expect(screen.getByTestId('toast').style.backgroundColor).toBe(written('#141412'));
   });
 
   it('the motion control forces reduced motion', () => {

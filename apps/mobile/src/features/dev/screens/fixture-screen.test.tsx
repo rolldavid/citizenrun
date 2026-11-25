@@ -1,4 +1,4 @@
-import { cleanup, screen } from '@testing-library/react';
+import { act, cleanup, screen } from '@testing-library/react';
 import type { JSX } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,6 +13,7 @@ import {
 } from '@/features/system';
 import { renderWithProviders, setViewport } from '@/test/render';
 import { Text } from '@/ui/components/text';
+import { showToast, ToastHost } from '@/ui/components/toast';
 
 import { FixtureScreen, FixtureView } from './fixture-screen';
 
@@ -142,6 +143,29 @@ describe('FixtureScreen', () => {
     cleanup();
     renderWithProviders(<FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />);
     expect(stubFontSize()).toBe('16px');
+  });
+
+  it('a toast raised over a scaled fixture is drawn at the fixture’s text size', () => {
+    const raise = (): HTMLElement => {
+      act(() => {
+        showToast({ kind: 'success', text: 'Saved.' });
+      });
+      return screen.getByText('Saved.');
+    };
+    renderWithProviders(
+      <ToastHost>
+        <FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} textScale="1.3" />
+      </ToastHost>,
+    );
+    expect(raise().style.fontSize).toBe('18.2px');
+    expect(screen.getAllByText('Saved.')).toHaveLength(1);
+    cleanup();
+    renderWithProviders(
+      <ToastHost>
+        <FixtureScreen screen="stub" fixture="stubReady" registry={REGISTRY} />
+      </ToastHost>,
+    );
+    expect(raise().style.fontSize).toBe('14px');
   });
 
   it('keeps the theme it is drawn in when it scales the text', () => {

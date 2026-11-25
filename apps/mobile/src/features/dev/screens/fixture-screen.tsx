@@ -11,6 +11,7 @@ import {
   systemUpdateFixtures,
 } from '@/features/system';
 import type { RootViewModel } from '@/features/system';
+import { ToastOutlet } from '@/ui/components/toast';
 import { AppShell } from '@/ui/shells/app-shell';
 import { ThemeProvider, useTheme } from '@/ui/theme';
 import { textScale } from '@/ui/tokens';
@@ -109,6 +110,8 @@ export function FixtureScreen({
   return (
     <ThemeProvider choice={theme.name} textScale={scale}>
       {view}
+      {/* A toast the screen raises is drawn here, at the text size the screen is drawn at. */}
+      <ToastOutlet place="screen" />
     </ThemeProvider>
   );
 }

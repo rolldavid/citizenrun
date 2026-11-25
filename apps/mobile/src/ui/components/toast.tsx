@@ -125,10 +125,11 @@ const WORDS: ViewStyle = { flexShrink: 1 };
 /**
  * Where the layer stands. `shell`: over the app, centered above the bottom chrome on a phone and in
  * the content slot at medium and expanded, right of the rail where one is drawn (PC6A-27).
+ * `screen`: the same place, drawn by a screen that fills the window and brings a theme of its own.
  * `window`: inside an overlay that covers the window, centered in it. `sheet`: inside a sheet on a
  * phone, whose bottom edge is the screen's.
  */
-type ToastPlace = 'shell' | 'window' | 'sheet';
+type ToastPlace = 'shell' | 'screen' | 'window' | 'sheet';
 
 type Chrome = { bottomChrome: number; bottomInset: number; rail: number };
 
@@ -138,16 +139,18 @@ function placeOf(place: ToastPlace, layout: Layout, chrome: Chrome): ViewStyle {
     // The sheet's anchor is as wide as its content and stands where the toast's foot is.
     return { left: 0, right: 0, bottom: 0 };
   }
+  // A screen that fills the window stands where the app does.
+  const overApp = place === 'shell' || place === 'screen';
   switch (layout.breakpoint) {
     case 'compact': {
       // An overlay covers the tab bar and the footer: the toast stands above the bottom inset.
-      const covered = place === 'shell' && chrome.bottomChrome > 0;
+      const covered = overApp && chrome.bottomChrome > 0;
       return { ...sides, bottom: (covered ? chrome.bottomChrome : chrome.bottomInset) + space.x4 };
     }
     case 'medium':
-      return { ...sides, left: place === 'shell' ? chrome.rail : 0, bottom: space.x6 };
+      return { ...sides, left: overApp ? chrome.rail : 0, bottom: space.x6 };
     case 'expanded': {
-      if (place !== 'shell') {
+      if (!overApp) {
         return { ...sides, bottom: space.x6 };
       }
       // The capped row the shell centers in the window, and the rail at its left.
@@ -198,15 +201,17 @@ function ToastLayer({ place }: { place: ToastPlace }): JSX.Element {
 }
 
 /**
- * The toast's place inside an open overlay: C-Dialog's frame and C-Sheet render it, so a toast
- * shown while they are open is drawn above them and inside what a screen reader can reach. Only the
- * overlay on top draws it, and the host draws none meanwhile.
+ * The toast's place outside the host. C-Dialog's frame and C-Sheet render it, so a toast shown
+ * while they are open is drawn above them and inside what a screen reader can reach. The gallery
+ * renders it with `place="screen"` inside its own theme provider, as its last child, so the toast
+ * takes the theme, the text size and the motion the gallery is set to. Only the outlet on top draws
+ * the toast, and the host draws none meanwhile.
  */
 export function ToastOutlet({
   place,
   active = true,
 }: {
-  place: 'window' | 'sheet';
+  place: 'window' | 'sheet' | 'screen';
   /** False while the overlay is closed. Default true. */
   active?: boolean;
 }): JSX.Element | null {

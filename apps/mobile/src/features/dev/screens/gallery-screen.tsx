@@ -31,6 +31,7 @@ import {
   SystemScreen,
   TabBar,
   Text,
+  ToastOutlet,
   Tooltip,
   Wordmark,
   showToast,
@@ -332,7 +333,7 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     return fixture === undefined ? null : <DialogSpecimen state={state} fixture={fixture} />;
   }),
   section('C-Tooltip', 'tooltip', 'wide', Tooltip, tooltipFixtures),
-  // A toast is drawn by the host of the root layout, so its specimen is the button that asks for it.
+  // A toast is drawn apart from what asks for it, so its specimen is the button that asks.
   specimenSection('C-Toast', 'toast', Object.keys(TOAST_STATES), (state) => {
     const fixture = TOAST_STATES[state];
     return fixture === undefined ? null : (
@@ -570,6 +571,8 @@ function GalleryPage({
           )}
         </View>
       </ScrollView>
+      {/* The gallery's own theme, text size and motion reach a toast only when it is drawn here. */}
+      <ToastOutlet place="screen" />
     </>
   );
 }

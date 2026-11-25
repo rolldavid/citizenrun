@@ -1,3 +1,4 @@
+import { typeRoles } from '@citizenrun/shared';
 import { act, cleanup, screen, within } from '@testing-library/react';
 import type { JSX } from 'react';
 import { View } from 'react-native';
@@ -10,12 +11,13 @@ import { motion } from '@/ui/motion';
 import { AppShell } from '@/ui/shells/app-shell';
 import { clearBottomChrome, reportBottomChrome } from '@/ui/shells/bottom-chrome';
 import { clearSideChrome, reportSideChrome } from '@/ui/shells/side-chrome';
+import { ThemeProvider } from '@/ui/theme';
 import { color, gutter, radius, size, space, z } from '@/ui/tokens';
 
 import { Dialog } from './dialog';
 import type { InteractionPreviewState } from './pressable';
 import { Sheet } from './sheet';
-import { showToast, ToastHost } from './toast';
+import { showToast, ToastHost, ToastOutlet } from './toast';
 import { GROUND, PREVIEW, STATES } from './toast.fixtures';
 
 // react-native-svg 15.16.0 names its CommonJS build as `main`. The test resolver picks that build,
@@ -416,6 +418,61 @@ describe('Toast', () => {
       expect(screen.queryByTestId(OVERLAY)).toBeNull();
       expect(toasts(), String(viewport[0])).toHaveLength(1);
       expect(view.container.contains(toast()), String(viewport[0])).toBe(true);
+      act(() => {
+        clearSideChrome('probe');
+        clearBottomChrome('probe');
+      });
+    }
+  });
+
+  it('a screen with a theme of its own draws the toast itself, in that theme and at its text size', () => {
+    function WithScreen({ outlet }: { outlet: boolean }): JSX.Element {
+      return (
+        <ToastHost>
+          <View testID={PAGE}>
+            <ThemeProvider choice="dark" textScale={1.3}>
+              <View testID="probe.screen" />
+              {outlet ? <ToastOutlet place="screen" /> : null}
+            </ThemeProvider>
+          </View>
+        </ToastHost>
+      );
+    }
+    const words = (): HTMLElement => within(toast()).getByText(STATES.success.text);
+    for (const viewport of [COMPACT, MEDIUM, EXPANDED]) {
+      cleanup();
+      setViewport(viewport[0], viewport[1]);
+      const view = renderWithProviders(<WithScreen outlet={true} />, { theme: 'light' });
+      act(() => {
+        reportSideChrome('probe', viewport === COMPACT ? 0 : size.railIcon);
+        reportBottomChrome('probe', viewport === COMPACT ? size.tabBar : 0);
+      });
+      show(STATES.success);
+      const name = String(viewport[0]);
+      // One toast, after the screen's own content and inside its theme: the host draws none.
+      expect(toasts(), name).toHaveLength(1);
+      const drawn = toast().parentElement;
+      expect(drawn?.previousElementSibling, name).toBe(screen.getByTestId('probe.screen'));
+      expect(screen.getByTestId(PAGE).nextElementSibling, name).toBeNull();
+      expect(toast().style.backgroundColor, name).toBe(written(color.dark.inverseBg));
+      expect(words().style.color, name).toBe(written(color.dark.inverseText));
+      expect(words().style.fontSize, name).toBe(`${String(typeRoles.label.size * 1.3)}px`);
+      // It stands where the host would set it: above the bottom chrome, right of the rail.
+      const margin = (viewport[0] - Math.min(viewport[0], size.contentMax)) / 2;
+      expect(drawn?.style.bottom, name).toBe(
+        `${String(viewport === COMPACT ? size.tabBar + space.x4 : space.x6)}px`,
+      );
+      expect(drawn?.style.left, name).toBe(
+        `${String(viewport === COMPACT ? 0 : margin + size.railIcon)}px`,
+      );
+      expect(drawn?.style.zIndex, name).toBe(String(z.toast));
+
+      // Without the outlet the host draws it, in the app's theme and at the app's text size.
+      view.rerender(<WithScreen outlet={false} />);
+      expect(toasts(), name).toHaveLength(1);
+      expect(layer().contains(toast()), name).toBe(true);
+      expect(toast().style.backgroundColor, name).toBe(written(color.light.inverseBg));
+      expect(words().style.fontSize, name).toBe(`${String(typeRoles.label.size)}px`);
       act(() => {
         clearSideChrome('probe');
         clearBottomChrome('probe');
