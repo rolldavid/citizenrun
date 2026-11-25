@@ -112,6 +112,40 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 10, // J-cost.check
     },
   },
+  'account.delete': {
+    queue: {
+      policy: JOB_POLICIES['account.delete'], // J-account.delete
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-account.delete
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-account.delete
+      expireInSeconds: 3600, // J-account.delete
+      heartbeatSeconds: 60, // J-account.delete
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 2, // J-account.delete
+      pollingIntervalSeconds: 5, // J-account.delete
+    },
+  },
+  'account.export': {
+    queue: {
+      policy: JOB_POLICIES['account.export'], // J-account.export
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-account.export
+      retryBackoff: true, // D-238
+      retryDelayMax: 1800, // J-account.export
+      expireInSeconds: 1800, // J-account.export
+      heartbeatSeconds: 60, // J-account.export
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 2, // J-account.export
+      pollingIntervalSeconds: 5, // J-account.export
+    },
+  },
   'notify.email': {
     queue: {
       policy: JOB_POLICIES['notify.email'], // J-notify.email

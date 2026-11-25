@@ -94,6 +94,8 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'backup.check': {},
   'db.connections-check': {},
   'cost.check': {},
+  'account.delete': { userId: SAMPLE_ID, skipDeferral: false },
+  'account.export': { exportId: SAMPLE_ID },
   'notify.email': { template: 'signin_method_added', userId: SAMPLE_ID, provider: 'apple' },
 };
 
@@ -200,6 +202,25 @@ describe('the job list', () => {
         provider: 'google',
       }).success,
     ).toBe(false);
+  });
+
+  it('an account.delete payload parses without skipDeferral as false', () => {
+    const schema = JOB_PAYLOADS['account.delete'];
+    expect(schema.parse({ userId: SAMPLE_ID })).toEqual({ userId: SAMPLE_ID, skipDeferral: false });
+    expect(schema.parse({ userId: SAMPLE_ID, skipDeferral: true })).toEqual({
+      userId: SAMPLE_ID,
+      skipDeferral: true,
+    });
+    expect(schema.safeParse({ userId: 'not-a-uuid' }).success).toBe(false);
+    expect(schema.safeParse({ userId: SAMPLE_ID, skipDeferral: 'yes' }).success).toBe(false);
+    expect(schema.safeParse({ userId: SAMPLE_ID, email: 'x@example.test' }).success).toBe(false);
+  });
+
+  it('an account.export payload holds the export id only', () => {
+    const schema = JOB_PAYLOADS['account.export'];
+    expect(schema.safeParse({ exportId: SAMPLE_ID }).success).toBe(true);
+    expect(schema.safeParse({}).success).toBe(false);
+    expect(schema.safeParse({ exportId: SAMPLE_ID, userId: SAMPLE_ID }).success).toBe(false);
   });
 
   it('an unknown email template is refused', () => {

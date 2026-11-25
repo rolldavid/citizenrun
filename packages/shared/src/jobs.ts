@@ -13,6 +13,8 @@ export const JOB_NAMES = [
   'backup.check',
   'db.connections-check',
   'cost.check',
+  'account.delete',
+  'account.export',
   'notify.email',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
@@ -31,6 +33,8 @@ export const JOB_POLICIES = {
   'backup.check': 'stately',
   'db.connections-check': 'stately',
   'cost.check': 'stately',
+  'account.delete': 'standard',
+  'account.export': 'standard',
   'notify.email': 'standard',
 } as const satisfies Record<JobName, QueuePolicy>;
 
@@ -70,6 +74,9 @@ export const JOB_PAYLOADS = {
   'backup.check': Empty,
   'db.connections-check': Empty,
   'cost.check': Empty,
+  // skipDeferral: D-492.
+  'account.delete': z.object({ userId: Id, skipDeferral: z.boolean().default(false) }).strict(),
+  'account.export': z.object({ exportId: Id }).strict(),
   'notify.email': z.discriminatedUnion('template', [
     z
       .object({
