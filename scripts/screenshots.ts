@@ -1,7 +1,7 @@
 // The design-review captures at the four review viewports in light and dark:
 //   tsx scripts/screenshots.ts --out <dir> [--routes <id,id,...>] [--base-url <url>] [--no-build]
 // Without --base-url, Playwright's webServer starts the seeded stack (or reuses the one on 8080).
-import { mkdirSync, readdirSync, realpathSync, statSync } from 'node:fs';
+import { mkdirSync, readdirSync, realpathSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { run } from './lib/exec.ts';
@@ -74,11 +74,45 @@ export function screenshotEnv(args: ScreenshotArgs): Record<string, string> {
   };
 }
 
-/** The PNG files in `dir` written at or after `since` (milliseconds). */
-function writtenImages(dir: string, since: number): number {
-  return readdirSync(dir).filter(
-    (name) => name.endsWith('.png') && statSync(join(dir, name)).mtimeMs >= since,
-  ).length;
+/** One image of the capture folder: its file name and when it was last written (milliseconds). */
+export type CaptureImage = { name: string; mtimeMs: number };
+
+/** `<image>__partNN.png`, a continuation of `<image>.png` (the capture spec's part suffix). */
+const PART = /^(.+)__part\d{2}\.png$/;
+
+/**
+ * The part images an earlier capture left behind, by name: every part of an image this run wrote
+ * again that this run did not write itself. A page that has become shorter writes fewer parts, and
+ * the parts left over would be read as the rest of the new capture. The parts of an image this run
+ * did not capture are kept.
+ */
+export function staleParts(images: readonly CaptureImage[], since: number): string[] {
+  const written = new Set(
+    images.filter((image) => image.mtimeMs >= since).map((image) => image.name),
+  );
+  return images
+    .map((image) => image.name)
+    .filter((name) => {
+      const first = PART.exec(name)?.[1];
+      return first !== undefined && !written.has(name) && written.has(`${first}.png`);
+    })
+    .sort();
+}
+
+/** The PNG files in `dir`, each with the time it was last written. */
+export function captureImages(dir: string): CaptureImage[] {
+  return readdirSync(dir)
+    .filter((name) => name.endsWith('.png'))
+    .map((name) => ({ name, mtimeMs: statSync(join(dir, name)).mtimeMs }));
+}
+
+/** Deletes the stale part images of `dir` and answers their names. */
+export function removeStaleParts(dir: string, since: number): string[] {
+  const stale = staleParts(captureImages(dir), since);
+  for (const name of stale) {
+    rmSync(join(dir, name));
+  }
+  return stale;
 }
 
 export async function main(argv: readonly string[]): Promise<number> {
@@ -117,7 +151,11 @@ export async function main(argv: readonly string[]): Promise<number> {
     ],
     { cwd: root, env: { ...process.env, ...screenshotEnv(args) }, inherit: true },
   );
-  const images = writtenImages(args.out, started);
+  const stale = removeStaleParts(args.out, started);
+  if (stale.length > 0) {
+    console.log(`screenshots: removed ${String(stale.length)} part images of an earlier capture`);
+  }
+  const images = captureImages(args.out).filter((image) => image.mtimeMs >= started).length;
   console.log(`screenshots: ${String(images)} images in ${args.out}`);
   return result.code;
 }
