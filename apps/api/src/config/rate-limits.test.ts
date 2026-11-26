@@ -35,6 +35,10 @@ describe('rate-limit policies', () => {
       'me.handleSet': [
         { subject: 'user', action: 'handle_set', limit: 10, window: '1h', store: 'db' },
       ],
+      'me.location': [
+        { subject: 'user', action: 'location', limit: 10, window: '1m', store: 'db' },
+        { subject: 'user', action: 'location_day', limit: 20, window: '1d', store: 'db' },
+      ],
       'ref.read': [
         { subject: 'ip', action: 'ref_read', limit: 120, window: '1m', store: 'memory' },
       ],
@@ -80,8 +84,8 @@ describe('rate-limit policies', () => {
     });
   });
 
-  it('the location, push token and event policies are not defined yet', () => {
-    for (const name of ['me.location', 'me.pushToken', 'me.events']) {
+  it('the push token and event policies are not defined yet', () => {
+    for (const name of ['me.pushToken', 'me.events']) {
       expect(Object.hasOwn(RATE_LIMIT_POLICIES, name), name).toBe(false);
     }
   });

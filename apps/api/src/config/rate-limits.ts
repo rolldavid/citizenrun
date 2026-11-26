@@ -38,6 +38,11 @@ export const RATE_LIMIT_POLICIES = {
     { subject: 'user', action: 'handle_check', limit: 60, window: '1m', store: 'db' },
   ], // E-ME-07
   'me.handleSet': [{ subject: 'user', action: 'handle_set', limit: 10, window: '1h', store: 'db' }], // E-ME-08
+  // E-ME-13, E-ME-14
+  'me.location': [
+    { subject: 'user', action: 'location', limit: 10, window: '1m', store: 'db' },
+    { subject: 'user', action: 'location_day', limit: 20, window: '1d', store: 'db' },
+  ],
   'ref.read': [{ subject: 'ip', action: 'ref_read', limit: 120, window: '1m', store: 'memory' }], // E-REF-01, E-REF-02
   'ref.openapi': [{ subject: 'ip', action: 'openapi', limit: 30, window: '1m', store: 'memory' }], // E-REF-03
   // E-GEO-01

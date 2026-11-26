@@ -1,12 +1,18 @@
 import { appEvents, issues, userConsents, users } from '@citizenrun/db';
+import { LocationResultSchema } from '@citizenrun/shared';
 import { insertUser } from '@citizenrun/db/testing';
 import { LEGAL_VERSIONS, MeSchema } from '@citizenrun/shared';
 import type { Me } from '@citizenrun/shared';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signIn } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
 import type { TestApp } from '../../testing/app.ts';
+import {
+  DEFAULT_FIXTURE_POINT,
+  insertLocationFixture,
+  locationBody,
+} from '../../testing/location.ts';
 import type { TestAuth, TestRequestOptions, TestResponse } from '../../testing/request.ts';
 import { ONBOARDING_ORDER, advanceOnboarding, nextOnboardingStep } from './onboarding.ts';
 
@@ -281,5 +287,49 @@ describe('L-onboarding', () => {
       },
       { name: 'onboarding_done', props: {}, platform: 'android' },
     ]);
+  });
+});
+
+describe('L-onboarding location step', () => {
+  it('the location step stores district ids only and counts what it stored', async () => {
+    await insertLocationFixture(testApp.deps.db, testApp.deps.clock.now());
+    const user = await insertUser(testApp.deps.db, {
+      onboardingStep: 'location',
+      onboardedAt: null,
+    });
+    const auth = await signIn(testApp.deps.db, user, 'bearer');
+    const response = await testApp.request.put('/v1/me/location', {
+      auth,
+      body: locationBody(DEFAULT_FIXTURE_POINT.lat, DEFAULT_FIXTURE_POINT.lng),
+    });
+    expect(response.status).toBe(200);
+    const result = LocationResultSchema.parse(await response.json());
+    expect(result.me.onboardingStep).toBe('done');
+
+    const exact = await testApp.deps.db.execute<{ id: string }>(
+      sql`select d.id from user_districts ud join districts d on d.id = ud.district_id
+          where ud.user_id = ${user.id} and d.geometry_quality = 'exact'`,
+      'objects',
+    );
+    expect(result.exactDistrictCount).toBe(exact.length);
+    expect(exact.length).toBeGreaterThan(0);
+    const offices = await testApp.deps.db.execute<{ n: number }>(
+      sql`select count(*)::int as n from offices
+          where district_id = any(${sql.param(exact.map((row) => row.id))}::uuid[])
+            and retired_at is null and not placeholder`,
+      'objects',
+    );
+    expect(result.officeCount).toBe(offices[0]?.n);
+    expect(result.officeCount).toBe(3);
+    // The user's row holds the precision and nothing of the point.
+    const row = await userRow(user.id);
+    expect(row.locationPrecision).toBe('exact');
+    expect(JSON.stringify(row)).not.toContain(DEFAULT_FIXTURE_POINT.lat.toFixed(6));
+    expect(JSON.stringify(row)).not.toContain(DEFAULT_FIXTURE_POINT.lng.toFixed(6));
+    const stored = await testApp.deps.db.execute<{ district_id: string; created_at: Date }>(
+      sql`select * from user_districts where user_id = ${user.id}`,
+      'objects',
+    );
+    expect(Object.keys(stored[0] ?? {}).sort()).toEqual(['created_at', 'district_id', 'user_id']);
   });
 });

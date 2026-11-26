@@ -26,12 +26,14 @@ import type {
   ErrorEnvelope,
   ExportDownload,
   HandleCheck,
+  LocationResult,
   Me,
   RecordAgeSignalBody,
   RecordConsentBody,
   RequestExportBody,
   SetHandleBody,
   SetIssuesBody,
+  SetLocationBody,
   SkipOnboardingStepBody,
   UpdateMeBody,
 } from '../model';
@@ -1051,6 +1053,136 @@ export const useSetIssues = <TError = ErrorType<ErrorEnvelope>, TContext = unkno
   TContext
 > => {
   return useMutation(getSetIssuesMutationOptions(options), queryClient);
+};
+export const getSetLocationUrl = () => {
+  return `/v1/me/location`;
+};
+
+export const setLocation = async (
+  setLocationBody: SetLocationBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<LocationResult> => {
+  return apiFetch<LocationResult>(getSetLocationUrl(), {
+    ...options,
+    method: 'PUT',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(setLocationBody),
+  });
+};
+
+export const getSetLocationMutationKey = () => ['setLocation'] as const;
+
+export const getSetLocationMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setLocation>>,
+    TError,
+    SetLocationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setLocation>>,
+  TError,
+  SetLocationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSetLocationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setLocation>>,
+    SetLocationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return setLocation(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetLocationMutationResult = NonNullable<Awaited<ReturnType<typeof setLocation>>>;
+export type SetLocationMutationBody = SetLocationBody;
+export type SetLocationMutationError = ErrorType<ErrorEnvelope>;
+export type SetLocationMutationVariables = { data: SetLocationBody };
+
+export const useSetLocation = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof setLocation>>,
+      TError,
+      SetLocationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof setLocation>>,
+  TError,
+  SetLocationMutationVariables,
+  TContext
+> => {
+  return useMutation(getSetLocationMutationOptions(options), queryClient);
+};
+export const getClearLocationUrl = () => {
+  return `/v1/me/location`;
+};
+
+export const clearLocation = async (options?: Parameters<typeof apiFetch>[1]): Promise<void> => {
+  return apiFetch<void>(getClearLocationUrl(), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getClearLocationMutationKey = () => ['clearLocation'] as const;
+
+export const getClearLocationMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof clearLocation>>, TError, void, TContext>;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof clearLocation>>, TError, void, TContext> => {
+  const mutationKey = getClearLocationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof clearLocation>>, void> = () => {
+    return clearLocation(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ClearLocationMutationResult = NonNullable<Awaited<ReturnType<typeof clearLocation>>>;
+
+export type ClearLocationMutationError = ErrorType<ErrorEnvelope>;
+
+export const useClearLocation = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof clearLocation>>,
+      TError,
+      void,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof clearLocation>>, TError, void, TContext> => {
+  return useMutation(getClearLocationMutationOptions(options), queryClient);
 };
 export const getSkipOnboardingStepUrl = () => {
   return `/v1/me/onboarding/skip`;

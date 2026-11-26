@@ -396,6 +396,39 @@
           "expiresAt"
         ]
       },
+      "DistrictRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tileId": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "geometryQuality": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "parent_fallback",
+              "county_approx"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "tileId",
+          "name",
+          "level",
+          "geometryQuality"
+        ]
+      },
       "DocumentConsent": {
         "type": "object",
         "properties": {
@@ -708,6 +741,65 @@
         "required": [
           "items",
           "nextCursor"
+        ]
+      },
+      "Level": {
+        "type": "string",
+        "enum": [
+          "local",
+          "county",
+          "state",
+          "federal",
+          "special"
+        ]
+      },
+      "LocationResult": {
+        "type": "object",
+        "properties": {
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "matched",
+              "not_covered_yet"
+            ]
+          },
+          "territory": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "PR",
+              "GU",
+              "VI",
+              "AS",
+              "MP",
+              null
+            ]
+          },
+          "districts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ViewerDistrict"
+            }
+          },
+          "exactDistrictCount": {
+            "type": "integer"
+          },
+          "officeCount": {
+            "type": "integer"
+          },
+          "me": {
+            "$ref": "#/components/schemas/Me"
+          }
+        },
+        "required": [
+          "outcome",
+          "territory",
+          "districts",
+          "exactDistrictCount",
+          "officeCount",
+          "me"
         ]
       },
       "LocationState": {
@@ -1319,6 +1411,33 @@
           "issues"
         ]
       },
+      "SetLocationBody": {
+        "type": "object",
+        "properties": {
+          "lat": {
+            "type": "number",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lng": {
+            "type": "number",
+            "minimum": -180,
+            "maximum": 180
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "approx"
+            ]
+          },
+          "address": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 200
+          }
+        }
+      },
       "SignInWithAppleBody": {
         "type": "object",
         "properties": {
@@ -1738,6 +1857,69 @@
         "required": [
           "pendingToken",
           "code"
+        ]
+      },
+      "ViewerDistrict": {
+        "type": "object",
+        "properties": {
+          "district": {
+            "$ref": "#/components/schemas/DistrictRef"
+          },
+          "approximate": {
+            "type": "boolean"
+          },
+          "outline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "svg": {
+                "type": "string"
+              },
+              "bbox": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "svg",
+              "bbox"
+            ]
+          },
+          "labelPoint": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "required": [
+          "district",
+          "approximate",
+          "outline",
+          "labelPoint"
         ]
       }
     },
@@ -3870,6 +4052,180 @@
           },
           "422": {
             "description": "An issue id is not known.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/location": {
+      "put": {
+        "operationId": "setLocation",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.location"
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "account_suspended",
+          "unavailable_in_state",
+          "need_street_address",
+          "address_not_found",
+          "outside_us",
+          "age_signal_required",
+          "rate_limited",
+          "geocoder_unavailable"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLocationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stored districts, their counts and the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LocationResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, the account is suspended, or the app is not available in the state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The address is a bare ZIP or was not found, the place is outside the United States, or the state needs the store age signal.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The address lookup service is unavailable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "clearLocation",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.location"
+        },
+        "x-errors": [
+          "unauthenticated",
+          "origin_rejected",
+          "account_suspended",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The districts are forgotten."
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the account is suspended.",
             "content": {
               "application/json": {
                 "schema": {
