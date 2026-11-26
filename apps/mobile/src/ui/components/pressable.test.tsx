@@ -233,7 +233,10 @@ describe('Pressable', () => {
   });
 
   it('a click presses once and plays the named haptic', () => {
+    // The haptic module keeps the time of the last haptic, which another case may have set moments
+    // ago in any order, so this case's clock starts at a fixed time of its own.
     vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.UTC(2026, 0, 1));
     const onPress = vi.fn();
     const element = draw({ onPress, haptic: 'light' });
     fireEvent.click(element);
