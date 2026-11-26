@@ -629,6 +629,9 @@ importers:
       pg-boss:
         specifier: 'catalog:'
         version: 12.39.0(@opentelemetry/api@1.10.0)
+      sharp:
+        specifier: 'catalog:'
+        version: 0.35.5(@types/node@24.19.2)
       zod:
         specifier: 'catalog:'
         version: 4.6.7
@@ -642,9 +645,6 @@ importers:
       drizzle-kit:
         specifier: 'catalog:'
         version: 1.0.0-rc.5(drizzle-orm@1.0.0-rc.5(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(pg@8.23.1)(zod@4.6.7))
-      sharp:
-        specifier: 'catalog:'
-        version: 0.35.5(@types/node@24.19.2)
       vitest:
         specifier: 'catalog:'
         version: 5.1.1(@opentelemetry/api@1.10.0)(@types/node@24.19.2)(jsdom@31.0.1)(vite@8.3.8(@types/node@24.19.2)(esbuild@0.27.7)(jiti@2.7.0)(terser@5.51.4)(tsx@4.23.15)(yaml@2.9.1))
