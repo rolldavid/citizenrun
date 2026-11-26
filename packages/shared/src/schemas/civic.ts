@@ -578,7 +578,7 @@ export const OfficeDetailSchema = OfficeSummarySchema.extend({
   candidates: z.array(CandidacyViewSchema),
   candidatesCount: z.number().int().min(0),
   // No public declaration exists yet, so the list can only be empty.
-  declaredRunners: z.array(z.never()),
+  declaredRunners: z.array(z.unknown()).max(0),
   declaredRunnersCount: z.number().int().min(0),
   changedAt: InstantSchema,
   fieldMeta: z.object({
