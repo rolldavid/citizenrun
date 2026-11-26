@@ -408,6 +408,25 @@ describe('useProviders', () => {
     expect(onAttempt).not.toHaveBeenCalled();
   });
 
+  it('ends no attempt once it has stopped', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(T0);
+    const view = render(<Harness intent="sign_in" />);
+    await settle();
+    act(() => {
+      lastAppleProps().onStart();
+    });
+    expect(onStart).toHaveBeenCalledTimes(1);
+
+    view.unmount();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PROVIDER_BUSY_LIMIT_MS);
+    });
+
+    expect(onEnded).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
   it('disables the buttons while busy', async () => {
     await mounted();
     act(() => {

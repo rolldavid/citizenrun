@@ -296,6 +296,10 @@ function createController(
         stopFocus();
         enabled = false;
         clearExpiry();
+        // An open attempt ends with the stop: its limit timer would otherwise run on after it.
+        clearLimit();
+        attemptNonce = null;
+        if (busy) setBusy(false);
         nonce = null;
         rebind();
       };
