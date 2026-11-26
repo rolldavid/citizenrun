@@ -212,30 +212,10 @@ function unknownGallerySections(
  * stage that draws its screen gives it its entries and takes it off this list. A module on the list
  * whose fixtures already have an entry fails the check, so the list only shrinks.
  */
-const AWAITING_SCREEN_MODULES: readonly string[] = [
-  'apps/mobile/src/features/auth/view-models/reauth.fixtures.ts',
-  'apps/mobile/src/features/auth/view-models/sign-in.fixtures.ts',
-  'apps/mobile/src/features/auth/view-models/welcome.fixtures.ts',
-  'apps/mobile/src/features/onboarding/view-models/handle.fixtures.ts',
-  'apps/mobile/src/features/onboarding/view-models/issues.fixtures.ts',
-  'apps/mobile/src/features/onboarding/view-models/location.fixtures.ts',
-  'apps/mobile/src/features/onboarding/view-models/photo.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-about.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-account.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-appearance.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-delete-account.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-export.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-issues.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-privacy.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings-profile.fixtures.ts',
-  'apps/mobile/src/features/settings/view-models/settings.fixtures.ts',
-  'apps/mobile/src/features/system/view-models/adults-only.fixtures.ts',
-  'apps/mobile/src/features/system/view-models/agreements.fixtures.ts',
-  'apps/mobile/src/features/system/view-models/state-unavailable.fixtures.ts',
-];
+const AWAITING_SCREEN_MODULES: readonly string[] = [];
 
 /** Fixtures of a captured screen that draw a system screen not drawn yet, on the same terms. */
-const AWAITING_SCREEN_FIXTURES: readonly string[] = ['rootAdultsOnly', 'rootAgreements'];
+const AWAITING_SCREEN_FIXTURES: readonly string[] = [];
 
 /** Every `apps/mobile/src/features/*\/view-models/*.fixtures.ts`, repository-relative. */
 function fixtureFiles(): string[] {
