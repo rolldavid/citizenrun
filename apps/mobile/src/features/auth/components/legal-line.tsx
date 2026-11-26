@@ -47,7 +47,7 @@ function SentenceLink({ href, testID, role, children }: SentenceLinkProps): JSX.
 
 export type LinkedSentenceProps = {
   /** One whole sentence whose tags are the names of `links`. */
-  i18nKey: 'auth:welcome.legal' | 'auth:agree.body';
+  i18nKey: 'auth:welcome.legal' | 'auth:methods.legal' | 'auth:agree.body';
   role: TypeRole;
   tone: TextTone;
   /** By the tag each stands for in the sentence. */
@@ -69,7 +69,7 @@ export function LinkedSentence({ i18nKey, role, tone, links }: LinkedSentencePro
 }
 
 export type LegalLineProps = {
-  i18nKey: 'auth:welcome.legal';
+  i18nKey: 'auth:welcome.legal' | 'auth:methods.legal';
   links: { terms: string; privacyPolicy: string };
   testIDs: { terms: string; privacy: string };
 };

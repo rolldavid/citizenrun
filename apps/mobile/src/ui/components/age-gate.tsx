@@ -34,6 +34,10 @@ const YEAR_SHARE: ViewStyle = { flex: 2 };
  * C-AgeGate: the date-of-birth question of sign-up (D-350): a month and a year, each a C-Select
  * with nothing chosen. It says nothing about which answer passes, and every word it shows is the
  * caller's. The answer is the caller's too: this holds no copy of it.
+ *
+ * On a phone the two selects are stacked, month first, each as wide as the column: a share of a
+ * phone's width cannot hold a select's words, its room and its chevron at every text size, and a
+ * select cuts short what it cannot hold. From the medium breakpoint they stand side by side.
  */
 export function AgeGate({
   month,
@@ -47,7 +51,7 @@ export function AgeGate({
   monthNames,
   testIDs,
 }: AgeGateProps): JSX.Element {
-  const { isTight } = useBreakpoint();
+  const { breakpoint } = useBreakpoint();
 
   const monthSelect = (
     <Select
@@ -74,7 +78,7 @@ export function AgeGate({
     />
   );
 
-  if (isTight) {
+  if (breakpoint === 'compact') {
     return (
       <View style={STACKED}>
         {monthSelect}

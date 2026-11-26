@@ -75,6 +75,13 @@ describe('the auth fixtures', () => {
     for (const link of Object.values(f.signInAgreements.agreements.links)) {
       expect(link.startsWith('https://example.test/')).toBe(true);
     }
+    // Every stage carries the two documents the methods stage names, so every capture shows them.
+    for (const fixture of Object.values(signInFixtures)) {
+      expect(fixture.legalLinks).toEqual({
+        terms: 'https://example.test/terms',
+        privacyPolicy: 'https://example.test/privacy',
+      });
+    }
   });
 
   it('welcome fixture', () => {

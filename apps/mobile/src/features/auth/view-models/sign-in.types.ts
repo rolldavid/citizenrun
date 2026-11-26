@@ -29,6 +29,8 @@ export type SignInViewModel = {
     code: ErrorCode | 'provider_unavailable' | 'generic'; // SCR-sign-in
     retryAfterSeconds: number | null;
   } | null;
+  /** The public pages the methods stage names under its options. */
+  legalLinks: { terms: string; privacyPolicy: string };
   email: {
     status: 'idle' | 'sending';
     errorCode: ErrorCode | null;

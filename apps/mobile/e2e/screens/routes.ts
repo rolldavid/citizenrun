@@ -149,6 +149,30 @@ async function atFixtureTime(page: Page): Promise<void> {
   await expect(page.getByTestId('auth.code-resend-live')).toHaveText(/(^|\D)30(\D|$)/);
 }
 
+/**
+ * The birth question shows the words of both of its selects whole. A select draws its words on one
+ * line and cuts short what its width cannot hold, so a capture with a cut word fails here.
+ */
+async function ageGateWordsWhole(page: Page): Promise<void> {
+  for (const testID of ['onboarding.age-month', 'onboarding.age-year']) {
+    const select = page.getByTestId(testID);
+    await expect(select).toBeVisible();
+    const lines = await select.evaluate((control) =>
+      Array.from(control.querySelectorAll<HTMLElement>('*'))
+        .filter((element) => getComputedStyle(element).textOverflow === 'ellipsis')
+        .map((element) => ({
+          words: element.textContent,
+          cut: element.scrollWidth > element.clientWidth,
+        })),
+    );
+    expect(lines, `${testID} draws its words on one line`).not.toEqual([]);
+    expect(
+      lines.filter((line) => line.cut).map((line) => line.words),
+      `${testID} cuts its words short`,
+    ).toEqual([]);
+  }
+}
+
 /** The re-authentication sheet has faded in and, on a phone, risen to where it rests. */
 async function reauthSheetAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('auth.reauth-sheet'));
@@ -1335,11 +1359,13 @@ export const SCREENS: ScreenEntry[] = [
     id: 'sign-in-sign-in-age-gate',
     path: '/dev/screens/sign-in/signInAgeGate',
     auth: 'none',
+    prepare: ageGateWordsWhole,
   },
   {
     id: 'sign-in-sign-in-age-gate-incomplete',
     path: '/dev/screens/sign-in/signInAgeGateIncomplete',
     auth: 'none',
+    prepare: ageGateWordsWhole,
   },
   {
     id: 'sign-in-sign-in-state',
@@ -1865,6 +1891,12 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/sign-in/signInCodeWrong?textScale=1.3',
     auth: 'none',
     prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-age-gate-x130',
+    path: '/dev/screens/sign-in/signInAgeGate?textScale=1.3',
+    auth: 'none',
+    prepare: ageGateWordsWhole,
   },
   {
     id: 'settings-settings-default-x130',

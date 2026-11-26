@@ -306,6 +306,7 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
     appleButton: providers.appleButton,
     googleButton: providers.googleButton,
     notice: state.notice,
+    legalLinks: { terms: publicPageUrl('/terms'), privacyPolicy: publicPageUrl('/privacy') },
     email: { ...emailCode.email, onSubmit: onSubmitEmail },
     code:
       state.stage === 'code' && challenge !== null

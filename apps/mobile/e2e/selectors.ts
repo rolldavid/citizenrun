@@ -14,6 +14,8 @@ export const SELECTORS = {
     welcomeTerms: 'auth.welcome-terms',
     welcomePrivacy: 'auth.welcome-privacy',
     signIn: 'auth.sign-in',
+    methodsTerms: 'auth.methods-terms',
+    methodsPrivacy: 'auth.methods-privacy',
     appleButton: 'auth.apple-button',
     googleButton: 'auth.google-button',
     emailOption: 'auth.email-option',

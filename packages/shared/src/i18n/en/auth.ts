@@ -12,6 +12,7 @@ export const auth = {
     email: 'Continue with email',
     apple: 'Continue with Apple',
     google: 'Continue with Google',
+    legal: '<terms>Terms</terms> · <privacy>Privacy policy</privacy>',
   },
   email: {
     title: 'What is your email?',

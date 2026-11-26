@@ -193,6 +193,49 @@ describe('SignInScreenView', () => {
     expect(button('auth.google-button')).toBeTruthy();
   });
 
+  it('methods name the terms and the privacy policy under the options', () => {
+    for (const [name, vm] of [
+      ['signInMethods', fixtures.signInMethods],
+      ['signInMethodsEmailOnly', fixtures.signInMethodsEmailOnly],
+      ['signInMethodsBusy', fixtures.signInMethodsBusy],
+      ['signInMethodsNotice', fixtures.signInMethodsNotice],
+    ] as const) {
+      const root = draw(vm);
+      const terms = screen.getByTestId('auth.methods-terms');
+      const privacy = screen.getByTestId('auth.methods-privacy');
+      // One small line, whole, with a link on each document's name.
+      let line = terms.parentElement;
+      while (line !== null && !line.contains(privacy)) {
+        line = line.parentElement;
+      }
+      expect(line?.textContent, name).toBe('Terms · Privacy policy');
+      expect(root.contains(line), name).toBe(true);
+      expect(terms.getAttribute('href'), name).toBe('https://example.test/terms');
+      expect(terms.getAttribute('target'), name).toBe('_blank');
+      expect(screen.getByRole('link', { name: 'Terms, opens in your browser' }), name).toBe(terms);
+      expect(privacy.getAttribute('href'), name).toBe('https://example.test/privacy');
+      expect(privacy.getAttribute('target'), name).toBe('_blank');
+      expect(
+        screen.getByRole('link', { name: 'Privacy policy, opens in your browser' }),
+        name,
+      ).toBe(privacy);
+      // The line stands under the last option, the terms before the privacy policy.
+      const email = button('auth.email-option');
+      expect(
+        email.compareDocumentPosition(terms) & Node.DOCUMENT_POSITION_FOLLOWING,
+        name,
+      ).not.toBe(0);
+      expect(
+        terms.compareDocumentPosition(privacy) & Node.DOCUMENT_POSITION_FOLLOWING,
+        name,
+      ).not.toBe(0);
+    }
+    // The line is the methods stage's own: no later stage draws it.
+    draw(fixtures.signInEmail);
+    expect(screen.queryByTestId('auth.methods-terms')).toBeNull();
+    expect(screen.queryByTestId('auth.methods-privacy')).toBeNull();
+  });
+
   it('busy', () => {
     const onChooseEmail = vi.fn<() => void>();
     draw({ ...fixtures.signInMethodsBusy, onChooseEmail });
@@ -774,6 +817,26 @@ describe('SignInScreenView', () => {
     expect(screen.getByTestId('auth.agree-terms').getAttribute('href')).toBe(
       'https://example.test/terms',
     );
+
+    // The line under the sign-in options follows the same rule.
+    const methods = draw({
+      ...fixtures.signInMethodsEmailOnly,
+      legalLinks: { terms: 'http://api.test/terms', privacyPolicy: '/privacy' },
+    });
+    expect(methods.textContent).toContain('Terms · Privacy policy');
+    expect(screen.queryByTestId('auth.methods-terms')).toBeNull();
+    expect(screen.queryByTestId('auth.methods-privacy')).toBeNull();
+    expect(screen.queryAllByRole('link')).toEqual([]);
+    expect(methods.innerHTML).not.toContain('http://api.test');
+
+    draw({
+      ...fixtures.signInMethodsEmailOnly,
+      legalLinks: { terms: 'https://example.test/terms', privacyPolicy: '/privacy' },
+    });
+    expect(screen.getByTestId('auth.methods-terms').getAttribute('href')).toBe(
+      'https://example.test/terms',
+    );
+    expect(screen.queryByTestId('auth.methods-privacy')).toBeNull();
   });
 
   it('tight keeps every stage whole', () => {

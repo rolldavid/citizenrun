@@ -325,17 +325,52 @@ describe('AgeGate', () => {
     expect(document.activeElement).toBe(year);
   });
 
-  it('side by side, the month takes the wider share', () => {
-    const { month, year } = drawState('empty');
-    const row = month.closest<HTMLElement>('[style*="flex-direction: row"][style*="gap"]');
-    expect(row).not.toBeNull();
-    expect(row?.style.columnGap).toBe('12px');
-    expect(row?.contains(year)).toBe(true);
-    const [monthShare, yearShare] = [...(row?.children ?? [])];
-    expect(monthShare?.contains(month)).toBe(true);
-    expect(yearShare?.contains(year)).toBe(true);
-    expect(monthShare instanceof HTMLElement ? monthShare.style.flexGrow : '').toBe('3');
-    expect(yearShare instanceof HTMLElement ? yearShare.style.flexGrow : '').toBe('2');
+  it('side by side from the medium breakpoint, the month takes the wider share', () => {
+    for (const width of [600, 820, 1440]) {
+      layout.width = width;
+      const name = String(width);
+      const { month, year } = drawState('empty');
+      const row = month.closest<HTMLElement>('[style*="flex-direction: row"][style*="gap"]');
+      expect(row, name).not.toBeNull();
+      expect(row?.style.columnGap, name).toBe('12px');
+      expect(row?.contains(year), name).toBe(true);
+      const [monthShare, yearShare] = [...(row?.children ?? [])];
+      expect(monthShare?.contains(month), name).toBe(true);
+      expect(yearShare?.contains(year), name).toBe(true);
+      expect(monthShare instanceof HTMLElement ? monthShare.style.flexGrow : '', name).toBe('3');
+      expect(yearShare instanceof HTMLElement ? yearShare.style.flexGrow : '', name).toBe('2');
+    }
+  });
+
+  it('stacked on a phone at every text size', () => {
+    // A share of a phone's width cuts a select's words short, so neither select is given one.
+    for (const width of [320, 360, 390, 430, 599]) {
+      for (const scale of [1, 1.3]) {
+        layout.width = width;
+        const name = `${String(width)} ${String(scale)}`;
+        const { month, year } = drawState('empty', { textScale: scale });
+        expect(
+          month
+            .closest<HTMLElement>('[style*="flex-direction: row"][style*="gap"]')
+            ?.contains(year) ?? false,
+          name,
+        ).toBe(false);
+        const stack = month.closest<HTMLElement>('[style*="gap"]');
+        expect(stack?.contains(year), name).toBe(true);
+        // A column, the month first, 12 apart, each select as wide as the column.
+        expect(stack?.style.flexDirection, name).toBe('');
+        expect(stack?.style.rowGap, name).toBe('12px');
+        const [first, second] = [...(stack?.children ?? [])];
+        expect(first?.contains(month), name).toBe(true);
+        expect(second?.contains(year), name).toBe(true);
+        for (const each of [first, second]) {
+          expect(each instanceof HTMLElement ? each.style.flexGrow : null, name).toBe('');
+        }
+        // Both placeholders are drawn whole in the page; nothing else stands beside either.
+        expect(within(month).getByText(STATES.empty.monthPlaceholder), name).toBeDefined();
+        expect(within(year).getByText(STATES.empty.yearPlaceholder), name).toBeDefined();
+      }
+    }
   });
 
   it('stacked when tight', () => {

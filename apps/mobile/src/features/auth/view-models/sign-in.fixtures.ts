@@ -23,6 +23,10 @@ export const signInMethods = {
   appleButton: FIXTURE_APPLE_BUTTON,
   googleButton: FIXTURE_GOOGLE_BUTTON,
   notice: null,
+  legalLinks: {
+    terms: 'https://example.test/terms',
+    privacyPolicy: 'https://example.test/privacy',
+  },
   email: { status: 'idle', errorCode: null, retryAfterSeconds: null, onSubmit: noop },
   code: null,
   ageGate: null,

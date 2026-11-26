@@ -207,6 +207,11 @@ describe('useSignInViewModel', () => {
   it('signs a returning person in without asking their age', async () => {
     const hook = render();
     expect(hook.result.current).toMatchObject({ stage: 'methods', signingUp: false, code: null });
+    // The two documents the first stage names, as addresses of the public pages.
+    expect(hook.result.current.legalLinks).toEqual({
+      terms: 'http://api.test/terms',
+      privacyPolicy: 'http://api.test/privacy',
+    });
     await submitCode(hook);
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');

@@ -8,7 +8,7 @@ import type { ViewStyle } from 'react-native';
 import { AUTH_NAMESPACES } from '@/features/auth/components/auth-translation';
 import { CodeControl } from '@/features/auth/components/code-control';
 import { EmailField, isEmailAddress } from '@/features/auth/components/email-field';
-import { LinkedSentence } from '@/features/auth/components/legal-line';
+import { LegalLine, LinkedSentence } from '@/features/auth/components/legal-line';
 import { monthNames } from '@/features/auth/components/month-names';
 import { signInNoticeText } from '@/features/auth/components/notice-text';
 import { ProviderOptions } from '@/features/auth/components/provider-options';
@@ -38,8 +38,12 @@ const WHOLE_CODE = /^[0-9]{6}$/;
 const YEARS_BACK = 120;
 
 const NOTICE: ViewStyle = { marginBottom: space.x4 };
+const LEGAL: ViewStyle = { marginTop: space.x4 };
 
-/** `methods`: the providers' own buttons where they are offered, and email always. */
+/**
+ * `methods`: the providers' own buttons where they are offered, and email always. Under them one
+ * small line names the terms and the privacy policy.
+ */
 function MethodsStage({ vm }: StageProps): JSX.Element {
   const { t } = useTranslation(AUTH_NAMESPACES);
   const notice = vm.notice === null ? null : signInNoticeText(vm.notice, t);
@@ -67,6 +71,13 @@ function MethodsStage({ vm }: StageProps): JSX.Element {
         }}
         busy={vm.providersBusy || vm.offline}
       />
+      <View style={LEGAL}>
+        <LegalLine
+          i18nKey="auth:methods.legal"
+          links={vm.legalLinks}
+          testIDs={{ terms: 'auth.methods-terms', privacy: 'auth.methods-privacy' }}
+        />
+      </View>
     </StageFrame>
   );
 }
