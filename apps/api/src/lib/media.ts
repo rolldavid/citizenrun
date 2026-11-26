@@ -29,3 +29,26 @@ export async function toAvatarMedia(
     durationMs: null,
   };
 }
+
+/** people.photo_key with photo_width and photo_height; blurhash, thumb, poster and durationMs null; null for a null key. */
+export async function toPersonPhoto(
+  row: { photoKey: string | null; photoWidth: number | null; photoHeight: number | null },
+  media: MediaBucket,
+  now: Date,
+): Promise<Media | null> {
+  if (row.photoKey === null) {
+    return null;
+  }
+  // Civic photos store no blurhash and no variants (PC-19).
+  return {
+    kind: 'image',
+    key: row.photoKey,
+    url: await mediaUrl(media.client, media.bucket, row.photoKey, now),
+    width: row.photoWidth,
+    height: row.photoHeight,
+    blurhash: null,
+    thumb: null,
+    poster: null,
+    durationMs: null,
+  };
+}

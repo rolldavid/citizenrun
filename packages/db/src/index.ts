@@ -30,7 +30,11 @@ export {
   activeJurisdictions,
   activeOffices,
   activePeople,
+  HEADLINE_WEIGHT_OTHER,
+  HEADLINE_WEIGHT_STARRED,
+  officeSummaryRows,
 } from './sql/civic.ts';
+export type { OfficeElectionCandidateRow, OfficeSummaryRow } from './sql/civic.ts';
 export { refreshOfficeSearch } from './sql/office-search.ts';
 export { recomputeHeadlineDeadlines } from './sql/headline-deadline.ts';
 export { lookupDistrictsAtPoint } from './sql/point-lookup.ts';

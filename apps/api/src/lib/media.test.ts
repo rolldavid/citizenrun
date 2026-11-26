@@ -1,6 +1,6 @@
-import { createS3Client } from '@citizenrun/shared/storage';
+import { civicPhotoKey, createS3Client } from '@citizenrun/shared/storage';
 import { describe, expect, it } from 'vitest';
-import { toAvatarMedia } from './media.ts';
+import { toAvatarMedia, toPersonPhoto } from './media.ts';
 
 // A client for the local store with fixture credentials: presigning signs in memory and makes no
 // network call.
@@ -49,5 +49,47 @@ describe('toAvatarMedia', () => {
     const first = await toAvatarMedia(KEY, media, NOW);
     const later = await toAvatarMedia(KEY, media, new Date('2027-03-05T23:59:00.000Z'));
     expect(later?.url).toBe(first?.url);
+  });
+});
+
+describe('toPersonPhoto', () => {
+  const PHOTO_KEY = civicPhotoKey('a'.repeat(64));
+
+  it('a person photo is a 320-wide civic image with no blurhash', async () => {
+    const photo = await toPersonPhoto(
+      { photoKey: PHOTO_KEY, photoWidth: 320, photoHeight: 400 },
+      media,
+      NOW,
+    );
+    expect(photo).toEqual({
+      kind: 'image',
+      key: PHOTO_KEY,
+      url: expect.any(String),
+      width: 320,
+      height: 400,
+      blurhash: null,
+      thumb: null,
+      poster: null,
+      durationMs: null,
+    });
+    const url = new URL(photo?.url ?? '');
+    expect(url.pathname).toBe(`/fixture-media/${PHOTO_KEY}`);
+    expect(url.searchParams.get('X-Amz-Date')).toBe('20270305T120000Z');
+    expect(url.searchParams.get('X-Amz-Expires')).toBe('129600');
+  });
+
+  it('a photo with no stored size keeps the size unknown', async () => {
+    const photo = await toPersonPhoto(
+      { photoKey: PHOTO_KEY, photoWidth: null, photoHeight: null },
+      media,
+      NOW,
+    );
+    expect(photo).toMatchObject({ width: null, height: null, blurhash: null });
+  });
+
+  it('no photo key gives null', async () => {
+    expect(
+      await toPersonPhoto({ photoKey: null, photoWidth: 320, photoHeight: 400 }, media, NOW),
+    ).toBeNull();
   });
 });
