@@ -52,8 +52,6 @@ export type PressableProps = {
   label: string;
   hint?: string;
   state?: { selected?: boolean; checked?: boolean; expanded?: boolean; busy?: boolean };
-  /** The id of what this control has open: the list of a combobox. */
-  controls?: string;
   testID: string;
   /** Reaches the press target itself, so a caller can move focus to it. */
   ref?: Ref<ViewInstance>;
@@ -178,7 +176,6 @@ export function Pressable({
   label,
   hint,
   state,
-  controls,
   testID,
   ref,
   children,
@@ -262,7 +259,6 @@ export function Pressable({
       aria-selected={takesSelected ? selected : undefined}
       aria-checked={state?.checked}
       aria-expanded={state?.expanded}
-      aria-controls={controls}
       aria-busy={state?.busy}
       aria-disabled={disabled}
       disabled={disabled}
