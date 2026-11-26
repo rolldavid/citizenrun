@@ -32,7 +32,7 @@ import { peekQueue, runJob } from '../../testing/job.ts';
 import { RETENTION_RULES, cleanupRetention } from './retention.ts';
 import type { RetentionRuleId } from './retention.ts';
 
-// TEST-retention, milestone 1: for each rule a row just outside its limit goes and one just inside
+// TEST-retention: for each rule a row just outside its limit goes and one just inside
 // stays. Rows are dated by their own columns and ids (idAt); the job's clock is a FakeClock at the
 // real time, so the database clock agrees with it within seconds.
 

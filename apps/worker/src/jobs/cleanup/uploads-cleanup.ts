@@ -6,7 +6,7 @@ import { deleteKeys, deletePrefix } from '../../lib/bucket-ops.ts';
 import { QUEUE_OPTIONS } from '../../queue-options.ts';
 import type { JobDefinition } from '../types.ts';
 
-// R-028: one of the few jobs allowed to delete media. Deleting a missing object succeeds and rows
+// One of the few jobs allowed to delete media. Deleting a missing object succeeds and rows
 // are only marked, so a repeated job is harmless.
 
 async function cleanAvatar(

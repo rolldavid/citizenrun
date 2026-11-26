@@ -5,7 +5,7 @@ import type { Metadata, SharpOptions } from 'sharp';
 import { differenceHash } from './dhash.ts';
 import type { ImageFamily } from './sniff.ts';
 
-// The shared photo function (D-250, R-111): refuses anything but a sane JPEG, PNG or WebP, turns
+// The shared photo function (D-250): refuses anything but a sane JPEG, PNG or WebP, turns
 // it upright and re-encodes it. sharp's default output carries no metadata at all, and nothing here
 // asks it to keep any (INV-41).
 

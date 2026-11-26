@@ -163,12 +163,12 @@ async function missingMediaBucket(): Promise<Bucket> {
   return { client: media.client, bucket: `${media.bucket}_gone` };
 }
 
-describe('J-cost.check, milestone 1 lines', () => {
+describe('J-cost.check, upload, email and sign-in lines', () => {
   beforeEach(async () => {
     await resetStorage();
   });
 
-  it('alerts on each milestone 1 line', async () => {
+  it('alerts on each upload, email and sign-in line', async () => {
     const clock = new FakeClock(DAY_10);
     await writeReadings(clock, OVER);
     const result = await runJob(costCheckJob, {}, { clock });

@@ -32,7 +32,7 @@ export const APP_EVENT_KEEP_DAYS = 180; // J-cleanup.retention N6
 /** Usage counters are kept 24 months. */
 export const USAGE_COUNTER_KEEP_MONTHS = 24; // J-cleanup.retention N7
 
-/** The id of a milestone 1 retention rule (J-cleanup.retention). */
+/** The id of a retention rule (J-cleanup.retention). */
 export type RetentionRuleId =
   'H1' | 'H2' | 'H3' | 'H4' | 'H5' | 'H9' | 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7';
 
@@ -380,7 +380,7 @@ const N7: RetentionRule = {
     ),
 };
 
-/** Every milestone 1 rule, in the order a run applies them. */
+/** Every retention rule, in the order a run applies them. */
 export const RETENTION_RULES: readonly RetentionRule[] = [
   H1,
   H2,

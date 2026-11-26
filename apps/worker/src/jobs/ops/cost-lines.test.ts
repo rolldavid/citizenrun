@@ -44,7 +44,7 @@ describe('the storage cost line', () => {
   });
 });
 
-describe('the milestone 1 cost lines', () => {
+describe('the upload, email and sign-in cost lines', () => {
   it('projects a month from the days elapsed', async () => {
     await eachZone(() => {
       // April has 30 days: day 10 projects × 3. March has 31: its last day projects × 1.

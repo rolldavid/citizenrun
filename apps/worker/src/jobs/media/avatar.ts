@@ -90,7 +90,7 @@ async function markOriginalDeleted(ctx: JobContext, uploadId: string): Promise<v
     .where(and(eq(uploads.id, uploadId), isNull(uploads.objectDeletedAt)));
 }
 
-// T:956, CTL-63 "Upload original": the original goes once its derivatives are the avatar.
+// CTL-63 "Upload original": the original goes once its derivatives are the avatar.
 async function deleteOriginal(ctx: JobContext, upload: Upload): Promise<void> {
   await deleteKeys(ctx.storage.media, [upload.key], { signal: ctx.signal });
   await markOriginalDeleted(ctx, upload.id);
@@ -305,7 +305,7 @@ async function giveUp(ctx: JobContext, avatar: Avatar): Promise<void> {
   ctx.log.warn('media.failed', { target: 'avatar', reason: 'retries_exhausted' });
 }
 
-/** J-media.process for one avatar upload (contracts/04 "Avatar", milestones 1 to 4). */
+/** J-media.process for one avatar upload. */
 export async function processAvatar(payload: AvatarTarget, ctx: JobContext): Promise<void> {
   const avatar = await load(ctx, payload);
   if (avatar === null) {
