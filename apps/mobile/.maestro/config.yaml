@@ -1,0 +1,3 @@
+# Every flow in this folder; scripts/ holds the flows' scripts and no flow.
+flows:
+  - '*'

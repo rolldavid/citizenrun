@@ -1,0 +1,82 @@
+# TEST-maestro-signup: a first-time sign-up from the welcome screen to Home. Targets are found by
+# id only; text is asserted, never used to find a target.
+appId: ${APP_ID}
+tags:
+  - m01
+  - signup
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- stopApp
+# A cold start with the development build's fake age signal: the store says adult.
+- openLink: ${APP_SCHEME}://welcome?fakeAgeSignal=adult
+# The iOS simulator asks before it opens a link in the app.
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'auth.welcome-start'
+    timeout: 30000
+- tapOn:
+    id: 'auth.welcome-start'
+- tapOn:
+    id: 'auth.email-option'
+- runScript: scripts/new-account.js
+- tapOn:
+    id: 'auth.email-field'
+- inputText: ${output.email}
+- hideKeyboard
+- tapOn:
+    id: 'auth.email-continue'
+# The code is sent before the code step shows.
+- extendedWaitUntil:
+    visible:
+      id: 'auth.code-field'
+    timeout: 15000
+- runScript:
+    file: scripts/read-code.js
+    env:
+      EMAIL: ${output.email}
+- tapOn:
+    id: 'auth.code-field'
+# The field sends the code at the sixth digit.
+- inputText: ${output.code}
+# The fake signal answered adult, so no birth question comes.
+- extendedWaitUntil:
+    visible:
+      id: 'onboarding.terms-agree'
+    timeout: 15000
+- tapOn:
+    id: 'onboarding.terms-agree'
+- tapOn:
+    id: 'onboarding.ai-consent-agree'
+- tapOn:
+    id: 'onboarding.photo-skip'
+- tapOn:
+    id: 'onboarding.handle-field'
+- inputText: seed_user_01
+- assertVisible: 'Taken. Try another.'
+- eraseText
+- inputText: ${output.handle}
+- assertVisible: 'That one is free.'
+- hideKeyboard
+- tapOn:
+    id: 'onboarding.handle-continue'
+- tapOn:
+    id: 'onboarding.issue-rent-housing'
+- tapOn:
+    id: 'onboarding.issue-climate'
+- tapOn:
+    id: 'onboarding.issue-schools'
+- tapOn:
+    id: 'onboarding.issue-rent-housing-star'
+- tapOn:
+    id: 'onboarding.issues-continue'
+- tapOn:
+    id: 'onboarding.location-skip'
+- extendedWaitUntil:
+    visible:
+      id: 'feed.placeholder'
+    timeout: 15000

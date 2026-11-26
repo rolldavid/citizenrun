@@ -1,0 +1,32 @@
+# CTL-35 on a phone: a new account is deleted from settings, the screen states what is removed and
+# kept, and the app returns to the welcome screen. Targets are found by id only.
+appId: ${APP_ID}
+tags:
+  - m01
+  - delete-account
+---
+- runFlow: signup.yaml
+- openLink: ${APP_SCHEME}://settings/delete-account
+# The iOS simulator asks before it opens a link in the app.
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'settings.delete-action'
+    timeout: 15000
+- assertVisible: 'It finishes within 24 hours.'
+- scrollUntilVisible:
+    element:
+      text: 'Encrypted backups for up to 27 days, and a keyed fingerprint of the account id in our recovery log for 35 days.'
+    direction: DOWN
+- assertVisible: 'Encrypted backups for up to 27 days, and a keyed fingerprint of the account id in our recovery log for 35 days.'
+- tapOn:
+    id: 'settings.delete-action'
+- tapOn:
+    id: 'settings.delete-confirm'
+# Phones go back to the welcome screen.
+- extendedWaitUntil:
+    visible:
+      id: 'auth.welcome-start'
+    timeout: 30000

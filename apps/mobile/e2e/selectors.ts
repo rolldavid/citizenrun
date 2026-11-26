@@ -51,11 +51,20 @@ export const SELECTORS = {
       'onboarding.age-month',
       (month: string) => `onboarding.age-month-options-${month}`,
     ),
+    // The list a phone's sheet or a wide window's popover holds while it is open.
+    ageMonthPart: derived(
+      'onboarding.age-month',
+      (part: 'sheet' | 'popover') => `onboarding.age-month-${part}`,
+    ),
     ageYear: 'onboarding.age-year',
     ageYearOption: derived('onboarding.age-year', (year: string) => `onboarding.age-year-${year}`),
     ageYearOptionCompact: derived(
       'onboarding.age-year',
       (year: string) => `onboarding.age-year-options-${year}`,
+    ),
+    ageYearPart: derived(
+      'onboarding.age-year',
+      (part: 'sheet' | 'popover') => `onboarding.age-year-${part}`,
     ),
     ageContinue: 'onboarding.age-continue',
     termsAgree: 'onboarding.terms-agree',
@@ -79,9 +88,11 @@ export const SELECTORS = {
     location: 'onboarding.location',
     locationSkip: 'onboarding.location-skip',
   },
+  feed: {
+    home: 'feed.home',
+    placeholder: 'feed.placeholder',
+  },
   settings: {
-    screen: 'settings',
-    screenPart: derived('settings', (part: 'retry') => `settings-${part}`),
     rowProfile: 'settings.row-profile',
     rowIssues: 'settings.row-issues',
     rowAccount: 'settings.row-account',
@@ -143,10 +154,6 @@ export const SELECTORS = {
     aboutPrivacy: 'settings.about-privacy',
     aboutTerms: 'settings.about-terms',
     aboutContentPolicy: 'settings.about-content-policy',
-  },
-  feed: {
-    home: 'feed.home',
-    placeholder: 'feed.placeholder',
   },
   system: {
     adultsOnly: 'system.adults-only',
