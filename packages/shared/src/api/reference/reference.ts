@@ -14,7 +14,7 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
-import type { ErrorEnvelope, OpenApiDocument } from '../model';
+import type { ErrorEnvelope, IssuePage, OpenApiDocument } from '../model';
 
 import { apiFetch } from '../../http/mutator.ts';
 import type { ErrorType } from '../../http/mutator.ts';
@@ -39,6 +39,110 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListIssuesUrl = () => {
+  return `/v1/issues`;
+};
+
+export const listIssues = async (options?: Parameters<typeof apiFetch>[1]): Promise<IssuePage> => {
+  return apiFetch<IssuePage>(getListIssuesUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListIssuesQueryKey = () => {
+  return [`/v1/issues`] as const;
+};
+
+export const getListIssuesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listIssues>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListIssuesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listIssues>>> = ({ signal }) =>
+    listIssues({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listIssues>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListIssuesQueryResult = NonNullable<Awaited<ReturnType<typeof listIssues>>>;
+export type ListIssuesQueryError = ErrorType<ErrorEnvelope>;
+
+export function useListIssues<
+  TData = Awaited<ReturnType<typeof listIssues>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listIssues>>,
+          TError,
+          Awaited<ReturnType<typeof listIssues>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListIssues<
+  TData = Awaited<ReturnType<typeof listIssues>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listIssues>>,
+          TError,
+          Awaited<ReturnType<typeof listIssues>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListIssues<
+  TData = Awaited<ReturnType<typeof listIssues>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListIssues<
+  TData = Awaited<ReturnType<typeof listIssues>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listIssues>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListIssuesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
 
 export const getGetOpenApiDocumentUrl = () => {
   return `/v1/openapi.json`;

@@ -38,6 +38,8 @@ export * from './handleCheck.ts';
 export * from './handleCheckReason.ts';
 export * from './healthzResponse.ts';
 export * from './healthzResponseStatus.ts';
+export * from './issue.ts';
+export * from './issuePage.ts';
 export * from './logoutBody.ts';
 export * from './me.ts';
 export * from './media.ts';
