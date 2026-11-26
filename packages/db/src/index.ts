@@ -18,3 +18,20 @@ export { markAccountDeleting } from './accounts/index.ts';
 export type { MarkDeletingResult } from './accounts/index.ts';
 export * from './schema/index.ts';
 export * from './schema/partitioned.ts';
+export {
+  activeDistricts,
+  activeElections,
+  activeJurisdictions,
+  activeOffices,
+  activePeople,
+} from './sql/civic.ts';
+export { refreshOfficeSearch } from './sql/office-search.ts';
+export { recomputeHeadlineDeadlines } from './sql/headline-deadline.ts';
+export { lookupDistrictsAtPoint } from './sql/point-lookup.ts';
+export type { DistrictLevel, GeometryQuality, PointDistrictRow } from './sql/point-lookup.ts';
+export {
+  DISPLAY_BAND_FULL,
+  SUBDIVIDE_MAX_VERTICES,
+  insertDisplayBandFullSql,
+  insertDistrictPartsSql,
+} from './sql/district-geometry.ts';
