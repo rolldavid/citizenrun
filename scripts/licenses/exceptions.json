@@ -10,5 +10,19 @@
     ],
     "decision": "D-600",
     "reason": "libvips (LGPL-3.0-or-later), loaded unmodified as a shared library by sharp, a development dependency"
+  },
+  {
+    "package": "buffers",
+    "versions": ["0.1.1"],
+    "workspaces": ["@citizenrun/pipeline"],
+    "decision": "D-867",
+    "reason": "no licence field in its manifest; its README states the MIT/X11 licence; reached through exceljs, unzipper and binary"
+  },
+  {
+    "package": "chainsaw",
+    "versions": ["0.1.0"],
+    "workspaces": ["@citizenrun/pipeline"],
+    "decision": "D-867",
+    "reason": "licence written as MIT/X11, which is the MIT licence; reached through exceljs, unzipper and binary"
   }
 ]
