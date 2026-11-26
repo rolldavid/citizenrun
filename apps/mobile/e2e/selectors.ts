@@ -36,6 +36,9 @@ export const SELECTORS = {
     agreePolicy: 'auth.agree-policy',
     agreePrivacy: 'auth.agree-privacy',
     aiNotNow: 'auth.ai-not-now',
+    reauthSheet: 'auth.reauth-sheet',
+    reauthEmail: 'auth.reauth-email',
+    addEmailSheet: 'auth.add-email-sheet',
   },
   onboarding: {
     // The first step of sign-up is drawn by the sign-in screen.

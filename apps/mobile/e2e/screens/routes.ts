@@ -149,6 +149,17 @@ async function atFixtureTime(page: Page): Promise<void> {
   await expect(page.getByTestId('auth.code-resend-live')).toHaveText(/(^|\D)30(\D|$)/);
 }
 
+/** The re-authentication sheet has faded in and, on a phone, risen to where it rests. */
+async function reauthSheetAtRest(page: Page): Promise<void> {
+  await layerAtRest(page.getByTestId('auth.reauth-sheet'));
+}
+
+/** The sheet at rest with its code stage counted from the fixtures' own time. */
+async function reauthCodeAtRest(page: Page): Promise<void> {
+  await atFixtureTime(page);
+  await reauthSheetAtRest(page);
+}
+
 export const SCREENS: ScreenEntry[] = [
   // The whole gallery, at either text size, is taller on a phone than one capture takes, so it is
   // captured whole at the two wide viewports only; on the two phones its section entries are the
@@ -1314,6 +1325,37 @@ export const SCREENS: ScreenEntry[] = [
     id: 'sign-in-sign-in-offline',
     path: '/dev/screens/sign-in/signInOffline',
     auth: 'none',
+  },
+  // The re-authentication sheet, drawn over the route's ground once it is where it rests.
+  {
+    id: 'sign-in-reauth-reauth-methods',
+    path: '/dev/screens/sign-in-reauth/reauthMethods',
+    auth: 'none',
+    prepare: reauthSheetAtRest,
+  },
+  {
+    id: 'sign-in-reauth-reauth-code',
+    path: '/dev/screens/sign-in-reauth/reauthCode',
+    auth: 'none',
+    prepare: reauthCodeAtRest,
+  },
+  {
+    id: 'sign-in-reauth-reauth-code-wrong',
+    path: '/dev/screens/sign-in-reauth/reauthCodeWrong',
+    auth: 'none',
+    prepare: reauthCodeAtRest,
+  },
+  {
+    id: 'sign-in-reauth-reauth-mismatch',
+    path: '/dev/screens/sign-in-reauth/reauthMismatch',
+    auth: 'none',
+    prepare: reauthSheetAtRest,
+  },
+  {
+    id: 'sign-in-reauth-reauth-busy',
+    path: '/dev/screens/sign-in-reauth/reauthBusy',
+    auth: 'none',
+    prepare: reauthSheetAtRest,
   },
   {
     id: 'system-adults-only-adults-only',

@@ -72,4 +72,9 @@ export const auth = {
     allow: 'Allow',
     notNow: 'Not now',
   },
+  reauth: {
+    title: 'Sign in again to continue',
+    body: 'This keeps your account safe.',
+    sendCode: 'Email me a code',
+  },
 } as const;

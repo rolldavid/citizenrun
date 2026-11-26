@@ -2,8 +2,10 @@ import { createElement } from 'react';
 import type { ComponentType, ReactElement } from 'react';
 
 import {
+  ReauthSheet,
   SignInScreenView,
   WelcomeScreenView,
+  reauthFixtures,
   signInFixtures,
   welcomeFixtures,
 } from '@/features/auth';
@@ -102,6 +104,8 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
   ),
   welcome: defineScreen(WelcomeScreenView, welcomeFixtures, { mode: 'bare' }),
   'sign-in': defineScreen(SignInScreenView, signInFixtures, { mode: 'bare' }),
+  // The re-authentication sheet is a view of its own, drawn over the route's ground.
+  'sign-in-reauth': defineScreen(ReauthSheet, reauthFixtures, { mode: 'bare' }),
   'onboarding-photo': defineScreen(OnboardingPhotoScreenView, photoFixtures, { mode: 'bare' }),
   'onboarding-handle': defineScreen(OnboardingHandleScreenView, handleFixtures, { mode: 'bare' }),
   'onboarding-issues': defineScreen(OnboardingIssuesScreenView, issuesFixtures, { mode: 'bare' }),

@@ -42,6 +42,14 @@ const google = vi.hoisted(() => ({
 }));
 
 vi.mock('react-native', () => rn);
+// The drawing library of Apple's button face on Android; its parts are plain names here.
+vi.mock('react-native-svg', () => ({
+  Svg: 'Svg',
+  G: 'G',
+  Path: 'Path',
+  Rect: 'Rect',
+  Text: 'SvgText',
+}));
 vi.mock('@/lib/env', () => ({ getAppEnv: () => env }));
 vi.mock('@/platform/session', () => ({
   session: {

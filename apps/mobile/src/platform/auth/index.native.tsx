@@ -12,12 +12,14 @@ import {
   GoogleSignInButton as LibraryGoogleButton,
 } from 'react-native-nitro-google-signin';
 import type { OneTapConfigureParams } from 'react-native-nitro-google-signin';
+import { G, Path, Rect, Svg, Text as SvgText } from 'react-native-svg';
 
 import { getAppEnv } from '@/lib/env';
 import { session } from '@/platform/session';
 
 import { appleAuthorizeUrl, appleReturnUrl, parseAppleReturn } from './apple-redirect';
 import type { AuthSessionReturn } from './apple-redirect';
+import { APPLE_CUSTOM_BUTTON, APPLE_LOGO } from './provider-art';
 import type {
   AppleSignInButtonProps,
   AppleSignInResult,
@@ -199,17 +201,64 @@ async function appleOnAndroid(nonceHash: string, state: string): Promise<AppleSi
   }
 }
 
-/** Apple's custom button face on Android: a private part that the provider button drawing fills in. */
-function AppleButtonFace(_props: {
+/**
+ * Apple's custom button face on Android, drawn to Apple's rules for a custom button: the fill of
+ * the style, the outline of the outlined one, Apple's logo artwork as tall as the button at the
+ * leading edge, and the title in the system font at the middle. Apple defines no disabled look, so
+ * the face is the same while the button takes no press. The press target carries the name; the
+ * drawing is hidden from screen readers.
+ */
+function AppleButtonFace({
+  appearance,
+  label,
+}: {
   appearance: ProviderButtonAppearance;
   label: string;
 }): ReactElement {
+  const art = APPLE_CUSTOM_BUTTON;
+  const look = art.styles[appearance.appleStyle];
+  const { width, height } = appearance;
+  // An outline is drawn inside the button's own box, so it is never cut at the edge.
+  const inset = look.outline === null ? 0 : art.outlineWidth / 2;
   return (
     <View
-      style={{ flex: 1 }}
+      style={sizeStyle(appearance)}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
-    />
+    >
+      <Svg width={width} height={height}>
+        <Rect
+          transform={[{ translateX: inset }, { translateY: inset }]}
+          width={width - 2 * inset}
+          height={height - 2 * inset}
+          rx={art.cornerRadius}
+          ry={art.cornerRadius}
+          fill={look.background}
+          stroke={look.outline ?? 'none'}
+          strokeWidth={look.outline === null ? 0 : art.outlineWidth}
+        />
+        {APPLE_LOGO === null ? null : (
+          <G
+            transform={[
+              { translateX: art.logoInset },
+              { scale: (height * art.logoHeightOfButtonHeight) / APPLE_LOGO.height },
+            ]}
+          >
+            <Path d={APPLE_LOGO.d} fill={look.foreground} />
+          </G>
+        )}
+        <SvgText
+          transform={[{ translateX: width / 2 }, { translateY: height / 2 }]}
+          textAnchor="middle"
+          alignmentBaseline="central"
+          fontSize={height * art.titleSizeOfButtonHeight}
+          fontWeight={art.titleWeight}
+          fill={look.foreground}
+        >
+          {label}
+        </SvgText>
+      </Svg>
+    </View>
   );
 }
 
