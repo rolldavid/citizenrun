@@ -1,12 +1,15 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { brotliDecompressSync, gunzipSync } from 'node:zlib';
-import { brandVariant } from '@citizenrun/shared';
+import { insertUser } from '@citizenrun/db/testing';
+import { brandVariant, routeClassOf } from '@citizenrun/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.ts';
 import { sha256Source } from '../config/csp.ts';
 import { defineRoute, registerRoute } from '../router.ts';
+import { signIn } from '../testing/auth.ts';
 import { createTestApp } from '../testing/app.ts';
 import type { TestApp } from '../testing/app.ts';
 import { webAssetsFor } from './assets.ts';
@@ -30,6 +33,14 @@ const SHELL_PER_REPLICA = 120;
 const STATIC_PER_REPLICA = 600;
 // v1.unmatched allows 120 a minute, half per replica (D-854).
 const UNMATCHED_V1_PER_REPLICA = 60;
+// The session cookie's name on the test app's https PUBLIC_URL.
+const COOKIE_NAME = '__Host-os_session';
+const NOT_FOUND_TITLE = `Page not found | ${brandVariant('development').displayName}`;
+const NOINDEX_META = '<meta name="robots" content="noindex">';
+const MINUTE_MS = 60_000;
+const DAY_MS = 24 * 60 * MINUTE_MS;
+// The app's route files, read from disk; nothing is imported from the app.
+const MOBILE_APP_DIR = fileURLToPath(new URL('../../../mobile/app/', import.meta.url));
 
 let temporaryDirs: string[] = [];
 
@@ -110,6 +121,60 @@ function varyValues(response: Response): string[] {
   return (response.headers.get('vary') ?? '').split(',').map((value) => value.trim());
 }
 
+// The fixture's index.html as the not-found shell must answer it: the not-found title and noindex.
+function expectedNotFoundShell(): string {
+  let html = fixtureText('index.html');
+  html = swap(html, '<title>Fixture shell</title>', '');
+  html = swap(html, '<meta name="description" content="Fixture description" />', '');
+  html = swap(html, HEAD_MARKER, `<title>${escapeHtml(NOT_FOUND_TITLE)}</title>${NOINDEX_META}`);
+  return swap(html, BODY_MARKER, '');
+}
+
+async function expectNotFoundShell(response: Response): Promise<void> {
+  expect(response.status).toBe(404);
+  expect(response.headers.get('content-type')).toBe('text/html; charset=utf-8');
+  expect(response.headers.get('cache-control')).toBe('no-cache');
+  expect(varyValues(response)).toContain('Cookie');
+  expect(response.headers.get('x-robots-tag')).toBe('noindex');
+  expect(response.headers.get('content-security-policy-report-only')).not.toBeNull();
+  const body = await response.text();
+  expect(body).toBe(expectedNotFoundShell());
+  expect(body).toContain(`<title>${escapeHtml(NOT_FOUND_TITLE)}</title>`);
+  expect(body).toContain(NOINDEX_META);
+}
+
+function expectRedirect(response: Response, location: string): void {
+  expect(response.status).toBe(302);
+  expect(response.headers.get('location')).toBe(location);
+  expect(response.headers.get('cache-control')).toBe('no-store');
+  expect(varyValues(response)).toContain('Cookie');
+  expect(response.headers.get('set-cookie')).toBeNull();
+}
+
+function cookieHeader(token: string): Record<string, string> {
+  return { Cookie: `${COOKIE_NAME}=${token}` };
+}
+
+// Every route file under the app folder, as a URL path: groups, `index` and the extension dropped,
+// each `[param]` segment read as `x`; layouts and `+` files are not routes.
+function appRoutePaths(): string[] {
+  const entries = readdirSync(MOBILE_APP_DIR, { recursive: true, withFileTypes: true });
+  const paths: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isFile() || entry.name.startsWith('_layout') || entry.name.startsWith('+')) {
+      continue;
+    }
+    const file = relative(MOBILE_APP_DIR, join(entry.parentPath, entry.name));
+    const segments = file
+      .replace(/\.[^./\\]+$/, '')
+      .split(sep)
+      .filter((segment) => !/^\(.+\)$/.test(segment) && segment !== 'index')
+      .map((segment) => (/^\[.+\]$/.test(segment) ? 'x' : segment));
+    paths.push(`/${segments.join('/')}`);
+  }
+  return paths.sort();
+}
+
 async function expectPlainNotFound(response: Response): Promise<void> {
   expect(response.status).toBe(404);
   expect(response.headers.get('content-type')).toBe('text/plain; charset=utf-8');
@@ -141,7 +206,7 @@ describe('the web shell and static files', () => {
   it('serves the shell for / and an app route', async () => {
     const testApp = await createTestApp();
     await expectShell(await send(testApp, 'GET', '/'));
-    await expectShell(await send(testApp, 'GET', '/explore?x=1'));
+    await expectShell(await send(testApp, 'GET', '/welcome?x=1'));
   });
 
   it('the shell policy is report-only with the template hashes', async () => {
@@ -170,14 +235,15 @@ describe('the web shell and static files', () => {
     expect(response.headers.get('x-robots-tag')).toBe('noindex');
   });
 
-  it('dev routes are gated', async () => {
+  it('/dev/gallery answers 404 unless ENABLE_DEV_ROUTES', async () => {
     const off = await createTestApp();
-    await expectPlainNotFound(await send(off, 'GET', '/dev/gallery'));
-    await expectPlainNotFound(await send(off, 'GET', '/dev'));
+    await expectNotFoundShell(await send(off, 'GET', '/dev/gallery'));
+    await expectNotFoundShell(await send(off, 'GET', '/dev'));
     expect(errorCodes(off)).toEqual(['not_found', 'not_found']);
     const on = await createTestApp({ env: { ENABLE_DEV_ROUTES: 'true' } });
     await expectShell(await send(on, 'GET', '/dev/gallery'));
-    await expectShell(await send(off, 'GET', '/developers'));
+    // Not a dev path: an unknown one.
+    await expectNotFoundShell(await send(off, 'GET', '/developers'));
   });
 
   it('/v1 GET paths never get the shell', async () => {
@@ -262,7 +328,8 @@ describe('the web shell and static files', () => {
 
   it('a missing chunk falls through to the shell', async () => {
     const testApp = await createTestApp();
-    await expectShell(await send(testApp, 'GET', '/_expo/static/js/web/missing.js'));
+    // An unknown path: the not-found shell (E-WEB-04).
+    await expectNotFoundShell(await send(testApp, 'GET', '/_expo/static/js/web/missing.js'));
   });
 
   it('a parent segment is refused', async () => {
@@ -425,6 +492,147 @@ describe('the web shell and static files', () => {
   });
 });
 
+describe('logged-out redirects and route classes', () => {
+  it('/explore logged out redirects to /?next=%2Fexplore with no-store', async () => {
+    const testApp = await createTestApp();
+    const response = await send(testApp, 'GET', '/explore');
+    expectRedirect(response, '/?next=%2Fexplore');
+    expect(await response.text()).toBe('');
+  });
+
+  it('/settings/delete-account logged out redirects with the whole path in next', async () => {
+    const testApp = await createTestApp();
+    expectRedirect(
+      await send(testApp, 'GET', '/settings/delete-account'),
+      '/?next=%2Fsettings%2Fdelete-account',
+    );
+    expectRedirect(await send(testApp, 'GET', '/messages/m1'), '/?next=%2Fmessages%2Fm1');
+    expectRedirect(await send(testApp, 'GET', '/office/x/run'), '/?next=%2Foffice%2Fx%2Frun');
+  });
+
+  it('the query string never reaches next', async () => {
+    const testApp = await createTestApp();
+    expectRedirect(await send(testApp, 'GET', '/explore?tab=1'), '/?next=%2Fexplore');
+    expectRedirect(await send(testApp, 'HEAD', '/explore?next=//evil'), '/?next=%2Fexplore');
+  });
+
+  it('/explore with a valid session cookie answers the shell', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'cookie');
+    await expectShell(await send(testApp, 'GET', '/explore', cookieHeader(auth.token)));
+    await expectShell(await send(testApp, 'GET', '/onboarding/handle', cookieHeader(auth.token)));
+  });
+
+  it('/explore with an expired session cookie redirects', async () => {
+    const testApp = await createTestApp();
+    const now = testApp.deps.clock.now();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'cookie', {
+      authenticatedAt: new Date(now.getTime() - 100 * DAY_MS),
+      expiresAt: new Date(now.getTime() - MINUTE_MS),
+    });
+    expectRedirect(
+      await send(testApp, 'GET', '/explore', cookieHeader(auth.token)),
+      '/?next=%2Fexplore',
+    );
+  });
+
+  it('a session cookie under the unprefixed name is no session on an https origin', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'cookie');
+    expectRedirect(
+      await send(testApp, 'GET', '/explore', { Cookie: `os_session=${auth.token}` }),
+      '/?next=%2Fexplore',
+    );
+  });
+
+  it('/onboarding/handle logged out redirects to /welcome', async () => {
+    const testApp = await createTestApp();
+    expectRedirect(await send(testApp, 'GET', '/onboarding/handle'), '/welcome');
+    expectRedirect(await send(testApp, 'GET', '/onboarding/photo?x=1'), '/welcome');
+  });
+
+  it('/welcome logged out answers the shell', async () => {
+    const testApp = await createTestApp();
+    await expectShell(await send(testApp, 'GET', '/welcome'));
+    await expectShell(await send(testApp, 'GET', '/sign-in'));
+  });
+
+  it('/ logged out answers the shell', async () => {
+    const testApp = await createTestApp();
+    await expectShell(await send(testApp, 'GET', '/'));
+    // A public path other than / gets the plain shell until its page is dispatched.
+    await expectShell(await send(testApp, 'GET', '/office/fixture-office'));
+  });
+
+  it('/nope answers 404 with noindex and the not-found title', async () => {
+    const testApp = await createTestApp();
+    await expectNotFoundShell(await send(testApp, 'GET', '/nope'));
+    expect(errorCodes(testApp)).toEqual(['not_found']);
+    const head = await send(testApp, 'HEAD', '/nope');
+    expect(head.status).toBe(404);
+    expect(await head.text()).toBe('');
+  });
+
+  it('/admin and the paths under it are unknown, logged out and signed in', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db, { role: 'admin', email: 'admin@example.test' });
+    const auth = await signIn(testApp.deps.db, user, 'cookie');
+    for (const path of ['/admin', '/admin/queue']) {
+      await expectNotFoundShell(await send(testApp, 'GET', path));
+      await expectNotFoundShell(await send(testApp, 'GET', path, cookieHeader(auth.token)));
+    }
+  });
+
+  it('a bearer header is ignored', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'bearer');
+    expectRedirect(
+      await send(testApp, 'GET', '/explore', { Authorization: `Bearer ${auth.token}` }),
+      '/?next=%2Fexplore',
+    );
+  });
+
+  it('a malformed cookie is no session', async () => {
+    const testApp = await createTestApp();
+    for (const value of ['garbage', 'A'.repeat(42), `${'A'.repeat(43)}!`, 'A'.repeat(43)]) {
+      expectRedirect(
+        await send(testApp, 'GET', '/explore', cookieHeader(value)),
+        '/?next=%2Fexplore',
+      );
+    }
+    const errors = testApp.logs.filter((line) => line.parsed['level'] === 'error');
+    expect(errors).toEqual([]);
+  });
+
+  it('the shell sets no cookie', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'cookie');
+    const responses = [
+      await send(testApp, 'GET', '/'),
+      await send(testApp, 'GET', '/explore'),
+      await send(testApp, 'GET', '/explore', cookieHeader(auth.token)),
+      await send(testApp, 'GET', '/explore', cookieHeader('A'.repeat(43))),
+      await send(testApp, 'GET', '/nope'),
+    ];
+    for (const response of responses) {
+      expect(response.headers.get('set-cookie')).toBeNull();
+    }
+  });
+
+  it('every route file under apps/mobile/app has a class', () => {
+    const paths = appRoutePaths();
+    expect(paths).toContain('/');
+    for (const path of paths) {
+      expect(routeClassOf(path), path).not.toBe('unknown');
+    }
+  });
+});
+
 describe('the shell template', () => {
   it('a marker that occurs twice is refused', () => {
     const html = fixtureText('index.html');
@@ -445,6 +653,14 @@ describe('the shell template', () => {
     );
     expect(fillShell(template, { title: `</title><script>"'&$&` })).toBe(
       '<head><title>&lt;/title&gt;&lt;script&gt;&quot;&#39;&amp;$&amp;</title></head><body><p>$& kept</p></body>',
+    );
+  });
+
+  it('the noindex meta follows the title only when asked', () => {
+    const template = parseShellTemplate(`<head>${HEAD_MARKER}</head><body>${BODY_MARKER}</body>`);
+    expect(fillShell(template, { title: 'T' })).toBe('<head><title>T</title></head><body></body>');
+    expect(fillShell(template, { title: '<T>', noindex: true })).toBe(
+      `<head><title>&lt;T&gt;</title>${NOINDEX_META}</head><body></body>`,
     );
   });
 

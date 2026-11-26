@@ -235,7 +235,8 @@ describe('TEST-api-foundation', () => {
 
   it('logs the route pattern only', async () => {
     const testApp = await createTestApp();
-    const response = await plainGet(testApp, `/explore?q=${marker()}`);
+    // An auth path: the shell answers it logged out (a session path would redirect).
+    const response = await plainGet(testApp, `/welcome?q=${marker()}`);
     expect(response.status).toBe(200);
     const line = testApp.logs.find(
       (each) =>
@@ -246,7 +247,7 @@ describe('TEST-api-foundation', () => {
     expect(line?.parsed['route']).toBe('/*');
     for (const each of testApp.logs) {
       expect(each.raw).not.toContain(marker());
-      expect(each.raw).not.toContain('/explore');
+      expect(each.raw).not.toContain('/welcome');
     }
   });
 });

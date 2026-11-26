@@ -99,11 +99,17 @@ function replaceOnce(text: string, marker: string, replacement: string): string 
   return at === -1 ? text : text.slice(0, at) + replacement + text.slice(at + marker.length);
 }
 
+const NOINDEX_META = '<meta name="robots" content="noindex">';
+
 /**
- * One shell response (L-web-shell): the head marker becomes the escaped `<title>` and the body
- * marker becomes nothing; nothing else in the template changes.
+ * One shell response (L-web-shell): the head marker becomes the escaped `<title>`, followed by the
+ * `noindex` robots meta when asked, and the body marker becomes nothing; nothing else in the
+ * template changes.
  */
-export function fillShell(template: ShellTemplate, input: { title: string }): string {
-  const head = `<title>${escapeHtml(input.title)}</title>`;
+export function fillShell(
+  template: ShellTemplate,
+  input: { title: string; noindex?: boolean },
+): string {
+  const head = `<title>${escapeHtml(input.title)}</title>${input.noindex === true ? NOINDEX_META : ''}`;
   return replaceOnce(replaceOnce(template.html, HEAD_MARKER, head), BODY_MARKER, '');
 }
