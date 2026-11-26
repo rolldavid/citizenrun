@@ -1,13 +1,38 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { TestClock, makeFetcher, removeStateDirs } from '../lib/fetch/test-fakes.ts';
+import type { Handler } from '../lib/fetch/test-fakes.ts';
 import { scriptedRun } from '../sources/dataset.fixtures.ts';
 import type { Answer } from '../sources/dataset.fixtures.ts';
-import { validateWebsite, websiteOutcome } from './website-validate.ts';
+import { validateWebsite, websiteOutcome, websiteRequestUrl } from './website-validate.ts';
 
 const PAGE = '<!doctype html><title>Town hall</title>';
 
 function run(answer: Answer | undefined) {
   return scriptedRun(() => answer);
 }
+
+/** A Saturday afternoon: crawl-class requests are allowed, so the host is looked at. */
+const OUTSIDE_BUSINESS_HOURS = '2026-11-28T20:00:00.000Z';
+const ODD_HOSTS = [
+  'www.co,coleman.tx.us',
+  'www.ogden_ks.gov',
+  'www.prestonsburg.net.',
+  'www.-town.example.gov',
+  'www..example.gov',
+];
+
+/** The real fetcher over a fake transport: robots.txt is 404 and every page is HTML. */
+async function realFetcher(page: Handler) {
+  return makeFetcher({
+    clock: new TestClock(OUTSIDE_BUSINESS_HOURS),
+    handler: (req, url) =>
+      url.pathname === '/robots.txt' ? { status: 404, body: 'not found' } : page(req, url),
+  });
+}
+
+afterEach(async () => {
+  await removeStateDirs();
+});
 
 describe('validateWebsite', () => {
   it('a 200 HTML page on https is valid and stored as origin plus path', async () => {
@@ -99,6 +124,55 @@ describe('validateWebsite', () => {
       kind: 'invalid',
     });
     expect(fetcher.requests).toEqual([]);
+  });
+
+  it('a host the fetch layer cannot name is invalid without a request', async () => {
+    const { fetcher, transport } = await realFetcher(() => ({
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+      body: PAGE,
+    }));
+    for (const host of ODD_HOSTS) {
+      expect(websiteRequestUrl(host)).toBeNull();
+      await expect(validateWebsite(fetcher, host, 'TX')).resolves.toEqual({ kind: 'invalid' });
+      await expect(validateWebsite(fetcher, `https://${host}/`, 'TX')).resolves.toEqual({
+        kind: 'invalid',
+      });
+    }
+    expect(transport.requests).toEqual([]);
+    await expect(validateWebsite(fetcher, 'www.example.test', 'TX')).resolves.toEqual({
+      kind: 'valid',
+      website: 'https://www.example.test/',
+    });
+  });
+
+  it('a site that redirects to a host the fetch layer cannot name is invalid', async () => {
+    const { fetcher } = await realFetcher((_req, url) =>
+      url.hostname === 'www.example.test'
+        ? { status: 302, headers: { location: 'https://www.ogden_ks.gov/' }, body: '' }
+        : { status: 200, headers: { 'content-type': 'text/html' }, body: PAGE },
+    );
+    await expect(validateWebsite(fetcher, 'www.example.test', 'WA')).resolves.toEqual({
+      kind: 'invalid',
+    });
+  });
+
+  it('a state whose listing holds malformed addresses still gets a verdict for every unit', async () => {
+    const { fetcher } = await realFetcher(() => ({
+      status: 200,
+      headers: { 'content-type': 'text/html' },
+      body: PAGE,
+    }));
+    const addresses = ['www.a.example.test', ...ODD_HOSTS, 'N/A', 'https://www.b.example.test/x'];
+    const verdicts = await Promise.all(
+      addresses.map((address) => validateWebsite(fetcher, address, 'WA')),
+    );
+    expect(verdicts.map((verdict) => verdict.kind)).toEqual([
+      'valid',
+      ...ODD_HOSTS.map(() => 'invalid'),
+      'invalid',
+      'valid',
+    ]);
   });
 
   it('an invalid verdict writes null', () => {

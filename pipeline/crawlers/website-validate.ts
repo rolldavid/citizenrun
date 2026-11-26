@@ -1,6 +1,7 @@
 // The yearly check of each unit's listed web address (D-310): one crawl-class request
 // through the fetcher; a valid site is an https page that answers 200 with HTML.
 import { SOURCE_URL_MAX, SafeUrlSchema, parseSafeUrl } from '@citizenrun/shared';
+import { BucketKeyError, bucketKeys } from '../lib/bucket.ts';
 import { ForbiddenHostError } from '../lib/fetch/fetcher.ts';
 import type { Fetcher } from '../lib/fetch/types.ts';
 
@@ -14,7 +15,27 @@ const SCHEME = /^[a-z][a-z0-9+.-]*:\/\//i;
 const OTHER_SCHEME = /^[a-z][a-z0-9+.-]*:(?!\d)/i;
 const HTML = /^(text\/html|application\/xhtml\+xml)\b/i;
 
-/** The address as a URL to request: `https://` is put in front when it names no scheme. */
+/**
+ * True when the fetch layer can name the host: it keys each host's robots record by the host name
+ * and refuses one its key rule does not admit (a comma, an underscore, a trailing dot, an empty
+ * label or one that starts or ends with a hyphen), so such a host is never requested.
+ */
+function fetchableHost(host: string): boolean {
+  try {
+    bucketKeys.robots(host);
+    return true;
+  } catch (error) {
+    if (error instanceof BucketKeyError) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * The address as a URL to request: `https://` is put in front when it names no scheme. Null when
+ * it is not an http or https address with a host the fetch layer can name.
+ */
 export function websiteRequestUrl(webAddress: string): string | null {
   const trimmed = webAddress.trim();
   if (
@@ -30,7 +51,10 @@ export function websiteRequestUrl(webAddress: string): string | null {
     if (url.username !== '' || url.password !== '') {
       return null;
     }
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : null;
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+      return null;
+    }
+    return fetchableHost(url.hostname) ? url.href : null;
   } catch {
     return null;
   }
@@ -40,7 +64,8 @@ export function websiteRequestUrl(webAddress: string): string | null {
  * Requests the unit's site. Valid when the answer is 200 with an HTML type and the final URL passes
  * the safe-link check (https only); the website is the final URL's origin plus path. A refusal by
  * the crawl policy (business hours, the daily cap, robots, a blocked or forbidden host) or a
- * challenge is no verdict.
+ * challenge is no verdict. An address whose host the fetch layer cannot name is invalid without a
+ * request, and so is a site that redirects to such a host: one unit's address never fails the state.
  */
 export async function validateWebsite(
   fetcher: Fetcher,
@@ -57,6 +82,9 @@ export async function validateWebsite(
   } catch (error) {
     if (error instanceof ForbiddenHostError) {
       return { kind: 'unchecked', reason: 'forbidden_host' };
+    }
+    if (error instanceof BucketKeyError) {
+      return { kind: 'invalid' };
     }
     throw error;
   }
