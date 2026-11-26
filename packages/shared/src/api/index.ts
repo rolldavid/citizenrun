@@ -5,5 +5,6 @@ export * from './auth/auth.ts';
 export * from './me/me.ts';
 export * from './reference/reference.ts';
 export * from './safety/safety.ts';
+export * from './uploads/uploads.ts';
 export * from './web/web.ts';
 export * from './model/index.ts';
