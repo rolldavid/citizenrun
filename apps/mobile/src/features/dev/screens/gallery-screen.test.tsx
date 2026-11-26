@@ -258,7 +258,9 @@ beforeAll(async () => {
   cleanup();
 });
 
-describe('GalleryScreen', () => {
+// A case that draws the whole gallery and presses a control redraws every component; on a hosted
+// runner that takes about five seconds, the default limit.
+describe('GalleryScreen', { timeout: 20_000 }, () => {
   it('draws every component in order', () => {
     draw();
     expect(sectionHeadings()).toEqual([
