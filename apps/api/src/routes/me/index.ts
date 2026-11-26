@@ -7,6 +7,8 @@ import { deleteMeHandler, deleteMeRoute } from './delete-me.ts';
 import { getExportDownloadHandler, getExportDownloadRoute } from './get-export-download.ts';
 import { getExportHandler, getExportRoute } from './get-export.ts';
 import { getMeHandler, getMeRoute } from './get-me.ts';
+import { recordAgeSignalHandler, recordAgeSignalRoute } from './record-age-signal.ts';
+import { recordConsentHandler, recordConsentRoute } from './record-consent.ts';
 import { requestExportHandler, requestExportRoute } from './request-export.ts';
 import { setHandleHandler, setHandleRoute } from './set-handle.ts';
 import { setIssuesHandler, setIssuesRoute } from './set-issues.ts';
@@ -29,4 +31,6 @@ export function registerMeRoutes(
   registerRoute(router, requestExportRoute, requestExportHandler(deps), ctx);
   registerRoute(router, getExportRoute, getExportHandler(deps), ctx);
   registerRoute(router, getExportDownloadRoute, getExportDownloadHandler(deps), ctx);
+  registerRoute(router, recordConsentRoute, recordConsentHandler(deps), ctx);
+  registerRoute(router, recordAgeSignalRoute, recordAgeSignalHandler(deps), ctx);
 }
