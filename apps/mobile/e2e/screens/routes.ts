@@ -109,6 +109,31 @@ async function waitForListSpike(page: Page): Promise<void> {
   await page.getByTestId('dev.list-spike-row-0').waitFor({ state: 'visible', timeout: 30000 });
 }
 
+/**
+ * Taps one chip or star of the issues step that is past its limit, and waits for the footer to say
+ * so, then moves the pointer to the page's top corner, so no chip is drawn under it.
+ */
+function tapPastLimit(testID: string, line: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByTestId(testID).click();
+    await expect(page.getByText(line, { exact: true })).toBeVisible();
+    await page.mouse.move(0, 0);
+  };
+}
+
+/**
+ * Types a handle into the handle step's field and leaves the field, so the capture shows the handle
+ * its status line is about. A fixture holds what the check found, not what was typed.
+ */
+function typeHandle(value: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    const field = page.getByTestId('onboarding.handle-field');
+    await field.fill(value);
+    await expect(field).toHaveValue(value);
+    await field.blur();
+  };
+}
+
 export const SCREENS: ScreenEntry[] = [
   // The whole gallery, at either text size, is taller on a phone than one capture takes, so it is
   // captured whole at the two wide viewports only; on the two phones its section entries are the
@@ -922,6 +947,232 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/system-error/systemError',
     auth: 'none',
   },
+  // The sign-up steps. A tight layout is a phone's own text size, which a browser does not have,
+  // so the tight fixture is drawn at 130% text. The two limit lines show after one more tap, and a
+  // handle's status line is drawn under a typed handle.
+  {
+    id: 'onboarding-photo-photo-none',
+    path: '/dev/screens/onboarding-photo/photoNone',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-ready',
+    path: '/dev/screens/onboarding-photo/photoReady',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-uploading',
+    path: '/dev/screens/onboarding-photo/photoUploading',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-photos-blocked',
+    path: '/dev/screens/onboarding-photo/photoFailedPhotosBlocked',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-unsupported-format',
+    path: '/dev/screens/onboarding-photo/photoFailedUnsupportedFormat',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-photo-too-large',
+    path: '/dev/screens/onboarding-photo/photoFailedPhotoTooLarge',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-prepare-failed',
+    path: '/dev/screens/onboarding-photo/photoFailedPrepareFailed',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-upload-failed',
+    path: '/dev/screens/onboarding-photo/photoFailedUploadFailed',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-rate-limited',
+    path: '/dev/screens/onboarding-photo/photoFailedRateLimited',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-failed-generic',
+    path: '/dev/screens/onboarding-photo/photoFailedGeneric',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-skipping',
+    path: '/dev/screens/onboarding-photo/photoSkipping',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-photo-photo-offline',
+    path: '/dev/screens/onboarding-photo/photoOffline',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-empty',
+    path: '/dev/screens/onboarding-handle/handleEmpty',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-checking',
+    path: '/dev/screens/onboarding-handle/handleChecking',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-free',
+    path: '/dev/screens/onboarding-handle/handleFree',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-taken',
+    path: '/dev/screens/onboarding-handle/handleTaken',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-reserved',
+    path: '/dev/screens/onboarding-handle/handleReserved',
+    auth: 'none',
+    prepare: typeHandle('admin'),
+  },
+  {
+    id: 'onboarding-handle-handle-too-short',
+    path: '/dev/screens/onboarding-handle/handleTooShort',
+    auth: 'none',
+    prepare: typeHandle('ab'),
+  },
+  {
+    id: 'onboarding-handle-handle-too-long',
+    path: '/dev/screens/onboarding-handle/handleTooLong',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-characters',
+    path: '/dev/screens/onboarding-handle/handleCharacters',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-dots',
+    path: '/dev/screens/onboarding-handle/handleDots',
+    auth: 'none',
+    prepare: typeHandle('.test'),
+  },
+  {
+    id: 'onboarding-handle-handle-no-letter',
+    path: '/dev/screens/onboarding-handle/handleNoLetter',
+    auth: 'none',
+    prepare: typeHandle('_._'),
+  },
+  {
+    id: 'onboarding-handle-handle-sending',
+    path: '/dev/screens/onboarding-handle/handleSending',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-race',
+    path: '/dev/screens/onboarding-handle/handleRace',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-change-too-soon',
+    path: '/dev/screens/onboarding-handle/handleChangeTooSoon',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-check-failed',
+    path: '/dev/screens/onboarding-handle/handleCheckFailed',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-handle-handle-offline',
+    path: '/dev/screens/onboarding-handle/handleOffline',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-issues-issues-loading',
+    path: '/dev/screens/onboarding-issues/issuesLoading',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-error',
+    path: '/dev/screens/onboarding-issues/issuesError',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-offline',
+    path: '/dev/screens/onboarding-issues/issuesOffline',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-none',
+    path: '/dev/screens/onboarding-issues/issuesNone',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-two',
+    path: '/dev/screens/onboarding-issues/issuesTwo',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-five',
+    path: '/dev/screens/onboarding-issues/issuesFive',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-ten',
+    path: '/dev/screens/onboarding-issues/issuesTen',
+    auth: 'none',
+    prepare: tapPastLimit('onboarding.issue-schools', '10 is the most'),
+  },
+  {
+    id: 'onboarding-issues-issues-star-limit',
+    path: '/dev/screens/onboarding-issues/issuesStarLimit',
+    auth: 'none',
+    prepare: tapPastLimit('onboarding.issue-property-taxes-star', '3 stars is the most'),
+  },
+  {
+    id: 'onboarding-issues-issues-sending',
+    path: '/dev/screens/onboarding-issues/issuesSending',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-submit-error',
+    path: '/dev/screens/onboarding-issues/issuesSubmitError',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-tight',
+    path: '/dev/screens/onboarding-issues/issuesTight?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-location-location-soon',
+    path: '/dev/screens/onboarding-location/locationSoon',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-location-location-soon-sending',
+    path: '/dev/screens/onboarding-location/locationSoonSending',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-location-location-soon-error',
+    path: '/dev/screens/onboarding-location/locationSoonError',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-location-location-soon-offline',
+    path: '/dev/screens/onboarding-location/locationSoonOffline',
+    auth: 'none',
+  },
   // An unknown pair renders the not-found content.
   { id: 'dev-screens-unknown-pair', path: '/dev/screens/none/none', auth: 'none' },
   // The design review's 130% text size.
@@ -938,6 +1189,22 @@ export const SCREENS: ScreenEntry[] = [
   {
     id: 'system-update-update-with-store-x130',
     path: '/dev/screens/system-update/updateWithStore?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-issues-issues-five-x130',
+    path: '/dev/screens/onboarding-issues/issuesFive?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'onboarding-handle-handle-taken-x130',
+    path: '/dev/screens/onboarding-handle/handleTaken?textScale=1.3',
+    auth: 'none',
+    prepare: typeHandle('test_fixture'),
+  },
+  {
+    id: 'onboarding-photo-photo-ready-x130',
+    path: '/dev/screens/onboarding-photo/photoReady?textScale=1.3',
     auth: 'none',
   },
   { id: 'dev-spike-map', path: '/dev/spikes/map', auth: 'none', prepare: waitForMapSpike },

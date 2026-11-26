@@ -8,12 +8,13 @@ import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
 import { system } from './en/system.ts';
 import { hello } from './en/hello.ts';
+import { onboarding } from './en/onboarding.ts';
 
 export { formatDate } from './format/date.ts';
 export type { DateStyle } from './format/date.ts';
 
 export const RESOURCES = {
-  en: { common, errors, native, notifications, system, hello, auth },
+  en: { common, errors, native, notifications, system, hello, auth, onboarding },
 } as const;
 
 export const NAMESPACES = [
@@ -24,6 +25,7 @@ export const NAMESPACES = [
   'system',
   'hello',
   'auth',
+  'onboarding',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];

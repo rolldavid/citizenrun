@@ -3,6 +3,16 @@ import type { ComponentType, ReactElement } from 'react';
 
 import { HelloScreenView, helloFixtures } from '@/features/hello';
 import {
+  OnboardingHandleScreenView,
+  OnboardingIssuesScreenView,
+  OnboardingLocationScreenView,
+  OnboardingPhotoScreenView,
+  handleFixtures,
+  issuesFixtures,
+  locationFixtures,
+  photoFixtures,
+} from '@/features/onboarding';
+import {
   NotFoundScreenView,
   SystemErrorScreenView,
   SystemUpdateScreenView,
@@ -74,4 +84,10 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
   'not-found': defineStaticScreen(NotFoundScreenView, Object.keys(notFoundFixtures)),
   'system-update': defineScreen(SystemUpdateScreenView, systemUpdateFixtures),
   'system-error': defineScreen(SystemErrorScreenView, systemErrorFixtures),
+  'onboarding-photo': defineScreen(OnboardingPhotoScreenView, photoFixtures, { mode: 'bare' }),
+  'onboarding-handle': defineScreen(OnboardingHandleScreenView, handleFixtures, { mode: 'bare' }),
+  'onboarding-issues': defineScreen(OnboardingIssuesScreenView, issuesFixtures, { mode: 'bare' }),
+  'onboarding-location': defineScreen(OnboardingLocationScreenView, locationFixtures, {
+    mode: 'bare',
+  }),
 };
