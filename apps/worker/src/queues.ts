@@ -7,11 +7,13 @@ import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { fieldReportsExport } from './jobs/bundle/field-reports-export.ts';
 import { bundleLoad } from './jobs/bundle/load.ts';
 import { bundlePoll } from './jobs/bundle/poll.ts';
 import { bundleRevert } from './jobs/bundle/revert.ts';
 import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
+import { dbSizeCheck } from './jobs/db/size-check.ts';
 import { mediaProcessImage } from './jobs/media/process-image.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
@@ -53,6 +55,8 @@ export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
   bundleLoad,
   bundleRevert,
   scoreIssues,
+  dbSizeCheck,
+  fieldReportsExport,
 ];
 
 /** Every schedule, crons in UTC; nothing else calls pg-boss `schedule`. */
@@ -120,6 +124,24 @@ export const SCHEDULE_REGISTRY: readonly ScheduleEntry[] = [
     data: {},
     key: '',
     missed: 'skip',
+  },
+  // Hourly, so a growing database is seen well before the volume fills (D-137).
+  {
+    id: 'S-db.size-check',
+    queue: 'db.size-check',
+    cron: '25 * * * *',
+    data: {},
+    key: '',
+    missed: 'skip',
+  },
+  // Before the pipeline's nightly bundle build (D-405).
+  {
+    id: 'S-field-reports.export',
+    queue: 'field-reports.export',
+    cron: '30 5 * * *',
+    data: {},
+    key: '',
+    missed: 'once',
   },
   // Weekly full rebuild, after a migration changes issue_powers.
   {

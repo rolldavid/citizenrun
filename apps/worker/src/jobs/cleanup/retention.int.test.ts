@@ -1,6 +1,8 @@
 import {
   authChallenges,
+  bundleChanges,
   dataExports,
+  fieldReports,
   emailCodes,
   rateLimits,
   reservedHandles,
@@ -11,23 +13,29 @@ import {
 } from '@citizenrun/db';
 import {
   captureLogs,
+  getTestBucket,
   getTestDb,
   getTestObject,
   idAt,
   insertAppEvent,
+  insertBundleChange,
   insertClientError,
+  insertDataBundle,
   insertDataExport,
+  insertFieldReport,
   insertRateCounter,
   insertUpload,
   insertUsageCounter,
   insertUser,
+  listTestKeys,
   putTestObject,
   resetStorage,
 } from '@citizenrun/db/testing';
-import { newId } from '@citizenrun/shared';
+import { BUNDLE_SCHEMA_VERSION, BundleManifestSchema, newId } from '@citizenrun/shared';
 import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
+import { deleteKeys } from '../../lib/bucket-ops.ts';
 import { peekQueue, runJob } from '../../testing/job.ts';
 import { RETENTION_RULES, cleanupRetention } from './retention.ts';
 import type { RetentionRuleId } from './retention.ts';
@@ -55,6 +63,10 @@ const RULE_CASES: Record<RetentionRuleId, string> = {
   N5: 'N5 client errors after fourteen days',
   N6: 'N6 app event partitions after 180 days',
   N7: 'N7 usage counters after 24 months',
+  N8: 'N8 bundle changes of the last seven loads',
+  N9: 'N9 bundle files after thirty days',
+  N11: 'N11 field-report exports after ninety days',
+  N12: 'N12 field reports a year after the decision',
 };
 
 type Classification =
@@ -105,8 +117,8 @@ const RETENTION_CLASSIFICATION: Readonly<Record<string, Classification>> = {
   office_powers: { none: 'replaced by data loads, never by age' },
   filing_tracks: { none: 'replaced by data loads, never by age' },
   office_issues: { none: 'rebuilt from office powers by the scoring job' },
-  bundle_changes: { none: 'pruned to the last seven loads by the bundle cleanup rule' },
-  field_reports: { none: 'deleted one year after its decision by the field-report cleanup rule' },
+  bundle_changes: { rules: ['N8'] },
+  field_reports: { rules: ['N12'] },
   state_rules: 'permanent',
   worker_heartbeats: { none: 'one row, updated in place' },
   spatial_ref_sys: { none: 'PostGIS reference table' },
@@ -131,6 +143,87 @@ function monthStart(at: Date, monthsBack: number): Date {
 
 function isoDay(at: Date): string {
   return at.toISOString().slice(0, 10);
+}
+
+// A bundle version at `at`: `YYYYMMDDTHHMMSSZ-<kind>` (B-manifest "Version").
+function versionAt(at: Date, kind: 'full' | 'filings' | 'geometry'): string {
+  const iso = at.toISOString();
+  return `${iso.slice(0, 4)}${iso.slice(5, 7)}${iso.slice(8, 10)}T${iso.slice(11, 13)}${iso.slice(14, 16)}${iso.slice(17, 19)}Z-${kind}`;
+}
+
+// A manifest that parses with BundleManifestSchema: a full bundle naming its geometry version, or
+// a geometry bundle whose files are at the given paths.
+function manifestBytes(
+  version: string,
+  options: { geometryVersion?: string | null; paths?: readonly string[] } = {},
+): Uint8Array {
+  const kind = version.endsWith('-geometry') ? 'geometry' : 'full';
+  const manifest = BundleManifestSchema.parse({
+    format: 'citizenrun-bundle',
+    kind,
+    version,
+    schema_version: BUNDLE_SCHEMA_VERSION,
+    schema_revision: 0,
+    created_at: '2027-01-01T00:00:00.000Z',
+    git_sha: '0'.repeat(40),
+    geometry_version: options.geometryVersion ?? null,
+    tiger_vintage: kind === 'geometry' ? '2024' : null,
+    states: ['ZZ'],
+    files: (options.paths ?? []).map((path) => ({
+      name: 'geometry',
+      state: 'ZZ',
+      path,
+      sha256: '0'.repeat(64),
+      bytes: 1,
+      rows: 1,
+    })),
+    assets: [],
+    datasets: {},
+    checks: [],
+    filing_sources: [],
+    two_source_fields: 0,
+    coverage_path: null,
+    attribution_path: null,
+  });
+  return new TextEncoder().encode(JSON.stringify(manifest));
+}
+
+async function putDataObject(key: string, bytes?: Uint8Array): Promise<void> {
+  await putTestObject(
+    'data',
+    key,
+    bytes ?? new TextEncoder().encode('fixture object'),
+    'application/octet-stream',
+  );
+}
+
+// A bundle folder with one data file and, unless null, a manifest.
+async function putBundleFolder(version: string, manifest: Uint8Array | null): Promise<void> {
+  const file = version.endsWith('-geometry') ? 'geometry/ZZ.ndjson.gz' : 'offices.ndjson.gz';
+  await putDataObject(`bundles/${version}/${file}`);
+  if (manifest !== null) {
+    await putDataObject(`bundles/${version}/manifest.json`, manifest);
+  }
+}
+
+// The bundle versions with any object left in the data bucket.
+async function bundleVersionsLeft(): Promise<string[]> {
+  const keys = await listTestKeys('data', 'bundles/');
+  return [...new Set(keys.map((key) => key.split('/')[1] ?? ''))].sort();
+}
+
+async function bundleChangeIds(bundleId: string): Promise<number[]> {
+  const rows = await getTestDb()
+    .select({ id: bundleChanges.id })
+    .from(bundleChanges)
+    .where(eq(bundleChanges.bundleId, bundleId));
+  return rows.map((row) => row.id);
+}
+
+function yearsBefore(at: Date, years: number): Date {
+  const shifted = new Date(at);
+  shifted.setUTCFullYear(shifted.getUTCFullYear() - years);
+  return shifted;
 }
 
 async function runScope(scope: 'hourly' | 'nightly', clock: FakeClock): Promise<void> {
@@ -557,6 +650,194 @@ describe('J-cleanup.retention', () => {
     expect(ruleRows()['N7']).toBe(1);
   });
 
+  it(RULE_CASES.N8, async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    const loaded: string[] = [];
+    // Eight loaded full bundles, oldest first, two changes each.
+    for (let index = 0; index < 8; index += 1) {
+      const bundle = await insertDataBundle(getTestDb(), {
+        status: 'loaded',
+        loadedAt: shift(now, -(8 - index) * DAY_MS),
+      });
+      loaded.push(bundle.id);
+      await insertBundleChange(getTestDb(), { bundleId: bundle.id });
+      await insertBundleChange(getTestDb(), { bundleId: bundle.id });
+    }
+    const reverted = await insertDataBundle(getTestDb(), {
+      status: 'reverted',
+      loadedAt: shift(now, -HOUR_MS),
+    });
+    await insertBundleChange(getTestDb(), { bundleId: reverted.id });
+    // A load whose upsert committed and whose geometry is pending, older than the seven.
+    const loading = await insertDataBundle(getTestDb(), { status: 'loading', loadedAt: null });
+    await insertBundleChange(getTestDb(), { bundleId: loading.id });
+    await runScope('nightly', clock);
+
+    const [oldest, ...newest] = loaded;
+    expect(await bundleChangeIds(oldest ?? '')).toEqual([]);
+    expect(await bundleChangeIds(reverted.id)).toEqual([]);
+    for (const id of newest) {
+      expect((await bundleChangeIds(id)).length, id).toBe(2);
+    }
+    expect((await bundleChangeIds(loading.id)).length).toBe(1);
+    expect(ruleRows()['N8']).toBe(3);
+  });
+
+  it(RULE_CASES.N9, async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    const daysAgo = (days: number, kind: 'full' | 'geometry', minutes = 0): string =>
+      versionAt(shift(now, -days * DAY_MS - minutes * MINUTE_MS), kind);
+
+    const unloaded31 = daysAgo(31, 'full');
+    const recent29 = daysAgo(29, 'full');
+    const loadedOlder = daysAgo(45, 'full');
+    const loadedA = daysAgo(40, 'full', 1);
+    const loadedB = daysAgo(40, 'full', 2);
+    const held40 = daysAgo(40, 'full', 3);
+    const geometryNamed = daysAgo(40, 'geometry', 4);
+    const geometryEarlier = daysAgo(50, 'geometry');
+    const geometryOrphan = daysAgo(40, 'geometry', 5);
+
+    await putBundleFolder(unloaded31, manifestBytes(unloaded31));
+    await putBundleFolder(recent29, manifestBytes(recent29));
+    await putBundleFolder(loadedOlder, manifestBytes(loadedOlder));
+    await putBundleFolder(loadedA, manifestBytes(loadedA));
+    await putBundleFolder(loadedB, manifestBytes(loadedB, { geometryVersion: geometryNamed }));
+    await putBundleFolder(held40, manifestBytes(held40));
+    await putBundleFolder(
+      geometryNamed,
+      manifestBytes(geometryNamed, {
+        paths: ['geometry/ZZ.ndjson.gz', `../${geometryEarlier}/geometry/ZZ.ndjson.gz`],
+      }),
+    );
+    await putBundleFolder(geometryEarlier, manifestBytes(geometryEarlier));
+    await putBundleFolder(geometryOrphan, manifestBytes(geometryOrphan));
+    const untouched = [
+      'bundles/index/full.json',
+      'bundles/notes/readme.txt',
+      `assets/photos/${'a'.repeat(64)}.jpg`,
+    ];
+    for (const key of untouched) {
+      await putDataObject(key);
+    }
+
+    for (const [version, loadedAt] of [
+      [loadedOlder, shift(now, -45 * DAY_MS)],
+      [loadedA, shift(now, -40 * DAY_MS)],
+      [loadedB, shift(now, -40 * DAY_MS)],
+    ] as const) {
+      await insertDataBundle(getTestDb(), { version, status: 'loaded', loadedAt });
+    }
+    await insertDataBundle(getTestDb(), { version: held40, status: 'held', loadedAt: null });
+    // The seed's sample row sorts above every real version and never takes a place (D-458).
+    await insertDataBundle(getTestDb(), {
+      version: 'sample-20270101T000000Z-full',
+      status: 'loaded',
+      loadedAt: now,
+    });
+    await runScope('nightly', clock);
+
+    expect(await bundleVersionsLeft()).toEqual(
+      [recent29, loadedA, loadedB, held40, geometryNamed, geometryEarlier, 'index', 'notes'].sort(),
+    );
+    for (const key of untouched) {
+      expect(await getTestObject('data', key), key).not.toBeNull();
+    }
+    // Two objects in each of the three folders deleted.
+    expect(ruleRows()['N9']).toBe(6);
+    expect(
+      captureLogs().lines.some((line) => line.parsed.event === 'retention.manifest_unreadable'),
+    ).toBe(false);
+  });
+
+  it('N9 keeps every geometry folder when a kept manifest is unreadable', async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    const loaded = versionAt(shift(now, -40 * DAY_MS), 'full');
+    const geometryOld = versionAt(shift(now, -40 * DAY_MS - MINUTE_MS), 'geometry');
+    const geometryOlder = versionAt(shift(now, -60 * DAY_MS), 'geometry');
+    await putBundleFolder(loaded, new TextEncoder().encode('fixture, not JSON'));
+    await putBundleFolder(geometryOld, manifestBytes(geometryOld));
+    await putBundleFolder(geometryOlder, manifestBytes(geometryOlder));
+    await insertDataBundle(getTestDb(), {
+      version: loaded,
+      status: 'loaded',
+      loadedAt: shift(now, -40 * DAY_MS),
+    });
+    await runScope('nightly', clock);
+
+    expect(await bundleVersionsLeft()).toEqual([loaded, geometryOld, geometryOlder].sort());
+    const unreadable = captureLogs().lines.filter(
+      (line) => line.parsed.event === 'retention.manifest_unreadable',
+    );
+    expect(unreadable.map((line) => line.parsed.version)).toEqual([loaded]);
+    expect(ruleRows()['N9']).toBe(0);
+  });
+
+  it('N9 reads a folder with no object left as no folder', async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    // A recent full folder whose objects are gone; the local store may still list it.
+    const emptied = versionAt(shift(now, -2 * DAY_MS - 7 * MINUTE_MS), 'full');
+    await putBundleFolder(emptied, manifestBytes(emptied));
+    await deleteKeys(
+      await getTestBucket('data'),
+      await listTestKeys('data', `bundles/${emptied}/`),
+    );
+    const orphan = versionAt(shift(now, -40 * DAY_MS - 7 * MINUTE_MS), 'geometry');
+    await putBundleFolder(orphan, manifestBytes(orphan));
+    await runScope('nightly', clock);
+
+    expect(await listTestKeys('data', `bundles/${orphan}/`)).toEqual([]);
+    const unreadable = captureLogs().lines.filter(
+      (line) => line.parsed.event === 'retention.manifest_unreadable',
+    );
+    expect(unreadable.map((line) => line.parsed.version)).not.toContain(emptied);
+    expect(ruleRows()['N9']).toBe(2);
+  });
+
+  it(RULE_CASES.N11, async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    const dayKey = (days: number): string =>
+      `field-reports/${isoDay(shift(now, -days * DAY_MS))}/x.ndjson.gz`;
+    for (const days of [91, 90, 89]) {
+      await putDataObject(dayKey(days));
+    }
+    await putDataObject('field-reports/not-a-date/x.ndjson.gz');
+    await runScope('nightly', clock);
+    expect(await listTestKeys('data', 'field-reports/')).toEqual(
+      [dayKey(90), dayKey(89), 'field-reports/not-a-date/x.ndjson.gz'].sort(),
+    );
+    expect(ruleRows()['N11']).toBe(1);
+  });
+
+  it(RULE_CASES.N12, async () => {
+    const clock = new FakeClock();
+    const now = clock.now();
+    const yearAgo = yearsBefore(now, 1);
+    const gone = await insertFieldReport(getTestDb(), {
+      status: 'fixed',
+      decidedAt: shift(yearAgo, -MINUTE_MS),
+    });
+    const kept = await insertFieldReport(getTestDb(), {
+      status: 'rejected',
+      decidedAt: shift(yearAgo, MINUTE_MS),
+    });
+    const open = await insertFieldReport(getTestDb(), { createdAt: shift(now, -3 * 365 * DAY_MS) });
+    await runScope('nightly', clock);
+    const rows = await getTestDb().select({ id: fieldReports.id }).from(fieldReports);
+    const ids = new Set(rows.map((row) => row.id));
+    expect({ gone: ids.has(gone.id), kept: ids.has(kept.id), open: ids.has(open.id) }).toEqual({
+      gone: false,
+      kept: true,
+      open: true,
+    });
+    expect(ruleRows()['N12']).toBe(1);
+  });
+
   it('is idempotent', async () => {
     const clock = new FakeClock();
     const now = clock.now();
@@ -608,6 +889,18 @@ describe('J-cleanup.retention', () => {
       name: 'email.month',
       period: isoDay(monthStart(now, 0)),
     });
+    const reverted = await insertDataBundle(getTestDb(), { status: 'reverted', loadedAt: now });
+    await insertBundleChange(getTestDb(), { bundleId: reverted.id });
+    const kept = await insertDataBundle(getTestDb(), { status: 'loaded', loadedAt: now });
+    await insertBundleChange(getTestDb(), { bundleId: kept.id });
+    await putBundleFolder(versionAt(shift(now, -40 * DAY_MS), 'full'), null);
+    await putDataObject(`field-reports/${isoDay(shift(now, -100 * DAY_MS))}/x.ndjson.gz`);
+    await putDataObject(`field-reports/${isoDay(now)}/x.ndjson.gz`);
+    await insertFieldReport(getTestDb(), {
+      status: 'fixed',
+      decidedAt: yearsBefore(now, 2),
+    });
+    await insertFieldReport(getTestDb(), { status: 'fixed', decidedAt: now });
 
     const tables = Object.keys(RETENTION_CLASSIFICATION).filter(
       (table) => table !== 'spatial_ref_sys',
@@ -648,7 +941,19 @@ describe('J-cleanup.retention', () => {
     expect(Object.keys(ruleRows())).toEqual(['H1', 'H2', 'H3', 'H4', 'H5', 'H9']);
     captureLogs().clear();
     await runScope('nightly', clock);
-    expect(Object.keys(ruleRows())).toEqual(['N1', 'N2', 'N3', 'N4', 'N5', 'N6', 'N7']);
+    expect(Object.keys(ruleRows())).toEqual([
+      'N1',
+      'N2',
+      'N3',
+      'N4',
+      'N5',
+      'N6',
+      'N7',
+      'N8',
+      'N9',
+      'N11',
+      'N12',
+    ]);
   });
 
   it('every table with a retention rule has a case', async () => {

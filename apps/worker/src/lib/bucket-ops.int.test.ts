@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   getTestBucket,
   getTestObject,
@@ -14,6 +15,7 @@ import {
   getObjectBytes,
   headObject,
   listKeys,
+  listPrefixes,
   putObject,
 } from './bucket-ops.ts';
 
@@ -117,5 +119,41 @@ describe('bucket helpers', () => {
       }),
     ).rejects.toBe(reason);
     expect(await listTestKeys('media', 't/')).toEqual(['t/s/2', 't/s/3']);
+  });
+});
+
+async function collect(items: AsyncIterable<string>): Promise<string[]> {
+  const found: string[] = [];
+  for await (const item of items) {
+    found.push(item);
+  }
+  return found;
+}
+
+describe('listPrefixes', () => {
+  it('lists the prefixes one level down', async () => {
+    const data = await getTestBucket('data');
+    // A folder of its own: the local store may still list folders an earlier file emptied.
+    const root = `fixture-${randomUUID()}/`;
+    for (const key of ['bundles/a/x', 'bundles/a/y', 'bundles/b/z', 'bundles/top', 'other/c/w']) {
+      await putTestObject('data', `${root}${key}`, FIXTURE_BYTES, OCTETS);
+    }
+    expect((await collect(listPrefixes(data, `${root}bundles/`))).sort()).toEqual([
+      `${root}bundles/a/`,
+      `${root}bundles/b/`,
+    ]);
+    expect(await collect(listPrefixes(data, `${root}bundles/a/`))).toEqual([]);
+  });
+
+  it('refuses an unsafe prefix', async () => {
+    const data = await getTestBucket('data');
+    const send = vi.spyOn(data.client, 'send');
+    try {
+      expect(() => listPrefixes(data, '')).toThrow(new RangeError('unsafe prefix'));
+      expect(() => listPrefixes(data, 'bundles')).toThrow(new RangeError('unsafe prefix'));
+      expect(send).not.toHaveBeenCalled();
+    } finally {
+      send.mockRestore();
+    }
   });
 });

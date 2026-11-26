@@ -282,4 +282,38 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 5, // J-score.issues
     },
   },
+  'db.size-check': {
+    queue: {
+      policy: JOB_POLICIES['db.size-check'], // J-db.size-check
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-db.size-check
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-db.size-check
+      expireInSeconds: 120, // J-db.size-check
+      heartbeatSeconds: null, // J-db.size-check
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-db.size-check
+      pollingIntervalSeconds: 10, // J-db.size-check
+    },
+  },
+  'field-reports.export': {
+    queue: {
+      policy: JOB_POLICIES['field-reports.export'], // J-field-reports.export
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-field-reports.export
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-field-reports.export
+      expireInSeconds: 600, // J-field-reports.export
+      heartbeatSeconds: null, // J-field-reports.export
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-field-reports.export
+      pollingIntervalSeconds: 10, // J-field-reports.export
+    },
+  },
 };

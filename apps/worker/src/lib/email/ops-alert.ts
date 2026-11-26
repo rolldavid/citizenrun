@@ -30,12 +30,19 @@ type OpsAlertName =
   | 'jobFailed'
   | 'dumpStale'
   | 'connectionsHigh'
+  | 'dbSizeHigh'
   | 'bundleStale'
   | 'bundleRejected'
   | 'bundleHeld'
   | 'costProjection';
 type CostLineBody =
-  'bodyStorage' | 'bodyUploadGrowth' | 'bodyEmailMonth' | 'bodyEmailDay' | 'bodySigninCeiling';
+  | 'bodyStorage'
+  | 'bodyUploadGrowth'
+  | 'bodyEmailMonth'
+  | 'bodyEmailDay'
+  | 'bodySigninCeiling'
+  | 'bodyGeocoding'
+  | 'bodyGeocodingDay';
 type OpsAlertKey =
   | `${OpsAlertSection}.${OpsAlertName}.${'subject' | 'body'}`
   | `${OpsAlertSection}.costProjection.${CostLineBody}`
@@ -66,6 +73,11 @@ function subjectAndBody(
       return {
         subject: t('notifications:opsAlert.connectionsHigh.subject', options),
         body: t('notifications:opsAlert.connectionsHigh.body', options),
+      };
+    case 'db_size_high':
+      return {
+        subject: t('notifications:opsAlert.dbSizeHigh.subject', options),
+        body: t('notifications:opsAlert.dbSizeHigh.body', options),
       };
     case 'bundle_stale':
       return {
@@ -131,7 +143,8 @@ function inUnits(
 
 /**
  * A cost line's body, with each number in its unit (D-852): `storage` in gigabytes and dollars a
- * month, `upload_growth` in gigabytes, the email lines in emails. A line with no body of its own
+ * month, `upload_growth` in gigabytes, the email lines in emails, the geocoding lines in requests. A
+ * line with no body of its own
  * reads the numbers as they were sent.
  */
 function costLineBody(replace: AlertReplace, t: Translate): string {
@@ -160,6 +173,16 @@ function costLineBody(replace: AlertReplace, t: Translate): string {
     case 'signin_ceiling':
       return t(
         'notifications:opsAlert.costProjection.bodySigninCeiling',
+        inUnits(replace, { value: count, projected: count, threshold: count }),
+      );
+    case 'geocoding':
+      return t(
+        'notifications:opsAlert.costProjection.bodyGeocoding',
+        inUnits(replace, { value: count, projected: count, threshold: count }),
+      );
+    case 'geocoding_day':
+      return t(
+        'notifications:opsAlert.costProjection.bodyGeocodingDay',
         inUnits(replace, { value: count, projected: count, threshold: count }),
       );
     default:

@@ -188,6 +188,20 @@ describe('renderOpsAlert', () => {
     expect(body({ line: 'signin_ceiling', value: 1000, projected: 1000, threshold: 1000 })).toBe(
       '1,000 sign-in code emails were sent in one UTC day, at or over the threshold of 1,000 a day.',
     );
+    // 70,000 on day 10 of 30 projects 210,000; 80% of the 85,000 cap is 68,000.
+    expect(body({ line: 'geocoding', value: 70_000, projected: 210_000, threshold: 68_000 })).toBe(
+      '70,000 geocoding requests were made so far this month (UTC), projected at 210,000 for the ' +
+        'month, at or over the threshold of 68,000 requests a month.',
+    );
+    // A projection that is not whole reads as a whole count.
+    expect(body({ line: 'geocoding', value: 22_667, projected: 68_001.4, threshold: 68_000 })).toBe(
+      '22,667 geocoding requests were made so far this month (UTC), projected at 68,001 for the ' +
+        'month, at or over the threshold of 68,000 requests a month.',
+    );
+    expect(body({ line: 'geocoding_day', value: 2240, projected: 2240, threshold: 2240 })).toBe(
+      '2,240 geocoding requests were made yesterday (UTC), at or over the threshold of 2,240 ' +
+        'requests a day.',
+    );
   });
 
   it('every cost line has a body with its units', () => {
@@ -221,6 +235,24 @@ describe('renderOpsAlert', () => {
     expect(rendered.text.split('\n')[0]).toBe(
       'other is at 5 and projected at 7, over its threshold of 6.',
     );
+  });
+
+  it('renders the size alert', () => {
+    const rendered = renderOpsAlert(
+      { kind: 'db_size_high', values: { gb: 15, pct: '30%' }, env: 'staging' },
+      t,
+    );
+    expect(rendered.subject).toBe(`[${BRAND.displayName} staging] The database passed 15 GB`);
+    expect(rendered.text.split('\n')[0]).toBe('The database is 15 GB, 30% of the volume.');
+    for (const part of [rendered.subject, rendered.text, rendered.html]) {
+      expect(part).not.toContain('{{');
+      expect(part).not.toContain('opsAlert');
+    }
+    const tenths = renderOpsAlert(
+      { kind: 'db_size_high', values: { gb: 15.3, pct: '31%' }, env: 'ci' },
+      t,
+    );
+    expect(tenths.text.split('\n')[0]).toBe('The database is 15.3 GB, 31% of the volume.');
   });
 
   it('renders the bundle alerts', () => {

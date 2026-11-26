@@ -11,6 +11,11 @@ import {
   emailDayLine,
   emailMonthCostLine,
   emailMonthLine,
+  GEO_CAP_ALERT_SHARE,
+  geocodingCostLine,
+  geocodingDayCostLine,
+  geocodingDayLine,
+  geocodingLine,
   projectMonth,
   signinCeilingCostLine,
   signinCeilingLine,
@@ -162,13 +167,15 @@ describe('the upload, email and sign-in cost lines', () => {
     });
   });
 
-  it('the job reads the five lines in order', () => {
+  it('the job reads the seven lines in order', () => {
     expect(COST_LINES).toEqual([
       storageLine,
       uploadGrowthCostLine,
       emailMonthCostLine,
       emailDayCostLine,
       signinCeilingCostLine,
+      geocodingCostLine,
+      geocodingDayCostLine,
     ]);
     expect(COST_LINES.map((line) => line.line)).toEqual([
       'storage',
@@ -176,6 +183,59 @@ describe('the upload, email and sign-in cost lines', () => {
       'email_month',
       'email_day',
       'signin_ceiling',
+      'geocoding',
+      'geocoding_day',
     ]);
+  });
+});
+
+describe('the geocoding cost lines', () => {
+  it('geocoding at 80 percent', () => {
+    // Cap 85,000 on day 10 of a 30-day month: the threshold is 68,000 and the month projects x 3.
+    const day10 = new Date('2027-04-10T09:50:00Z');
+    expect(geocodingLine(22_666, 85_000, day10)).toEqual({
+      line: 'geocoding',
+      value: 22_666,
+      projected: 67_998,
+      threshold: 68_000,
+      over: false,
+    });
+    expect(geocodingLine(22_667, 85_000, day10)).toEqual({
+      line: 'geocoding',
+      value: 22_667,
+      projected: 68_001,
+      threshold: 68_000,
+      over: true,
+    });
+    expect(GEO_CAP_ALERT_SHARE).toBe(0.8);
+  });
+
+  it('geocoding day at 80 percent', () => {
+    // Cap 2,800: the threshold is 2,240.
+    expect(geocodingDayLine(2_239, 2_800)).toEqual({
+      line: 'geocoding_day',
+      value: 2_239,
+      projected: 2_239,
+      threshold: 2_240,
+      over: false,
+    });
+    expect(geocodingDayLine(2_240, 2_800)).toEqual({
+      line: 'geocoding_day',
+      value: 2_240,
+      projected: 2_240,
+      threshold: 2_240,
+      over: true,
+    });
+  });
+
+  it('geocoding decides on the unrounded projection', () => {
+    // A cap of 999: 80% is 799.2. 490 on day 19 of 31 projects 799.47, over though it reads 799.
+    expect(geocodingLine(490, 999, new Date('2027-03-19T09:50:00Z'))).toMatchObject({
+      projected: 799,
+      threshold: 800,
+      over: true,
+    });
+    // 799 a day under 799.2: not over, though the rounded threshold reads 800.
+    expect(geocodingDayLine(799, 999)).toMatchObject({ threshold: 800, over: false });
   });
 });

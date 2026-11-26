@@ -16,6 +16,8 @@ export const STORAGE_THRESHOLD_CENTS = 1_000; // J-cost.check
 export const UPLOAD_GROWTH_MONTHLY_MAX_BYTES = 100 * BYTES_PER_GB; // J-cost.check upload_growth
 /** The email lines alert at 80 per cent of their quota. */
 export const EMAIL_QUOTA_ALERT_SHARE = 0.8; // J-cost.check email_month, email_day
+/** The geocoding lines alert at 80 per cent of their cap. */
+export const GEO_CAP_ALERT_SHARE = 0.8; // J-cost.check geocoding, geocoding_day
 /** The upload line multiplies a day's bytes by this many days. */
 const UPLOAD_GROWTH_DAYS_A_MONTH = 30; // J-cost.check upload_growth
 
@@ -23,7 +25,14 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** One cost line's reading: its value, its projection and threshold, and whether it is over. */
 export type CostLineResult = {
-  line: 'storage' | 'upload_growth' | 'email_month' | 'email_day' | 'signin_ceiling';
+  line:
+    | 'storage'
+    | 'upload_growth'
+    | 'email_month'
+    | 'email_day'
+    | 'signin_ceiling'
+    | 'geocoding'
+    | 'geocoding_day';
   value: number;
   projected: number;
   threshold: number;
@@ -56,14 +65,18 @@ export async function sumBucketBytes(buckets: readonly Bucket[]): Promise<number
 }
 
 /**
- * The `storage` line: total bytes of every object in the `backups` and `media` buckets and their
- * projected monthly cost in cents, over above STORAGE_THRESHOLD_CENTS. The `legal` bucket is never
- * listed (INV-43). A listing error is thrown.
+ * The `storage` line: total bytes of every object in the `backups`, `media` and `data` buckets and
+ * their projected monthly cost in cents, over above STORAGE_THRESHOLD_CENTS. The `legal` bucket is
+ * never listed (INV-43). A listing error is thrown.
  */
 export const storageLine: CostLine = {
   line: 'storage',
   async compute(ctx) {
-    const totalBytes = await sumBucketBytes([ctx.storage.backups, ctx.storage.media]);
+    const totalBytes = await sumBucketBytes([
+      ctx.storage.backups,
+      ctx.storage.media,
+      ctx.storage.data,
+    ]);
     const projected = storageProjectionCents(totalBytes);
     return {
       line: 'storage',
@@ -141,6 +154,31 @@ export function signinCeilingLine(yesterdayCount: number): CostLineResult {
   };
 }
 
+/** The `geocoding` line: this month's requests projected to the month's end, over at 80% of the cap. */
+export function geocodingLine(monthCount: number, cap: number, now: Date): CostLineResult {
+  const projected = projectMonth(monthCount, now);
+  const threshold = GEO_CAP_ALERT_SHARE * cap;
+  return {
+    line: 'geocoding',
+    value: monthCount,
+    projected: Math.round(projected),
+    threshold: Math.ceil(threshold),
+    over: projected >= threshold,
+  };
+}
+
+/** The `geocoding_day` line: yesterday's requests, over at 80% of the daily cap. */
+export function geocodingDayLine(yesterdayCount: number, cap: number): CostLineResult {
+  const threshold = GEO_CAP_ALERT_SHARE * cap;
+  return {
+    line: 'geocoding_day',
+    value: yesterdayCount,
+    projected: Math.round(yesterdayCount),
+    threshold: Math.ceil(threshold),
+    over: yesterdayCount >= threshold,
+  };
+}
+
 // One usage counter's count for one period; a missing row is 0.
 async function readCounter(
   ctx: JobContext,
@@ -199,6 +237,26 @@ export const signinCeilingCostLine: CostLine = {
   },
 };
 
+/** The `geocoding` line over this UTC month's `geo.month` counter and GEO_MONTHLY_CAP. */
+export const geocodingCostLine: CostLine = {
+  line: 'geocoding',
+  async compute(ctx) {
+    const now = ctx.now();
+    const count = await readCounter(ctx, 'geo.month', monthPeriod(now));
+    return geocodingLine(count, ctx.env.GEO_MONTHLY_CAP, now);
+  },
+};
+
+/** The `geocoding_day` line over yesterday's (UTC) `geo.day` counter and GEO_DAILY_CAP. */
+export const geocodingDayCostLine: CostLine = {
+  line: 'geocoding_day',
+  async compute(ctx) {
+    const yesterday = new Date(ctx.now().getTime() - DAY_MS);
+    const count = await readCounter(ctx, 'geo.day', dayPeriod(yesterday));
+    return geocodingDayLine(count, ctx.env.GEO_DAILY_CAP);
+  },
+};
+
 /** Every cost line J-cost.check reads. */
 export const COST_LINES: readonly CostLine[] = [
   storageLine,
@@ -206,4 +264,6 @@ export const COST_LINES: readonly CostLine[] = [
   emailMonthCostLine,
   emailDayCostLine,
   signinCeilingCostLine,
+  geocodingCostLine,
+  geocodingDayCostLine,
 ];

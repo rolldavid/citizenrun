@@ -104,6 +104,8 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'bundle.load': { bundleId: SAMPLE_ID, mode: 'new' },
   'bundle.revert': { bundleId: SAMPLE_ID, adminId: SAMPLE_ID },
   'score.issues': { scope: 'offices', officeIds: [SAMPLE_ID] },
+  'db.size-check': {},
+  'field-reports.export': {},
 };
 
 const LONG = 'a'.repeat(65);
@@ -184,7 +186,7 @@ describe('the job list', () => {
 
   it('ops.alert refuses an unknown kind and an extra key', () => {
     const alert = JOB_PAYLOADS['ops.alert'];
-    expect(alert.safeParse({ kind: 'db_size_high', values: {} }).success).toBe(false);
+    expect(alert.safeParse({ kind: 'db_logging_paused', values: {} }).success).toBe(false);
     expect(alert.safeParse({ kind: 'job_failed', values: {}, extra: 1 }).success).toBe(false);
   });
 
@@ -318,6 +320,8 @@ describe('the job list', () => {
       'backup.check',
       'db.connections-check',
       'bundle.poll',
+      'db.size-check',
+      'field-reports.export',
     ] as const) {
       expect(JOB_PAYLOADS[name].safeParse({ a: 1 }).success, name).toBe(false);
       expect(JOB_PAYLOADS[name].safeParse({}).success, name).toBe(true);

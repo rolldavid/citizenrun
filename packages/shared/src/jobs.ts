@@ -23,6 +23,8 @@ export const JOB_NAMES = [
   'bundle.load',
   'bundle.revert',
   'score.issues',
+  'db.size-check',
+  'field-reports.export',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -50,6 +52,8 @@ export const JOB_POLICIES = {
   'bundle.load': 'singleton',
   'bundle.revert': 'singleton',
   'score.issues': 'standard',
+  'db.size-check': 'stately',
+  'field-reports.export': 'stately',
 } as const satisfies Record<JobName, QueuePolicy>;
 
 /** The kinds of ops alert whose sending step exists. */
@@ -57,6 +61,7 @@ export const OpsAlertKindSchema = z.enum([
   'job_failed',
   'dump_stale',
   'connections_high',
+  'db_size_high',
   'bundle_stale',
   'bundle_rejected',
   'bundle_held',
@@ -120,6 +125,8 @@ export const JOB_PAYLOADS = {
     z.object({ scope: z.literal('all') }).strict(),
     z.object({ scope: z.literal('offices'), officeIds: z.array(Id).min(1).max(5000) }).strict(),
   ]),
+  'db.size-check': Empty,
+  'field-reports.export': Empty,
 } as const satisfies Record<JobName, z.ZodType>;
 
 export type JobPayload<N extends JobName> = z.infer<(typeof JOB_PAYLOADS)[N]>;

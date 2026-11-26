@@ -1,3 +1,4 @@
+import { addUsage, dayPeriod, monthPeriod } from '@citizenrun/db';
 import {
   captureLogs,
   getTestBucket,
@@ -67,7 +68,7 @@ describe('J-cost.check', () => {
     expect(await peekQueue('ops.alert')).toEqual([]);
     expect(
       captureLogs().lines.find((line) => line.parsed.event === 'cost.check.done')?.parsed,
-    ).toMatchObject({ lines: 5, alerts: 0 });
+    ).toMatchObject({ lines: 7, alerts: 0 });
   });
 
   it('the storage line sums every object of the backups bucket', async () => {
@@ -213,7 +214,7 @@ describe('J-cost.check, upload, email and sign-in lines', () => {
     ]);
     expect(
       captureLogs().lines.find((line) => line.parsed.event === 'cost.check.done')?.parsed,
-    ).toMatchObject({ lines: 5, alerts: 4 });
+    ).toMatchObject({ lines: 7, alerts: 4 });
   });
 
   it('stays quiet under the thresholds', async () => {
@@ -290,6 +291,115 @@ describe('J-cost.check, upload, email and sign-in lines', () => {
     const clock = new FakeClock(DAY_10);
     await writeReadings(clock, OVER);
     const result = await runJob(costCheckJob, {}, { clock, media: await missingMediaBucket() });
+    expect(result.outcome).toBe('failed');
+    expect(await peekQueue('ops.alert')).toEqual([]);
+  });
+});
+
+// The data bucket under a name no bucket can have, so its listing fails.
+async function missingDataBucket(): Promise<Bucket> {
+  const data = await getTestBucket('data');
+  return { client: data.client, bucket: `${data.bucket}_gone` };
+}
+
+// This month's and yesterday's geocoding counters, as the address proxy writes them.
+async function writeGeocoding(clock: FakeClock, month: number, yesterday: number): Promise<void> {
+  const now = clock.now();
+  await addUsage(getTestDb(), 'geo.month', monthPeriod(now), month);
+  await addUsage(
+    getTestDb(),
+    'geo.day',
+    dayPeriod(new Date(now.getTime() - DAY_SECONDS * 1000)),
+    yesterday,
+  );
+}
+
+describe('J-cost.check, geocoding lines and the data bucket', () => {
+  beforeEach(async () => {
+    await resetStorage();
+  });
+
+  it('alerts on the geocoding lines', async () => {
+    // 70,000 this month projects at least 70,000 on any day, over 80% of 85,000 (68,000); 2,240
+    // yesterday is 80% of 2,800.
+    const clock = new FakeClock();
+    await writeGeocoding(clock, 70_000, 2_240);
+    const result = await runJob(costCheckJob, {}, { clock });
+    expect(result.outcome).toBe('completed');
+    const alerts = await peekQueue('ops.alert');
+    expect(alerts.map((alert) => alert.singletonKey)).toEqual([
+      'cost:geocoding',
+      'cost:geocoding_day',
+    ]);
+    expect(alerts[0]?.data).toMatchObject({
+      kind: 'cost_projection',
+      values: { line: 'geocoding', value: 70_000, threshold: 68_000 },
+    });
+    expect(alerts[1]?.data).toEqual({
+      kind: 'cost_projection',
+      values: { line: 'geocoding_day', value: 2_240, projected: 2_240, threshold: 2_240 },
+    });
+  });
+
+  it('reads the geocoding caps from the environment', async () => {
+    const clock = new FakeClock(DAY_10);
+    // 2,240 a day is under 80% of a cap of 2,801 (2,240.8); 22,666 projects 67,998, over 80% of
+    // 84,997 (67,997.6).
+    await writeGeocoding(clock, 22_666, 2_240);
+    const result = await runJob(
+      costCheckJob,
+      {},
+      { clock, env: { GEO_MONTHLY_CAP: 84_997, GEO_DAILY_CAP: 2_801 } },
+    );
+    expect(result.outcome).toBe('completed');
+    expect((await peekQueue('ops.alert')).map((alert) => alert.singletonKey)).toEqual([
+      'cost:geocoding',
+    ]);
+  });
+
+  it('no geocoding alert without counters', async () => {
+    const result = await runJob(costCheckJob, {}, { clock: new FakeClock(DAY_10) });
+    expect(result.outcome).toBe('completed');
+    const keys = (await peekQueue('ops.alert')).map((alert) => alert.singletonKey);
+    expect(keys).not.toContain('cost:geocoding');
+    expect(keys).not.toContain('cost:geocoding_day');
+  });
+
+  it('counts the data bucket in storage', async () => {
+    const bytes = new TextEncoder().encode('fixture object');
+    await putTestObject('backups', 'pg/2027/04/a.dump.enc', bytes, 'application/octet-stream');
+    const { ctx } = await runJob(costCheckJob, {});
+    expect((await storageLine.compute(ctx)).value).toBe(bytes.length);
+
+    await putTestObject(
+      'data',
+      'bundles/20270101T000000Z-full/manifest.json',
+      bytes,
+      'application/json',
+    );
+    await putTestObject(
+      'data',
+      'field-reports/2027-01-01/fixture.ndjson.gz',
+      bytes,
+      'application/gzip',
+    );
+    expect(await storageLine.compute(ctx)).toEqual({
+      line: 'storage',
+      value: 3 * bytes.length,
+      projected: 1,
+      threshold: 1_000,
+      over: false,
+    });
+  });
+
+  it('sends no partial alert when the data listing fails', async () => {
+    const clock = new FakeClock(DAY_10);
+    await writeGeocoding(clock, 70_000, 2_240);
+    const result = await runJob(
+      costCheckJob,
+      {},
+      { clock, storage: { data: await missingDataBucket() } },
+    );
     expect(result.outcome).toBe('failed');
     expect(await peekQueue('ops.alert')).toEqual([]);
   });

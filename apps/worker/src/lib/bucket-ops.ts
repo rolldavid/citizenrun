@@ -2,6 +2,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import type { PutObjectCommandInput } from '@aws-sdk/client-s3';
@@ -187,6 +188,52 @@ export function listKeys(
   return listAllObjects(bucket, prefix, signal === undefined ? {} : { signal });
 }
 
+// An empty prefix or one not ending in '/' would reach past the folder the caller means.
+function checkedPrefix(prefix: string): string {
+  if (prefix === '' || !prefix.endsWith('/')) {
+    throw new RangeError('unsafe prefix');
+  }
+  return prefix;
+}
+
+async function* commonPrefixes(
+  bucket: Bucket,
+  prefix: string,
+  signal: AbortSignal | undefined,
+): AsyncIterable<string> {
+  let token: string | undefined;
+  do {
+    const page = await bucket.client.send(
+      new ListObjectsV2Command({
+        Bucket: bucket.bucket,
+        Prefix: prefix,
+        Delimiter: '/',
+        ...(token === undefined ? {} : { ContinuationToken: token }),
+      }),
+      { abortSignal: callSignal(signal) },
+    );
+    for (const item of page.CommonPrefixes ?? []) {
+      if (item.Prefix !== undefined) {
+        yield item.Prefix;
+      }
+    }
+    token = page.IsTruncated === true ? page.NextContinuationToken : undefined;
+  } while (token !== undefined);
+}
+
+/**
+ * The folders one level below `prefix` (ListObjectsV2 with the delimiter '/', page by page), each
+ * as its full prefix with its trailing slash: `bundles/20270101T000000Z-full/` under `bundles/`.
+ * Refuses an empty prefix or one not ending in '/' with RangeError before any call.
+ */
+export function listPrefixes(
+  bucket: Bucket,
+  prefix: string,
+  signal?: AbortSignal,
+): AsyncIterable<string> {
+  return commonPrefixes(bucket, checkedPrefix(prefix), signal);
+}
+
 /**
  * DeleteObjects in batches of at most `batchSize` (default DELETE_BATCH_MAX) keys, calling
  * `afterBatch` after each; throws BucketDeleteError when a response lists any error, and the
@@ -231,9 +278,7 @@ export async function deletePrefix(
   prefix: string,
   options: DeleteOptions = {},
 ): Promise<number> {
-  if (prefix === '' || !prefix.endsWith('/')) {
-    throw new RangeError('unsafe prefix');
-  }
+  checkedPrefix(prefix);
   const batchSize = checkedBatchSize(options.batchSize);
   let deleted = 0;
   let pending: string[] = [];

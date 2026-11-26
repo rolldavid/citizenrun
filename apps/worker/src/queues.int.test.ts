@@ -212,6 +212,8 @@ describe('the queue registry', () => {
       'bundle.load': ['singleton', 300, 3600, 14400, 60],
       'bundle.revert': ['singleton', 300, 3600, 7200, 60],
       'score.issues': ['standard', 60, 900, 3600, 60],
+      'db.size-check': ['stately', 300, 3600, 120, null],
+      'field-reports.export': ['stately', 300, 3600, 600, null],
     };
     const boss = await startBoss();
     // ops.dead last: the other queues name it as their dead letter.
@@ -636,6 +638,8 @@ describe('the queue registry', () => {
         ['S-cleanup.retention.hourly', '5 * * * *', 'skip'],
         ['S-cleanup.retention.nightly', '15 7 * * *', 'once'],
         ['S-bundle.poll', '*/15 * * * *', 'skip'],
+        ['S-db.size-check', '25 * * * *', 'skip'],
+        ['S-field-reports.export', '30 5 * * *', 'once'],
         ['S-score.issues.weekly', '30 12 * * 0', 'once'],
       ]);
     } finally {
@@ -902,6 +906,8 @@ describe('the account job queues and schedules', () => {
         'bundle.poll',
         'cost.check',
         'db.connections-check',
+        'db.size-check',
+        'field-reports.export',
         'ops.heartbeat',
         'score.issues',
       ]);
@@ -1186,5 +1192,111 @@ describe('the job test helpers', () => {
     await expect(runQueued({ queues: ['cost.check'], registry: [] })).rejects.toThrow(
       'No handler is registered for the queue cost.check.',
     );
+  });
+});
+
+describe('the database size and field-report export queues and schedules', () => {
+  it('both queues have their options and dead-letter to ops.dead', async () => {
+    // Written out, not read from QUEUE_OPTIONS, so a changed value fails here.
+    const expected = {
+      'db.size-check': { expireInSeconds: 120 },
+      'field-reports.export': { expireInSeconds: 600 },
+    } as const;
+    const names = Object.keys(expected) as (keyof typeof expected)[];
+    const registry = QUEUE_REGISTRY.filter((definition) =>
+      (names as readonly string[]).includes(definition.name),
+    );
+    expect(registry.map((definition) => definition.name).sort()).toEqual([...names].sort());
+
+    const boss = await startBoss();
+    for (const name of names) {
+      await boss.deleteQueue(name);
+    }
+    const workOptions = new Map<string, unknown>();
+    const record = (name: string, options: unknown): Promise<string> => {
+      workOptions.set(name, options);
+      return Promise.resolve(`fixture-worker-${name}`);
+    };
+    vi.spyOn(boss, 'work').mockImplementation(record);
+    await registerQueues(boss, await runtimeFor(boss), registry);
+
+    for (const name of names) {
+      const queue = await boss.getQueue(name);
+      expect({
+        name,
+        policy: queue?.policy,
+        retryLimit: queue?.retryLimit,
+        retryBackoff: queue?.retryBackoff,
+        retryDelay: queue?.retryDelay,
+        retryDelayMax: queue?.retryDelayMax,
+        expireInSeconds: queue?.expireInSeconds,
+        heartbeatSeconds: queue?.heartbeatSeconds ?? null,
+        deleteAfterSeconds: queue?.deleteAfterSeconds,
+        deadLetter: queue?.deadLetter,
+      }).toEqual({
+        name,
+        policy: 'stately',
+        retryLimit: 2,
+        retryBackoff: true,
+        retryDelay: 300,
+        retryDelayMax: 3600,
+        expireInSeconds: expected[name].expireInSeconds,
+        heartbeatSeconds: null,
+        deleteAfterSeconds: 86400,
+        deadLetter: 'ops.dead',
+      });
+      expect(workOptions.get(name)).toEqual({
+        batchSize: 1,
+        includeMetadata: true,
+        localConcurrency: 1,
+        pollingIntervalSeconds: 10,
+      });
+    }
+  });
+
+  it('the size check and export schedules exist after boot', async () => {
+    const boss = await startBoss();
+    try {
+      await registerSchedules(boss, testLogger());
+      const found = (await boss.getSchedules())
+        .filter(
+          (schedule) =>
+            schedule.name === 'db.size-check' || schedule.name === 'field-reports.export',
+        )
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((schedule) => ({
+          name: schedule.name,
+          cron: schedule.cron,
+          data: schedule.data,
+          key: schedule.key,
+          timezone: schedule.timezone,
+          missed: schedule.options?.missed,
+          singletonKey: schedule.options?.singletonKey,
+        }));
+      expect(found).toEqual([
+        {
+          name: 'db.size-check',
+          cron: '25 * * * *',
+          data: {},
+          key: '',
+          timezone: 'UTC',
+          missed: 'skip',
+          singletonKey: undefined,
+        },
+        {
+          name: 'field-reports.export',
+          cron: '30 5 * * *',
+          data: {},
+          key: '',
+          timezone: 'UTC',
+          missed: 'once',
+          singletonKey: undefined,
+        },
+      ]);
+    } finally {
+      for (const entry of SCHEDULE_REGISTRY) {
+        await boss.unschedule(entry.queue, entry.key);
+      }
+    }
   });
 });

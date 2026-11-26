@@ -46,6 +46,10 @@ export type WorkerEnv = Readonly<{
   EMAIL_MONTHLY_QUOTA: number;
   /** J-cost.check's daily email line; 0 turns the line off. */
   EMAIL_DAILY_QUOTA: number;
+  /** J-cost.check's `geocoding` line: the monthly request cap, the same value as the API's (D-212). */
+  GEO_MONTHLY_CAP: number;
+  /** J-cost.check's `geocoding_day` line: the daily request cap, the same value as the API's (D-212). */
+  GEO_DAILY_CAP: number;
   RAILWAY_GIT_COMMIT_SHA: string | null;
   RESEND_API_KEY: string | null;
   EMAIL_FROM: string | null;
@@ -104,6 +108,9 @@ const PEM_FOOTER = '-----END PRIVATE KEY-----';
 const EMAIL_QUOTA_MAX = 10_000_000;
 const DEFAULT_EMAIL_MONTHLY_QUOTA = 3000;
 const DEFAULT_EMAIL_DAILY_QUOTA = 100;
+const GEO_CAP_MAX = 10_000_000;
+const DEFAULT_GEO_MONTHLY_CAP = 85_000; // D-212
+const DEFAULT_GEO_DAILY_CAP = 2_800; // D-212
 
 // Refused at any value, the empty one included: with it set, the email provider's library prints
 // the provider's raw error text outside the logger (D-807).
@@ -160,6 +167,16 @@ function emailQuota(fallback: number) {
     .default(fallback);
 }
 
+// A whole number from 1 to 10,000,000, written in decimal digits.
+function geoCap(fallback: number) {
+  return z
+    .string()
+    .regex(/^[0-9]{1,8}$/)
+    .transform(Number)
+    .pipe(z.number().int().min(1).max(GEO_CAP_MAX))
+    .default(fallback);
+}
+
 const WorkerEnvSchema = z.object({
   NODE_ENV: z.enum(['production', 'development', 'test']),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -187,6 +204,8 @@ const WorkerEnvSchema = z.object({
   APP_SECRET_PREVIOUS: appSecret.optional().transform((value) => value ?? null),
   EMAIL_MONTHLY_QUOTA: emailQuota(DEFAULT_EMAIL_MONTHLY_QUOTA),
   EMAIL_DAILY_QUOTA: emailQuota(DEFAULT_EMAIL_DAILY_QUOTA),
+  GEO_MONTHLY_CAP: geoCap(DEFAULT_GEO_MONTHLY_CAP),
+  GEO_DAILY_CAP: geoCap(DEFAULT_GEO_DAILY_CAP),
   // Set by Railway on every deployment; null when unset.
   RAILWAY_GIT_COMMIT_SHA: z
     .string()

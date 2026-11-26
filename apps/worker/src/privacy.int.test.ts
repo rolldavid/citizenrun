@@ -1,5 +1,6 @@
 import { generateKeyPairSync } from 'node:crypto';
-import { dataExports, markAccountDeleting, users } from '@citizenrun/db';
+import { gunzipSync } from 'node:zlib';
+import { dataExports, fieldReports, markAccountDeleting, users } from '@citizenrun/db';
 import { insertLoadingBundle } from '@citizenrun/db/bundle';
 import {
   captureLogs,
@@ -7,10 +8,13 @@ import {
   fixtureVersion,
   getTestBucket,
   getTestDb,
+  getTestObject,
   insertDataBundle,
   insertDataExport,
+  insertFieldReport,
   insertUpload,
   insertUser,
+  listTestKeys,
   writeFixtureBundle,
   zzBundle,
   zzGeometry,
@@ -23,11 +27,13 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { exportKey, fieldReportsExport } from './jobs/bundle/field-reports-export.ts';
 import { bundleLoad } from './jobs/bundle/load.ts';
 import { bundlePoll } from './jobs/bundle/poll.ts';
 import { bundleRevert } from './jobs/bundle/revert.ts';
 import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
+import { createDbSizeCheckJob } from './jobs/db/size-check.ts';
 import { avatarUpload, setAvatarColumns } from './lib/media/testing/avatar-upload.ts';
 import { mediaProcessImage } from './jobs/media/process-image.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
@@ -519,6 +525,68 @@ async function scoreIssuesPaths(): Promise<void> {
   await expectNoMarkerOutsideRows();
 }
 
+async function fieldReportsExportPaths(): Promise<void> {
+  const clock = new FakeClock(BUNDLE_NOW);
+  const report = await insertFieldReport(getTestDb(), {
+    message: `Fixture field note ${marker()}`,
+    sourceUrl: 'https://elections.example.test/fees',
+  });
+  // Retry: the data bucket does not exist, so the put throws and nothing is marked exported.
+  const retried = await runJob(
+    fieldReportsExport,
+    {},
+    { clock, storage: { data: await missingDataBucket() } },
+  );
+  expect(retried.outcome).toBe('failed');
+  const [unmarked] = await getTestDb()
+    .select({ exportedAt: fieldReports.exportedAt })
+    .from(fieldReports)
+    .where(eq(fieldReports.id, report.id));
+  expect(unmarked?.exportedAt).toBeNull();
+
+  // Success: the object holds the five keys only, and neither the marker nor the user.
+  const done = await runJob(fieldReportsExport, {}, { clock });
+  expect(done.outcome).toBe('completed');
+  // Earlier files on this worker may have left exports of their own; this run's key is its job's.
+  const key = exportKey(BUNDLE_NOW, done.ctx.job.id);
+  expect(await listTestKeys('data', 'field-reports/')).toContain(key);
+  const bytes = await getTestObject('data', key);
+  expect(bytes).not.toBeNull();
+  const text = gunzipSync(bytes ?? new Uint8Array()).toString('utf8');
+  const rows = text
+    .split('\n')
+    .filter((line) => line !== '')
+    .map((line): unknown => JSON.parse(line));
+  expect(rows.map((row) => Object.keys(row as object).sort())).toEqual([
+    ['created_at', 'field', 'office_slug', 'report_id', 'source_url'],
+  ]);
+  expect(text).not.toContain(marker());
+  expect(text).not.toContain(report.userId ?? marker());
+  await expectNoMarkerOutsideRows();
+  expect(anyLineHolds(report.userId ?? marker())).toBe(false);
+}
+
+async function dbSizeCheckPaths(): Promise<void> {
+  // Success over the line with the fake reader: the alert's values hold only gb and pct.
+  const over = createDbSizeCheckJob({
+    databases: () => Promise.resolve(15_500_000_000),
+    wal: () => Promise.resolve(0),
+  });
+  expect((await runJob(over, {})).outcome).toBe('completed');
+  const alerts = await peekQueue('ops.alert');
+  expect(alerts.map((alert) => alert.data)).toEqual([
+    { kind: 'db_size_high', values: { gb: 15.5, pct: '31%' } },
+  ]);
+  // Retry: a failed read fails the job and sends nothing more.
+  const failing = createDbSizeCheckJob({
+    databases: () => Promise.reject(new Error(`fixture read failure ${marker()}`)),
+    wal: () => Promise.resolve(0),
+  });
+  expect((await runJob(failing, {})).outcome).toBe('failed');
+  expect(anyLineHolds(marker())).toBe(false);
+  expect(await alertJobData()).not.toContain(marker());
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -551,6 +619,16 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
     covered: true,
     run: scoreIssuesPaths,
     noPermanentPath: 'a failure is a database error, which is retried; no permanent path',
+  },
+  'db.size-check': {
+    covered: true,
+    run: dbSizeCheckPaths,
+    noPermanentPath: 'the payload is empty and a failed read is always retried',
+  },
+  'field-reports.export': {
+    covered: true,
+    run: fieldReportsExportPaths,
+    noPermanentPath: 'the payload is empty; a failed read or write is always retried',
   },
 };
 
@@ -623,5 +701,13 @@ describe('worker privacy', () => {
 
   it('issue scoring never logs a bundle row', async () => {
     await runCovered('score.issues');
+  });
+
+  it('field-report exports carry no user and no message', async () => {
+    await runCovered('field-reports.export');
+  });
+
+  it('the size alert carries only its size', async () => {
+    await runCovered('db.size-check');
   });
 });

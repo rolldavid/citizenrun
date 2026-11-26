@@ -303,6 +303,18 @@ describe('loadEnv', () => {
     }
   });
 
+  it('geocoding caps', () => {
+    const unset = loadEnv(infra('ci'));
+    expect([unset.GEO_MONTHLY_CAP, unset.GEO_DAILY_CAP]).toEqual([85_000, 2_800]);
+    const set = loadEnv(infra('ci', { GEO_MONTHLY_CAP: '50000', GEO_DAILY_CAP: '200' }));
+    expect([set.GEO_MONTHLY_CAP, set.GEO_DAILY_CAP]).toEqual([50_000, 200]);
+    for (const variable of ['GEO_MONTHLY_CAP', 'GEO_DAILY_CAP']) {
+      for (const value of ['0', '-1', '1.5', 'x', '10000001']) {
+        expect(refusal(infra('ci', { [variable]: value })).variables).toEqual([variable]);
+      }
+    }
+  });
+
   it('a deployed service needs its required inputs', () => {
     for (const appEnv of ['staging', 'production'] as const) {
       const env = loadEnv(deployed(appEnv));

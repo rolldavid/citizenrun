@@ -18,6 +18,7 @@ const SAMPLES = {
   },
   dump_stale: { hoursSinceNewest: 40 },
   connections_high: { count: 85, max: 100 },
+  db_size_high: { gb: 15, pct: '30%' },
   bundle_stale: { hoursSince: 49 },
   bundle_rejected: {
     bundleId: '0195d2c4-0000-7000-8000-000000000002',

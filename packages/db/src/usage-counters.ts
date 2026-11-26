@@ -3,7 +3,8 @@ import { sql } from 'drizzle-orm';
 import type { Db, Tx } from './client.ts';
 
 /** The counter names the typed helpers take (T-usage_counters). */
-export type UsageCounterName = 'email.day' | 'email.month' | 'email.signin.day';
+export type UsageCounterName =
+  'email.day' | 'email.month' | 'email.signin.day' | 'geo.month' | 'geo.day';
 
 /** The period of a daily counter: 'YYYY-MM-DD' of `now` in UTC. */
 export function dayPeriod(now: Date): string {
