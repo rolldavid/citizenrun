@@ -1,0 +1,11 @@
+{
+  "url": "https://raw.githubusercontent.com/carltonnorthern/nicknames/ed160b3af2d17e1af8ebd570f10a10e4dade4ff4/names.csv",
+  "fetchedAt": "2026-11-26T22:11:53.760Z",
+  "sha256": "e7badeccce3299e34e5767ceb4175cdb40f45954f696f80a4729e17852f6602c",
+  "contentType": "text/plain; charset=utf-8",
+  "originalSha256": "e6a4e5a55ca5b47a4146dbc118f26c71c63053d4b79ca9659de8e74efb65847e",
+  "transformations": [
+    "Kept the first 60 lines of the file and dropped the rest.",
+    "Replaced the CRLF line endings with LF, as the repository stores text files."
+  ]
+}

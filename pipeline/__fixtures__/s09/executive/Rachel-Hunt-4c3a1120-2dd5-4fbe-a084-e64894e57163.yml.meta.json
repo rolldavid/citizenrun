@@ -1,0 +1,10 @@
+{
+  "url": "https://raw.githubusercontent.com/openstates/people/6c96e49451833e745fb4f529bb631fa04ae1148a/data/nc/executive/Rachel-Hunt-4c3a1120-2dd5-4fbe-a084-e64894e57163.yml",
+  "fetchedAt": "2026-11-26T22:12:16.644Z",
+  "sha256": "2d18060a926218ce5f676577e8590a819a1ba5dc27047d2207fbbb888d26d885",
+  "contentType": "text/plain; charset=utf-8",
+  "originalSha256": "e3dabc9d171baa87d2a01c7f96ef2cc4cdc749fa51d373c54fe346975199f30b",
+  "transformations": [
+    "Removed the top-level keys email, offices and extras, which hold contact details and staff names; every other key is as fetched, re-serialised by the yaml library."
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "normalized": [
+      {
+        "fromencoded": false,
+        "from": "File:Fixture_Senator_official_portrait.jpg",
+        "to": "File:Fixture Senator official portrait.jpg"
+      }
+    ],
+    "pages": [
+      {
+        "pageid": 990001,
+        "ns": 6,
+        "title": "File:Fixture Senator official portrait.jpg",
+        "imagerepository": "local",
+        "imageinfo": [
+          {
+            "size": 45469,
+            "width": 450,
+            "height": 550,
+            "thumburl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Fixture_Senator_official_portrait.jpg/640px-Fixture_Senator_official_portrait.jpg",
+            "thumbwidth": 450,
+            "thumbheight": 550,
+            "url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Fixture_Senator_official_portrait.jpg",
+            "descriptionurl": "https://commons.wikimedia.org/wiki/File:Fixture_Senator_official_portrait.jpg",
+            "descriptionshorturl": "https://commons.wikimedia.org/w/index.php?curid=990001",
+            "mime": "image/jpeg",
+            "extmetadata": {
+              "DateTime": { "value": "2025-01-10 12:00:00", "source": "mediawiki-metadata", "hidden": "" },
+              "ObjectName": { "value": "Fixture Senator official portrait", "source": "mediawiki-metadata", "hidden": "" },
+              "Credit": {
+                "value": "<span class=\"int-own-work\">Office of U.S. Senator Fixture Senator</span>",
+                "source": "commons-desc-page",
+                "hidden": ""
+              },
+              "Artist": {
+                "value": "<a href=\"https://en.wikipedia.org/wiki/United_States_Senate\" class=\"extiw\" title=\"w:United States Senate\">United States\n Senate</a>",
+                "source": "commons-desc-page"
+              },
+              "Permission": { "value": "", "source": "commons-desc-page", "hidden": "" },
+              "LicenseShortName": { "value": "Public domain", "source": "commons-desc-page", "hidden": "" },
+              "UsageTerms": { "value": "Public domain", "source": "commons-desc-page", "hidden": "" },
+              "AttributionRequired": { "value": "false", "source": "commons-desc-page", "hidden": "" },
+              "Copyrighted": { "value": "False", "source": "commons-desc-page", "hidden": "" },
+              "Restrictions": { "value": "", "source": "commons-desc-page", "hidden": "" },
+              "License": { "value": "pd", "source": "commons-templates", "hidden": "" }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

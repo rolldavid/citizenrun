@@ -1,0 +1,10 @@
+{
+  "url": "https://raw.githubusercontent.com/openstates/people/6c96e49451833e745fb4f529bb631fa04ae1148a/data/nc/executive/Josh-Stein-0a494878-c7fd-4a6a-8b82-3eb681e3fe6e.yml",
+  "fetchedAt": "2026-11-26T22:12:14.526Z",
+  "sha256": "65b76c0cddc05879e4a104eee51eed45cb27f8aa66bcbb461d7c66a806e168b0",
+  "contentType": "text/plain; charset=utf-8",
+  "originalSha256": "8f2267d154c448c19f8dde2c85dd4f5d545aab8111c052e437656d572cbbc044",
+  "transformations": [
+    "Removed the top-level key offices, which holds contact details; every other key is as fetched, re-serialised by the yaml library."
+  ]
+}

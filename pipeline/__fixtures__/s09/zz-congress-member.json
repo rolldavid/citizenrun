@@ -1,0 +1,15 @@
+{
+  "member": {
+    "bioguideId": "Z000001",
+    "currentMember": true,
+    "directOrderName": "Fixture Member",
+    "firstName": "Fixture",
+    "lastName": "Member",
+    "depiction": {
+      "attribution": "Courtesy U.S. Senate Historical Office",
+      "imageUrl": "https://www.congress.gov/img/member/z000001_200.jpg"
+    },
+    "updateDate": "2026-11-01T00:00:00Z"
+  },
+  "request": { "bioguideId": "z000001", "contentType": "application/json", "format": "json" }
+}

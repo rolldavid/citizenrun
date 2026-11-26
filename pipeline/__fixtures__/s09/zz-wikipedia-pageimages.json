@@ -1,0 +1,15 @@
+{
+  "batchcomplete": true,
+  "query": {
+    "redirects": [{ "from": "Fixture Senator", "to": "Fixture Q. Senator" }],
+    "pages": [
+      {
+        "pageid": 990002,
+        "ns": 0,
+        "title": "Fixture Q. Senator",
+        "pageprops": { "wikibase_item": "Q99999001" },
+        "pageimage": "Fixture_Senator_official_portrait.jpg"
+      }
+    ]
+  }
+}

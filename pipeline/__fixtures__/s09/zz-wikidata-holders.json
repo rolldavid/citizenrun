@@ -1,0 +1,16 @@
+{
+  "head": { "vars": ["person", "personLabel", "article"] },
+  "results": {
+    "bindings": [
+      {
+        "person": { "type": "uri", "value": "http://www.wikidata.org/entity/Q99999002" },
+        "article": { "type": "uri", "value": "https://en.wikipedia.org/wiki/Fixture_Pat_Treasurer" },
+        "personLabel": { "xml:lang": "en", "type": "literal", "value": "Fixture Pat Treasurer" }
+      },
+      {
+        "person": { "type": "uri", "value": "http://www.wikidata.org/entity/Q99999003" },
+        "personLabel": { "type": "literal", "value": "Q99999003" }
+      }
+    ]
+  }
+}
