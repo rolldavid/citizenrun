@@ -3,11 +3,15 @@ import type { JSX } from 'react';
 
 import { SCREEN_FIXTURES } from '@/features/dev/screen-fixtures';
 import type { ScreenRegistryEntry, ScreenShell } from '@/features/dev/screen-fixtures';
-import { HelloScreenView, helloFixtures } from '@/features/hello';
+import { HomeScreenView, homeFixtures } from '@/features/feed';
 import {
+  AdultsOnlyScreenView,
+  AgreementsScreenView,
   NotFoundScreenView,
   RootLayoutScreenView,
   SystemUpdateScreenView,
+  adultsOnlyFixtures,
+  agreementsFixtures,
   systemUpdateFixtures,
 } from '@/features/system';
 import type { RootViewModel } from '@/features/system';
@@ -76,14 +80,38 @@ export function FixtureView({
   }
 }
 
-/** SCR-root-layout around a ready screen, with the update screen for the fixture that shows one. */
+/** The system screen a root fixture puts in the navigator's place, from that screen's own fixture. */
+function systemScreenOf(system: RootViewModel['system']): JSX.Element | null {
+  switch (system) {
+    case 'update':
+      return <SystemUpdateScreenView vm={systemUpdateFixtures.updateNoStore} />;
+    case 'adultsOnly':
+      return <AdultsOnlyScreenView vm={adultsOnlyFixtures.adultsOnly} />;
+    case 'agreements':
+    case 'suspended':
+    case null:
+      return null;
+    default:
+      return assertNever(system);
+  }
+}
+
+/**
+ * SCR-root-layout around Home, with the system screen its fixture names: over a hidden Home, or
+ * for the agreements, as a sheet over a Home that stays in view.
+ */
 export function RootLayoutFixtureView({ vm }: { vm: RootViewModel }): JSX.Element {
   return (
     <RootLayoutScreenView
       vm={vm}
-      systemScreen={<SystemUpdateScreenView vm={systemUpdateFixtures.updateNoStore} />}
+      systemScreen={systemScreenOf(vm.system)}
+      overlay={
+        vm.system === 'agreements' ? (
+          <AgreementsScreenView vm={agreementsFixtures.agreementsTerms} />
+        ) : null
+      }
     >
-      <HelloScreenView vm={helloFixtures.helloReady} />
+      <HomeScreenView vm={homeFixtures.homePlaceholder} />
     </RootLayoutScreenView>
   );
 }

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, screen } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { useEffect } from 'react';
 import type { JSX, ReactElement } from 'react';
 import { View } from 'react-native';
@@ -11,7 +11,7 @@ import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import { Screen } from '@/ui/components/screen';
 
-import { RootLayoutScreenView } from './root-layout-screen';
+import { RootLayoutScreenView, useRootNav } from './root-layout-screen';
 
 // react-native-safe-area-context 5.11.1 names its CommonJS build as `main`. The test resolver picks
 // that build, and it loads the phone's React Native; the module build is the one that runs on the web:
@@ -40,6 +40,8 @@ const FIXTURE_NAMES = [
   'rootAgreements',
 ] as const;
 
+const HOME_TITLE = 'Your feed starts here.';
+
 const NARROW = [360, 740] as const;
 const COMPACT = [390, 844] as const;
 const MEDIUM = [820, 1180] as const;
@@ -51,7 +53,7 @@ function sized(viewport: Viewport): void {
   setViewport(viewport[0], viewport[1]);
 }
 
-/** One fixture as the registry draws it: the layout around a ready screen, with the update screen. */
+/** One fixture as the registry draws it: the layout around Home, with the system screen it names. */
 function fixtureElement(name: (typeof FIXTURE_NAMES)[number]): ReactElement {
   const drawn = SCREEN_FIXTURES['root-layout']?.render(name) ?? null;
   if (drawn === null) {
@@ -69,10 +71,17 @@ function draw(
   return renderWithProviders(fixtureElement(name), options).container;
 }
 
+/** A probe for the system screen that takes the navigator's place, while the view-model names one. */
+function systemProbe(vm: RootViewModel): ReactElement | null {
+  return vm.system === 'update' || vm.system === 'adultsOnly' ? (
+    <View testID="probe.system" />
+  ) : null;
+}
+
 /** The layout around two probes: one stands for the root stack, the other for a system screen. */
 function probed(vm: RootViewModel): JSX.Element {
   return (
-    <RootLayoutScreenView vm={vm} systemScreen={<View testID="probe.system" />}>
+    <RootLayoutScreenView vm={vm} systemScreen={systemProbe(vm)} overlay={null}>
       <View testID="probe.stack" />
     </RootLayoutScreenView>
   );
@@ -89,11 +98,28 @@ function Held({ onMount }: { onMount: () => void }): JSX.Element {
 /** The layout around a screen of the app in place of the root stack, and a probe for a system screen. */
 function aroundScreen(vm: RootViewModel, onMount: () => void): JSX.Element {
   return (
-    <RootLayoutScreenView vm={vm} systemScreen={<View testID="probe.system" />}>
+    <RootLayoutScreenView vm={vm} systemScreen={systemProbe(vm)} overlay={null}>
       <Screen testID="probe.screen">
         <Held onMount={onMount} />
       </Screen>
     </RootLayoutScreenView>
+  );
+}
+
+/** Stands for the tab navigator's bar: it shows what the root layout hands it, and uses it. */
+function NavProbe(): JSX.Element {
+  const nav = useRootNav();
+  return (
+    <View
+      testID="probe.nav"
+      onClick={() => {
+        nav.onNavigate('profile');
+        nav.onReselect('home');
+      }}
+    >
+      <View testID="probe.nav-active">{nav.active}</View>
+      <View testID="probe.nav-activity">{nav.unreadActivity}</View>
+    </View>
   );
 }
 
@@ -125,7 +151,7 @@ describe('RootLayoutScreenView', () => {
     sized(COMPACT);
     draw('rootSignedOut');
     expect(screen.queryByTestId('shell.rail')).toBeNull();
-    expect(screen.getByTestId('hello.screen')).toBeTruthy();
+    expect(screen.getByTestId('feed.home')).toBeTruthy();
 
     sized(MEDIUM);
     draw('rootSignedOut');
@@ -143,20 +169,20 @@ describe('RootLayoutScreenView', () => {
     // One page: the shell's slot is the main landmark, and the screen's title its one heading.
     expect(screen.getAllByRole('main')).toHaveLength(1);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole('main').contains(screen.getByTestId('hello.screen'))).toBe(true);
+    expect(screen.getByRole('main').contains(screen.getByTestId('feed.home'))).toBe(true);
   });
 
   it('starting draws the shell and no screen', () => {
     sized(EXPANDED);
     draw('rootStarting');
     expect(screen.getByTestId('shell.rail')).toBeTruthy();
-    expect(screen.queryByTestId('hello.screen')).toBeNull();
+    expect(screen.queryByTestId('feed.home')).toBeNull();
     expect(screen.queryByTestId('system.update')).toBeNull();
     expect(screen.getByRole('main').textContent).toBe('');
 
     sized(COMPACT);
     draw('rootStarting');
-    expect(screen.queryByTestId('hello.screen')).toBeNull();
+    expect(screen.queryByTestId('feed.home')).toBeNull();
   });
 
   it('the update screen covers a hidden stack', () => {
@@ -167,7 +193,7 @@ describe('RootLayoutScreenView', () => {
       expect(screen.queryByTestId('shell.rail')).toBeNull();
       expect(screen.queryByTestId('shell.skip-link')).toBeNull();
       // The stack is still there, out of reach.
-      const stack = stackBox(screen.getByTestId('hello.screen'));
+      const stack = stackBox(screen.getByTestId('feed.home'));
       expect(stack.getAttribute('aria-hidden')).toBe('true');
       expect(window.getComputedStyle(stack).pointerEvents).toBe('none');
       expect(stack.contains(update)).toBe(false);
@@ -176,8 +202,128 @@ describe('RootLayoutScreenView', () => {
       expect(screen.getAllByRole('heading', { level: 1 })).toEqual([
         update.querySelector('[role="heading"], h1'),
       ]);
-      expect(screen.queryByRole('button', { name: 'Check again' })).toBeNull();
+      expect(screen.queryByRole('heading', { name: HOME_TITLE })).toBeNull();
     }
+  });
+
+  it('adults-only covers the stack', () => {
+    for (const viewport of [COMPACT, EXPANDED]) {
+      sized(viewport);
+      draw('rootAdultsOnly');
+      const adultsOnly = screen.getByTestId('system.adults-only');
+      expect(adultsOnly.textContent).toContain('This app is for adults.');
+      expect(screen.queryByTestId('shell.rail')).toBeNull();
+      // Home is still there under it, out of reach of touch and of a screen reader.
+      const stack = stackBox(screen.getByTestId('feed.home'));
+      expect(stack.getAttribute('aria-hidden')).toBe('true');
+      expect(window.getComputedStyle(stack).pointerEvents).toBe('none');
+      expect(stack.contains(adultsOnly)).toBe(false);
+      expect(adultsOnly.closest('[aria-hidden="true"]')).toBeNull();
+      expect(
+        screen.getAllByRole('heading', { level: 1 }).map((heading) => heading.textContent),
+      ).toEqual(['This app is for adults.']);
+      expect(screen.queryByTestId('system.agreements')).toBeNull();
+    }
+  });
+
+  it('agreements over a visible stack', () => {
+    sized(EXPANDED);
+    draw('rootAgreements');
+    const sheet = screen.getByTestId('system.agreements');
+    expect(sheet.textContent).toContain('We updated our terms.');
+    const home = screen.getByTestId('feed.home');
+    expect(within(home).getByText(HOME_TITLE)).toBeTruthy();
+    // The stack keeps its place and its chrome: the sheet is modal by itself.
+    const stack = stackBox(home);
+    expect(stack.getAttribute('aria-hidden')).not.toBe('true');
+    expect(window.getComputedStyle(stack).pointerEvents).not.toBe('none');
+    expect(stack.contains(sheet)).toBe(false);
+    expect(home.closest('[aria-hidden="true"]')).toBeNull();
+    expect(screen.getByTestId('shell.rail')).toBeTruthy();
+    expect(screen.getByTestId('shell.rail-home').getAttribute('aria-current')).toBe('page');
+    expect(screen.queryByTestId('system.adults-only')).toBeNull();
+    expect(screen.queryByTestId('system.update')).toBeNull();
+
+    sized(COMPACT);
+    draw('rootAgreements');
+    expect(screen.getByTestId('system.agreements')).toBeTruthy();
+    expect(stackBox(screen.getByTestId('feed.home')).getAttribute('aria-hidden')).not.toBe('true');
+  });
+
+  it('draws what it is handed and nothing of its own choosing', () => {
+    sized(EXPANDED);
+    cleanup();
+    // The view-model names the agreements; the layout draws only the overlay it is given.
+    const view = renderWithProviders(
+      <RootLayoutScreenView vm={fixtures.rootAgreements} systemScreen={null} overlay={null}>
+        <View testID="probe.stack" />
+      </RootLayoutScreenView>,
+    );
+    const stack = screen.getByTestId('probe.stack');
+    expect(stackBox(stack).nextElementSibling).toBeNull();
+    expect(screen.getByTestId('shell.rail')).toBeTruthy();
+
+    view.rerender(
+      <RootLayoutScreenView
+        vm={fixtures.rootAgreements}
+        systemScreen={null}
+        overlay={<View testID="probe.overlay" />}
+      >
+        <View testID="probe.stack" />
+      </RootLayoutScreenView>,
+    );
+    // After the stack, with no cover around it, and the stack is the one that was there.
+    expect(stackBox(screen.getByTestId('probe.stack')).nextElementSibling).toBe(
+      screen.getByTestId('probe.overlay'),
+    );
+    expect(screen.getByTestId('probe.stack')).toBe(stack);
+    expect(stackBox(stack).getAttribute('aria-hidden')).not.toBe('true');
+    expect(screen.getByTestId('shell.rail')).toBeTruthy();
+  });
+
+  it('the tab values reach the provider', () => {
+    sized(COMPACT);
+    const chosen: string[] = [];
+    const vm: RootViewModel = {
+      ...fixtures.rootSignedIn,
+      shell: { ...fixtures.rootSignedIn.shell, unread: { messages: 0, activity: 3 } },
+      onNavigate: (item: NavItem) => chosen.push(`navigate ${item}`),
+      onReselect: (item: NavItem) => chosen.push(`reselect ${item}`),
+    };
+    cleanup();
+    const view = renderWithProviders(
+      <RootLayoutScreenView vm={vm} systemScreen={null} overlay={null}>
+        <NavProbe />
+      </RootLayoutScreenView>,
+    );
+    expect(screen.getByTestId('probe.nav-active').textContent).toBe(
+      fixtures.rootSignedIn.shell.active,
+    );
+    expect(screen.getByTestId('probe.nav-activity').textContent).toBe('3');
+    fireEvent.click(screen.getByTestId('probe.nav'));
+    expect(chosen).toEqual(['navigate profile', 'reselect home']);
+
+    // A pushed route with no tab under it has no active item, and the count follows the view-model.
+    view.rerender(
+      <RootLayoutScreenView
+        vm={{ ...vm, shell: { ...vm.shell, active: null, unread: { messages: 0, activity: 0 } } }}
+        systemScreen={null}
+        overlay={null}
+      >
+        <NavProbe />
+      </RootLayoutScreenView>,
+    );
+    expect(screen.getByTestId('probe.nav-active').textContent).toBe('');
+    expect(screen.getByTestId('probe.nav-activity').textContent).toBe('0');
+  });
+
+  it('the tab values are read inside the root layout only', () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    cleanup();
+    expect(() => renderWithProviders(<NavProbe />)).toThrow(
+      'useRootNav is read outside the root layout',
+    );
+    logged.mockRestore();
   });
 
   it('the stack stays mounted under a system screen that comes and goes', () => {

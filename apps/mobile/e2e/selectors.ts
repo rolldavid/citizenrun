@@ -144,11 +144,21 @@ export const SELECTORS = {
     aboutTerms: 'settings.about-terms',
     aboutContentPolicy: 'settings.about-content-policy',
   },
+  feed: {
+    home: 'feed.home',
+    placeholder: 'feed.placeholder',
+  },
   system: {
     adultsOnly: 'system.adults-only',
     adultsOnlyClose: 'system.adults-only-close',
     stateUnavailable: 'system.state-unavailable',
     stateUnavailableBrowse: 'system.state-unavailable-browse',
     stateUnavailableDelete: 'system.state-unavailable-delete',
+    agreements: 'system.agreements',
+    agreementsTerms: 'system.agreements-terms',
+    agreementsPolicy: 'system.agreements-policy',
+    agreementsPrivacy: 'system.agreements-privacy',
+    agreementsDelete: 'system.agreements-delete',
+    agreementsAgree: 'system.agreements-agree',
   },
 } as const;

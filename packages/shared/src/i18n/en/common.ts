@@ -4,6 +4,7 @@ export const common = {
   aboutValue: 'about {{value}}',
   documentTitle: '{{title}} · {{appName}}',
   close: 'Close',
+  ok: 'OK',
   save: 'Save',
   cancel: 'Cancel',
   notFound: { title: 'Page not found | {{appName}}' },

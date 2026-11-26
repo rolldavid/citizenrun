@@ -180,6 +180,11 @@ async function addEmailCodeAtRest(page: Page): Promise<void> {
   await addEmailSheetAtRest(page);
 }
 
+/** The agreements sheet has faded in and, on a phone, risen to where it rests. */
+async function agreementsSheetAtRest(page: Page): Promise<void> {
+  await layerAtRest(page.getByTestId('system.agreements'));
+}
+
 /** The dialog that confirms an account's deletion has faded in. */
 async function deleteDialogAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('settings.delete-dialog'));
@@ -991,6 +996,17 @@ export const SCREENS: ScreenEntry[] = [
   },
   { id: 'root-layout-root-update', path: '/dev/screens/root-layout/rootUpdate', auth: 'none' },
   {
+    id: 'root-layout-root-adults-only',
+    path: '/dev/screens/root-layout/rootAdultsOnly',
+    auth: 'none',
+  },
+  {
+    id: 'root-layout-root-agreements',
+    path: '/dev/screens/root-layout/rootAgreements',
+    auth: 'none',
+    prepare: agreementsSheetAtRest,
+  },
+  {
     id: 'not-found-not-found-default',
     path: '/dev/screens/not-found/notFoundDefault',
     auth: 'none',
@@ -1409,6 +1425,33 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/system-unavailable-in-state/stateUnavailableGeneric',
     auth: 'none',
   },
+  // The agreements sheet, captured once it is where it rests.
+  {
+    id: 'system-agreements-agreements-terms',
+    path: '/dev/screens/system-agreements/agreementsTerms',
+    auth: 'none',
+    prepare: agreementsSheetAtRest,
+  },
+  {
+    id: 'system-agreements-agreements-privacy-only',
+    path: '/dev/screens/system-agreements/agreementsPrivacyOnly',
+    auth: 'none',
+    prepare: agreementsSheetAtRest,
+  },
+  {
+    id: 'system-agreements-agreements-saving',
+    path: '/dev/screens/system-agreements/agreementsSaving',
+    auth: 'none',
+    prepare: agreementsSheetAtRest,
+  },
+  {
+    id: 'system-agreements-agreements-error',
+    path: '/dev/screens/system-agreements/agreementsError',
+    auth: 'none',
+    prepare: agreementsSheetAtRest,
+  },
+  // Home before anything fills it. The fixture route has no tab navigator, so no tab bar is drawn.
+  { id: 'home-home-placeholder', path: '/dev/screens/home/homePlaceholder', auth: 'none' },
   // The settings screens, in the app's shell with Profile active. A sheet or a dialog is captured
   // once it is where it rests; the issues screen's limit lines and its tight layout are drawn as
   // the sign-up step's are.

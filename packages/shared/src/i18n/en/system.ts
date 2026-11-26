@@ -17,6 +17,14 @@ export const system = {
   adultsOnly: {
     title: 'This app is for adults.',
   },
+  agreements: {
+    title: 'We updated our terms.',
+    body: 'Read the <terms>Terms</terms>, the <policy>Content policy</policy> and the <privacy>Privacy policy</privacy>. Tap Agree to keep using {{appName}}.',
+    agree: 'Agree',
+    privacyTitle: 'We updated the privacy policy.',
+    privacyBody: 'Read the <privacy>Privacy policy</privacy>. Tap OK to keep using {{appName}}.',
+    leave: 'If you do not agree, you can <delete>delete your account</delete>.',
+  },
   stateUnavailable: {
     title: '{{appName}} is not available in {{state}} yet.',
     titleGeneric: '{{appName}} is not available where you live yet.',

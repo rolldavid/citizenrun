@@ -4,6 +4,7 @@ import { BRAND } from '../brand.ts';
 import { auth } from './en/auth.ts';
 import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
+import { feed } from './en/feed.ts';
 import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
 import { system } from './en/system.ts';
@@ -27,6 +28,7 @@ export const RESOURCES = {
     onboarding,
     settings,
     profile,
+    feed,
   },
 } as const;
 
@@ -41,6 +43,7 @@ export const NAMESPACES = [
   'onboarding',
   'settings',
   'profile',
+  'feed',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];

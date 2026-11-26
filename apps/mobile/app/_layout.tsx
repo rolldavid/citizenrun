@@ -6,12 +6,16 @@ import {
   useSegments,
 } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import { I18nextProvider } from 'react-i18next';
 
 import {
+  AdultsOnlyScreen,
+  AgreementsScreen,
   RootLayoutScreenView,
   SystemErrorScreenView,
   SystemUpdateScreen,
+  useNavigationGuard,
   useRootViewModel,
 } from '@/features/system';
 import { routePattern } from '@/lib/client-errors';
@@ -26,12 +30,24 @@ import { useNavigatorTheme } from '@/ui/shells/navigator-theme';
 import { ShortcutProvider } from '@/ui/shortcuts';
 import { ThemeProvider } from '@/ui/theme';
 
-// The native splash stays up until the root view-model hides it.
+// The native splash stays up until storage and the session have been read.
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const segments = useSegments();
   const vm = useRootViewModel();
+  // D-195
+  useEffect(() => {
+    if (vm.boot === 'ready') void SplashScreen.hideAsync();
+  }, [vm.boot]);
+  // One system screen at a time: two take the navigator's place, and the third is a sheet over it.
+  const systemScreen =
+    vm.system === 'update' ? (
+      <SystemUpdateScreen />
+    ) : vm.system === 'adultsOnly' ? (
+      <AdultsOnlyScreen />
+    ) : null;
+  const overlay = vm.system === 'agreements' ? <AgreementsScreen /> : null;
   return (
     <RootErrorBoundary
       route={routePattern(segments)}
@@ -43,7 +59,8 @@ export default function RootLayout() {
             <FontsProvider ready={vm.fontsReady}>
               <ShortcutProvider subscribeKeyDown={subscribeKeyDown}>
                 <ToastHost>
-                  <RootLayoutScreenView vm={vm} systemScreen={<SystemUpdateScreen />}>
+                  <RootLayoutScreenView vm={vm} systemScreen={systemScreen} overlay={overlay}>
+                    <NavigationGuard />
                     <RootStack />
                   </RootLayoutScreenView>
                 </ToastHost>
@@ -54,6 +71,12 @@ export default function RootLayout() {
       </I18nextProvider>
     </RootErrorBoundary>
   );
+}
+
+/** Turns the guard's redirects on. It reads the query cache and the router, so it stands inside both. */
+function NavigationGuard(): null {
+  useNavigationGuard();
+  return null;
 }
 
 /**
