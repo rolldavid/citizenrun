@@ -6,7 +6,9 @@ import type { ErrorCode, ErrorEnvelope, FieldCode } from '@citizenrun/shared';
 import type { Deps } from '../deps.ts';
 import { JSON_CONTENT_TYPE } from '../respond.ts';
 import type { ApiEnv as RouterEnv } from '../router.ts';
+import { appleReturnLocation } from '../services/auth/apple-callback.ts';
 import { isV1Path } from './route-meta.ts';
+import type { RouteMetaIndex } from './route-meta.ts';
 
 const PLAIN_TEXT = 'text/plain; charset=utf-8';
 const NO_STORE = 'no-store';
@@ -23,6 +25,16 @@ const PLAIN_TEXT_BODIES: Readonly<Record<number, string>> = {
 };
 
 type Mapped = { code: ErrorCode; fields: Readonly<Record<string, FieldCode>> };
+
+// The registry codes E-AUTH-05 redirects with as themselves; every other error becomes `unavailable`.
+const REDIRECT_REASONS: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
+  'rate_limited',
+  'invalid_request',
+  'account_deleting',
+  'signup_limit_reached',
+  'unavailable',
+  'provider_not_configured',
+]);
 
 // The class an error is logged under; 'Error' when its name is not an identifier or cannot be read.
 function errorClassOf(error: Error): string {
@@ -91,13 +103,36 @@ function answer(
   return c.text(body, status, { 'Content-Type': PLAIN_TEXT });
 }
 
+// The reason an `errorRedirect` route redirects with for an error (L-route-meta).
+function redirectReason(error: Error): string {
+  if (!(error instanceof ApiError)) {
+    return 'unavailable';
+  }
+  if (error.code === 'payload_too_large') {
+    return 'invalid_request';
+  }
+  return REDIRECT_REASONS.has(error.code) ? error.code : 'unavailable';
+}
+
+// A route marked `errorRedirect` (E-AUTH-05) answers every error with its redirect: no body and
+// never a JSON envelope.
+function redirect(deps: Deps, c: Context<RouterEnv>, code: ErrorCode, error: Error): Response {
+  c.set('errorCode', code);
+  c.header('Cache-Control', NO_STORE);
+  return c.redirect(appleReturnLocation(deps.env, { error: redirectReason(error) }), 302);
+}
+
 /**
  * The one error handler (L-error-registry): the envelope with the registry's status and fixed
- * message on `/v1`, a fixed plain-text body elsewhere; never user input, SQL, an id or a stack.
+ * message on `/v1`, a fixed plain-text body elsewhere; never user input, SQL, an id or a stack. A
+ * route whose metadata in `index` has `errorRedirect` gets its redirect instead.
  */
-export function handleError(deps: Deps): ErrorHandler<RouterEnv> {
+export function handleError(deps: Deps, index?: RouteMetaIndex): ErrorHandler<RouterEnv> {
   return (error, c) => {
     const mapped = mapError(deps, error, c);
+    if (index?.match(c)?.errorRedirect === true) {
+      return redirect(deps, c, mapped.code, error);
+    }
     return answer(c, mapped.code, mapped.fields, retryAfterOf(error, c));
   };
 }

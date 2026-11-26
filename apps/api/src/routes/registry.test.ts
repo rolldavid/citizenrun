@@ -12,7 +12,11 @@ import { createUnitDeps } from '../testing/unit-deps.ts';
 // The /v1 paths that may be registered without being an operation of the document (D-438).
 const REGISTRATION_EXEMPT_PATHS: readonly string[] = ['/v1/ws'];
 // The operations marked `clientHeader: 'exempt'`; each is in L-client-version's list of exempt routes.
-const CLIENT_HEADER_EXEMPT_OPERATIONS: readonly string[] = ['getOpenApiDocument'];
+const CLIENT_HEADER_EXEMPT_OPERATIONS: readonly string[] = [
+  'getOpenApiDocument',
+  'appleSignInCallback',
+  'receiveAppleNotification',
+];
 const AUTH_LEVELS: readonly string[] = ['none', 'optional', 'user', 'onboarded', 'admin'];
 // INV-40: names that would put a sensitive value in a URL.
 const SENSITIVE_PARAMETERS: readonly string[] = ['lat', 'lng', 'near', 'address', 'code', 'token'];

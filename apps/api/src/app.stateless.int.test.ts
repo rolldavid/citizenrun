@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { signIn } from './testing/auth.ts';
 import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
+import { FakeIdentityProviders } from './testing/fakes/identity.ts';
 
 // INV-15: two instances over one database keep nothing in process but the per-replica memory
 // counters and the web export read at start; sessions and per-user limits live in Postgres.
@@ -194,5 +195,35 @@ describe('a stateless API', () => {
       body: validReport(),
     });
     expect(onA.status).toBe(204);
+  });
+
+  it('a nonce issued by A is consumed by B and refused on a second use', async () => {
+    const clock = new FakeClock();
+    const identity = new FakeIdentityProviders(clock);
+    const env = identity.appleEnv();
+    const a = await createTestApp({ clock, identity, env });
+    const b = await createTestApp({ clock, identity, env });
+    const issued = await a.request.post('/v1/auth/nonce', { ip: freshIp(), body: {} });
+    expect(issued.status).toBe(200);
+    const { nonce, nonceHash } = await issued.json<{ nonce: string; nonceHash: string }>();
+    const body = {
+      idToken: await identity.appleIdToken({ nonce: nonceHash, sub: '000123.stateless' }),
+      code: null,
+      nonce,
+      signup: {
+        age: { method: 'self_declared', sourceTier: 'self' },
+        agreements: {
+          termsVersion: LEGAL_VERSIONS.terms,
+          contentPolicyVersion: LEGAL_VERSIONS.content_policy,
+          privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
+        },
+        aiScreening: null,
+      },
+    };
+    const onB = await b.request.post('/v1/auth/apple', { ip: freshIp(), body });
+    expect(onB.status).toBe(200);
+    const onA = await a.request.post('/v1/auth/apple', { ip: freshIp(), body });
+    expect(onA.status).toBe(422);
+    expect((await onA.json<{ error: { code: string } }>()).error.code).toBe('nonce_invalid');
   });
 });

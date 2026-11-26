@@ -21,8 +21,12 @@ import { mountConventionTestRoutes } from './test-routes.ts';
 // `serves the shell` and `dev routes are gated` in web/shell.int.test.ts.
 
 const OPENAPI_FILE = resolve(import.meta.dirname, '../../openapi.json');
-// The one operation that needs no client header (L-client-version).
-const CLIENT_HEADER_EXEMPT_OPERATIONS: readonly string[] = ['getOpenApiDocument'];
+// The operations that need no client header, in registration order (L-client-version).
+const CLIENT_HEADER_EXEMPT_OPERATIONS: readonly string[] = [
+  'appleSignInCallback',
+  'receiveAppleNotification',
+  'getOpenApiDocument',
+];
 const HSTS = 'max-age=31536000; includeSubDomains';
 const STATIC_FILE = '/favicon.ico';
 const DEPLOYED_FIXTURE_VALUES = {

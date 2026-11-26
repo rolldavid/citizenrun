@@ -10,12 +10,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AppleCallbackForm,
+  AppleHandoffBody,
+  AppleNotificationBody,
   CreateAuthNonceBody,
   EmailStartResult,
   ErrorEnvelope,
   LogoutBody,
   NonceResult,
+  ReceiveAppleNotificationResponse,
   SessionInfo,
+  SignInWithAppleBody,
+  SignInWithGoogleBody,
   StartEmailSignInBody,
   VerifyEmailSignInBody,
 } from '../model';
@@ -58,6 +64,341 @@ const getHeaders = (
   >;
 };
 
+export const getSignInWithAppleUrl = () => {
+  return `/v1/auth/apple`;
+};
+
+export const signInWithApple = async (
+  signInWithAppleBody: SignInWithAppleBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<SessionInfo> => {
+  return apiFetch<SessionInfo>(getSignInWithAppleUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(signInWithAppleBody),
+  });
+};
+
+export const getSignInWithAppleMutationKey = () => ['signInWithApple'] as const;
+
+export const getSignInWithAppleMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signInWithApple>>,
+    TError,
+    SignInWithAppleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signInWithApple>>,
+  TError,
+  SignInWithAppleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSignInWithAppleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signInWithApple>>,
+    SignInWithAppleMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return signInWithApple(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignInWithAppleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signInWithApple>>
+>;
+export type SignInWithAppleMutationBody = SignInWithAppleBody;
+export type SignInWithAppleMutationError = ErrorType<ErrorEnvelope>;
+export type SignInWithAppleMutationVariables = { data: SignInWithAppleBody };
+
+export const useSignInWithApple = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof signInWithApple>>,
+      TError,
+      SignInWithAppleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof signInWithApple>>,
+  TError,
+  SignInWithAppleMutationVariables,
+  TContext
+> => {
+  return useMutation(getSignInWithAppleMutationOptions(options), queryClient);
+};
+export const getAppleSignInCallbackUrl = () => {
+  return `/v1/auth/apple/callback`;
+};
+
+export const appleSignInCallback = async (
+  appleCallbackForm: AppleCallbackForm,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<unknown> => {
+  const formUrlEncoded = new URLSearchParams();
+  formUrlEncoded.append(`state`, appleCallbackForm.state);
+  if (appleCallbackForm.code !== undefined) {
+    formUrlEncoded.append(`code`, appleCallbackForm.code);
+  }
+  if (appleCallbackForm.id_token !== undefined) {
+    formUrlEncoded.append(`id_token`, appleCallbackForm.id_token);
+  }
+  if (appleCallbackForm.user !== undefined) {
+    formUrlEncoded.append(`user`, appleCallbackForm.user);
+  }
+  if (appleCallbackForm.error !== undefined) {
+    formUrlEncoded.append(`error`, appleCallbackForm.error);
+  }
+
+  return apiFetch<unknown>(getAppleSignInCallbackUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }, options?.headers),
+    body: formUrlEncoded,
+  });
+};
+
+export const getAppleSignInCallbackMutationKey = () => ['appleSignInCallback'] as const;
+
+export const getAppleSignInCallbackMutationOptions = <
+  TError = ErrorType<void>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appleSignInCallback>>,
+    TError,
+    AppleSignInCallbackMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof appleSignInCallback>>,
+  TError,
+  AppleSignInCallbackMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAppleSignInCallbackMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof appleSignInCallback>>,
+    AppleSignInCallbackMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return appleSignInCallback(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AppleSignInCallbackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof appleSignInCallback>>
+>;
+export type AppleSignInCallbackMutationBody = AppleCallbackForm;
+export type AppleSignInCallbackMutationError = ErrorType<void>;
+export type AppleSignInCallbackMutationVariables = { data: AppleCallbackForm };
+
+export const useAppleSignInCallback = <TError = ErrorType<void>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof appleSignInCallback>>,
+      TError,
+      AppleSignInCallbackMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof appleSignInCallback>>,
+  TError,
+  AppleSignInCallbackMutationVariables,
+  TContext
+> => {
+  return useMutation(getAppleSignInCallbackMutationOptions(options), queryClient);
+};
+export const getAppleSignInHandoffUrl = () => {
+  return `/v1/auth/apple/handoff`;
+};
+
+export const appleSignInHandoff = async (
+  appleHandoffBody: AppleHandoffBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<SessionInfo> => {
+  return apiFetch<SessionInfo>(getAppleSignInHandoffUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(appleHandoffBody),
+  });
+};
+
+export const getAppleSignInHandoffMutationKey = () => ['appleSignInHandoff'] as const;
+
+export const getAppleSignInHandoffMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof appleSignInHandoff>>,
+    TError,
+    AppleSignInHandoffMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof appleSignInHandoff>>,
+  TError,
+  AppleSignInHandoffMutationVariables,
+  TContext
+> => {
+  const mutationKey = getAppleSignInHandoffMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof appleSignInHandoff>>,
+    AppleSignInHandoffMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return appleSignInHandoff(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AppleSignInHandoffMutationResult = NonNullable<
+  Awaited<ReturnType<typeof appleSignInHandoff>>
+>;
+export type AppleSignInHandoffMutationBody = AppleHandoffBody;
+export type AppleSignInHandoffMutationError = ErrorType<ErrorEnvelope>;
+export type AppleSignInHandoffMutationVariables = { data: AppleHandoffBody };
+
+export const useAppleSignInHandoff = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof appleSignInHandoff>>,
+      TError,
+      AppleSignInHandoffMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof appleSignInHandoff>>,
+  TError,
+  AppleSignInHandoffMutationVariables,
+  TContext
+> => {
+  return useMutation(getAppleSignInHandoffMutationOptions(options), queryClient);
+};
+export const getReceiveAppleNotificationUrl = () => {
+  return `/v1/auth/apple/notifications`;
+};
+
+export const receiveAppleNotification = async (
+  appleNotificationBody: AppleNotificationBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<ReceiveAppleNotificationResponse> => {
+  return apiFetch<ReceiveAppleNotificationResponse>(getReceiveAppleNotificationUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(appleNotificationBody),
+  });
+};
+
+export const getReceiveAppleNotificationMutationKey = () => ['receiveAppleNotification'] as const;
+
+export const getReceiveAppleNotificationMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof receiveAppleNotification>>,
+    TError,
+    ReceiveAppleNotificationMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof receiveAppleNotification>>,
+  TError,
+  ReceiveAppleNotificationMutationVariables,
+  TContext
+> => {
+  const mutationKey = getReceiveAppleNotificationMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof receiveAppleNotification>>,
+    ReceiveAppleNotificationMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return receiveAppleNotification(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ReceiveAppleNotificationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof receiveAppleNotification>>
+>;
+export type ReceiveAppleNotificationMutationBody = AppleNotificationBody;
+export type ReceiveAppleNotificationMutationError = ErrorType<ErrorEnvelope>;
+export type ReceiveAppleNotificationMutationVariables = { data: AppleNotificationBody };
+
+export const useReceiveAppleNotification = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof receiveAppleNotification>>,
+      TError,
+      ReceiveAppleNotificationMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof receiveAppleNotification>>,
+  TError,
+  ReceiveAppleNotificationMutationVariables,
+  TContext
+> => {
+  return useMutation(getReceiveAppleNotificationMutationOptions(options), queryClient);
+};
 export const getStartEmailSignInUrl = () => {
   return `/v1/auth/email/start`;
 };
@@ -217,6 +558,86 @@ export const useVerifyEmailSignIn = <TError = ErrorType<ErrorEnvelope>, TContext
   TContext
 > => {
   return useMutation(getVerifyEmailSignInMutationOptions(options), queryClient);
+};
+export const getSignInWithGoogleUrl = () => {
+  return `/v1/auth/google`;
+};
+
+export const signInWithGoogle = async (
+  signInWithGoogleBody: SignInWithGoogleBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<SessionInfo> => {
+  return apiFetch<SessionInfo>(getSignInWithGoogleUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(signInWithGoogleBody),
+  });
+};
+
+export const getSignInWithGoogleMutationKey = () => ['signInWithGoogle'] as const;
+
+export const getSignInWithGoogleMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof signInWithGoogle>>,
+    TError,
+    SignInWithGoogleMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof signInWithGoogle>>,
+  TError,
+  SignInWithGoogleMutationVariables,
+  TContext
+> => {
+  const mutationKey = getSignInWithGoogleMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof signInWithGoogle>>,
+    SignInWithGoogleMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return signInWithGoogle(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SignInWithGoogleMutationResult = NonNullable<
+  Awaited<ReturnType<typeof signInWithGoogle>>
+>;
+export type SignInWithGoogleMutationBody = SignInWithGoogleBody;
+export type SignInWithGoogleMutationError = ErrorType<ErrorEnvelope>;
+export type SignInWithGoogleMutationVariables = { data: SignInWithGoogleBody };
+
+export const useSignInWithGoogle = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof signInWithGoogle>>,
+      TError,
+      SignInWithGoogleMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof signInWithGoogle>>,
+  TError,
+  SignInWithGoogleMutationVariables,
+  TContext
+> => {
+  return useMutation(getSignInWithGoogleMutationOptions(options), queryClient);
 };
 export const getLogoutUrl = () => {
   return `/v1/auth/logout`;

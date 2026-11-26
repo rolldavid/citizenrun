@@ -81,7 +81,7 @@ export function createApp(deps: Deps, options: AppOptions = {}): OpenAPIHono<Rou
   options.extraRoutes?.(app);
 
   index.load(app);
-  app.onError(handleError(deps));
+  app.onError(handleError(deps, index));
   app.notFound(notFound(deps));
   return app;
 }

@@ -49,6 +49,76 @@
           "checkedAt"
         ]
       },
+      "AppleCallbackForm": {
+        "type": "object",
+        "properties": {
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "id_token": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "user": {
+            "type": "string",
+            "maxLength": 1024
+          },
+          "error": {
+            "type": "string",
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "state"
+        ]
+      },
+      "AppleHandoffBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "nonce": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "sign_in",
+              "reauth"
+            ],
+            "default": "sign_in"
+          },
+          "signup": {
+            "$ref": "#/components/schemas/SignupDetails"
+          }
+        },
+        "required": [
+          "code",
+          "nonce"
+        ]
+      },
+      "AppleNotificationBody": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        },
+        "required": [
+          "payload"
+        ]
+      },
       "ClientErrorFrame": {
         "type": "object",
         "properties": {
@@ -656,6 +726,10 @@
           "worker"
         ]
       },
+      "ReceiveAppleNotificationResponse": {
+        "type": "object",
+        "properties": {}
+      },
       "SessionInfo": {
         "type": "object",
         "properties": {
@@ -712,6 +786,96 @@
           "authenticatedAt",
           "expiresAt",
           "sensitiveActionsUntil"
+        ]
+      },
+      "SignInWithAppleBody": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "nonce": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "name": {
+            "type": "object",
+            "properties": {
+              "givenName": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 100
+              },
+              "familyName": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 100
+              }
+            },
+            "required": [
+              "givenName",
+              "familyName"
+            ]
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "sign_in",
+              "reauth"
+            ],
+            "default": "sign_in"
+          },
+          "signup": {
+            "$ref": "#/components/schemas/SignupDetails"
+          }
+        },
+        "required": [
+          "idToken",
+          "code",
+          "nonce"
+        ]
+      },
+      "SignInWithGoogleBody": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "nonce": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "sign_in",
+              "reauth"
+            ],
+            "default": "sign_in"
+          },
+          "signup": {
+            "$ref": "#/components/schemas/SignupDetails"
+          }
+        },
+        "required": [
+          "idToken",
+          "nonce"
         ]
       },
       "SignupDetails": {
@@ -1007,6 +1171,374 @@
         }
       }
     },
+    "/v1/auth/apple": {
+      "post": {
+        "operationId": "signInWithApple",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "auth.token",
+          "public": true,
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "account_deleting",
+          "unavailable_in_state",
+          "age_signal_required",
+          "reauth_mismatch",
+          "identity_token_invalid",
+          "nonce_invalid",
+          "signup_details_required",
+          "consent_version_outdated",
+          "rate_limited",
+          "signup_limit_reached",
+          "provider_not_configured"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInWithAppleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; on the web the session cookie is set and the token is null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The intent needs a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the sign-in is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The intent conflicts with the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The token, the nonce or the sign-up details cannot be used.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests or sign-ups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Apple sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/apple/callback": {
+      "post": {
+        "operationId": "appleSignInCallback",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "auth.appleCallback",
+          "public": true,
+          "clientHeader": "exempt",
+          "originCheck": "exempt",
+          "bodyLimitBytes": 16384,
+          "errorRedirect": true
+        },
+        "x-errors": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleCallbackForm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "302": {
+            "description": "Back to the app: a hand-off code and the state on success, an error reason otherwise.",
+            "headers": {
+              "Location": {
+                "description": "The app's return URL on the scheme of the brand variant.",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Cache-Control": {
+                "description": "Always no-store.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/apple/handoff": {
+      "post": {
+        "operationId": "appleSignInHandoff",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "auth.token",
+          "public": true,
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "account_deleting",
+          "reauth_mismatch",
+          "handoff_invalid",
+          "signup_details_required",
+          "consent_version_outdated",
+          "unavailable_in_state",
+          "age_signal_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleHandoffBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; the session token is in the body.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The intent needs a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The sign-in is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The intent conflicts with the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The hand-off code or the sign-up details cannot be used.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/apple/notifications": {
+      "post": {
+        "operationId": "receiveAppleNotification",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "auth.appleNotify",
+          "public": true,
+          "clientHeader": "exempt",
+          "originCheck": "exempt"
+        },
+        "x-errors": [
+          "invalid_request",
+          "signature_invalid",
+          "rate_limited",
+          "provider_not_configured"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleNotificationBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The notice was received; an unknown subject changes nothing.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiveAppleNotificationResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The body is not valid or its signature does not verify.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Apple sign-in is not configured.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/auth/email/start": {
       "post": {
         "operationId": "startEmailSignIn",
@@ -1213,6 +1745,137 @@
           },
           "429": {
             "description": "Too many requests or sign-ups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/google": {
+      "post": {
+        "operationId": "signInWithGoogle",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "auth.token",
+          "public": true,
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "account_deleting",
+          "unavailable_in_state",
+          "age_signal_required",
+          "reauth_mismatch",
+          "identity_token_invalid",
+          "nonce_invalid",
+          "signup_details_required",
+          "consent_version_outdated",
+          "rate_limited",
+          "signup_limit_reached",
+          "provider_not_configured"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignInWithGoogleBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; on the web the session cookie is set and the token is null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The intent needs a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the sign-in is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The intent conflicts with the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The token, the nonce or the sign-up details cannot be used.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests or sign-ups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Google sign-in is not configured.",
             "content": {
               "application/json": {
                 "schema": {
