@@ -8,7 +8,8 @@ import type { ChildProcess } from 'node:child_process';
 import { spawn } from 'node:child_process';
 import { randomInt } from 'node:crypto';
 import { existsSync, realpathSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { createS3Client, ensureBucket } from '@citizenrun/shared/storage';
@@ -52,6 +53,15 @@ const LOCAL_APP_SECRET = '0'.repeat(64);
 
 /** The only variables of the calling shell a child receives; no owner value is among them. */
 const PASSED_THROUGH = ['PATH', 'HOME', 'TMPDIR', 'TZ', 'LANG', 'NODE_OPTIONS'] as const;
+
+/** Where the seeded stack writes the facts journeys read (TC-33); git-ignored. */
+const SEED_FACTS_FILE = 'apps/mobile/e2e/.stack/seed-facts.json';
+
+/**
+ * The seed facts: each key's value is the one JSON value its statement returns on the seeded
+ * database, read after the seed (TC-33). None is needed yet, so the file holds `{}`.
+ */
+export const SEED_FACTS: readonly { key: string; sql: string }[] = [];
 
 const BUILT_FILES = [
   'apps/mobile/dist/index.html',
@@ -232,11 +242,36 @@ export function stackEnv(input: {
   };
 }
 
-/** Runs one statement with psql on the server's admin database; resolves with its output. */
-async function psql(root: string, base: Env, sql: string): Promise<string> {
+/**
+ * The seed run's environment: the migration runner's, plus the seeded stack's media bucket on the
+ * compose store, the bucket its API serves, where the seed writes its placeholder images.
+ */
+export function seedEnv(base: Env): Record<string, string> {
+  return {
+    ...passedThrough(base),
+    DATABASE_URL: stackDatabaseUrl('seeded', base),
+    APP_ENV: 'ci',
+    NODE_ENV: 'production',
+    ...bucketSet('MEDIA', stackBuckets('seeded').media, stackStoreEndpoint(base)),
+    S3_FORCE_PATH_STYLE: 'true',
+  };
+}
+
+/** Runs one statement with psql on the server's admin database, or on `database` when given; resolves with its output. */
+async function psql(root: string, base: Env, sql: string, database?: string): Promise<string> {
   const result = await run(
     'psql',
-    [stackServerUrl(base).href, '-X', '-q', '-A', '-t', '-v', 'ON_ERROR_STOP=1', '-c', sql],
+    [
+      database ?? stackServerUrl(base).href,
+      '-X',
+      '-q',
+      '-A',
+      '-t',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-c',
+      sql,
+    ],
     { cwd: root, env: passedThrough(base) },
   );
   if (result.code !== 0) {
@@ -282,13 +317,27 @@ async function migrateAndSeed(root: string, mode: StackMode, base: Env): Promise
   if (mode === 'seeded') {
     const seed = await run('pnpm', ['--filter', '@citizenrun/db', 'run', 'seed'], {
       cwd: root,
-      env,
+      env: seedEnv(base),
       inherit: true,
     });
     if (seed.code !== 0) {
       throw stackError(`the seed exited ${String(seed.code)}`);
     }
   }
+}
+
+/** Writes the seeded stack's facts file from SEED_FACTS, run on its database. */
+async function writeSeedFacts(root: string, base: Env): Promise<void> {
+  const facts: Record<string, unknown> = {};
+  for (const fact of SEED_FACTS) {
+    const output = await psql(root, base, fact.sql, stackDatabaseUrl('seeded', base));
+    const value: unknown = output === '' ? null : JSON.parse(output);
+    facts[fact.key] = value;
+  }
+  const file = join(root, SEED_FACTS_FILE);
+  await mkdir(dirname(file), { recursive: true });
+  await writeFile(file, `${JSON.stringify(facts, null, 2)}\n`);
+  console.log(`e2e-stack: wrote ${SEED_FACTS_FILE}`);
 }
 
 /** Creates the stack's four buckets when missing and sets the media bucket's CORS rule. */
@@ -411,8 +460,12 @@ export async function main(argv: readonly string[]): Promise<number> {
       );
     }
     await prepareDatabase(root, args.mode, base);
-    await migrateAndSeed(root, args.mode, base);
+    // The seed writes its placeholder images to the media bucket, so the buckets come first.
     await prepareBuckets(args.mode, base);
+    await migrateAndSeed(root, args.mode, base);
+    if (args.mode === 'seeded') {
+      await writeSeedFacts(root, base);
+    }
   } catch (error) {
     console.error(error instanceof Error ? error.message : 'e2e-stack: failed');
     return 1;
