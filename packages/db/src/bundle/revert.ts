@@ -13,6 +13,7 @@ import {
   rowKeyMatch,
 } from './columns.ts';
 import type { LoaderTable } from './columns.ts';
+import { officesKept, peopleKept } from './upsert.ts';
 
 // revertBundle of PIPE-loader-hold-revert and J-bundle.revert: one transaction that
 // undoes a load from its bundle_changes, newest first. Geometry and district_fallbacks are not
@@ -30,13 +31,32 @@ function changeIds(run: Run): SQL {
   return sql`${sql.param(run.ids)}::bigint[]`;
 }
 
-/** Restores the columns `before` holds, and no others (`retire`: retired_at only). */
+/** The condition under which the live row's `overrides` keeps a column (the loader's own rule); null: never. */
+function overrideKeeps(table: LoaderTable, name: string): SQL | null {
+  if (table === 'offices') {
+    return officesKept(name);
+  }
+  if (table === 'people') {
+    return peopleKept(name);
+  }
+  return null;
+}
+
+/**
+ * Restores the columns `before` holds, and no others (`retire`: retired_at only). A column the
+ * row's `overrides` now names keeps its live value, so an admin's or an owner's edit made after the
+ * load survives the revert (T-bundle_changes, R-051).
+ */
 function undoUpdate(run: Run, now: SQL): SQL {
   const names = run.op === 'retire' ? ['retired_at'] : loaderColumnNames(run.table);
-  const items = names.map(
-    (name) =>
-      sql`${id(name)} = case when c.before ? ${nameLiteral(name)} then r.${id(name)} else t.${id(name)} end`,
-  );
+  const items = names.map((name) => {
+    const keeps = overrideKeeps(run.table, name);
+    const restore =
+      keeps === null
+        ? sql`c.before ? ${nameLiteral(name)}`
+        : sql`c.before ? ${nameLiteral(name)} and not (${keeps})`;
+    return sql`${id(name)} = case when ${restore} then r.${id(name)} else t.${id(name)} end`;
+  });
   if (run.table === 'offices') {
     items.push(sql`updated_at = ${now}`);
   }

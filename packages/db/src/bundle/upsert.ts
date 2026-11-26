@@ -264,10 +264,7 @@ async function officesStep(tx: Tx, bound: Bound): Promise<void> {
       table: 'offices',
       source,
       columns,
-      kept: (name) =>
-        name === 'source_key' || name === 'changed_at' || name === 'retired_at'
-          ? null
-          : overrideKept(name),
+      kept: officesKept,
       set: {
         changed_at: sql`case when ${material} then ${now} else t.changed_at end`,
         updated_at: now,
@@ -433,7 +430,15 @@ async function personTargetsStep(tx: Tx, bound: Bound): Promise<void> {
   }
 }
 
-function peopleKept(name: string): SQL | null {
+/** The offices column an `overrides` entry keeps from a load and from a revert (R-051); null: never kept. */
+export function officesKept(name: string): SQL | null {
+  return name === 'source_key' || name === 'changed_at' || name === 'retired_at'
+    ? null
+    : overrideKept(name);
+}
+
+/** The people column an `overrides` entry keeps from a load and from a revert (R-051); null: never kept. */
+export function peopleKept(name: string): SQL | null {
   if (name === 'source_key' || name === 'retired_at') {
     return null;
   }

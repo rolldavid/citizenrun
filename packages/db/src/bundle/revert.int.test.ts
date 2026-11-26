@@ -181,6 +181,73 @@ describe('revertBundle', () => {
     expect(renamed?.hits).toBe(0);
   });
 
+  it('revert keeps an admin or owner edit made after the load', async () => {
+    const db = getTestDb();
+    const files = zzBundle({ today: TODAY });
+    await loadFixture(db, input(0, files), { now: NOW });
+    const b = structuredClone(files);
+    find(b, 'offices', (row) => row.slug === 'zz-fixture-seat-001').title = 'Fixture Renamed Seat';
+    find(b, 'offices', (row) => row.slug === 'zz-fixture-seat-002').title = 'Fixture Other Seat';
+    find(b, 'people', (row) => row.slug === 'fixture-holder-004').name = 'Fixture Renamed Holder';
+    const loadB = await loadFixture(db, input(1, b), { now: LATER });
+    expect(loadB.result.status).toBe('loaded');
+
+    // An admin corrects a column the load did not change and one it did; an owner sets a
+    // website and a photo. Each writes the value and its overrides entry.
+    await db.execute(
+      sql`update offices set where_to_file = 'Admin corrected office',
+            overrides = overrides || '{"where_to_file": {"role": "admin"}}'::jsonb
+          where slug = 'zz-fixture-seat-001'`,
+    );
+    await db.execute(
+      sql`update offices set title = 'Admin Corrected Seat',
+            overrides = overrides || '{"title": {"role": "admin"}}'::jsonb
+          where slug = 'zz-fixture-seat-002'`,
+    );
+    await db.execute(
+      sql`update people set website = 'https://owner.example.test/',
+            photo_key = 'people/owner-photo.jpg', photo_width = 640, photo_height = 800,
+            photo_credit = 'Owner credit', photo_license = 'owner', photo_source_url = null,
+            overrides = overrides || '{"website": {"role": "owner"}, "photo_key": {"role": "owner"}}'::jsonb
+          where slug = 'fixture-holder-004'`,
+    );
+
+    await revertBundle(db, loadB.bundleId, REVERTED_AT);
+    const offices = await db.execute(
+      sql`select slug, title, where_to_file from offices
+          where slug in ('zz-fixture-seat-001', 'zz-fixture-seat-002') order by slug`,
+      'objects',
+    );
+    expect(offices).toEqual([
+      {
+        slug: 'zz-fixture-seat-001',
+        title: find(files, 'offices', (row) => row.slug === 'zz-fixture-seat-001').title,
+        where_to_file: 'Admin corrected office',
+      },
+      {
+        slug: 'zz-fixture-seat-002',
+        title: 'Admin Corrected Seat',
+        where_to_file: find(files, 'offices', (row) => row.slug === 'zz-fixture-seat-002')
+          .where_to_file,
+      },
+    ]);
+    const [person] = await db.execute(
+      sql`select name, website, photo_key, photo_width, photo_height, photo_credit, photo_license, photo_source_url
+          from people where slug = 'fixture-holder-004'`,
+      'objects',
+    );
+    expect(person).toEqual({
+      name: find(files, 'people', (row) => row.slug === 'fixture-holder-004').name,
+      website: 'https://owner.example.test/',
+      photo_key: 'people/owner-photo.jpg',
+      photo_width: 640,
+      photo_height: 800,
+      photo_credit: 'Owner credit',
+      photo_license: 'owner',
+      photo_source_url: null,
+    });
+  });
+
   it('revert is idempotent', async () => {
     const db = getTestDb();
     const files = zzBundle({ today: TODAY });
