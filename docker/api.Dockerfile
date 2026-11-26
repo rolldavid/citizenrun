@@ -16,6 +16,10 @@ RUN pnpm fetch
 FROM fetch AS build
 COPY . .
 RUN pnpm install --frozen-lockfile --offline --filter citizenrun --filter "@citizenrun/api..." --filter "@citizenrun/mobile..."
+ARG EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+ENV EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=$EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID
+ARG EXPO_PUBLIC_APPLE_SERVICES_ID
+ENV EXPO_PUBLIC_APPLE_SERVICES_ID=$EXPO_PUBLIC_APPLE_SERVICES_ID
 RUN pnpm build:web
 RUN pnpm build:api
 
@@ -36,6 +40,7 @@ COPY --from=build /app/apps/mobile/dist ./apps/mobile/dist
 COPY --from=build /app/packages/db/dist ./packages/db/dist
 COPY --from=build /app/packages/db/migrations ./packages/db/migrations
 COPY --from=build /app/packages/cards/assets/fonts ./packages/cards/assets/fonts
+COPY --from=build /app/apps/api/assets ./apps/api/assets
 USER node
 EXPOSE 8080
 CMD ["node", "--enable-source-maps", "apps/api/dist/server.js"]
