@@ -399,7 +399,7 @@ describe('PATCH /v1/me', () => {
     expect(await jobsFor('uploads.cleanup', none.user.id)).toEqual([]);
   });
 
-  it('a suspended user answers account_suspended', async () => {
+  it('suspended accounts cannot write', async () => {
     const { user, auth } = await member({
       status: 'suspended',
       suspendedAt: now(),
@@ -410,7 +410,7 @@ describe('PATCH /v1/me', () => {
     expect((await testApp.request.get(PATH, { auth })).status).toBe(200);
   });
 
-  it('a cookie request without Origin answers origin_rejected', async () => {
+  it('checks origin on cookie writes', async () => {
     const user = await insertUser(testApp.deps.db);
     const cookie = await signIn(testApp.deps.db, user, 'cookie');
     await expectEnvelope(
