@@ -11,3 +11,4 @@ export * from './civic.ts';
 export * from './offices.ts';
 export * from './explore.ts';
 export * from './people.ts';
+export * from './geo.ts';

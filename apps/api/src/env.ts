@@ -23,14 +23,30 @@ export type ApiOwnerInputVariable = {
     | 'APPLE_PRIVATE_KEY'
     | 'APPLE_BUNDLE_ID'
     | 'APPLE_SERVICES_ID'
-    | 'GOOGLE_CLIENT_IDS';
+    | 'GOOGLE_CLIENT_IDS'
+    | 'GEO_API_KEY';
   ownerInput:
     | 'OI-resend'
     | 'OI-admin-emails'
     | 'OI-store-submission'
     | 'OI-apple-identifiers'
-    | 'OI-google-oauth';
+    | 'OI-google-oauth'
+    | 'OI-geoapify';
 };
+
+/**
+ * An EnvError that also carries the fixed reason of a refusal that has one. Like every EnvError it
+ * names variables and never holds a value.
+ */
+export class ApiEnvError extends EnvError {
+  readonly reasons: readonly string[];
+
+  constructor(variables: readonly string[], reasons: readonly string[]) {
+    super(variables);
+    this.reasons = reasons;
+    this.message = [this.message, ...reasons].join('. ');
+  }
+}
 
 /** The API's validated environment and the named values derived from it. */
 export type ApiEnv = Readonly<{
@@ -70,6 +86,15 @@ export type ApiEnv = Readonly<{
   APPLE_SERVICES_ID: string | null;
   /** The validated raw list of Google client ids, or null. */
   GOOGLE_CLIENT_IDS: string | null;
+  /** The address-suggestion provider asked for; `mapbox` stops the start (L-geo-provider). */
+  GEO_PROVIDER: 'geoapify' | 'none';
+  /** The provider's key, or null. A secret: never logged. */
+  GEO_API_KEY: string | null;
+  /** Provider requests a month and a day (D-212). */
+  GEO_MONTHLY_CAP: number;
+  GEO_DAILY_CAP: number;
+  /** The provider that runs: `geoapify` only when it is asked for and its key is set (OI-geoapify). */
+  geoProvider: 'geoapify' | 'none';
   /** What loadEnv found for the owner inputs, for the start-up report. */
   ownerInputReport: Readonly<{
     missing: readonly ApiOwnerInputVariable[];
@@ -103,6 +128,7 @@ export const API_OWNER_INPUTS: readonly ApiOwnerInputVariable[] = Object.freeze(
   Object.freeze({ variable: 'APPLE_BUNDLE_ID', ownerInput: 'OI-apple-identifiers' } as const),
   Object.freeze({ variable: 'APPLE_SERVICES_ID', ownerInput: 'OI-apple-identifiers' } as const),
   Object.freeze({ variable: 'GOOGLE_CLIENT_IDS', ownerInput: 'OI-google-oauth' } as const),
+  Object.freeze({ variable: 'GEO_API_KEY', ownerInput: 'OI-geoapify' } as const),
 ]);
 
 // The owner inputs a deployed service cannot start without (D-557); every other one is optional.
@@ -147,6 +173,13 @@ const PEM_HEADER = '-----BEGIN PRIVATE KEY-----';
 const PEM_FOOTER = '-----END PRIVATE KEY-----';
 const GOOGLE_CLIENT_ID_PATTERN = /^[A-Za-z0-9._-]{1,200}$/;
 const GOOGLE_CLIENT_IDS_MAX_LENGTH = 4096;
+// Any key the provider issues: printable, no spaces, bounded.
+const GEO_API_KEY_PATTERN = /^[\x21-\x7e]{1,256}$/;
+const GEO_CAP_MAX = 10_000_000;
+const DEFAULT_GEO_MONTHLY_CAP = 85_000; // D-212
+const DEFAULT_GEO_DAILY_CAP = 2_800; // D-212
+const MAPBOX_UNAVAILABLE =
+  'The mapbox provider is not available: set GEO_PROVIDER to geoapify or none'; // D-057, O-13
 
 const AppEnvSchema = z.object({ APP_ENV: z.enum(['local', 'ci', 'staging', 'production']) });
 
@@ -184,6 +217,48 @@ const originUrl = z
   });
 
 const mediaValue = z.string().min(1).max(MAX_MEDIA_VALUE_LENGTH);
+
+// A whole number from 1 to 10,000,000, written in decimal digits.
+function geoCap(fallback: number) {
+  return z
+    .string()
+    .regex(/^[0-9]{1,8}$/)
+    .transform(Number)
+    .pipe(z.number().int().min(1).max(GEO_CAP_MAX))
+    .default(fallback);
+}
+
+// The Mapbox adapter is not built (D-057): asking for it stops the start with a fixed reason.
+const GeoProviderSchema = z
+  .enum(['geoapify', 'mapbox', 'none'])
+  .default('none')
+  .transform((value, ctx): 'geoapify' | 'none' => {
+    if (value === 'mapbox') {
+      ctx.addIssue({ code: 'custom', message: MAPBOX_UNAVAILABLE });
+      return z.NEVER;
+    }
+    return value;
+  });
+
+// GEO_PROVIDER, or null with its name in `problems` and the fixed reason of a custom refusal in
+// `reasons`. No zod message of another kind is copied, because one can quote the value.
+function parseGeoProvider(
+  raw: string | undefined,
+  problems: Set<string>,
+  reasons: Set<string>,
+): 'geoapify' | 'none' | null {
+  const result = GeoProviderSchema.safeParse(raw);
+  if (result.success) {
+    return result.data;
+  }
+  problems.add('GEO_PROVIDER');
+  for (const issue of result.error.issues) {
+    if (issue.code === 'custom') {
+      reasons.add(issue.message);
+    }
+  }
+  return null;
+}
 
 // 64 hex characters, stored lower-case.
 const appSecret = z
@@ -228,6 +303,8 @@ function buildApiEnvSchema(defaultWebDistDir: string) {
       .pipe(z.string().regex(CLIENT_IP_HEADER_PATTERN))
       .optional()
       .transform((value) => value ?? null),
+    GEO_MONTHLY_CAP: geoCap(DEFAULT_GEO_MONTHLY_CAP),
+    GEO_DAILY_CAP: geoCap(DEFAULT_GEO_DAILY_CAP),
   });
 }
 
@@ -333,6 +410,7 @@ type OwnerValues = {
   APPLE_BUNDLE_ID: string | null;
   APPLE_SERVICES_ID: string | null;
   GOOGLE_CLIENT_IDS: string | null;
+  GEO_API_KEY: string | null;
   /** Whether REVIEW_SIGNIN_EMAILS holds anything, and its parsed addresses, for the start checks. */
   reviewEmailsSet: boolean;
   reviewAddresses: readonly string[];
@@ -378,6 +456,7 @@ function parseOwnerInputs(
     APPLE_BUNDLE_ID: read('APPLE_BUNDLE_ID', matching(APPLE_CLIENT_ID_PATTERN)),
     APPLE_SERVICES_ID: read('APPLE_SERVICES_ID', matching(APPLE_CLIENT_ID_PATTERN)),
     GOOGLE_CLIENT_IDS: read('GOOGLE_CLIENT_IDS', parseGoogleClientIds),
+    GEO_API_KEY: read('GEO_API_KEY', matching(GEO_API_KEY_PATTERN)),
   } satisfies Record<OwnerVariable, Parsed<unknown>>;
 
   const unset = new Set<OwnerVariable>();
@@ -425,6 +504,7 @@ function parseOwnerInputs(
     APPLE_BUNDLE_ID: valueOf(parsed.APPLE_BUNDLE_ID),
     APPLE_SERVICES_ID: valueOf(parsed.APPLE_SERVICES_ID),
     GOOGLE_CLIENT_IDS: valueOf(parsed.GOOGLE_CLIENT_IDS),
+    GEO_API_KEY: valueOf(parsed.GEO_API_KEY),
     reviewEmailsSet: reviewEmails.kind !== 'unset',
     reviewAddresses: reviewEmails.kind === 'ok' ? reviewEmails.value : Object.freeze([]),
     missing: inReportOrder(reportedMissing),
@@ -547,6 +627,8 @@ export function loadEnv(
   const infra = collect(problems, () =>
     parseEnv(buildApiEnvSchema(options.defaultWebDistDir), values),
   );
+  const reasons = new Set<string>();
+  const geoProvider = parseGeoProvider(values.GEO_PROVIDER, problems, reasons);
   const owner = parseOwnerInputs(appEnv, values, problems);
   const variant = variantForAppEnv(appEnv);
 
@@ -575,8 +657,9 @@ export function loadEnv(
   })) {
     problems.add(name);
   }
-  if (infra === null || problems.size > 0) {
-    throw new EnvError([...problems].sort());
+  if (infra === null || geoProvider === null || problems.size > 0) {
+    const names = [...problems].sort();
+    throw reasons.size > 0 ? new ApiEnvError(names, [...reasons]) : new EnvError(names);
   }
 
   const https = infra.PUBLIC_URL.startsWith('https://');
@@ -594,6 +677,10 @@ export function loadEnv(
     APPLE_BUNDLE_ID: owner.APPLE_BUNDLE_ID,
     APPLE_SERVICES_ID: owner.APPLE_SERVICES_ID,
     GOOGLE_CLIENT_IDS: owner.GOOGLE_CLIENT_IDS,
+    GEO_PROVIDER: geoProvider,
+    GEO_API_KEY: owner.GEO_API_KEY,
+    // An unset key means none, whatever GEO_PROVIDER says (OI-geoapify).
+    geoProvider: geoProvider === 'geoapify' && owner.GEO_API_KEY !== null ? 'geoapify' : 'none',
     ownerInputReport: Object.freeze({ missing: owner.missing, invalid: owner.invalid }),
     SESSION_COOKIE_NAME: https ? '__Host-os_session' : 'os_session',
     sessionCookieSecure: https,

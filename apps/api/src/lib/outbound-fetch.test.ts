@@ -81,9 +81,51 @@ describe('outboundFetch', () => {
         ? 'media-store.example.test'
         : 'media-fixture.media-store.example.test';
       expect([...hosts].sort()).toEqual(
-        ['api.resend.com', 'appleid.apple.com', 'www.googleapis.com', mediaHost].sort(),
+        [
+          'api.resend.com',
+          'appleid.apple.com',
+          'www.googleapis.com',
+          'geocoding.geo.census.gov',
+          'api.geoapify.com',
+          mediaHost,
+        ].sort(),
       );
     }
+  });
+
+  it('the geocoding hosts are allowed', async () => {
+    expect(OUTBOUND_HOSTS.census).toBe('geocoding.geo.census.gov');
+    expect(OUTBOUND_HOSTS.geoapify).toBe('api.geoapify.com');
+    expect(OUTBOUND_TIMEOUT_MS.census).toBe(5_000);
+    expect(OUTBOUND_TIMEOUT_MS.geoapify).toBe(2_000);
+    const timeouts: number[] = [];
+    const real = AbortSignal.timeout.bind(AbortSignal);
+    vi.spyOn(AbortSignal, 'timeout').mockImplementation((ms) => {
+      timeouts.push(ms);
+      return real(ms);
+    });
+    const spy = spyFetch();
+    const outbound = createOutboundFetch(testApiEnv(STORE_ENV), spy);
+    await outbound('geocoding.geo.census.gov', '/geocoder/geographies/onelineaddress?format=json');
+    await outbound('api.geoapify.com', '/v1/geocode/autocomplete?format=json', {
+      headers: { cookie: 'os_session=fixture-token', 'x-real-ip': '203.0.113.10' },
+    });
+    expect(spy.mock.calls.map((call) => call[0])).toEqual([
+      'https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?format=json',
+      'https://api.geoapify.com/v1/geocode/autocomplete?format=json',
+    ]);
+    expect(timeouts).toEqual([5_000, 2_000]);
+    for (const call of spy.mock.calls) {
+      expect([...new Headers(call[1]?.headers).keys()]).toEqual(['user-agent']);
+      expect(call[1]?.redirect).toBe('error');
+    }
+    // A host that only looks like one of them is still refused.
+    await expect(
+      outbound('api.geoapify.com.evil.example.test', '/v1/geocode/autocomplete'),
+    ).rejects.toBeInstanceOf(OutboundHostNotAllowedError);
+    await expect(outbound('geocoding.geo.census.gov.example.test', '/')).rejects.toBeInstanceOf(
+      OutboundHostNotAllowedError,
+    );
   });
 
   it('no client header is forwarded', async () => {

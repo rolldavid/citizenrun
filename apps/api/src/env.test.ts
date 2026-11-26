@@ -10,6 +10,7 @@ import { marker } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import {
   API_OWNER_INPUTS,
+  ApiEnvError,
   checkPublicUrlHost,
   checkReviewSignIn,
   loadEnv,
@@ -50,7 +51,11 @@ const OPTIONAL_OWNER_INPUTS = [
   { variable: 'APPLE_BUNDLE_ID', ownerInput: 'OI-apple-identifiers' },
   { variable: 'APPLE_SERVICES_ID', ownerInput: 'OI-apple-identifiers' },
   { variable: 'GOOGLE_CLIENT_IDS', ownerInput: 'OI-google-oauth' },
+  { variable: 'GEO_API_KEY', ownerInput: 'OI-geoapify' },
 ];
+// A fixture key, never a real one.
+const FIXTURE_GEO_KEY = 'fixture-geo-key';
+const MAPBOX_REASON = 'The mapbox provider is not available: set GEO_PROVIDER to geoapify or none';
 
 /** A PKCS#8 PEM made for the test, never a real key. */
 function fixturePem(): string {
@@ -792,6 +797,115 @@ describe('loadEnv', () => {
       expect(load(infra(appEnv, { PUBLIC_URL: 'http://localhost:8081' })).PUBLIC_URL).toBe(
         'http://localhost:8081',
       );
+    }
+  });
+});
+
+describe('geocoding environment', () => {
+  it('the provider defaults to none', () => {
+    for (const source of [infra('local'), infra('ci', { GEO_PROVIDER: '' }), deployed('staging')]) {
+      const env = load(source);
+      expect(env.GEO_PROVIDER).toBe('none');
+      expect(env.geoProvider).toBe('none');
+      expect(env.GEO_API_KEY).toBeNull();
+    }
+    // A key alone turns nothing on.
+    const keyOnly = load(infra('ci', { GEO_API_KEY: FIXTURE_GEO_KEY }));
+    expect(keyOnly.GEO_API_KEY).toBe(FIXTURE_GEO_KEY);
+    expect(keyOnly.geoProvider).toBe('none');
+    expect(load(infra('ci', { GEO_PROVIDER: 'none' })).geoProvider).toBe('none');
+  });
+
+  it('geoapify without a key runs as none', () => {
+    for (const source of [
+      infra('local', { GEO_PROVIDER: 'geoapify' }),
+      infra('ci', { GEO_PROVIDER: 'geoapify', GEO_API_KEY: '' }),
+      deployed('staging', { GEO_PROVIDER: 'geoapify' }),
+      deployed('production', { GEO_PROVIDER: 'geoapify' }),
+    ]) {
+      const env = load(source);
+      expect(env.GEO_PROVIDER).toBe('geoapify');
+      expect(env.geoProvider).toBe('none');
+      expect(missingOwnerInputs(env)).toContainEqual({
+        variable: 'GEO_API_KEY',
+        ownerInput: 'OI-geoapify',
+      });
+      const log = captured();
+      logMissingOwnerInputs(env, log.logger);
+      const geo = log.lines.filter((line) => line.variable === 'GEO_API_KEY');
+      expect(geo).toHaveLength(1);
+      expect(geo[0]?.event).toBe('env.input_missing');
+      expect(geo[0]?.ownerInput).toBe('OI-geoapify');
+      expect(Object.keys(geo[0] ?? {}).sort()).toEqual(
+        [...LOGGER_KEYS, 'ownerInput', 'variable'].sort(),
+      );
+    }
+  });
+
+  it('geoapify with a key runs as geoapify', () => {
+    const key = `${marker()}-geo-key`;
+    for (const source of [
+      infra('local', { GEO_PROVIDER: 'geoapify', GEO_API_KEY: key }),
+      deployed('production', { GEO_PROVIDER: 'geoapify', GEO_API_KEY: key }),
+    ]) {
+      const env = load(source);
+      expect(env.geoProvider).toBe('geoapify');
+      expect(env.GEO_API_KEY).toBe(key);
+      expect(missingOwnerInputs(env).map((row) => row.variable)).not.toContain('GEO_API_KEY');
+      const log = captured();
+      logMissingOwnerInputs(env, log.logger);
+      expect(log.raw.join('\n')).not.toContain(key);
+    }
+  });
+
+  it('a malformed key is unset in ci and stops a deployed service', () => {
+    const spaced = 'fixture geo key';
+    const env = load(infra('ci', { GEO_PROVIDER: 'geoapify', GEO_API_KEY: spaced }));
+    expect(env.GEO_API_KEY).toBeNull();
+    expect(env.geoProvider).toBe('none');
+    expect(env.ownerInputReport.invalid).toEqual([
+      { variable: 'GEO_API_KEY', ownerInput: 'OI-geoapify' },
+    ]);
+    const error = refusal(deployed('staging', { GEO_API_KEY: spaced }));
+    expect(error.variables).toEqual(['GEO_API_KEY']);
+    expect(error.message).not.toContain(spaced);
+    expect(load(infra('ci', { GEO_API_KEY: 'k'.repeat(257) })).GEO_API_KEY).toBeNull();
+  });
+
+  it('mapbox stops the start', () => {
+    for (const source of [
+      infra('local', { GEO_PROVIDER: 'mapbox' }),
+      infra('ci', { GEO_PROVIDER: 'mapbox', GEO_API_KEY: FIXTURE_GEO_KEY }),
+      deployed('production', { GEO_PROVIDER: 'mapbox', GEO_API_KEY: FIXTURE_GEO_KEY }),
+    ]) {
+      const error = refusal(source);
+      expect(error.variables).toEqual(['GEO_PROVIDER']);
+      expect(error.message).toContain('GEO_PROVIDER');
+      expect(error.message).toContain(MAPBOX_REASON);
+      expect(error.message).not.toContain(FIXTURE_GEO_KEY);
+      expect(error).toBeInstanceOf(ApiEnvError);
+      expect(error instanceof ApiEnvError ? error.reasons : []).toEqual([MAPBOX_REASON]);
+    }
+    // The reason travels with the other refusals.
+    const both = refusal(infra('ci', { GEO_PROVIDER: 'mapbox', APP_SECRET: 'x' }));
+    expect(both.variables).toEqual(['APP_SECRET', 'GEO_PROVIDER']);
+    expect(both.message).toContain(MAPBOX_REASON);
+    // Any other value is refused by name alone.
+    const other = refusal(infra('ci', { GEO_PROVIDER: 'fixture-provider' }));
+    expect(other.variables).toEqual(['GEO_PROVIDER']);
+    expect(other).not.toBeInstanceOf(ApiEnvError);
+    expect(other.message).not.toContain('fixture-provider');
+  });
+
+  it('the caps default to 85,000 and 2,800', () => {
+    const unset = load(infra('ci'));
+    expect([unset.GEO_MONTHLY_CAP, unset.GEO_DAILY_CAP]).toEqual([85_000, 2_800]);
+    const set = load(infra('ci', { GEO_MONTHLY_CAP: '50000', GEO_DAILY_CAP: '200' }));
+    expect([set.GEO_MONTHLY_CAP, set.GEO_DAILY_CAP]).toEqual([50_000, 200]);
+    for (const variable of ['GEO_MONTHLY_CAP', 'GEO_DAILY_CAP']) {
+      for (const value of ['0', '-1', '1.5', 'x', '10000001']) {
+        expect(refusal(infra('ci', { [variable]: value })).variables).toEqual([variable]);
+      }
     }
   });
 });

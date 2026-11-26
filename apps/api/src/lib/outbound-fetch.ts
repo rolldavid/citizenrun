@@ -1,4 +1,4 @@
-import { BRAND } from '@citizenrun/shared';
+import { BRAND, CENSUS_TIMEOUT_MS, GEO_PROVIDER_TIMEOUT_MS } from '@citizenrun/shared';
 import type { ApiEnv } from '../env.ts';
 
 /** The fixed hosts the API calls (INV-39); the media bucket host comes from the environment. */
@@ -6,6 +6,8 @@ export const OUTBOUND_HOSTS = {
   resend: 'api.resend.com',
   apple: 'appleid.apple.com',
   google: 'www.googleapis.com',
+  census: 'geocoding.geo.census.gov',
+  geoapify: 'api.geoapify.com',
 } as const;
 /** Every outbound call settles or is abandoned within its host's time (CTL-37). */
 export const OUTBOUND_TIMEOUT_MS = {
@@ -13,6 +15,8 @@ export const OUTBOUND_TIMEOUT_MS = {
   bucket: 30_000,
   apple: 5_000,
   google: 5_000,
+  census: CENSUS_TIMEOUT_MS,
+  geoapify: GEO_PROVIDER_TIMEOUT_MS,
 } as const; // CTL-37
 
 // CTL-37: `<slug>-api/<version>`.
@@ -64,6 +68,10 @@ function timeoutFor(host: string): number {
       return OUTBOUND_TIMEOUT_MS.apple;
     case OUTBOUND_HOSTS.google:
       return OUTBOUND_TIMEOUT_MS.google;
+    case OUTBOUND_HOSTS.census:
+      return OUTBOUND_TIMEOUT_MS.census;
+    case OUTBOUND_HOSTS.geoapify:
+      return OUTBOUND_TIMEOUT_MS.geoapify;
     default:
       return OUTBOUND_TIMEOUT_MS.bucket;
   }
