@@ -93,6 +93,13 @@ const MEDIA = [
   'MEDIA_ACCESS_KEY_ID',
   'MEDIA_SECRET_ACCESS_KEY',
 ];
+const DATA = [
+  'DATA_BUCKET',
+  'DATA_ENDPOINT',
+  'DATA_REGION',
+  'DATA_ACCESS_KEY_ID',
+  'DATA_SECRET_ACCESS_KEY',
+];
 
 function literal(value: string): Variable {
   return { type: 'literal', value };
@@ -226,6 +233,7 @@ describe('.railway/railway.ts', () => {
       'APP_SECRET_PREVIOUS',
       'REVIEW_SIGNIN_EMAILS',
       'REVIEW_SIGNIN_CODE',
+      'GEO_API_KEY',
     ]);
   });
 
@@ -319,7 +327,52 @@ describe('.railway/railway.ts', () => {
         'APP_SECRET_PREVIOUS',
         'EMAIL_MONTHLY_QUOTA',
         'EMAIL_DAILY_QUOTA',
+        ...DATA,
       ]);
+    }
+  });
+
+  it('the api holds the geocoding key and no provider', async () => {
+    for (const env of ENVIRONMENTS) {
+      const api = await envOf('api', env);
+      expect(api.GEO_API_KEY, env).toEqual(PRESERVE);
+      // GEO_PROVIDER arrives with the key, in the owner input's activation.
+      expect(api, env).not.toHaveProperty('GEO_PROVIDER');
+      expect(
+        Object.keys(api).filter((key) => key.startsWith('DATA_')),
+        env,
+      ).toEqual([]);
+      for (const service of ['worker', 'admin', 'backup']) {
+        const other = await envOf(service, env);
+        expect(other, `${env} ${service}`).not.toHaveProperty('GEO_API_KEY');
+        expect(other, `${env} ${service}`).not.toHaveProperty('GEO_PROVIDER');
+      }
+    }
+  });
+
+  it('the worker holds the data bucket', async () => {
+    for (const env of ENVIRONMENTS) {
+      const worker = await envOf('worker', env);
+      for (const key of DATA) {
+        expect(worker[key], `${env} ${key}`).toEqual({
+          type: 'reference',
+          resource: 'bucket.data',
+          output: key.slice('DATA_'.length),
+        });
+      }
+      // Only the worker holds the data bucket (D-133).
+      for (const service of ['api', 'admin', 'backup']) {
+        const other = Object.keys(await envOf(service, env)).filter((key) =>
+          key.startsWith('DATA_'),
+        );
+        expect(other, `${env} ${service}`).toEqual([]);
+      }
+      // The caps take their defaults; staging's lower daily cap is a later change.
+      for (const service of ['api', 'worker']) {
+        const variables = await envOf(service, env);
+        expect(variables, `${env} ${service}`).not.toHaveProperty('GEO_DAILY_CAP');
+        expect(variables, `${env} ${service}`).not.toHaveProperty('GEO_MONTHLY_CAP');
+      }
     }
   });
 

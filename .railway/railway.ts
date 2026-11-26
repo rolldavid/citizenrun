@@ -148,6 +148,7 @@ export default defineRailway((ctx) => {
       APP_SECRET_PREVIOUS: preserve(), // sealed; absent until the first APP_SECRET rotation
       REVIEW_SIGNIN_EMAILS: preserve(),
       REVIEW_SIGNIN_CODE: preserve(), // sealed; present exactly when REVIEW_SIGNIN_EMAILS is
+      GEO_API_KEY: preserve(), // D-057
     },
     deploy: {
       restartPolicyType: 'ALWAYS', // D-024
@@ -184,6 +185,7 @@ export default defineRailway((ctx) => {
       APP_SECRET_PREVIOUS: preserve(), // sealed; absent until the first APP_SECRET rotation
       EMAIL_MONTHLY_QUOTA: '3000', // D-444
       EMAIL_DAILY_QUOTA: '100', // D-444
+      ...bucketVars('DATA', data), // D-133
     },
     deploy: {
       restartPolicyType: 'ALWAYS',

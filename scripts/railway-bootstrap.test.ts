@@ -98,6 +98,17 @@ const IOS_CLIENT = 'fixture-ios-client';
 const REVIEW_ADDRESS = 'review-fixture@example.test';
 const REVIEW_CODE = '246810';
 const PREVIOUS_SECRET = 'cd'.repeat(32);
+const GEO_KEY = 'fixture-geo-key';
+const DATAGOV_KEY = 'fixture-datagov-key';
+const DATA_KEY_ID = 'fixture-data-key-id';
+const DATA_SECRET = 'fixture-data-secret';
+const DATA_CREDENTIALS = {
+  BUCKET: 'fixture-data-bucket',
+  ENDPOINT: 'https://storage.example.test',
+  REGION: 'auto',
+  ACCESS_KEY_ID: DATA_KEY_ID,
+  SECRET_ACCESS_KEY: DATA_SECRET,
+};
 const ROLES_SQL = readFileSync(join(repoRoot(), 'packages', 'db', 'sql', 'roles.sql'), 'utf8');
 const PSQL = ['psql', '-U', 'citizenrun', '-d', 'citizenrun', '-v', 'ON_ERROR_STOP=1', '-X', '-q'];
 const SUCCESS = '[{"status":"SUCCESS","createdAt":"2026-11-01T00:00:00Z"}]';
@@ -426,6 +437,10 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
           SECRET_ACCESS_KEY: 'fixture-secret-key',
         }),
       },
+      {
+        args: ['bucket', 'credentials', '-b', 'data', '-e', env, '--json'],
+        stdout: JSON.stringify(DATA_CREDENTIALS),
+      },
       { args: ['usage', 'limit', 'set', '--target', 'workspace', '--soft', '80', '--hard', '110'] },
       { args: ['usage', 'limit', 'set', '--target', 'agent', '--hard', '0'] },
       { args: ['usage', 'limit', 'status', '--json'], stdout: usageStatus() },
@@ -439,6 +454,15 @@ function defaultRules(env: Env, options: CaseOptions): { railway: FakeRule[]; gh
       },
       { args: ['secret', 'set', tokenSecret, '--env', env], captureStdin: true },
       { args: ['variable', 'set', readyVariable, '--body', 'true'] },
+      {
+        args: ['variable', 'set', /^DATA_(BUCKET|ENDPOINT|REGION)$/, '--env', env],
+        captureStdin: true,
+      },
+      {
+        args: ['secret', 'set', /^DATA_(ACCESS_KEY_ID|SECRET_ACCESS_KEY)$/, '--env', env],
+        captureStdin: true,
+      },
+      { args: ['secret', 'set', 'FEC_API_KEY', '--env', env], captureStdin: true },
     ],
   };
 }
@@ -810,7 +834,8 @@ describe('preflight', { timeout: 30_000 }, () => {
     for (const argv of [
       [],
       ['--env', 'staging', '--only', 'nothing'],
-      ['--env', 'staging', '--rotate', 'GEO_API_KEY'],
+      // FEC_API_KEY is copied to GitHub, never held on Railway, so it has nothing to rotate.
+      ['--env', 'staging', '--rotate', 'FEC_API_KEY'],
     ]) {
       const result = await runCase(argv);
       expect(result.code).toBe(2);
@@ -1004,14 +1029,14 @@ describe('environment', { timeout: 30_000 }, () => {
 describe('a full run', { timeout: 60_000 }, () => {
   it('a later key is accepted and skipped with its owner-input id', async () => {
     const result = await runCase(['--env', 'staging'], {
-      inputs: { GEO_API_KEY: 'fixture-geo-key' },
+      inputs: { RESEND_WEBHOOK_SECRET: 'fixture-webhook-secret' },
     });
     expect(result.code).toBe(0);
     expect(result.output).toContain(
-      'skip GEO_API_KEY (OI-geoapify): not set by this version of the bootstrap',
+      'skip RESEND_WEBHOOK_SECRET (OI-resend-webhook): not set by this version of the bootstrap',
     );
-    expect(variableSets(result.calls, 'GEO_API_KEY')).toEqual([]);
-    expect(result.output).not.toContain('fixture-geo-key');
+    expect(variableSets(result.calls, 'RESEND_WEBHOOK_SECRET')).toEqual([]);
+    expect(result.output).not.toContain('fixture-webhook-secret');
   });
 
   it('the dry run prints no generated value and runs no mutating command', async () => {
@@ -1023,10 +1048,25 @@ describe('a full run', { timeout: 60_000 }, () => {
         REVIEW_SIGNIN_EMAILS: REVIEW_ADDRESS,
         REVIEW_SIGNIN_CODE: REVIEW_CODE,
         APP_SECRET_PREVIOUS: PREVIOUS_SECRET,
+        GEO_API_KEY: GEO_KEY,
+        FEC_API_KEY: DATAGOV_KEY,
       },
     });
     expect(result.code).toBe(0);
     expect(result.output).toContain('<redacted>');
+    // A dry run shows no data credential: each copy is printed with its value redacted.
+    for (const line of [
+      'dry-run gh variable set DATA_BUCKET --env staging (stdin <redacted>)',
+      'dry-run gh variable set DATA_ENDPOINT --env staging (stdin <redacted>)',
+      'dry-run gh variable set DATA_REGION --env staging (stdin <redacted>)',
+      'dry-run gh secret set DATA_ACCESS_KEY_ID --env staging (stdin <redacted>)',
+      'dry-run gh secret set DATA_SECRET_ACCESS_KEY --env staging (stdin <redacted>)',
+      'dry-run gh secret set FEC_API_KEY --env staging (stdin <redacted>)',
+      'dry-run railway variable set GEO_API_KEY --stdin --service api --environment staging --skip-deploys (stdin <redacted>)',
+    ]) {
+      expect(result.lines).toContain(line);
+    }
+    expect(result.lines).toContain('report github data values not set');
     for (const service of ['api', 'worker']) {
       expect(result.lines).toContain(
         `dry-run railway variable set APPLE_PRIVATE_KEY --stdin --service ${service} --environment staging --skip-deploys (stdin <redacted>)`,
@@ -1047,6 +1087,11 @@ describe('a full run', { timeout: 60_000 }, () => {
       REVIEW_ADDRESS,
       REVIEW_CODE,
       PREVIOUS_SECRET,
+      GEO_KEY,
+      DATAGOV_KEY,
+      DATA_KEY_ID,
+      DATA_SECRET,
+      DATA_CREDENTIALS.BUCKET,
     ]) {
       expect(result.output).not.toContain(secret);
     }
@@ -2205,6 +2250,14 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
         sealed: true,
         ownerInputs: [],
       },
+      {
+        variable: 'GEO_API_KEY',
+        services: ['api'],
+        source: 'GEO_API_KEY',
+        from: 'value',
+        sealed: true,
+        ownerInputs: ['OI-geoapify'],
+      },
     ]);
   });
 
@@ -2452,6 +2505,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
       'api/APP_SECRET_PREVIOUS',
       'worker/APP_SECRET_PREVIOUS',
       'admin/APP_SECRET_PREVIOUS',
+      'api/GEO_API_KEY',
     ];
     expect(SEALED.map((row) => `${row.service}/${row.key}`)).toEqual(expected);
 
@@ -2462,6 +2516,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
         REVIEW_SIGNIN_EMAILS: REVIEW_ADDRESS,
         REVIEW_SIGNIN_CODE: REVIEW_CODE,
         APP_SECRET_PREVIOUS: PREVIOUS_SECRET,
+        GEO_API_KEY: GEO_KEY,
       },
     });
     expect(set.code).toBe(0);
@@ -2481,7 +2536,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
       'worker',
       'admin',
     ]);
-    for (const value of [REVIEW_ADDRESS, REVIEW_CODE, PREVIOUS_SECRET]) {
+    for (const value of [REVIEW_ADDRESS, REVIEW_CODE, PREVIOUS_SECRET, GEO_KEY]) {
       expect(set.output).not.toContain(value);
       for (const call of set.calls) {
         expect(call.args.join(' ')).not.toContain(value);
@@ -2497,6 +2552,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
         APPLE_PRIVATE_KEY: null,
         REVIEW_SIGNIN_CODE: null,
         APP_SECRET_PREVIOUS: null,
+        GEO_API_KEY: null,
       },
       worker: {
         APP_SECRET: null,
@@ -2523,6 +2579,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
     });
     expect(without.output).not.toContain('REVIEW_SIGNIN_CODE');
     expect(without.output).not.toContain('APP_SECRET_PREVIOUS');
+    expect(without.output).not.toContain('GEO_API_KEY');
     expect(without.lines).toContain('seal owner-check seal worker/APPLE_PRIVATE_KEY');
 
     // A confirmed seal compares what Railway still returns with the key file's text.
@@ -2570,5 +2627,172 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
     const refused = await runCase(['--env', 'staging', '--rotate', 'APP_SECRET_PREVIOUS']);
     expect(refused.code).toBe(2);
     expect(refused.calls).toEqual([]);
+  });
+});
+
+describe('milestone 2 values', { timeout: 30_000 }, () => {
+  const ghCalls = (
+    calls: readonly FakeCall[],
+    kind: 'variable' | 'secret',
+    name: string,
+  ): FakeCall[] =>
+    calls.filter(
+      (call) =>
+        call.tool === 'gh' &&
+        call.args[0] === kind &&
+        call.args[1] === 'set' &&
+        call.args[2] === name,
+    );
+
+  it('sets the geocoding key on the api, sealed', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: { GEO_API_KEY: GEO_KEY },
+    });
+    expect(result.code).toBe(0);
+    const sets = variableSets(result.calls, 'GEO_API_KEY');
+    expect(sets.map(joined)).toEqual([
+      'railway variable set GEO_API_KEY --stdin --service api --environment staging --skip-deploys',
+    ]);
+    expect(sets[0]?.stdin).toBe(GEO_KEY);
+    expect(result.lines).toContain('owner-values ok set GEO_API_KEY on api');
+    expect(result.lines).toContain('owner-values owner-check seal api/GEO_API_KEY');
+    expect(result.output).not.toContain(GEO_KEY);
+    for (const call of result.calls) {
+      expect(call.args.join(' ')).not.toContain(GEO_KEY);
+    }
+
+    // Step 5 asks for it to be sealed once it is set.
+    expect(SEALED).toContainEqual({ service: 'api', key: 'GEO_API_KEY' });
+    expect(SEALED.filter((row) => row.key === 'GEO_API_KEY')).toHaveLength(1);
+    const seal = await runCase(['--env', 'staging', '--only', 'seal'], {
+      lists: { ...ALL_KEYS_LISTED, api: { APP_SECRET: null, GEO_API_KEY: null } },
+    });
+    expect(seal.code).toBe(0);
+    expect(seal.lines).toContain('seal owner-check seal api/GEO_API_KEY');
+    expect(seal.lines.find((line) => line.startsWith('seal variables '))).toContain(
+      'api/GEO_API_KEY',
+    );
+  });
+
+  it('replaces a sealed geocoding key only with --rotate GEO_API_KEY', async () => {
+    const lists = { api: { GEO_API_KEY: null } };
+    const kept = await runCase(['--env', 'staging', '--only', 'owner-values'], {
+      inputs: { GEO_API_KEY: GEO_KEY },
+      lists,
+    });
+    expect(kept.code).toBe(0);
+    expect(kept.lines).toContain(
+      'owner-values skip GEO_API_KEY on api is kept; pass --rotate GEO_API_KEY to replace it',
+    );
+    expect(variableSets(kept.calls, 'GEO_API_KEY')).toEqual([]);
+
+    const rotated = await runCase(
+      ['--env', 'staging', '--only', 'owner-values', '--rotate', 'GEO_API_KEY'],
+      { inputs: { GEO_API_KEY: GEO_KEY }, lists },
+    );
+    expect(rotated.code).toBe(0);
+    expect(variableSets(rotated.calls, 'GEO_API_KEY').map(serviceOf)).toEqual(['api']);
+  });
+
+  it('skips the geocoding key by its id when absent', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'owner-values']);
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('owner-values skip GEO_API_KEY (OI-geoapify)');
+    expect(variableSets(result.calls, 'GEO_API_KEY')).toEqual([]);
+    const report = await runCase(['--env', 'staging', '--only', 'report']);
+    expect(report.lines).toContain('report absent GEO_API_KEY (OI-geoapify)');
+    expect(report.lines).toContain('report absent FEC_API_KEY (OI-datagov-key)');
+  });
+
+  it('copies the staging data values to GitHub on standard input', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'tokens']);
+    expect(result.code).toBe(0);
+    expect(result.calls.map(joined)).toContain(
+      'railway bucket credentials -b data -e staging --json',
+    );
+    const copies = [
+      ['variable', 'DATA_BUCKET', DATA_CREDENTIALS.BUCKET],
+      ['variable', 'DATA_ENDPOINT', DATA_CREDENTIALS.ENDPOINT],
+      ['variable', 'DATA_REGION', DATA_CREDENTIALS.REGION],
+      ['secret', 'DATA_ACCESS_KEY_ID', DATA_KEY_ID],
+      ['secret', 'DATA_SECRET_ACCESS_KEY', DATA_SECRET],
+    ] as const;
+    for (const [kind, name, value] of copies) {
+      const calls = ghCalls(result.calls, kind, name);
+      expect(calls.map(joined), name).toEqual([`gh ${kind} set ${name} --env staging`]);
+      expect(calls[0]?.stdinBytes, name).toBeGreaterThan(0);
+      expect(calls[0]?.stdin, name).toBe(value);
+    }
+    for (const call of result.calls) {
+      for (const value of [DATA_KEY_ID, DATA_SECRET, DATA_CREDENTIALS.BUCKET]) {
+        expect(call.args.join(' '), value).not.toContain(value);
+      }
+    }
+    for (const value of [DATA_KEY_ID, DATA_SECRET]) {
+      expect(result.output).not.toContain(value);
+    }
+    expect(result.lines).toContain(
+      'tokens ok DATA_BUCKET, DATA_ENDPOINT, DATA_REGION, DATA_ACCESS_KEY_ID, DATA_SECRET_ACCESS_KEY set in the GitHub Environment staging',
+    );
+    // The project token is still the owner's; the copies run without it.
+    expect(result.lines).toContain('tokens owner-check project token github-actions-staging');
+
+    const full = await runCase(['--env', 'staging']);
+    expect(full.code).toBe(0);
+    expect(full.lines).toContain('report github data values set');
+  });
+
+  it('a data bucket that cannot be read fails the step and copies nothing', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'tokens'], {
+      railway: [
+        { args: ['bucket', 'credentials', '-b', 'data', '-e', 'staging', '--json'], exitCode: 1 },
+      ],
+    });
+    expect(result.code).toBe(1);
+    expect(result.lines).toContain('tokens fail bucket credentials -b data: exit 1');
+    expect(result.calls.some((call) => call.tool === 'gh' && call.args.includes('set'))).toBe(
+      false,
+    );
+  });
+
+  it('copies the datagov key to the staging secret only', async () => {
+    const result = await runCase(['--env', 'staging'], { inputs: { FEC_API_KEY: DATAGOV_KEY } });
+    expect(result.code).toBe(0);
+    const calls = ghCalls(result.calls, 'secret', 'FEC_API_KEY');
+    expect(calls.map(joined)).toEqual(['gh secret set FEC_API_KEY --env staging']);
+    expect(calls[0]?.stdin).toBe(DATAGOV_KEY);
+    expect(variableSets(result.calls, 'FEC_API_KEY')).toEqual([]);
+    expect(result.lines).toContain('tokens ok FEC_API_KEY set in the GitHub Environment staging');
+    expect(result.output).not.toContain(DATAGOV_KEY);
+    for (const call of result.calls) {
+      expect(call.args.join(' ')).not.toContain(DATAGOV_KEY);
+    }
+  });
+
+  it('skips the datagov key by its id when absent', async () => {
+    const result = await runCase(['--env', 'staging', '--only', 'tokens']);
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('tokens skip FEC_API_KEY (OI-datagov-key)');
+    expect(ghCalls(result.calls, 'secret', 'FEC_API_KEY')).toEqual([]);
+  });
+
+  it('production gets no data copies in this version', async () => {
+    const result = await runCase(['--env', 'production', '--only', 'tokens'], {
+      inputs: { FEC_API_KEY: DATAGOV_KEY },
+    });
+    expect(result.code).toBe(0);
+    expect(result.lines).toContain('tokens skip data bucket copies on production (milestone 10)');
+    expect(
+      result.calls.some(
+        (call) =>
+          call.args[0] === 'bucket' &&
+          call.args.includes('credentials') &&
+          call.args.includes('data'),
+      ),
+    ).toBe(false);
+    expect(
+      result.calls.some((call) => call.tool === 'gh' && call.args[2]?.startsWith('DATA_')),
+    ).toBe(false);
+    expect(ghCalls(result.calls, 'secret', 'FEC_API_KEY')).toEqual([]);
   });
 });

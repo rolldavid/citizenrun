@@ -59,7 +59,8 @@ type RotateKey =
   | 'RESEND_API_KEY'
   | 'BACKUP_PUBLIC_KEY'
   | 'APPLE_PRIVATE_KEY'
-  | 'REVIEW_SIGNIN_CODE';
+  | 'REVIEW_SIGNIN_CODE'
+  | 'GEO_API_KEY';
 
 export type BootstrapArgs = {
   env: EnvName;
@@ -95,6 +96,7 @@ const ROTATE_KEYS: readonly RotateKey[] = [
   'BACKUP_PUBLIC_KEY',
   'APPLE_PRIVATE_KEY',
   'REVIEW_SIGNIN_CODE',
+  'GEO_API_KEY',
 ];
 
 function isStepName(value: string): value is StepName {
@@ -193,8 +195,8 @@ export const INPUT_KEYS = {
   REVIEW_SIGNIN_EMAILS: { ownerInput: 'OI-store-submission', setByThisVersion: true },
   REVIEW_SIGNIN_CODE: { ownerInput: 'OI-store-submission', setByThisVersion: true },
   APP_SECRET_PREVIOUS: { ownerInput: 'rotation', setByThisVersion: true },
-  GEO_API_KEY: { ownerInput: 'OI-geoapify', setByThisVersion: false },
-  FEC_API_KEY: { ownerInput: 'OI-datagov-key', setByThisVersion: false },
+  GEO_API_KEY: { ownerInput: 'OI-geoapify', setByThisVersion: true },
+  FEC_API_KEY: { ownerInput: 'OI-datagov-key', setByThisVersion: true },
   ANTHROPIC_PIPELINE_API_KEY: { ownerInput: 'OI-anthropic-workspaces', setByThisVersion: false },
   ANTHROPIC_SCREENING_API_KEY: { ownerInput: 'OI-anthropic-workspaces', setByThisVersion: false },
   RESEND_WEBHOOK_SECRET: { ownerInput: 'OI-resend-webhook', setByThisVersion: false },
@@ -595,6 +597,14 @@ export const OWNER_VALUE_TARGETS = [
     sealed: true,
     ownerInputs: [],
   },
+  {
+    variable: 'GEO_API_KEY',
+    services: ['api'],
+    source: 'GEO_API_KEY',
+    from: 'value',
+    sealed: true,
+    ownerInputs: ['OI-geoapify'],
+  },
 ] as const satisfies readonly OwnerValueTarget[];
 
 type OwnerValueRow = (typeof OWNER_VALUE_TARGETS)[number];
@@ -636,6 +646,25 @@ export const ENV_NAMES = {
     readyVariable: 'RAILWAY_PRODUCTION_READY',
   },
 } as const;
+
+/**
+ * The environments whose `data` bucket values step 12 copies into their GitHub Environment, for
+ * the pipeline workflows (D-133). Production's copy is a later change that widens this list.
+ */
+export const DATA_COPY_ENVIRONMENTS = ['staging'] as const;
+
+/** The `data` bucket values step 12 copies: plain variables first, then the two keys as secrets. */
+const DATA_COPIES: readonly {
+  name: string;
+  kind: 'variable' | 'secret';
+  value: keyof BucketCredentials;
+}[] = [
+  { name: 'DATA_BUCKET', kind: 'variable', value: 'bucket' },
+  { name: 'DATA_ENDPOINT', kind: 'variable', value: 'endpoint' },
+  { name: 'DATA_REGION', kind: 'variable', value: 'region' },
+  { name: 'DATA_ACCESS_KEY_ID', kind: 'secret', value: 'accessKeyId' },
+  { name: 'DATA_SECRET_ACCESS_KEY', kind: 'secret', value: 'secretAccessKey' },
+];
 
 /** Fields OPS-check-iac-fields moved out of railway.ts; step 10 sets each with the CLI. */
 export const IAC_FIELD_FALLBACKS: readonly { service: string; path: string; value: string }[] = [];
@@ -688,6 +717,8 @@ type Ctx = {
   corsVerified: boolean;
   limitsVerified: boolean;
   readyVariableSet: boolean;
+  /** Step 12 set the five `data` values in the GitHub Environment in this run. */
+  dataValuesSet: boolean;
   /** Set by the first run's `environment` step: the project was created and the run ends. */
   stopRun: boolean;
   /** What to do before running again, set by a step that fails and knows the likely cause. */
@@ -2238,7 +2269,12 @@ async function stepVolumeBackups(ctx: Ctx, out: StepPrinter): Promise<void> {
   out.line('owner-check', `volume backups for ${ctx.args.env}`);
 }
 
-async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
+function isDataCopyEnvironment(env: EnvName): boolean {
+  return (DATA_COPY_ENVIRONMENTS as readonly EnvName[]).includes(env);
+}
+
+// The project token part of step 12; false when setting it failed.
+async function setProjectToken(ctx: Ctx, out: StepPrinter): Promise<boolean> {
   const env = ctx.args.env;
   const { tokenSecret } = ENV_NAMES[env];
   const answer = ctx.args.dryRun
@@ -2253,7 +2289,7 @@ async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
     if (!ctx.args.dryRun) {
       ctx.nextNote = `when the owner has made the project token github-actions-${env}, run: ${bootstrapCommand(ctx, 'tokens')}, then: ${bootstrapCommand(ctx, 'redeploy')}`;
     }
-    return;
+    return true;
   }
   const result = await cli(ctx, 'gh', ['secret', 'set', tokenSecret, '--env', env], {
     stdin: token,
@@ -2261,13 +2297,94 @@ async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
   });
   if (result.code !== 0) {
     out.line('fail', `gh secret set ${tokenSecret}: exit ${String(result.code)}`);
-    return;
+    return false;
   }
   out.line('ok', `${tokenSecret} set in the GitHub Environment ${env}`);
   if (ctx.args.only === 'tokens') {
     // Only step 13 sets the ready variable, so an owner step finished later is followed by it.
     ctx.nextNote = `run: ${bootstrapCommand(ctx, 'redeploy')} (step 13 sets ${ENV_NAMES[env].readyVariable})`;
   }
+  return true;
+}
+
+// The `data` bucket's values into the GitHub Environment, each on standard input; false on failure.
+async function copyDataValues(ctx: Ctx, out: StepPrinter): Promise<boolean> {
+  const env = ctx.args.env;
+  if (!isDataCopyEnvironment(env)) {
+    out.line('skip', `data bucket copies on ${env} (milestone 10)`);
+    return true;
+  }
+  const result = await cli(
+    ctx,
+    'railway',
+    ['bucket', 'credentials', '-b', 'data', '-e', env, '--json'],
+    {
+      mutating: false,
+    },
+  );
+  if (result.code !== 0) {
+    out.line('fail', `bucket credentials -b data: exit ${String(result.code)}`);
+    return false;
+  }
+  const credentials = toCredentials(result.stdout);
+  if (credentials === null) {
+    out.line('fail', 'bucket credentials -b data: unexpected output');
+    return false;
+  }
+  for (const copy of DATA_COPIES) {
+    const set = await cli(ctx, 'gh', [copy.kind, 'set', copy.name, '--env', env], {
+      stdin: credentials[copy.value],
+      mutating: true,
+    });
+    if (set.code !== 0) {
+      out.line('fail', `gh ${copy.kind} set ${copy.name}: exit ${String(set.code)}`);
+      return false;
+    }
+  }
+  const names = DATA_COPIES.map((copy) => copy.name).join(', ');
+  if (ctx.args.dryRun) {
+    out.line('skip', `dry-run: ${names} not set`);
+    return true;
+  }
+  ctx.dataValuesSet = true;
+  out.line('ok', `${names} set in the GitHub Environment ${env}`);
+  return true;
+}
+
+// The api.data.gov key into staging's GitHub Environment only, never onto Railway (OI-datagov-key).
+async function copyFecKey(ctx: Ctx, out: StepPrinter): Promise<void> {
+  if (ctx.args.env !== 'staging') {
+    return;
+  }
+  const key = ctx.inputs.FEC_API_KEY;
+  if (key === undefined) {
+    out.line('skip', `FEC_API_KEY (${INPUT_KEYS.FEC_API_KEY.ownerInput})`);
+    return;
+  }
+  const result = await cli(ctx, 'gh', ['secret', 'set', 'FEC_API_KEY', '--env', 'staging'], {
+    stdin: key,
+    mutating: true,
+  });
+  if (result.code !== 0) {
+    out.line('fail', `gh secret set FEC_API_KEY: exit ${String(result.code)}`);
+    return;
+  }
+  out.line(
+    ctx.args.dryRun ? 'skip' : 'ok',
+    ctx.args.dryRun
+      ? 'dry-run: FEC_API_KEY not set'
+      : 'FEC_API_KEY set in the GitHub Environment staging',
+  );
+}
+
+async function stepTokens(ctx: Ctx, out: StepPrinter): Promise<void> {
+  if (!(await setProjectToken(ctx, out))) {
+    return;
+  }
+  if (!(await copyDataValues(ctx, out))) {
+    return;
+  }
+  await copyFecKey(ctx, out);
 }
 
 const FAILED_STATES = new Set(['FAILED', 'CRASHED', 'REMOVED']);
@@ -2405,6 +2522,7 @@ async function stepReport(ctx: Ctx): Promise<void> {
       out(`absent ${key} (${waitingOn(ctx.args.env, key, [row.ownerInput])})`);
     }
   }
+  out(`github data values ${ctx.dataValuesSet ? 'set' : 'not set'}`);
   out(`ready-variable ${ctx.readyVariableSet ? 'set' : 'not set'}`);
 }
 
@@ -2538,6 +2656,7 @@ export async function runBootstrap(argv: readonly string[], io: BootstrapIo): Pr
     corsVerified: false,
     limitsVerified: false,
     readyVariableSet: false,
+    dataValuesSet: false,
     stopRun: false,
     failHint: null,
     nextNote: null,

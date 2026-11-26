@@ -9,7 +9,14 @@ describe('media bucket CORS', () => {
     const local: unknown = JSON.parse(
       readFileSync(join(repoRoot(), 'docker/seaweedfs/cors.json'), 'utf8'),
     );
-    expect(local).toStrictEqual(mediaCorsRules(['http://localhost:8081', 'http://localhost:8080']));
+    expect(local).toStrictEqual(
+      mediaCorsRules([
+        'http://localhost:8081',
+        'http://localhost:8080',
+        'http://localhost:8070',
+        'http://localhost:8071',
+      ]),
+    );
   });
 
   it('keeps the origins in the order given and copies them', () => {
