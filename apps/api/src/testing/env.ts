@@ -49,7 +49,6 @@ export function testApiEnv(overrides: Record<string, string | undefined> = {}): 
     DATABASE_URL: UNIT_DATABASE_URL,
     PUBLIC_URL: testPublicUrl(overrides.APP_ENV ?? 'ci'),
     WEB_DIST_DIR: FIXTURE_WEB_DIST_DIR,
-    ENABLE_DEV_ROUTES: 'false',
     MIN_CLIENT_VERSION_IOS: '1.0.0',
     MIN_CLIENT_VERSION_ANDROID: '1.0.0',
     MIN_CLIENT_VERSION_WEB: '1.0.0',

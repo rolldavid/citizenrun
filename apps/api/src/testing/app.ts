@@ -10,30 +10,49 @@ import {
 import type { CapturedLine } from '@citizenrun/db/testing';
 import { createLogger } from '@citizenrun/shared';
 import { FakeClock } from '@citizenrun/shared/testing';
+import { loadKeyRing } from '@citizenrun/shared/crypto';
 import type { PgBoss } from 'pg-boss';
 import { afterAll } from 'vitest';
 import { createApp } from '../app.ts';
+import { countedMailer } from '../deps.ts';
 import type { Deps } from '../deps.ts';
 import { createLifecycle } from '../lib/lifecycle.ts';
 import type { Lifecycle } from '../lib/lifecycle.ts';
+import { isCaptureMailer } from '../lib/mailer.ts';
+import type { CapturedMailbox } from '../lib/mailer.ts';
+import { FakeIdentityProviders } from './fakes/identity.ts';
 import { CaptureMailer } from './fakes/mailer.ts';
+import { createFakeOutbound } from './fakes/outbound.ts';
+import type { FakeOutbound } from './fakes/outbound.ts';
 import { testApiEnv } from './env.ts';
 import { createTestClient } from './request.ts';
 import type { TestClient } from './request.ts';
 
 export type TestAppOverrides = {
-  env?: Record<string, string | undefined>;
+  /** Merged over the test environment before parsing; a key set to `undefined` removes it. */
+  env?: Readonly<Record<string, string | undefined>>;
   clock?: FakeClock;
   mailer?: CaptureMailer;
+  identity?: FakeIdentityProviders;
   db?: Db;
   queue?: { enqueue: Enqueue };
   lifecycle?: Lifecycle;
 };
 
+/** The fakes behind a test app's dependencies, for a test to read and drive. */
+export type TestAppFakes = {
+  clock: FakeClock;
+  /** The CaptureMailer inside `deps.mailer`, which is the counted wrapper over it. */
+  mailer: CaptureMailer;
+  outbound: FakeOutbound;
+  identity: FakeIdentityProviders;
+};
+
 export type TestApp = {
   app: ReturnType<typeof createApp>;
-  deps: Deps & { clock: FakeClock; mailer: CaptureMailer };
+  deps: Deps & { clock: FakeClock; mailer: Deps['mailer'] & CapturedMailbox };
   request: TestClient;
+  fakes: TestAppFakes;
   logs: CapturedLine[];
   statementCount(): number;
   resetStatementCount(): void;
@@ -90,7 +109,8 @@ afterAll(async () => {
 
 /**
  * The API under test (TEST-harness-app): `createApp(deps)` on this worker's database, with a fake
- * clock, the API's capture mailer fake, the worker's media bucket, a send-only pg-boss and the log
+ * clock, the API's capture mailer fake behind the email counters, the worker's media bucket, a
+ * send-only pg-boss, a fake outbound fetch with no routes, the fake sign-in key sets and the log
  * capture. No port is opened; `request` calls the app in process. Every message the mailer holds is
  * read by the always-on privacy scan until the next test (D-855), so make the app inside the test.
  */
@@ -102,18 +122,31 @@ export async function createTestApp(overrides: TestAppOverrides = {}): Promise<T
     ...overrides.env,
   });
   const capture = captureLogs();
+  const logger = createLogger({ service: 'api', level: 'debug', sink: capture.sink });
+  const clock = overrides.clock ?? new FakeClock();
+  const db = overrides.db ?? testDb();
   const mailer = overrides.mailer ?? new CaptureMailer();
   mailers += 1;
+  // The inner fake is scanned, never the counted wrapper (D-855).
   registerScanSource(`api capture mailer ${String(mailers)}`, () => mailer.mailTexts());
-  const deps: Deps & { clock: FakeClock; mailer: CaptureMailer } = {
+  const outbound = createFakeOutbound();
+  const identity = overrides.identity ?? new FakeIdentityProviders(clock);
+  const counted = countedMailer(mailer, db, clock, logger);
+  if (!isCaptureMailer(counted)) {
+    throw new Error('The counted test mailer lost its mailbox.');
+  }
+  const deps: TestApp['deps'] = {
     env,
-    db: overrides.db ?? testDb(),
+    db,
     queue: overrides.queue ?? { enqueue: await testEnqueue() },
     storage: { media },
-    mailer,
-    clock: overrides.clock ?? new FakeClock(),
-    logger: createLogger({ service: 'api', level: 'debug', sink: capture.sink }),
+    mailer: counted,
+    clock,
+    logger,
     lifecycle: overrides.lifecycle ?? createLifecycle(),
+    keyRing: loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS ?? null),
+    outbound: outbound.fetch,
+    identityKeys: identity.keys,
   };
   const app = createApp(deps);
   const resetStatementCount = (): void => {
@@ -123,6 +156,7 @@ export async function createTestApp(overrides: TestAppOverrides = {}): Promise<T
     app,
     deps,
     request: createTestClient(app, env, { beforeRequest: resetStatementCount }),
+    fakes: { clock, mailer, outbound, identity },
     logs: capture.lines,
     statementCount: () => statements,
     resetStatementCount,

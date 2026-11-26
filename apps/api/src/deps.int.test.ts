@@ -1,7 +1,9 @@
 import { DatabaseUnavailableError, createPool } from '@citizenrun/db';
+import { getTestDatabaseUrl } from '@citizenrun/db/testing';
 import { createLogger } from '@citizenrun/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDeps } from './deps.ts';
+import { isCaptureMailer } from './lib/mailer.ts';
 import { testApiEnv } from './testing/env.ts';
 
 // Nothing listens on port 1, so every connection attempt is refused.
@@ -40,5 +42,37 @@ describe('createDeps', () => {
     expect(Date.now() - startedAt).toBeLessThan(5_000);
     expect(end).toHaveBeenCalledTimes(1);
     expect(lines.join('\n')).not.toContain(UNREACHABLE_DATABASE_URL);
+  });
+
+  it('the key ring comes from APP_SECRET', async () => {
+    const logger = createLogger({ service: 'api', level: 'error', sink: () => undefined });
+    const rt = await createDeps(
+      testApiEnv({ DATABASE_URL: getTestDatabaseUrl(), APP_SECRET: '0'.repeat(64) }),
+      logger,
+    );
+    try {
+      // CTL-07's vector for the all-zero secret.
+      expect(rt.keyRing.current['identity-hash'].kid).toBe('9880f43e');
+      expect(rt.keyRing.previous).toBeNull();
+    } finally {
+      await rt.close();
+    }
+  });
+
+  it("the factory keeps the capture mailer's mailbox", async () => {
+    const logger = createLogger({ service: 'api', level: 'error', sink: () => undefined });
+    const env = testApiEnv({ DATABASE_URL: getTestDatabaseUrl() });
+    expect(env.RESEND_API_KEY).toBeNull();
+    expect(env.captureMail).toBe(true);
+    const rt = await createDeps(env, logger);
+    try {
+      expect(isCaptureMailer(rt.mailer)).toBe(true);
+      expect(isCaptureMailer(rt.mailer) ? rt.mailer.captured() : null).toEqual([]);
+      expect(typeof rt.outbound).toBe('function');
+      expect(typeof rt.identityKeys.apple).toBe('function');
+      expect(typeof rt.identityKeys.google).toBe('function');
+    } finally {
+      await rt.close();
+    }
   });
 });

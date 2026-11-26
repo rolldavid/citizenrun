@@ -30,6 +30,11 @@ export class CaptureMailer implements Mailer {
     return Promise.resolve();
   }
 
+  /** The messages held, oldest first, at most 50: what E-AUTH-11 reads (L-send-email). */
+  captured(): readonly CapturedEmail[] {
+    return [...this.#store.list];
+  }
+
   /** The subject, text and HTML of every message held, oldest first: what the privacy scan reads. */
   mailTexts(): string[] {
     return this.#store.list.flatMap((message) => [message.subject, message.text, message.html]);

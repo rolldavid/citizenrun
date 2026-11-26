@@ -8,7 +8,7 @@ export type TestRequestOptions = {
   query?: Record<string, string>;
   headers?: Record<string, string>;
   client?: string | null; // X-OS-Client; default 'ios/1.4.0' with bearer or none, 'web/1.4.0' with cookie; null omits it
-  origin?: string | null; // Origin on cookie requests; default PUBLIC_URL; null omits it
+  origin?: string | null; // Origin; default PUBLIC_URL when the client value names web, else none; null omits it
   ip?: string; // value of x-real-ip
 };
 
@@ -56,7 +56,10 @@ function requestHeaders(env: ApiEnv, options: TestRequestOptions): Headers {
     headers.set('X-OS-Client', client);
   }
 
-  const origin = options.origin === undefined ? (isCookie ? env.PUBLIC_URL : null) : options.origin;
+  // A browser sends Origin on every POST: a web client's request carries PUBLIC_URL by default.
+  const isWebClient = client !== null && (client === 'web' || client.startsWith('web/'));
+  const origin =
+    options.origin === undefined ? (isWebClient ? env.PUBLIC_URL : null) : options.origin;
   if (origin !== null) {
     headers.set('Origin', origin);
   }

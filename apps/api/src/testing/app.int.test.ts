@@ -2,6 +2,7 @@ import { PrivacyLeakError, getTestDb, resetDb, scanForLeaks } from '@citizenrun/
 import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { isCaptureMailer } from '../lib/mailer.ts';
 import { createTestApp } from './app.ts';
 import { CaptureMailer } from './fakes/mailer.ts';
 
@@ -15,9 +16,13 @@ describe('createTestApp', () => {
   });
 
   it('the test app uses the fake clock and the capture mailer', async () => {
-    const { deps } = await createTestApp();
+    const { deps, fakes } = await createTestApp();
     expect(deps.clock).toBeInstanceOf(FakeClock);
-    expect(deps.mailer).toBeInstanceOf(CaptureMailer);
+    expect(deps.clock).toBe(fakes.clock);
+    expect(fakes.mailer).toBeInstanceOf(CaptureMailer);
+    // deps.mailer is the counted wrapper over the fake, which keeps its mailbox.
+    expect(deps.mailer).not.toBe(fakes.mailer);
+    expect(isCaptureMailer(deps.mailer)).toBe(true);
     expect(deps.env.APP_ENV).toBe('ci');
     expect(deps.env.strictResponses).toBe(true);
     expect(deps.env.captureMail).toBe(true);
@@ -51,9 +56,10 @@ describe('createTestApp', () => {
       html: '<p>Fixture text</p>',
       idempotencyKey: 'job:fixture-1',
     });
-    expect(first.deps.mailer.sent).toHaveLength(1);
-    expect(first.deps.mailer.codeFor('USER@example.test')).toBe('123456');
-    expect(second.deps.mailer.sent).toEqual([]);
+    expect(first.fakes.mailer.sent).toHaveLength(1);
+    expect(first.fakes.mailer.codeFor('USER@example.test')).toBe('123456');
+    expect(second.fakes.mailer.sent).toEqual([]);
+    expect(second.deps.mailer.captured()).toEqual([]);
   });
 
   it('the privacy scan reads every message the mailer holds', async () => {
@@ -76,8 +82,8 @@ describe('createTestApp', () => {
   });
 
   it('the fake mailer fails the next send when told to', async () => {
-    const { deps } = await createTestApp();
-    deps.mailer.failNext('429');
+    const { deps, fakes } = await createTestApp();
+    fakes.mailer.failNext('429');
     const email = {
       to: ['user@example.test'],
       subject: 'Fixture subject',
@@ -87,9 +93,9 @@ describe('createTestApp', () => {
     };
     await expect(deps.mailer.sendEmail(email)).rejects.toMatchObject({ code: 'unavailable' });
     await deps.mailer.sendEmail(email);
-    expect(deps.mailer.last('user@example.test')?.idempotencyKey).toBe('job:fixture-2');
-    expect(deps.mailer.last('other@example.test')).toBeNull();
-    expect(deps.mailer.codeFor('user@example.test')).toBeNull();
+    expect(fakes.mailer.last('user@example.test')?.idempotencyKey).toBe('job:fixture-2');
+    expect(fakes.mailer.last('other@example.test')).toBeNull();
+    expect(fakes.mailer.codeFor('user@example.test')).toBeNull();
   });
 
   it('the test app queue sends through the worker database', async () => {

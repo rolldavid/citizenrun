@@ -12,6 +12,8 @@ export {
   withEmailCounters,
 } from './usage-counters.ts';
 export type { UsageCounterName } from './usage-counters.ts';
+export { FLAG_CACHE_MS, createFlagReader } from './flags.ts';
+export type { FlagReader, StateAgeMethod, StateRule, StateSignup } from './flags.ts';
 export { markAccountDeleting } from './accounts/index.ts';
 export type { MarkDeletingResult } from './accounts/index.ts';
 export * from './schema/index.ts';

@@ -34,7 +34,17 @@ export type CapturedEmail = {
 export type CaptureMailer = Mailer & {
   readonly kind: 'capture';
   messages(): readonly CapturedEmail[];
+  /** The same list as `messages()`: oldest first, at most 50 (L-send-email). */
+  captured(): readonly CapturedEmail[];
 };
+
+/** A mailer whose held messages can be read, oldest first, at most 50 (E-AUTH-11). */
+export type CapturedMailbox = { captured(): readonly CapturedEmail[] };
+
+/** True exactly when `mailer` has a `captured` member that is a function: a structural check, so a wrapper that forwards captured() qualifies. */
+export function isCaptureMailer(mailer: Mailer): mailer is Mailer & CapturedMailbox {
+  return typeof (mailer as Partial<CapturedMailbox>).captured === 'function'; // a Mailer may carry more members than its type names
+}
 
 /** The request body the Resend mailer hands the SDK. */
 export type ResendPayload = {
@@ -124,6 +134,7 @@ export function createCaptureMailer(keep: number = CAPTURE_KEEP): CaptureMailer 
       return Promise.resolve();
     },
     messages: () => [...store.list],
+    captured: () => [...store.list],
   };
 }
 
