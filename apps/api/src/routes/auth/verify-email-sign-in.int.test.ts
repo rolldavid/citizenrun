@@ -33,6 +33,7 @@ const DAY_MS = 24 * HOUR_MS;
 const NINETY_DAYS_S = 7_776_000;
 const STANDARD_LOG_KEYS = ['event', 'level', 'service', 'time'];
 const FLAG_CACHE_MS = 30_000;
+const PER_ADDRESS_HOURLY = 60;
 
 type Signup = {
   age: { method: 'self_declared' | 'store_signal'; sourceTier: 'self' | 'confirmed' | 'declared' };
@@ -136,6 +137,15 @@ async function userCount(): Promise<number> {
 }
 
 describe('POST /v1/auth/email/verify', () => {
+  it('ok', async () => {
+    const { pendingToken, code } = await challenge('ok@example.test');
+    const response = await verify({ pendingToken, code, signup: signup() });
+    const info = await expectSignedIn(response);
+    expect(Object.keys(info).sort()).toEqual(['created', 'expiresAt', 'me', 'token']);
+    expect(info.created).toBe(true);
+    expect(response.headers.get('set-cookie')).toBeNull();
+  });
+
   it('signs up a new email', async () => {
     const email = 'new@example.test';
     const { row, pendingToken, code } = await challenge(email);
@@ -665,6 +675,47 @@ describe('POST /v1/auth/email/verify', () => {
     expect(limited.headers.get('retry-after')).toBe(String(60 * 60));
   });
 
+  it('rate-limited', async () => {
+    const ip = '203.0.113.19';
+    // Into the hour, so the seconds left in the window are not a whole hour.
+    testApp.deps.clock.advance(7 * MINUTE_MS + 30 * SECOND_MS);
+    for (let n = 1; n <= PER_ADDRESS_HOURLY; n += 1) {
+      expect((await verify({}, { ip })).status, `verify ${String(n)}`).toBe(400);
+    }
+    const limited = await verify({}, { ip });
+    await expectError(limited, 429, 'rate_limited');
+    const now = testApp.deps.clock.now().getTime();
+    const toHourEnd = Math.ceil((HOUR_MS - (now % HOUR_MS)) / SECOND_MS);
+    expect(limited.headers.get('retry-after')).toBe(String(toHourEnd));
+    expect(toHourEnd).toBe(52 * 60 + 30);
+  });
+
+  it('envelope on every error', async () => {
+    const email = 'envelope@example.test';
+    const { pendingToken, code } = await challenge(email);
+    const errors = [
+      await expectError(await verify({}), 400, 'invalid_request'),
+      await expectError(await verify({ pendingToken, code: otherThan(code) }), 422, 'code_invalid'),
+      await expectError(await verify({ pendingToken, code }), 422, 'signup_details_required'),
+      await expectError(await verify({ pendingToken: randomToken(), code }), 422, 'code_expired'),
+      await expectError(
+        await verify({ pendingToken, code, intent: 'reauth' }),
+        401,
+        'unauthenticated',
+      ),
+      await expectError(
+        await verify({ pendingToken, code }, { client: 'web/1.4.0', origin: null }),
+        403,
+        'origin_rejected',
+      ),
+    ];
+    for (const body of errors) {
+      expect(body.error.message).not.toContain(email);
+      expect(body.error.message).not.toContain(pendingToken);
+      expect(body.error.message).not.toContain(code);
+    }
+  });
+
   it('rejects invalid input', async () => {
     const bad = await expectError(
       await verify({ pendingToken: 'short', code: '12345', intent: 'other' }),
@@ -676,6 +727,71 @@ describe('POST /v1/auth/email/verify', () => {
       code: 'invalid_format',
       intent: 'invalid_value',
     });
+    const { row, pendingToken, code } = await challenge('invalid@example.test');
+    const valid = { pendingToken, code, signup: signup() };
+    const cases: [Record<string, unknown>, string, string][] = [
+      [{ code, signup: signup() }, 'pendingToken', 'required'],
+      [{ pendingToken, signup: signup() }, 'code', 'required'],
+      [{ ...valid, pendingToken: 42 }, 'pendingToken', 'invalid_type'],
+      [{ ...valid, code: 123456 }, 'code', 'invalid_type'],
+      [{ ...valid, code: '1234567' }, 'code', 'invalid_format'],
+      [{ ...valid, signup: 'yes' }, 'signup', 'invalid_type'],
+      [{ ...valid, signup: { aiScreening: true } }, 'signup.age', 'required'],
+    ];
+    for (const [body, field, fieldCode] of cases) {
+      const envelope = await expectError(await verify(body), 400, 'invalid_request');
+      expect(envelope.error.fields[field], field).toBe(fieldCode);
+    }
+    const malformed = await testApp.app.request(
+      new URL(VERIFY, testApp.deps.env.PUBLIC_URL).toString(),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OS-Client': 'ios/1.4.0',
+          'x-real-ip': freshIp(),
+        },
+        body: '{"pendingToken":',
+      },
+    );
+    expect(malformed.status).toBe(400);
+    expect((await challengeRow(row.id))?.attempts).toBe(0);
+    expect(await userCount()).toBe(0);
+    // An unknown key is dropped and never stored.
+    const extra = 'extra-value-never-stored';
+    await expectSignedIn(await verify({ ...valid, role: 'admin', extra }));
+    const user = await userByEmail('invalid@example.test');
+    expect(user?.role).toBe('user');
+    const stored = await testApp.deps.db.execute<{ text: string }>(
+      sql`select coalesce(string_agg(u::text, ''), '') as text from users u`,
+      'objects',
+    );
+    expect(stored[0]?.text ?? '').not.toContain(extra);
+  });
+
+  it('concurrent new sign-ups with a cold flag cache all answer', async () => {
+    // The test pool holds four clients. Twice as many sign-ups at once, on a fresh app whose flag
+    // cache has never loaded, fill every client with a transaction: none may then wait for another.
+    const count = 8;
+    const challenges = [];
+    for (let n = 0; n < count; n += 1) {
+      challenges.push(await challenge(`concurrent${String(n)}@example.test`));
+    }
+    const all = Promise.all(
+      challenges.map(({ pendingToken, code }) =>
+        verify({ pendingToken, code, signup: signup() }).then((response) => response.status),
+      ),
+    );
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const hung = new Promise<'hung'>((resolve) => {
+      timer = setTimeout(() => {
+        resolve('hung');
+      }, 10 * SECOND_MS);
+    });
+    const result = await Promise.race([all, hung]);
+    clearTimeout(timer);
+    expect(result).toEqual(Array.from({ length: count }, () => 200));
+    expect(await userCount()).toBe(count);
   });
 
   it('a marker email and code reach no log line', async () => {

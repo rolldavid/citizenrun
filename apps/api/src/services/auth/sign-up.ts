@@ -81,6 +81,34 @@ async function checkStateRules(signup: SignupDetails, flags: FlagReader): Promis
   }
 }
 
+function notReadAhead(): Promise<never> {
+  return Promise.reject(new Error('A state rule was asked for that was not read ahead.'));
+}
+
+/**
+ * Reads, on the pool, every state rule check 7 can ask about for `signup`, and returns a reader
+ * that answers from those values alone. A caller that runs the creation checks inside a
+ * transaction calls this before opening it, so no pool query is awaited while the transaction
+ * holds a client (D-138: one client per request).
+ */
+export async function readStateRulesAhead(
+  flags: FlagReader,
+  signup: SignupDetails | null,
+): Promise<FlagReader> {
+  if (signup === null) {
+    // Check 2 refuses before check 7 asks anything.
+    return { stateRulesAtLaunchDefault: notReadAhead, stateRule: notReadAhead };
+  }
+  const atLaunchDefault = await flags.stateRulesAtLaunchDefault();
+  const state = atLaunchDefault ? null : (signup.state ?? null);
+  const rule = state === null ? null : await flags.stateRule(state);
+  return {
+    stateRulesAtLaunchDefault: () => Promise.resolve(atLaunchDefault),
+    stateRule: (asked) =>
+      state !== null && asked === state ? Promise.resolve(rule) : notReadAhead(),
+  };
+}
+
 /** Creation checks of L-account-link in order; throws the first refusal as an ApiError. */
 export async function checkCreationPreconditions(
   db: Db | Tx,

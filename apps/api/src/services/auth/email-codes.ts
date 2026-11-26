@@ -36,7 +36,11 @@ import { applyExistingIdentity, isUniqueViolation, resolveIdentity } from './res
 import type { IdentityInput } from './resolve-identity.ts';
 import { isReviewAddress, parseReviewEmails } from './review-signin.ts';
 import type { NewSession } from './sessions.ts';
-import { checkCreationPreconditions, createUserWithIdentity } from './sign-up.ts';
+import {
+  checkCreationPreconditions,
+  createUserWithIdentity,
+  readStateRulesAhead,
+} from './sign-up.ts';
 
 /** Seconds between two `signin_ceiling` alerts: one email a day (J-ops.alert's throttle table). */
 const SIGNIN_ALERT_THROTTLE_SECONDS = 86400; // J-ops.alert
@@ -328,6 +332,8 @@ export async function verifyEmailSignIn(
     throw new ApiError('unauthenticated');
   }
   const adminEmails = parseAdminEmails(env.ADMIN_EMAILS);
+  // Read before the transaction: the creation checks inside it never wait on a second client.
+  const flags = await readStateRulesAhead(flagsOf(deps), input.signup);
 
   const outcome = await deps.db.transaction(async (tx): Promise<Outcome> => {
     // index: email_codes_pending_token_hash_key
@@ -404,7 +410,7 @@ export async function verifyEmailSignIn(
           signup: input.signup,
           platform: input.platform,
           addrHash: input.addrHash,
-          flags: flagsOf(deps),
+          flags,
           now,
         });
       }

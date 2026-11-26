@@ -10,7 +10,11 @@ import { consumeNonce, findUsableNonce } from './nonces.ts';
 import { applyExistingIdentity, resolveIdentity } from './resolve-identity.ts';
 import type { IdentityInput, Resolution } from './resolve-identity.ts';
 import type { NewSession } from './sessions.ts';
-import { checkCreationPreconditions, createUserWithIdentity } from './sign-up.ts';
+import {
+  checkCreationPreconditions,
+  createUserWithIdentity,
+  readStateRulesAhead,
+} from './sign-up.ts';
 
 /** What a finished provider sign-in hands its route. */
 export type ProviderSignInResult = {
@@ -73,15 +77,6 @@ export async function providerSignIn(
   },
 ): Promise<ProviderSignInResult> {
   const { identity, intent, viewer, now } = input;
-  const creationInput = {
-    mode: 'full',
-    intent,
-    signup: input.signup,
-    platform: input.platform,
-    addrHash: input.addrHash,
-    flags: flagsOf(deps),
-    now,
-  } as const;
 
   // 1. The nonce is checked, not consumed (L-apple).
   const usable = await findUsableNonce(deps.db, input.rawNonce);
@@ -97,7 +92,18 @@ export async function providerSignIn(
     throw new ApiError(refused);
   }
 
-  // 3. A creation-check refusal leaves the nonce usable, so the request can be retried with it.
+  // 3. A creation-check refusal leaves the nonce usable, so the request can be retried with it. The
+  // state rules are read before any transaction, so the checks inside one never wait on a second
+  // client.
+  const creationInput = {
+    mode: 'full',
+    intent,
+    signup: input.signup,
+    platform: input.platform,
+    addrHash: input.addrHash,
+    flags: await readStateRulesAhead(flagsOf(deps), input.signup),
+    now,
+  } as const;
   if (first.kind === 'new') {
     await checkCreationPreconditions(deps.db, creationInput);
   }

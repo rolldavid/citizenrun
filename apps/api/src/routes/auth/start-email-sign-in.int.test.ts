@@ -26,6 +26,7 @@ const SIGNUP = {
   aiScreening: true,
 };
 const STANDARD_LOG_KEYS = ['event', 'level', 'service', 'time'];
+const PER_ADDRESS_HOURLY = 10;
 
 type StartResult = { pendingToken: string; expiresAt: string; resendAvailableAt: string };
 type Envelope = { error: { code: string; message: string; fields: Record<string, string> } };
@@ -113,6 +114,104 @@ async function counter(name: string): Promise<number | null> {
 }
 
 describe('POST /v1/auth/email/start', () => {
+  it('ok', async () => {
+    const result = await startOk('ok@example.test');
+    expect(Object.keys(result).sort()).toEqual(['expiresAt', 'pendingToken', 'resendAvailableAt']);
+    expect(Date.parse(result.expiresAt)).toBeGreaterThan(testApp.deps.clock.now().getTime());
+    expect(await challengeRows('ok@example.test')).toHaveLength(1);
+  });
+
+  it('rejects invalid input', async () => {
+    const cases: [Record<string, unknown>, string, string][] = [
+      [{}, 'email', 'required'],
+      [{ pendingToken: 'a'.repeat(43) }, 'email', 'required'],
+      [{ email: 42 }, 'email', 'invalid_type'],
+      [{ email: 'ab' }, 'email', 'too_short'],
+      [{ email: `${'a'.repeat(242)}@example.test` }, 'email', 'too_long'],
+      [{ email: 'not-an-email' }, 'email', 'invalid_format'],
+      [{ email: 'type@example.test', pendingToken: 42 }, 'pendingToken', 'invalid_type'],
+      [
+        { email: 'type@example.test', pendingToken: 'a'.repeat(44) },
+        'pendingToken',
+        'invalid_format',
+      ],
+    ];
+    for (const [body, field, code] of cases) {
+      const response = await testApp.request.post(START, { ip: freshIp(), body });
+      const envelope = await expectError(response, 400, 'invalid_request');
+      expect(envelope.error.fields[field], `${field} ${JSON.stringify(body)}`).toBe(code);
+    }
+    const malformed = await testApp.app.request(
+      new URL(START, testApp.deps.env.PUBLIC_URL).toString(),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-OS-Client': 'ios/1.4.0',
+          'x-real-ip': freshIp(),
+        },
+        body: '{"email":',
+      },
+    );
+    expect(malformed.status).toBe(400);
+    expect(testApp.fakes.mailer.sent).toHaveLength(0);
+    expect(await challengeRows()).toHaveLength(0);
+    // An unknown key is dropped and never stored.
+    const extra = 'extra-value-never-stored';
+    const response = await testApp.request.post(START, {
+      ip: freshIp(),
+      body: { email: 'extra@example.test', attempts: 4, sendCount: 9, extra },
+    });
+    expect(response.status).toBe(200);
+    const rows = await challengeRows();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.attempts).toBe(0);
+    expect(rows[0]?.sendCount).toBe(1);
+    const stored = await testApp.deps.db.execute<{ text: string }>(
+      sql`select coalesce(string_agg(e::text, ''), '') as text from email_codes e`,
+      'objects',
+    );
+    expect(stored[0]?.text ?? '').not.toContain(extra);
+  });
+
+  it('envelope on every error', async () => {
+    const email = 'envelope@example.test';
+    const bounced = await insertUser(testApp.deps.db, {
+      email: 'bounced.envelope@example.test',
+      emailStatus: 'bounced',
+    });
+    const errors = [
+      await expectError(await start('not-an-email'), 400, 'invalid_request'),
+      await expectError(await start(email, { client: null }), 400, 'client_header_required'),
+      await expectError(
+        await start(email, { client: 'web/1.4.0', origin: 'https://elsewhere.example.test' }),
+        403,
+        'origin_rejected',
+      ),
+      await expectError(await start(bounced.email ?? ''), 422, 'email_undeliverable'),
+    ];
+    testApp.fakes.mailer.failNext('5xx');
+    errors.push(await expectError(await start(email), 503, 'unavailable'));
+    for (const body of errors) {
+      expect(body.error.message).not.toContain('@example.test');
+      expect(body.error.message).not.toContain('not-an-email');
+    }
+  });
+
+  it('rate-limited', async () => {
+    const ip = '203.0.113.17';
+    for (let n = 1; n <= PER_ADDRESS_HOURLY; n += 1) {
+      const response = await start(`limited${String(n)}@example.test`, { ip });
+      expect(response.status, `start ${String(n)}`).toBe(200);
+    }
+    const limited = await start('limited11@example.test', { ip });
+    await expectError(limited, 429, 'rate_limited');
+    const now = testApp.deps.clock.now().getTime();
+    const toHourEnd = Math.ceil((Math.ceil(now / HOUR_MS) * HOUR_MS - now) / SECOND_MS);
+    expect(limited.headers.get('retry-after')).toBe(String(toHourEnd));
+    expect(testApp.fakes.mailer.sent).toHaveLength(PER_ADDRESS_HOURLY);
+  });
+
   it('sends a six-digit code', async () => {
     const email = 'person@example.test';
     const result = await startOk(email);
@@ -216,6 +315,9 @@ describe('POST /v1/auth/email/start', () => {
     }
     const eleventh = await start('address11@example.test', { ip: '203.0.113.7' });
     await expectError(eleventh, 429, 'rate_limited');
+    const now = testApp.deps.clock.now().getTime();
+    const toHourEnd = Math.ceil((Math.ceil(now / HOUR_MS) * HOUR_MS - now) / SECOND_MS);
+    expect(eleventh.headers.get('retry-after')).toBe(String(toHourEnd));
     const other = await start('address12@example.test', { ip: '203.0.113.8' });
     expect(other.status).toBe(200);
   });
