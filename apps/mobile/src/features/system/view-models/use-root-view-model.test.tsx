@@ -1,3 +1,4 @@
+import { useQuery } from '@tanstack/react-query';
 import { act, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -64,6 +65,10 @@ afterEach(() => {
 
 function meRoute(me = fixtureMe()): StubRoute {
   return { method: 'GET', path: '/v1/me', reply: json(200, me) };
+}
+
+function endLocalCalls() {
+  return sessionFake.calls.filter((call) => call.op === 'endLocal');
 }
 
 function requestsTo(method: string, path: string) {
@@ -288,12 +293,95 @@ describe('useRootViewModel', () => {
     await waitFor(() => {
       expect(routerCalls).toEqual([{ op: 'replace', path: '/sign-in?next=%2Fsettings%2Fexport' }]);
     });
-    expect(sessionFake.calls).toContainEqual({ op: 'endLocal', reason: 'unauthorized' });
+    // On the web no session was seen in this page load, so nothing on the device is ended.
+    expect(endLocalCalls()).toEqual([]);
     expect(getSessionPresence()).toBe('absent');
     expect(result.current.shell.signedIn).toBe(false);
     // Absent stops the query: the 401 is not asked again.
     await settle();
     expect(requestsTo('GET', '/v1/me')).toHaveLength(1);
+  });
+
+  it('ends a stored session the server refuses and opens sign-in from a session route', async () => {
+    sessionFake.scriptPresence('present');
+    setRoute('/settings/export');
+    stub.use([{ method: 'GET', path: '/v1/me', reply: apiError(401, 'unauthenticated') }]);
+    const { result } = await readyHook();
+    await waitFor(() => {
+      expect(routerCalls).toEqual([{ op: 'replace', path: '/sign-in?next=%2Fsettings%2Fexport' }]);
+    });
+    expect(endLocalCalls()).toEqual([{ op: 'endLocal', reason: 'unauthorized' }]);
+    expect(getSessionPresence()).toBe('absent');
+    expect(result.current.shell.signedIn).toBe(false);
+  });
+
+  it("leaves a web visitor's public queries running when Me answers 401", async () => {
+    sessionFake.scriptPresence('unknown');
+    // The web file empties the cache, which drops the queries in flight.
+    const endLocal = vi.spyOn(session, 'endLocal').mockImplementation(() => {
+      queryClient.clear();
+      return Promise.resolve();
+    });
+    let answer: (value: string) => void = () => undefined;
+    const answered = new Promise<string>((resolve) => {
+      answer = resolve;
+    });
+    // A public screen's query, in a tree of its own, so the root's renders do not touch it.
+    const publicQuery = renderHookWithClient(() =>
+      useQuery({ queryKey: ['public-probe'], queryFn: () => answered }, queryClient.get()),
+    );
+    expect(publicQuery.result.current.status).toBe('pending');
+    stub.use([{ method: 'GET', path: '/v1/me', reply: apiError(401, 'unauthenticated') }]);
+    const { result } = await readyHook();
+    await waitFor(() => {
+      expect(getSessionPresence()).toBe('absent');
+    });
+    await settle();
+    expect(endLocal).not.toHaveBeenCalled();
+    expect(routerCalls).toEqual([]);
+    expect(result.current.shell.signedIn).toBe(false);
+
+    await act(async () => {
+      answer('ready');
+      await answered;
+    });
+    await waitFor(() => {
+      expect(publicQuery.result.current.data).toBe('ready');
+    });
+  });
+
+  it('signs the shell out at once when a session ends on a public route', async () => {
+    sessionFake.scriptPresence('present');
+    stub.use([meRoute()]);
+    // The phone file deletes the token before it empties the cache.
+    let release: () => void = () => undefined;
+    const tokenDeleted = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const endLocal = vi.spyOn(session, 'endLocal').mockImplementation(async () => {
+      await tokenDeleted;
+      queryClient.clear();
+    });
+    const { result } = await readyHook();
+    await waitFor(() => {
+      expect(result.current.shell.signedIn).toBe(true);
+    });
+
+    await act(async () => {
+      sessionFake.lastCallbacks()?.onUnauthorized();
+      await Promise.resolve();
+    });
+    expect(endLocal).toHaveBeenCalledWith('unauthorized');
+    expect(result.current.shell.signedIn).toBe(false);
+
+    await act(async () => {
+      release();
+      await tokenDeleted;
+    });
+    await settle();
+    expect(getSessionPresence()).toBe('absent');
+    expect(result.current.shell.signedIn).toBe(false);
+    expect(routerCalls).toEqual([]);
   });
 
   it('shows the agreements sheet when a document changed', async () => {

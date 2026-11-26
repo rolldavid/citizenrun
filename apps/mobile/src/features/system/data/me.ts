@@ -25,7 +25,9 @@ export function useMe(): { me: Me | null; source: QuerySource } {
     queryClient.get(),
   );
   return {
-    me: query.data ?? null,
+    // A session end empties the cache only after it sets 'absent' (on phones after an await), so the
+    // last Me is never read once the session is gone.
+    me: presence === 'absent' ? null : (query.data ?? null),
     source: {
       status: query.status,
       fetchStatus: query.fetchStatus,

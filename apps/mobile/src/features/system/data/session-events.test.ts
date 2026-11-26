@@ -7,7 +7,7 @@ import {
   resetNavigationState,
   trackCurrentPath,
 } from '@/lib/navigation';
-import { getSessionPresence, resetSessionPresence } from '@/lib/session-state';
+import { getSessionPresence, resetSessionPresence, setSessionPresence } from '@/lib/session-state';
 import { linksFake } from '@/test/platform/links';
 import { sessionFake } from '@/test/platform/session';
 import { resetRouterMock, routerCalls } from '@/test/router-mock';
@@ -22,6 +22,8 @@ vi.mock('expo-constants', () => ({
 
 beforeEach(() => {
   markNavigationReady();
+  // A session this page load had seen, unless a case says otherwise.
+  setSessionPresence('present');
 });
 
 afterEach(() => {
@@ -65,6 +67,25 @@ describe('handleUnauthorized', () => {
     trackCurrentPath('/dev/list-spike');
     await handleUnauthorized();
     expect(endLocalCalls()).toEqual([{ op: 'endLocal', reason: 'unauthorized' }]);
+    expect(routerCalls).toEqual([]);
+  });
+
+  it('a 401 before any session was seen ends nothing on the device', async () => {
+    resetSessionPresence();
+    trackCurrentPath('/settings/export');
+    rememberNext('/settings');
+    await handleUnauthorized();
+    expect(getSessionPresence()).toBe('absent');
+    expect(endLocalCalls()).toEqual([]);
+    expect(peekRememberedNext()).toBeNull();
+    expect(routerCalls).toEqual([{ op: 'replace', path: '/sign-in?next=%2Fsettings%2Fexport' }]);
+
+    resetRouterMock();
+    resetSessionPresence();
+    trackCurrentPath('/');
+    await handleUnauthorized();
+    expect(getSessionPresence()).toBe('absent');
+    expect(endLocalCalls()).toEqual([]);
     expect(routerCalls).toEqual([]);
   });
 

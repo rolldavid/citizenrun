@@ -207,6 +207,36 @@ function unknownGallerySections(
   );
 }
 
+/**
+ * The fixture modules whose view-models come before their screens: a module waits here until the
+ * stage that draws its screen gives it its entries and takes it off this list. A module on the list
+ * whose fixtures already have an entry fails the check, so the list only shrinks.
+ */
+const AWAITING_SCREEN_MODULES: readonly string[] = [
+  'apps/mobile/src/features/auth/view-models/reauth.fixtures.ts',
+  'apps/mobile/src/features/auth/view-models/sign-in.fixtures.ts',
+  'apps/mobile/src/features/auth/view-models/welcome.fixtures.ts',
+  'apps/mobile/src/features/onboarding/view-models/handle.fixtures.ts',
+  'apps/mobile/src/features/onboarding/view-models/issues.fixtures.ts',
+  'apps/mobile/src/features/onboarding/view-models/location.fixtures.ts',
+  'apps/mobile/src/features/onboarding/view-models/photo.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-about.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-account.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-appearance.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-delete-account.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-export.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-issues.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-privacy.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings-profile.fixtures.ts',
+  'apps/mobile/src/features/settings/view-models/settings.fixtures.ts',
+  'apps/mobile/src/features/system/view-models/adults-only.fixtures.ts',
+  'apps/mobile/src/features/system/view-models/agreements.fixtures.ts',
+  'apps/mobile/src/features/system/view-models/state-unavailable.fixtures.ts',
+];
+
+/** Fixtures of a captured screen that draw a system screen not drawn yet, on the same terms. */
+const AWAITING_SCREEN_FIXTURES: readonly string[] = ['rootAdultsOnly', 'rootAgreements'];
+
 /** Every `apps/mobile/src/features/*\/view-models/*.fixtures.ts`, repository-relative. */
 function fixtureFiles(): string[] {
   const featuresDir = join(ROOT, FEATURES_DIR);
@@ -530,9 +560,18 @@ describe('the pure checks', () => {
 describe('the real tree', () => {
   const source = readFileSync(join(ROOT, ROUTES_FILE), 'utf8');
   const entries = parseRouteEntries(source);
-  const fixtures = fixtureFiles().flatMap((file) =>
-    fixtureExports(readFileSync(join(ROOT, file), 'utf8')),
-  );
+  const files = fixtureFiles();
+  const exportsOf = (file: string): string[] =>
+    fixtureExports(readFileSync(join(ROOT, file), 'utf8'));
+  const fixtures = files.flatMap(exportsOf);
+  const awaiting = [
+    ...files.filter((file) => AWAITING_SCREEN_MODULES.includes(file)).flatMap(exportsOf),
+    ...AWAITING_SCREEN_FIXTURES,
+  ];
+  const captured = files
+    .filter((file) => !AWAITING_SCREEN_MODULES.includes(file))
+    .flatMap(exportsOf)
+    .filter((fixture) => !AWAITING_SCREEN_FIXTURES.includes(fixture));
   const gallerySource = readFileSync(join(ROOT, GALLERY_FILE), 'utf8');
   const gallerySlugs = gallerySectionSlugs(gallerySource);
 
@@ -548,7 +587,16 @@ describe('the real tree', () => {
   });
 
   it('every screen fixture has an entry', () => {
-    expect(missingFixtureEntries(fixtures, entries)).toEqual([]);
+    expect(missingFixtureEntries(captured, entries)).toEqual([]);
+  });
+
+  it('every fixture awaiting its screen exists and has no entry yet', () => {
+    expect(AWAITING_SCREEN_MODULES.filter((file) => !files.includes(file))).toEqual([]);
+    expect(AWAITING_SCREEN_FIXTURES.filter((fixture) => !fixtures.includes(fixture))).toEqual([]);
+    const opened = awaiting.filter(
+      (fixture) => missingFixtureEntries([fixture], entries).length === 0,
+    );
+    expect(opened).toEqual([]);
   });
 
   it('every fixture entry names an existing fixture', () => {

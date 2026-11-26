@@ -65,6 +65,20 @@ describe('useMe', () => {
     expect(stub.requests).toEqual([]);
     expect(result.current.me).toBeNull();
   });
+
+  it('answers no Me once the session is absent, while the last one is still cached', async () => {
+    setBoot('ready');
+    setSessionPresence('present');
+    writeMeToCache(queryClient.get(), fixtureMe());
+    const { result } = renderHookWithClient(() => useMe());
+    expect(result.current.me?.handle).toBe('test_fixture');
+    act(() => {
+      setSessionPresence('absent');
+    });
+    expect(readMeFromCache(queryClient.get())).not.toBeNull();
+    expect(result.current.me).toBeNull();
+    await settle();
+  });
 });
 
 describe('the Me cache', () => {

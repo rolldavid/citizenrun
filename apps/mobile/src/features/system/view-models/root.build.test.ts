@@ -25,9 +25,11 @@ describe('guardSessionOf', () => {
       onboardingStep: 'handle',
       role: 'admin',
     });
-    // A loaded Me wins over whatever the presence says.
+    // A loaded Me wins over a presence not yet known.
     expect(guardSessionOf('unknown', me).kind).toBe('ready');
     expect(guardSessionOf('absent', null)).toEqual({ kind: 'none' });
+    // A session that ended is gone even while its last Me is still cached.
+    expect(guardSessionOf('absent', me)).toEqual({ kind: 'none' });
     expect(guardSessionOf('unknown', null)).toEqual({ kind: 'pending' });
     expect(guardSessionOf('present', null)).toEqual({ kind: 'pending' });
   });

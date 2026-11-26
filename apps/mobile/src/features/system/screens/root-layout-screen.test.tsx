@@ -31,7 +31,14 @@ vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
   },
 }));
 
-const FIXTURE_NAMES = ['rootStarting', 'rootSignedOut', 'rootSignedIn', 'rootUpdate'] as const;
+const FIXTURE_NAMES = [
+  'rootStarting',
+  'rootSignedOut',
+  'rootSignedIn',
+  'rootUpdate',
+  'rootAdultsOnly',
+  'rootAgreements',
+] as const;
 
 const NARROW = [360, 740] as const;
 const COMPACT = [390, 844] as const;

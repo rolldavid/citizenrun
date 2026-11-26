@@ -1,6 +1,7 @@
-import { noop } from '@/lib/view-models/__fixtures__/common';
-
 import type { RootViewModel } from './root.types';
+
+// Local, not the shared fixture helpers: the root layout's barrel loads this module in the first chunk.
+const noop = (): void => {};
 
 export const rootStarting = {
   boot: 'starting',

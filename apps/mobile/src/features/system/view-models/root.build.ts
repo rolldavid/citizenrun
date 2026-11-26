@@ -9,12 +9,18 @@ import type { RootViewModel, SystemScreenId } from './root.types';
 // SCR-system-agreements
 export const AGREEMENTS_EXEMPT_PATHS = ['/settings/delete-account', '/settings/export'] as const;
 
-/** The guard's session: ready once Me loaded, none when no session exists, pending in between. */
+/**
+ * The guard's session: none when no session exists, whatever Me is still cached; ready once Me loaded;
+ * pending in between.
+ */
 export function guardSessionOf(presence: SessionPresence, me: Me | null): GuardSession {
+  if (presence === 'absent') {
+    return { kind: 'none' };
+  }
   if (me !== null) {
     return { kind: 'ready', onboardingStep: me.onboardingStep, role: me.role };
   }
-  return presence === 'absent' ? { kind: 'none' } : { kind: 'pending' };
+  return { kind: 'pending' };
 }
 
 // SCR-system-agreements

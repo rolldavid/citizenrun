@@ -8,7 +8,7 @@ import { resetSessionPresence } from '@/lib/session-state';
 import { fixtureMe } from '@/lib/view-models/__fixtures__/common';
 import type { ViewState } from '@/lib/view-state';
 import { queryClient } from '@/platform/query-client';
-import { configureTestApiClient, installApiStub } from '@/test/api-stub';
+import { configureTestApiClient, installApiStub, json } from '@/test/api-stub';
 import type { ApiStub } from '@/test/api-stub';
 import { linksFake } from '@/test/platform/links';
 import { queryClientFake } from '@/test/platform/query-client';
@@ -171,6 +171,9 @@ describe('useSettingsViewModel', () => {
 
   it('reports the appearance choice', async () => {
     writeMeToCache(queryClient.get(), fixtureMe());
+    // A stored session, so the root view-model keeps the Me it reads
+    sessionFake.scriptPresence('present');
+    stub.use([{ method: 'GET', path: '/v1/me', reply: json(200, fixtureMe()) }]);
     // The root view-model reads the device store at start, as the running app does
     const hook = renderHookWithClient(() => {
       useRootViewModel();
