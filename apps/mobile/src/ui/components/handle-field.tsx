@@ -84,7 +84,8 @@ function Input({ value, onChangeText, status, testID }: InputProps): JSX.Element
         autoCapitalize="none"
         autoCorrect={false}
         autoComplete="username"
-        maxLength={HANDLE_MAX}
+        // One more than a handle holds: a pasted handle may start with "@", which is dropped.
+        maxLength={HANDLE_MAX + 1}
         onFocus={() => {
           setFocused(true);
         }}

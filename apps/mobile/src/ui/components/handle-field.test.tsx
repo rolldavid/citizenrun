@@ -220,12 +220,26 @@ describe('HandleField', () => {
     expect(onChangeText).toHaveBeenLastCalledWith('jane_doe.27');
   });
 
+  it('a pasted handle that starts with "@" keeps its last character', () => {
+    const onChangeText = vi.fn();
+    const input = draw(probe({ onChangeText }));
+    const full = 'a'.repeat(HANDLE_MAX);
+    // The field takes the sign and a whole handle, so nothing is cut before the sign is dropped.
+    expect(`@${full}`.length).toBeLessThanOrEqual(Number(input.getAttribute('maxlength')));
+    fireEvent.change(input, { target: { value: `@${full}` } });
+    expect(onChangeText).toHaveBeenLastCalledWith(full);
+    // Without the sign, what is typed past a handle's length is dropped.
+    fireEvent.change(input, { target: { value: `${full}b` } });
+    expect(onChangeText).toHaveBeenLastCalledWith(full);
+  });
+
   it('the input is set for a handle: no capitals, no correction, the system’s username', () => {
     const input = draw(probe());
     expect(input.getAttribute('autocapitalize')).toBe('none');
     expect(input.getAttribute('autocorrect')).toBe('off');
     expect(input.getAttribute('autocomplete')).toBe('username');
-    expect(input.getAttribute('maxlength')).toBe(String(HANDLE_MAX));
+    // One more than a handle holds, the room for a pasted "@".
+    expect(input.getAttribute('maxlength')).toBe(String(HANDLE_MAX + 1));
     expect(input.getAttribute('inputmode')).toBe('text');
     expect(input.style.outlineWidth).toBe('0px');
   });
