@@ -5,6 +5,7 @@ import { auth } from './en/auth.ts';
 import { cards } from './en/cards.ts';
 import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
+import { explore } from './en/explore.ts';
 import { feed } from './en/feed.ts';
 import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
@@ -27,6 +28,7 @@ export const RESOURCES = {
     settings,
     profile,
     feed,
+    explore,
     cards,
   },
 } as const;
@@ -42,6 +44,7 @@ export const NAMESPACES = [
   'settings',
   'profile',
   'feed',
+  'explore',
   'cards',
 ] as const;
 

@@ -58,6 +58,8 @@ const STANDARD_SPRING = { ...motion.spring.standard, reduceMotion: NEVER };
 
 const PULSE_HALF = { duration: motion.duration.pulse / 2, easing: EASE_OUT, reduceMotion: NEVER };
 
+const DIP_HALF = { duration: motion.duration.flagDip / 2, easing: EASE_OUT, reduceMotion: NEVER };
+
 /** A cut: the value is at its target on the next frame. */
 const CUT = { duration: 0, reduceMotion: NEVER };
 
@@ -393,6 +395,31 @@ export function usePulse(active: boolean, whenReduced: 'still' | 'held' = 'still
     'worklet';
     return { opacity: pulses ? pulseClock.value : resting };
   }, [pulseClock, pulses, resting]);
+}
+
+/**
+ * MO-deadline-ring's flag dip: opacity 1 to opacity.skeletonLow and back once, each half over
+ * motion.duration.flagDip / 2 on easeOut, when `play` changes from false to true (a mount with `play`
+ * false plays nothing). Opacity 1 with no animation under reduced motion.
+ */
+export function useDip(play: boolean): AnimatedStyle {
+  const reduced = useReducedMotion();
+  const dip = useSharedValue(1);
+  const seenPlay = useRef(play);
+
+  useEffect(() => {
+    if (seenPlay.current === play) return;
+    seenPlay.current = play;
+    if (!play || reduced) return;
+    dip.set(
+      withSequence(NEVER, withTiming(opacity.skeletonLow, DIP_HALF), withTiming(1, DIP_HALF)),
+    );
+  }, [play, reduced, dip]);
+
+  return useWorkletStyle(() => {
+    'worklet';
+    return { opacity: reduced ? 1 : dip.value };
+  }, [reduced, dip]);
 }
 
 type OnceKind = 'meters' | 'ring' | 'number' | 'done' | 'enter';

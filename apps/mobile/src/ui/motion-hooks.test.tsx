@@ -1,12 +1,14 @@
-import { act, renderHook } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { act, render, renderHook, screen } from '@testing-library/react';
+import type { ReactElement, ReactNode } from 'react';
 import { AccessibilityInfo } from 'react-native';
-import { describe, expect, it, vi } from 'vitest';
+import Animated from 'react-native-reanimated';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   clearOncePerItem,
   motion,
   ReducedMotionOverride,
+  useDip,
   useFade,
   useOncePerItem,
   usePressMotion,
@@ -18,6 +20,7 @@ import {
   useStagger,
   useStamp,
 } from './motion';
+import { opacity } from './tokens';
 
 function under(reduced: boolean) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -187,10 +190,92 @@ describe('motion hooks', () => {
       expect(pulse.result.current).toBeDefined();
       const held = renderHook(() => usePulse(true, 'held'), { wrapper: under(reduced) });
       expect(held.result.current).toBeDefined();
-      for (const hook of [stamp, spring, stagger, pulse, held]) {
+      const dip = renderHook(({ play }: { play: boolean }) => useDip(play), {
+        wrapper: under(reduced),
+        initialProps: { play: false },
+      });
+      dip.rerender({ play: true });
+      expect(dip.result.current).toBeDefined();
+      for (const hook of [stamp, spring, stagger, pulse, held, dip]) {
         hook.unmount();
       }
     }
+  });
+});
+
+/** A view that carries the flag dip, as the flag beside a deadline ring does. */
+function Dipped({ play }: { play: boolean }): ReactElement {
+  return <Animated.View testID="fixture.dip" style={useDip(play)} />;
+}
+
+const DIP_STEP_MS = 10;
+/** Two frames: a timed run lands on the first frame at or after its end. */
+const FRAME_SLACK_MS = 40;
+
+/** The view's opacity at each step of `ms`, a step being shorter than a frame so no frame is missed. */
+function watchDip(ms: number): number[] {
+  const seen: number[] = [];
+  for (let elapsed = 0; elapsed < ms; elapsed += DIP_STEP_MS) {
+    act(() => {
+      vi.advanceTimersByTime(DIP_STEP_MS);
+    });
+    const drawn = screen.getByTestId('fixture.dip').style.opacity;
+    seen.push(drawn === '' ? 1 : Number(drawn));
+  }
+  return seen;
+}
+
+describe('the flag dip', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('the flag dip runs once and only forward', () => {
+    vi.useFakeTimers();
+    const half = motion.duration.flagDip / 2;
+    const { rerender } = render(<Dipped play={false} />, { wrapper: under(false) });
+    // A mount with `play` false plays nothing.
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+
+    rerender(<Dipped play />);
+    const run = watchDip(motion.duration.flagDip + FRAME_SLACK_MS);
+    const low = Math.min(...run);
+    const turn = run.indexOf(low);
+    // Down to the low point and never past it, the turn at the half, then back up to full: one dip.
+    expect(low).toBeCloseTo(opacity.skeletonLow, 5);
+    expect(Math.abs((turn + 1) * DIP_STEP_MS - half)).toBeLessThanOrEqual(FRAME_SLACK_MS);
+    expect(run[0]).toBeLessThan(1);
+    for (let index = 1; index < run.length; index += 1) {
+      const before = run[index - 1] ?? 1;
+      if (index <= turn) {
+        expect(run[index], String(index)).toBeLessThanOrEqual(before);
+      } else {
+        expect(run[index], String(index)).toBeGreaterThanOrEqual(before);
+      }
+    }
+    expect(run.at(-1)).toBe(1);
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+
+    // The same `play` again starts no second run, and turning it off plays nothing.
+    rerender(<Dipped play />);
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+    rerender(<Dipped play={false} />);
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+  });
+
+  it('a mount with the flag dip already on plays nothing, then or on a later render', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Dipped play />, { wrapper: under(false) });
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+    rerender(<Dipped play />);
+    expect(watchDip(motion.duration.flagDip).every((value) => value === 1)).toBe(true);
+  });
+
+  it('the flag dip is still under reduced motion', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(<Dipped play={false} />, { wrapper: under(true) });
+    rerender(<Dipped play />);
+    expect(watchDip(motion.duration.flagDip * 2).every((value) => value === 1)).toBe(true);
   });
 });
 

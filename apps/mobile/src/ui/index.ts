@@ -7,5 +7,6 @@ export * from './focus';
 export * from './shortcuts';
 export * from './haptic';
 export * from './tone';
+export * from './display-value';
 export * from './shells';
 export * from './components';
