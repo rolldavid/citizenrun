@@ -61,6 +61,13 @@ describe('handleUnauthorized', () => {
     expect(routerCalls).toEqual([]);
   });
 
+  it('a 401 on a development route ends the session and stays', async () => {
+    trackCurrentPath('/dev/list-spike');
+    await handleUnauthorized();
+    expect(endLocalCalls()).toEqual([{ op: 'endLocal', reason: 'unauthorized' }]);
+    expect(routerCalls).toEqual([]);
+  });
+
   it('two 401s at once end the session once', async () => {
     trackCurrentPath('/settings');
     const first = handleUnauthorized();
