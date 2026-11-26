@@ -5,7 +5,7 @@ import { getConfig } from 'expo/config';
 import type { ExpoConfig } from 'expo/config';
 import { describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { buildConfig } from './app.config.ts';
+import { buildConfig, googleIosUrlScheme } from './app.config.ts';
 import type { BrandJson, BuildInput } from './app.config.ts';
 
 const MOBILE_DIR = import.meta.dirname;
@@ -58,6 +58,12 @@ const strings: BuildInput['strings'] = StringsSchema.parse(
 
 const VARIANTS = ['development', 'staging', 'production'] as const;
 
+// The app's own rule, loaded through Vitest's resolver: the app's `@/` imports are outside this file's
+// type-check project.
+const { iosUrlSchemeFor } = await vi.importActual<{ iosUrlSchemeFor: (id: string) => string }>(
+  './src/platform/auth/google-config.ts',
+);
+
 const FIXTURE_HOST = 'staging.example.test';
 
 /** The committed brand with no host written in any variant. */
@@ -92,8 +98,8 @@ const LINK_PATH_PREFIXES = [
   '/activity',
 ];
 
-// The config plugins, in the order app.config.ts must keep. Google sign-in joins with the
-// first sign-in work; expo-age-range is left out because it ships no config plugin.
+// The config plugins, in the order app.config.ts must keep while the iOS Google client id is unset;
+// expo-age-range is left out because it ships no config plugin.
 const PLUGIN_ORDER = [
   'expo-router',
   'expo-dev-client',
@@ -110,6 +116,13 @@ const PLUGIN_ORDER = [
   'expo-apple-authentication',
   '@maplibre/maplibre-react-native',
   'react-native-compressor',
+];
+
+// The Google sign-in library's pods that need module maps, while its own plugin entry is omitted.
+const GOOGLE_SIGN_IN_PODS = [
+  { name: 'AppCheckCore', modular_headers: true },
+  { name: 'GoogleUtilities', modular_headers: true },
+  { name: 'RecaptchaInterop', modular_headers: true },
 ];
 
 function build(
@@ -158,7 +171,7 @@ describe('buildConfig', () => {
     });
     expect(plugin(config, 'expo-build-properties')).toEqual([
       'expo-build-properties',
-      { android: { usesCleartextTraffic: true } },
+      { android: { usesCleartextTraffic: true }, ios: { extraPods: GOOGLE_SIGN_IN_PODS } },
     ]);
   });
 
@@ -182,7 +195,7 @@ describe('buildConfig', () => {
       expect(config.ios?.infoPlist).not.toHaveProperty('NSAppTransportSecurity');
       expect(plugin(config, 'expo-build-properties')).toEqual([
         'expo-build-properties',
-        { android: { usesCleartextTraffic: false } },
+        { android: { usesCleartextTraffic: false }, ios: { extraPods: GOOGLE_SIGN_IN_PODS } },
       ]);
     }
   });
@@ -385,6 +398,60 @@ describe('buildConfig', () => {
       build('production', { env: { GOOGLE_SERVICES_JSON: 'fixture/google-services.json' } }).android
         ?.googleServicesFile,
     ).toBe('fixture/google-services.json');
+  });
+});
+
+describe('the Google sign-in plugin', () => {
+  const FIXTURE_IOS_CLIENT_ID = '123-abc.apps.googleusercontent.com';
+
+  it('the Google plugin is absent while the iOS client id is unset', () => {
+    for (const variant of VARIANTS) {
+      expect(plugin(build(variant), 'react-native-nitro-google-signin')).toBeUndefined();
+    }
+  });
+
+  it('the Google plugin carries the reversed iOS client id', () => {
+    const config = build('development', {
+      env: { EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: FIXTURE_IOS_CLIENT_ID },
+    });
+    expect(plugin(config, 'react-native-nitro-google-signin')).toEqual([
+      'react-native-nitro-google-signin',
+      { iosUrlScheme: 'com.googleusercontent.apps.123-abc' },
+    ]);
+    const names = config.plugins?.map(pluginName) ?? [];
+    expect(names.indexOf('react-native-nitro-google-signin')).toBe(
+      names.indexOf('expo-apple-authentication') + 1,
+    );
+    expect(config.ios).not.toHaveProperty('googleServicesFile');
+    expect(config.android).not.toHaveProperty('googleServicesFile');
+    // The plugin entry writes the module maps itself, so the build properties do not repeat them.
+    expect(plugin(config, 'expo-build-properties')).toEqual([
+      'expo-build-properties',
+      { android: { usesCleartextTraffic: true } },
+    ]);
+  });
+
+  it('the two scheme rules agree', () => {
+    for (const id of [
+      FIXTURE_IOS_CLIENT_ID,
+      '000000000000-fixture.apps.googleusercontent.com',
+      '987654321-a1b2c3d4e5f6.apps.googleusercontent.com',
+    ]) {
+      expect(googleIosUrlScheme(id)).toBe(iosUrlSchemeFor(id));
+    }
+    expect(() => googleIosUrlScheme('not-a-client-id')).toThrow('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID');
+  });
+
+  it("Expo's loader reads the iOS client id from the environment", () => {
+    vi.stubEnv('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID', '');
+    const unset = getConfig(MOBILE_DIR, { skipSDKVersionRequirement: true }).exp;
+    expect(plugin(unset, 'react-native-nitro-google-signin')).toBeUndefined();
+    vi.stubEnv('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID', FIXTURE_IOS_CLIENT_ID);
+    const set = getConfig(MOBILE_DIR, { skipSDKVersionRequirement: true }).exp;
+    expect(plugin(set, 'react-native-nitro-google-signin')).toEqual([
+      'react-native-nitro-google-signin',
+      { iosUrlScheme: 'com.googleusercontent.apps.123-abc' },
+    ]);
   });
 });
 

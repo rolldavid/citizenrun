@@ -28,6 +28,7 @@ const EXCLUDE = [
   'packages/cards/src/canvas.ts',
   'packages/shared/src/design/**',
   'apps/mobile/app/dev/spikes/**',
+  'apps/mobile/src/platform/auth/provider-art.ts',
   ...TEST_GLOBS,
 ];
 

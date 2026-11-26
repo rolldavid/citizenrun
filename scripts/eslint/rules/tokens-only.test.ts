@@ -34,6 +34,10 @@ ruleTester().run('tokens-only', testable(tokensOnly), {
       code: "export const ink = { color: '#141412' };",
     },
     { filename: FEATURE, code: 'export const pageSize = { count: 12 };' },
+    {
+      filename: 'apps/mobile/src/platform/auth/provider-art.ts',
+      code: "export const appleBlack = { color: '#000000' };",
+    },
     { filename: 'apps/api/src/a.ts', code: "export const ink = { color: '#141412' };" },
     {
       filename: 'apps/mobile/src/features/x/a.test.tsx',
@@ -41,6 +45,11 @@ ruleTester().run('tokens-only', testable(tokensOnly), {
     },
   ],
   invalid: [
+    {
+      filename: 'apps/mobile/src/platform/auth/index.native.tsx',
+      code: "export const appleBlack = { color: '#000000' };",
+      errors: [{ messageId: 'color' }],
+    },
     {
       filename: FEATURE,
       code: `${SHEET}export const s = StyleSheet.create({ box: { color: '#141412' } });`,

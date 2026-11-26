@@ -40,7 +40,12 @@ export type BuildInput = {
   variant: VariantName;
   brand: BrandJson;
   strings: { ios: Readonly<Record<string, string>> };
-  env: { EXPO_PUBLIC_API_ORIGIN?: string; API_VARIANT?: string; GOOGLE_SERVICES_JSON?: string };
+  env: {
+    EXPO_PUBLIC_API_ORIGIN?: string;
+    API_VARIANT?: string;
+    GOOGLE_SERVICES_JSON?: string;
+    EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?: string;
+  };
 };
 
 const VARIANTS: readonly VariantName[] = ['development', 'staging', 'production'];
@@ -77,6 +82,23 @@ function nativeText(strings: BuildInput['strings'], key: string): string {
   return text;
 }
 
+// The pods of the Google sign-in library that need module maps under static linking: the same three
+// lines its config plugin writes into the Podfile.
+const GOOGLE_SIGN_IN_PODS = [
+  { name: 'AppCheckCore', modular_headers: true },
+  { name: 'GoogleUtilities', modular_headers: true },
+  { name: 'RecaptchaInterop', modular_headers: true },
+];
+
+/** The reversed iOS client id; the same rule as iosUrlSchemeFor in src/platform/auth/google-config.ts. */
+export function googleIosUrlScheme(iosClientId: string): string {
+  const parts = iosClientId.split('.apps.googleusercontent.com');
+  if (parts.length !== 2 || parts[0] === '' || parts[1] !== '') {
+    throw new Error('EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is not an iOS client id');
+  }
+  return `com.googleusercontent.apps.${parts[0] ?? ''}`;
+}
+
 function apiOriginOf(
   brand: BrandJson,
   env: BuildInput['env'],
@@ -106,6 +128,13 @@ export function buildConfig(input: BuildInput): ExpoConfig {
   const linkHost = isDevelopment ? null : v.host;
   const { owner, projectId } = brand.expo;
   const { apiOrigin, apiVariant } = apiOriginOf(brand, env);
+  const googlePlugin: [string, { iosUrlScheme: string }] | null =
+    env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID === undefined
+      ? null
+      : [
+          'react-native-nitro-google-signin',
+          { iosUrlScheme: googleIosUrlScheme(env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID) },
+        ];
 
   return {
     name: v.displayName,
@@ -178,7 +207,15 @@ export function buildConfig(input: BuildInput): ExpoConfig {
     plugins: [
       'expo-router',
       ['expo-dev-client', { launchMode: 'most-recent' }],
-      ['expo-build-properties', { android: { usesCleartextTraffic: isDevelopment } }],
+      [
+        'expo-build-properties',
+        {
+          android: { usesCleartextTraffic: isDevelopment },
+          // While the Google plugin entry is omitted, the Google sign-in library is still linked and its
+          // pods need the module maps that entry would add, or `pod install` fails (D-169).
+          ...(googlePlugin === null ? { ios: { extraPods: GOOGLE_SIGN_IN_PODS } } : {}),
+        },
+      ],
       [
         'expo-splash-screen',
         {
@@ -229,6 +266,8 @@ export function buildConfig(input: BuildInput): ExpoConfig {
       ],
       ['expo-video', { supportsBackgroundPlayback: false, supportsPictureInPicture: false }],
       'expo-apple-authentication',
+      // Google sign-in on phones; omitted while the iOS client id is unset (OI-google-oauth).
+      ...(googlePlugin === null ? [] : [googlePlugin]),
       // expo-age-range ships no config plugin in this SDK; its one setting is the entitlement above.
       '@maplibre/maplibre-react-native',
       'react-native-compressor',
@@ -257,6 +296,7 @@ export default (): ExpoConfig => {
   const apiOrigin = setValue(process.env.EXPO_PUBLIC_API_ORIGIN);
   const apiVariant = setValue(process.env.API_VARIANT);
   const googleServices = setValue(process.env.GOOGLE_SERVICES_JSON);
+  const googleIosClientId = setValue(process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID?.trim());
   return buildConfig({
     variant: variantFromEnv(process.env.APP_VARIANT),
     brand,
@@ -265,6 +305,9 @@ export default (): ExpoConfig => {
       ...(apiOrigin === undefined ? {} : { EXPO_PUBLIC_API_ORIGIN: apiOrigin }),
       ...(apiVariant === undefined ? {} : { API_VARIANT: apiVariant }),
       ...(googleServices === undefined ? {} : { GOOGLE_SERVICES_JSON: googleServices }),
+      ...(googleIosClientId === undefined
+        ? {}
+        : { EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: googleIosClientId }),
     },
   });
 };

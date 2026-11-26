@@ -26,7 +26,7 @@ const state: {
 } = { availability: DEFAULT_AVAILABILITY, apple: null, google: null };
 
 function AppleSignInButton(props: AppleSignInButtonProps): ReactElement {
-  const { nonceHash, state: appleState, testID } = props;
+  const { nonceHash, state: appleState, testID, accessibilityLabel, disabled } = props;
   useEffect(() => {
     calls.push({ op: 'mount', provider: 'apple', nonceHash, state: appleState });
   }, [nonceHash, appleState]);
@@ -39,11 +39,17 @@ function AppleSignInButton(props: AppleSignInButtonProps): ReactElement {
       }
     };
   });
-  return <View testID={testID} />;
+  return (
+    <View
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+    />
+  );
 }
 
 function GoogleSignInButton(props: GoogleSignInButtonProps): ReactElement {
-  const { nonceHash, testID } = props;
+  const { nonceHash, testID, accessibilityLabel, disabled } = props;
   useEffect(() => {
     calls.push({ op: 'mount', provider: 'google', nonceHash });
   }, [nonceHash]);
@@ -55,7 +61,13 @@ function GoogleSignInButton(props: GoogleSignInButtonProps): ReactElement {
       }
     };
   });
-  return <View testID={testID} />;
+  return (
+    <View
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ disabled }}
+    />
+  );
 }
 
 export const auth: Auth = {
