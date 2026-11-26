@@ -205,18 +205,30 @@ describe('runSeed', () => {
   it('000-sanity fails when an extension is missing', async () => {
     const db = getTestDb();
     const bucket = await media();
-    await db.execute(sql`drop extension unaccent`);
-    try {
-      const error: unknown = await db
-        .transaction(async (tx) => {
-          await sanity.run(tx, { anchor: NOW, media: bucket });
-        })
-        .catch((caught: unknown) => caught);
-      expect(error).toBeInstanceOf(SeedError);
-      expect(String(error)).toContain('unaccent');
-      expect(String(error)).not.toContain('postgis');
-    } finally {
-      await db.execute(sql`create extension if not exists unaccent`);
-    }
+    // The drop runs inside the transaction and cascades to the objects built on the
+    // extension (the name-key functions and columns); every path ends the transaction
+    // with an error, so PostgreSQL undoes the drop and its cascade.
+    const error: unknown = await db
+      .transaction(async (tx) => {
+        await tx.execute(sql`drop extension unaccent cascade`);
+        await sanity.run(tx, { anchor: NOW, media: bucket });
+        throw new Error('000-sanity passed without unaccent');
+      })
+      .catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(SeedError);
+    expect(String(error)).toContain('unaccent');
+    expect(String(error)).not.toContain('postgis');
+
+    const restored = await texts(
+      db,
+      sql`select table_name as value from information_schema.columns
+          where table_schema = 'public' and column_name = 'name_key'
+            and table_name in ('people', 'candidacies')
+          order by table_name`,
+    );
+    expect(restored).toEqual(['candidacies', 'people']);
+    expect(
+      await texts(db, sql`select extname as value from pg_extension where extname = 'unaccent'`),
+    ).toEqual(['unaccent']);
   });
 });
