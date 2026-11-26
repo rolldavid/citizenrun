@@ -21,6 +21,7 @@ const ENV: PipelineEnv = Object.freeze({
   LOG_LEVEL: 'error',
   PIPELINE_RUN_ID: null,
   FEC_API_KEY: null,
+  PIPELINE_SCRATCH_URL: null,
   isCi: false,
 });
 

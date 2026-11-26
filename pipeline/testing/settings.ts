@@ -1,11 +1,14 @@
 import { DeleteObjectsCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { S3BucketConfig } from '@citizenrun/shared/storage';
+import { PipelineEnvSchema } from '../env.ts';
 
 declare module 'vitest' {
   export interface ProvidedContext {
     /** The storage harness's run id `R`: test buckets are named `t-<R>-<slot>-<name>`. */
     pipelineStorage: { runId: string };
+    /** PIPELINE_SCRATCH_URL as the main process read it (D-869), or null for the default server. */
+    pipelineScratch: { url: string | null };
   }
 }
 
@@ -51,6 +54,21 @@ export function storageSettings(): S3BucketConfig {
     secretAccessKey: setting('TEST_S3_SECRET_ACCESS_KEY') ?? DEFAULT_S3_SECRET_ACCESS_KEY,
     forcePathStyle: true,
   };
+}
+
+/**
+ * PIPELINE_SCRATCH_URL for the block-sum tests, or null for the pipeline's default server. Read in
+ * the global setup: the workers' environment keeps only the allow-listed names (vitest.env.ts).
+ */
+export function scratchUrlSetting(): string | null {
+  const value = setting('PIPELINE_SCRATCH_URL');
+  if (value === undefined) {
+    return null;
+  }
+  if (!PipelineEnvSchema.shape.PIPELINE_SCRATCH_URL.safeParse(value).success) {
+    throw new Error('PIPELINE_SCRATCH_URL is not a postgres URL.');
+  }
+  return value;
 }
 
 /** Deletes every object in `bucket`. */

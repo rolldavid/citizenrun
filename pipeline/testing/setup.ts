@@ -31,6 +31,20 @@ function harnessRunId(): string {
   return provided.runId;
 }
 
+/** The scratch PostGIS server the global setup read, or null for the pipeline's default. */
+export function testScratchUrl(): string | null {
+  const provided: unknown = inject('pipelineScratch');
+  if (
+    typeof provided !== 'object' ||
+    provided === null ||
+    !('url' in provided) ||
+    (provided.url !== null && typeof provided.url !== 'string')
+  ) {
+    throw new Error('The pipeline storage harness is not set up for this test project.');
+  }
+  return provided.url;
+}
+
 function workerSlot(): string {
   const slot = process.env.VITEST_POOL_ID;
   if (slot === undefined || !/^[0-9]+$/.test(slot)) {

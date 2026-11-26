@@ -2,18 +2,20 @@ import { randomBytes } from 'node:crypto';
 import { DeleteBucketCommand, ListBucketsCommand } from '@aws-sdk/client-s3';
 import { createS3Client } from '@citizenrun/shared/storage';
 import type { TestProject } from 'vitest/node';
-import { emptyBucket, storageSettings } from './settings.ts';
+import { emptyBucket, scratchUrlSetting, storageSettings } from './settings.ts';
 
 let runId: string | null = null;
 
 /**
  * Global setup of the pipeline's storage-only harness: refuses any store but the local one,
- * chooses the run id `R` and provides it to the workers. It creates no database.
+ * chooses the run id `R` and provides it, with the scratch PostGIS server, to the workers. It
+ * creates no database.
  */
 export function setup(project: TestProject): void {
   storageSettings();
   runId = randomBytes(3).toString('hex');
   project.provide('pipelineStorage', { runId });
+  project.provide('pipelineScratch', { url: scratchUrlSetting() });
 }
 
 /** Deletes every bucket of this run, `t-<R>-*`. */

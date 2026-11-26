@@ -18,6 +18,15 @@ const httpUrl = requiredValue.refine((value) => {
   }
 });
 
+const postgresUrl = requiredValue.refine((value) => {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'postgres:' || url.protocol === 'postgresql:';
+  } catch {
+    return false;
+  }
+});
+
 /**
  * The pipeline's environment (PIPE-env). It has no database URL and no media, backups or legal
  * bucket (INV-14): the pipeline holds only the keys of its home bucket.
@@ -39,6 +48,8 @@ export const PipelineEnvSchema = z.object({
     .optional(),
   CI: z.string().max(MAX_VALUE_LENGTH).optional(),
   FEC_API_KEY: z.string().max(MAX_VALUE_LENGTH).optional(),
+  // D-869: the throwaway PostGIS server of the block sums, in place of the fixed default.
+  PIPELINE_SCRATCH_URL: postgresUrl.optional(),
 });
 
 export type PipelineEnv = Readonly<{
@@ -51,6 +62,8 @@ export type PipelineEnv = Readonly<{
   LOG_LEVEL: LogLevel;
   PIPELINE_RUN_ID: string | null;
   FEC_API_KEY: string | null;
+  /** The scratch PostGIS server when set on this machine (D-869); null means the fixed default. */
+  PIPELINE_SCRATCH_URL: string | null;
   /** True only when CI is `true` (GitHub Actions); only the fetcher reads it. */
   isCi: boolean;
 }>;
@@ -82,6 +95,7 @@ export function loadEnv(
     LOG_LEVEL: parsed.LOG_LEVEL,
     PIPELINE_RUN_ID: parsed.PIPELINE_RUN_ID ?? null,
     FEC_API_KEY: parsed.FEC_API_KEY ?? null,
+    PIPELINE_SCRATCH_URL: parsed.PIPELINE_SCRATCH_URL ?? null,
     isCi: parsed.CI === 'true',
   });
   if (env.FEC_API_KEY === null) {

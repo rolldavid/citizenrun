@@ -102,6 +102,42 @@ describe('loadEnv', () => {
     );
   });
 
+  it('PIPELINE_SCRATCH_URL unset or empty is null', () => {
+    const { log } = captureLogger();
+    expect(loadEnv(BASE, log).PIPELINE_SCRATCH_URL).toBeNull();
+    expect(loadEnv({ ...BASE, PIPELINE_SCRATCH_URL: '' }, log).PIPELINE_SCRATCH_URL).toBeNull();
+    expect(loadEnv(readExample(), log).PIPELINE_SCRATCH_URL).toBeNull();
+  });
+
+  it('PIPELINE_SCRATCH_URL set is kept', () => {
+    const { log } = captureLogger();
+    for (const url of [
+      'postgresql://fixture:fixture@127.0.0.1:55432/postgres',
+      'postgres://fixture:fixture@localhost:5432/postgres',
+    ]) {
+      expect(loadEnv({ ...BASE, PIPELINE_SCRATCH_URL: url }, log).PIPELINE_SCRATCH_URL).toBe(url);
+    }
+  });
+
+  it('a bad PIPELINE_SCRATCH_URL fails naming it and never its value', () => {
+    const { log } = captureLogger();
+    for (const value of [
+      'http://fixture-scratch-host/postgres',
+      'not a url',
+      `postgresql://fixture@localhost/${'x'.repeat(520)}`,
+    ]) {
+      let message = '';
+      try {
+        loadEnv({ ...BASE, PIPELINE_SCRATCH_URL: value }, log);
+      } catch (error) {
+        expect(error).toBeInstanceOf(EnvError);
+        message = error instanceof Error ? error.message : '';
+      }
+      expect(message).toContain('PIPELINE_SCRATCH_URL');
+      expect(message).not.toContain(value);
+    }
+  });
+
   it('CI=true sets isCi', () => {
     const { log } = captureLogger();
     expect(loadEnv({ ...BASE, CI: 'true' }, log).isCi).toBe(true);

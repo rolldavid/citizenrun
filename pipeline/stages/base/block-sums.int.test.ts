@@ -1,6 +1,7 @@
-// The block sums through psql and the real block-sums.sql on the PostGIS server at the pipeline's
-// fixed address, in a scratch database this file names from testRunId() and checks only by that
-// name (other files and runs create theirs on the same server at the same time).
+// The block sums through psql and the real block-sums.sql on the pipeline's scratch PostGIS server
+// (PIPELINE_SCRATCH_URL when set, else the default address), in a scratch database this file names
+// from testRunId() and checks only by that name (other files and runs create theirs on the same
+// server at the same time).
 import { spawnSync } from 'node:child_process';
 import { createLogger } from '@citizenrun/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -9,8 +10,8 @@ import { encodeNdjsonGz } from '../../lib/ndjson.ts';
 import { NO_FETCHER, createRunContext } from '../../lib/runner.ts';
 import { multiPolygonToWkb, toHex } from '../../lib/wkb.ts';
 import type { Position } from '../../lib/wkb.ts';
-import { getTestBucket, resetStorage, testRunId } from '../../testing/setup.ts';
-import { SCRATCH_SERVER, ScratchNameError, assertScratchName, runBlockSums } from './block-sums.ts';
+import { getTestBucket, resetStorage, testRunId, testScratchUrl } from '../../testing/setup.ts';
+import { ScratchNameError, assertScratchName, runBlockSums, scratchServer } from './block-sums.ts';
 
 const ENV: PipelineEnv = Object.freeze({
   DATA_BUCKET: 'fixture',
@@ -22,11 +23,12 @@ const ENV: PipelineEnv = Object.freeze({
   LOG_LEVEL: 'error',
   PIPELINE_RUN_ID: null,
   FEC_API_KEY: null,
+  PIPELINE_SCRATCH_URL: testScratchUrl(),
   isCi: false,
 });
 
 function databaseCount(name: string): string {
-  const result = spawnSync('psql', ['-X', '-At', '-d', SCRATCH_SERVER, '-v', `name=${name}`], {
+  const result = spawnSync('psql', ['-X', '-At', '-d', scratchServer(ENV), '-v', `name=${name}`], {
     encoding: 'utf8',
     input: "select count(*) from pg_database where datname = :'name';\n",
   });

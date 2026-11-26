@@ -7,11 +7,12 @@ import type { Writable } from 'node:stream';
 import { parse } from 'csv-parse/sync';
 import { readNdjsonGz } from '../../lib/ndjson.ts';
 import { repoRoot } from '../../lib/paths.ts';
+import type { PipelineEnv } from '../../env.ts';
 import type { RunContext } from '../../lib/runner.ts';
 import { BlockTableRowSchema } from '../../sources/pl94171.ts';
 
-/** The fixed address of the PostGIS server: the job's service container, or the compose server. */
-export const SCRATCH_SERVER = 'postgresql://citizenrun:citizenrun@localhost:5432/postgres';
+/** The default address of the PostGIS server: the job's service container, or the compose server. */
+export const DEFAULT_SCRATCH_SERVER = 'postgresql://citizenrun:citizenrun@localhost:5432/postgres';
 export const BLOCK_SUMS_SQL = 'pipeline/sql/base/block-sums.sql';
 export const SCRATCH_PREFIX = 'pipeline_scratch_';
 /** Postgres truncates a longer identifier, and the drop would then miss the database. */
@@ -27,6 +28,11 @@ export class ScratchNameError extends Error {
 /** A psql run that ended with a non-zero exit code, or output the parser cannot read. */
 export class BlockSumsError extends Error {
   override readonly name = 'BlockSumsError';
+}
+
+/** The scratch PostGIS server: PIPELINE_SCRATCH_URL when it is set (D-869), else the default. */
+export function scratchServer(env: Pick<PipelineEnv, 'PIPELINE_SCRATCH_URL'>): string {
+  return env.PIPELINE_SCRATCH_URL ?? DEFAULT_SCRATCH_SERVER;
 }
 
 /** Refuses any name that is not `pipeline_scratch_<run id>` within Postgres's identifier length. */
@@ -160,7 +166,7 @@ export async function runBlockSums(
   },
   ctx: RunContext,
 ): Promise<{ sums: ReadonlyMap<string, BlockSum>; invalid: readonly string[] }> {
-  const server = new URL(SCRATCH_SERVER);
+  const server = new URL(scratchServer(ctx.env));
   const name = scratchDatabaseName(input.runId);
   const started = Date.now();
   const state = /blocks-([A-Z]{2})\.ndjson\.gz$/.exec(input.blocksKey)?.[1] ?? null;

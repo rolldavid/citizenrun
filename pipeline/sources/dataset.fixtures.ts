@@ -33,6 +33,7 @@ const ENV: PipelineEnv = Object.freeze({
   LOG_LEVEL: 'error',
   PIPELINE_RUN_ID: 'fixture-run',
   FEC_API_KEY: null,
+  PIPELINE_SCRATCH_URL: null,
   isCi: false,
 });
 
