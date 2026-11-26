@@ -494,6 +494,13 @@ describe('Avatar', () => {
     expect(photoWrapper(screen.getByTestId(PROBE)).style.opacity).toBe('1');
   });
 
+  it('the picture inside the disc has an empty text of its own', () => {
+    // The disc is named for the person, so the picture is not read out a second time.
+    draw(STATES.photoMd);
+    expect(photoProps()['alt']).toBe('');
+    expect(photoProps()['accessibilityLabel']).toBe('');
+  });
+
   it('missing photo keeps the disc', () => {
     const disc = draw(STATES.photoMissing);
     expect(photoProps()['source']).toEqual({ uri: STATES.photoMissing.image.url });

@@ -95,6 +95,9 @@ function Photo({ image }: { image: { key: string; url: string } }): JSX.Element 
           source={{ uri: image.url }}
           recyclingKey={image.key}
           contentFit="cover"
+          // The disc carries the person's name, or is hidden: the picture itself says nothing more.
+          alt=""
+          accessibilityLabel=""
           style={COVER}
           onLoad={() => {
             setLoadedKey(image.key);
