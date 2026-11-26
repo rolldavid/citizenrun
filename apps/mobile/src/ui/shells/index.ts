@@ -22,5 +22,6 @@ export {
   useBreakpoint,
 } from './use-breakpoint';
 export type { Breakpoint, Layout, SideInsets } from './use-breakpoint';
+export { useTight } from './use-tight';
 export { navigatorThemeFor, useNavigatorTheme } from './navigator-theme';
 export type { NavigatorTheme } from './navigator-theme';

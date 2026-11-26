@@ -4,6 +4,7 @@ import type { ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
+import { useTight } from '@/ui/shells/use-tight';
 import { useTheme } from '@/ui/theme';
 import { rule, space, z } from '@/ui/tokens';
 
@@ -44,6 +45,7 @@ const FILLS: ViewStyle = { flex: 1 };
 export function StickyFooter({ info, primary, secondary }: StickyFooterProps): JSX.Element {
   const theme = useTheme();
   const layout = useBreakpoint();
+  const tight = useTight();
   const insets = useSafeAreaInsets();
 
   if (__DEV__ && primary === undefined && secondary === undefined) {
@@ -69,7 +71,7 @@ export function StickyFooter({ info, primary, secondary }: StickyFooterProps): J
           // What is picked changes as the person picks: a screen reader hears each new count.
           <View style={INFO} accessibilityLiveRegion="polite" aria-live="polite">
             <Text role="label">{info.line}</Text>
-            {info.helper === undefined || layout.isTight ? null : (
+            {info.helper === undefined || tight ? null : (
               <Text role="caption" tone="secondary">
                 {info.helper}
               </Text>

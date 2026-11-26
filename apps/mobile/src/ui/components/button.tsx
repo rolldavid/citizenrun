@@ -7,7 +7,7 @@ import Animated from 'react-native-reanimated';
 import type { HapticName } from '@/ui/haptic';
 import type { IconName } from '@/ui/icons';
 import { usePulse } from '@/ui/motion';
-import { useBreakpoint } from '@/ui/shells/use-breakpoint';
+import { useTight } from '@/ui/shells/use-tight';
 import { useTheme } from '@/ui/theme';
 import { radius, rule, size, space } from '@/ui/tokens';
 import type { ThemeColors } from '@/ui/tokens';
@@ -153,13 +153,13 @@ export function Button({
   testID,
 }: ButtonProps): JSX.Element {
   const theme = useTheme();
-  const layout = useBreakpoint();
+  const tight = useTight();
   const look = lookOf(variant, theme.color);
   const small = sizeName === 'sm';
   const tone: ResolvedTone = disabled ? 'disabled' : look.tone;
   const leading: IconName | undefined = done ? 'check' : icon;
   // The accessible name stays the long label.
-  const words = layout.isTight && shortLabel !== undefined ? shortLabel : label;
+  const words = tight && shortLabel !== undefined ? shortLabel : label;
 
   const parts = (
     <>

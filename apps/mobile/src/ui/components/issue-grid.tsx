@@ -3,9 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
-import { useBreakpoint } from '@/ui/shells/use-breakpoint';
-import { useTheme } from '@/ui/theme';
-import { space, textScale } from '@/ui/tokens';
+import { useTight } from '@/ui/shells/use-tight';
+import { space } from '@/ui/tokens';
 
 import { IssueGridChip } from './issue-chip';
 
@@ -59,11 +58,8 @@ export function IssueGrid({
   testID,
 }: IssueGridProps): JSX.Element {
   const { t } = useTranslation('common');
-  const layout = useBreakpoint();
-  const theme = useTheme();
-  // One column on a tight layout. A development screen's own text size counts as the system's does,
-  // so a review of large text in a browser shows the grid a phone draws.
-  const tight = layout.isTight || (layout.isNarrow && theme.textScale >= textScale.tightFrom);
+  // One column on a tight layout.
+  const tight = useTight();
   const perRow = tight ? 1 : 2;
 
   const press = (id: string, selected: boolean): void => {

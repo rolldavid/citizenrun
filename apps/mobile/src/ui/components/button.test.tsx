@@ -8,7 +8,7 @@ import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
-import { opacity } from '@/ui/tokens';
+import { opacity, textScale } from '@/ui/tokens';
 
 import { Button } from './button';
 import type { ButtonProps, ButtonVariant } from './button';
@@ -574,6 +574,14 @@ describe('Button', () => {
       expect(label.parentElement?.style.flexShrink, state).toBe('1');
     }
     expect(drawState('twoLines').label.textContent).toBe(STATES.twoLines.label);
+  });
+
+  it('a narrow window at a large text size of the screen draws the short label too', () => {
+    const props = { ...STATES.run, shortLabel: 'Run' };
+    layout.isTight = false;
+    const large = draw(props, { textScale: textScale.tightFrom });
+    expect(large.label.textContent).toBe('Run');
+    expect(large.target.getAttribute('aria-label')).toBe('Run for this office');
   });
 
   it('the short label is drawn on a tight layout, and the name stays the long one', () => {

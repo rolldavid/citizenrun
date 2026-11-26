@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
-import { color, gutter, opacity, rule, size, space, z } from '@/ui/tokens';
+import { color, gutter, opacity, rule, size, space, textScale, z } from '@/ui/tokens';
 
 import { InteractionPreview } from './pressable';
 import { StickyFooter } from './sticky-footer';
@@ -250,6 +250,19 @@ describe('StickyFooter', () => {
     expect(slotOf(bar, button).style.flexGrow).toBe('');
     expect(button.parentElement?.style.alignSelf).toBe('flex-start');
     expect(info?.contains(button)).toBe(false);
+  });
+
+  it('a narrow window at a large text size of the screen is tight too', () => {
+    // The system's text size is the default; the screen's own is the large one.
+    layout.isTight = false;
+    layout.width = 360;
+    const bar = draw(STATES.withInfo, { textScale: textScale.tightFrom });
+    expect(within(bar).getByText(STATES.withInfo.info.line)).toBeDefined();
+    expect(within(bar).queryByText(STATES.withInfo.info.helper)).toBeNull();
+    // A wider phone at that size keeps the helper.
+    layout.width = 390;
+    const wide = draw(STATES.withInfo, { textScale: textScale.tightFrom });
+    expect(within(wide).getByText(STATES.withInfo.info.helper)).toBeDefined();
   });
 
   it('tight drops the helper', () => {
