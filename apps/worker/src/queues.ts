@@ -85,6 +85,25 @@ export const SCHEDULE_REGISTRY: readonly ScheduleEntry[] = [
     key: '',
     missed: 'once',
   },
+  // Hourly rules (D-240). The key is also the singleton key, so a queued hourly run never
+  // refuses the nightly one.
+  {
+    id: 'S-cleanup.retention.hourly',
+    queue: 'cleanup.retention',
+    cron: '5 * * * *',
+    data: { scope: 'hourly' },
+    key: 'hourly',
+    missed: 'skip',
+  },
+  // Nightly, with one catch-up run after downtime (D-238).
+  {
+    id: 'S-cleanup.retention.nightly',
+    queue: 'cleanup.retention',
+    cron: '15 7 * * *',
+    data: { scope: 'nightly' },
+    key: 'nightly',
+    missed: 'once',
+  },
 ];
 
 /** Options only tests pass, so retries and polls finish in seconds. */

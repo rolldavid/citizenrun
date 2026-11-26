@@ -600,8 +600,11 @@ describe('the queue registry', () => {
     try {
       await registerSchedules(boss, testLogger());
       const schedules = await boss.getSchedules();
-      const byQueue = (left: { name: string }, right: { name: string }): number =>
-        left.name.localeCompare(right.name);
+      // By queue, then key: the two retention schedules share a queue.
+      const byQueue = (
+        left: { name: string; key: string },
+        right: { name: string; key: string },
+      ): number => left.name.localeCompare(right.name) || left.key.localeCompare(right.key);
       expect(
         [...schedules].sort(byQueue).map((schedule) => ({
           name: schedule.name,
@@ -626,6 +629,8 @@ describe('the queue registry', () => {
         ['S-backup.check', '30 9 * * *', 'once'],
         ['S-db.connections-check', '40 9 * * *', 'once'],
         ['S-cost.check', '50 9 * * *', 'once'],
+        ['S-cleanup.retention.hourly', '5 * * * *', 'skip'],
+        ['S-cleanup.retention.nightly', '15 7 * * *', 'once'],
       ]);
     } finally {
       for (const entry of SCHEDULE_REGISTRY) {
@@ -717,6 +722,212 @@ describe('the queue registry', () => {
         sourceOutput: { value: 'pg-boss shut down while active' },
       }),
     ).toEqual({ queue: 'backup.check', jobId: 'fixture-id', errorClass: 'Error' });
+  });
+});
+
+describe('the account job queues and schedules', () => {
+  it('the account job queues have their options', async () => {
+    // Written out, not read from QUEUE_OPTIONS, so a changed value fails here.
+    const expected: Partial<
+      Record<
+        JobName,
+        {
+          policy: string;
+          localConcurrency: number;
+          retryDelay: number;
+          retryDelayMax: number;
+          expireInSeconds: number;
+          heartbeatSeconds: number | null;
+          pollingIntervalSeconds: number;
+        }
+      >
+    > = {
+      'account.delete': {
+        policy: 'standard',
+        localConcurrency: 2,
+        retryDelay: 60,
+        retryDelayMax: 3600,
+        expireInSeconds: 3600,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 5,
+      },
+      'account.export': {
+        policy: 'standard',
+        localConcurrency: 2,
+        retryDelay: 60,
+        retryDelayMax: 1800,
+        expireInSeconds: 1800,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 5,
+      },
+      'cleanup.retention': {
+        policy: 'stately',
+        localConcurrency: 1,
+        retryDelay: 300,
+        retryDelayMax: 3600,
+        expireInSeconds: 7200,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 10,
+      },
+      'uploads.cleanup': {
+        policy: 'standard',
+        localConcurrency: 4,
+        retryDelay: 30,
+        retryDelayMax: 900,
+        expireInSeconds: 300,
+        heartbeatSeconds: null,
+        pollingIntervalSeconds: 5,
+      },
+      'media.process.image': {
+        policy: 'standard',
+        localConcurrency: 2,
+        retryDelay: 2,
+        retryDelayMax: 60,
+        expireInSeconds: 120,
+        heartbeatSeconds: null,
+        pollingIntervalSeconds: 1,
+      },
+      'notify.email': {
+        policy: 'standard',
+        localConcurrency: 4,
+        retryDelay: 60,
+        retryDelayMax: 1800,
+        expireInSeconds: 120,
+        heartbeatSeconds: null,
+        pollingIntervalSeconds: 2,
+      },
+    };
+    const names = Object.keys(expected) as JobName[];
+    const registry = QUEUE_REGISTRY.filter((definition) => names.includes(definition.name));
+    expect(registry.map((definition) => definition.name).sort()).toEqual([...names].sort());
+
+    const boss = await startBoss();
+    for (const name of names) {
+      await boss.deleteQueue(name);
+    }
+    // The options registerQueues gives `work`, recorded instead of starting a worker, so no job
+    // of an earlier case runs here.
+    const workOptions = new Map<string, unknown>();
+    const record = (name: string, options: unknown): Promise<string> => {
+      workOptions.set(name, options);
+      return Promise.resolve(`fixture-worker-${name}`);
+    };
+    vi.spyOn(boss, 'work').mockImplementation(record);
+    await registerQueues(boss, await runtimeFor(boss), registry);
+
+    for (const name of names) {
+      const row = expected[name];
+      const queue = await boss.getQueue(name);
+      expect({
+        name,
+        policy: queue?.policy,
+        retryLimit: queue?.retryLimit,
+        retryBackoff: queue?.retryBackoff,
+        retryDelay: queue?.retryDelay,
+        retryDelayMax: queue?.retryDelayMax,
+        expireInSeconds: queue?.expireInSeconds,
+        heartbeatSeconds: queue?.heartbeatSeconds ?? null,
+        deleteAfterSeconds: queue?.deleteAfterSeconds,
+        deadLetter: queue?.deadLetter,
+      }).toEqual({
+        name,
+        policy: row?.policy,
+        retryLimit: 2,
+        retryBackoff: true,
+        retryDelay: row?.retryDelay,
+        retryDelayMax: row?.retryDelayMax,
+        expireInSeconds: row?.expireInSeconds,
+        heartbeatSeconds: row?.heartbeatSeconds,
+        deleteAfterSeconds: 86400,
+        deadLetter: 'ops.dead',
+      });
+      const definition = registry.find((entry) => entry.name === name);
+      expect({ name, ...definition?.work }).toEqual({
+        name,
+        localConcurrency: row?.localConcurrency,
+        pollingIntervalSeconds: row?.pollingIntervalSeconds,
+      });
+      expect(workOptions.get(name)).toEqual({
+        batchSize: 1,
+        includeMetadata: true,
+        localConcurrency: row?.localConcurrency,
+        pollingIntervalSeconds: row?.pollingIntervalSeconds,
+      });
+    }
+  });
+
+  it('the retention schedules exist', async () => {
+    const boss = await startBoss();
+    try {
+      await registerSchedules(boss, testLogger());
+      const schedules = await boss.getSchedules();
+      const retention = schedules
+        .filter((schedule) => schedule.name === 'cleanup.retention')
+        .sort((left, right) => left.key.localeCompare(right.key))
+        .map((schedule) => ({
+          cron: schedule.cron,
+          data: schedule.data,
+          key: schedule.key,
+          timezone: schedule.timezone,
+          missed: schedule.options?.missed,
+          singletonKey: schedule.options?.singletonKey,
+        }));
+      expect(retention).toEqual([
+        {
+          cron: '5 * * * *',
+          data: { scope: 'hourly' },
+          key: 'hourly',
+          timezone: 'UTC',
+          missed: 'skip',
+          singletonKey: 'hourly',
+        },
+        {
+          cron: '15 7 * * *',
+          data: { scope: 'nightly' },
+          key: 'nightly',
+          timezone: 'UTC',
+          missed: 'once',
+          singletonKey: 'nightly',
+        },
+      ]);
+      const milestoneZero = schedules.filter((schedule) => schedule.name !== 'cleanup.retention');
+      expect(milestoneZero.map((schedule) => schedule.name).sort()).toEqual([
+        'backup.check',
+        'cost.check',
+        'db.connections-check',
+        'ops.heartbeat',
+      ]);
+      for (const schedule of milestoneZero) {
+        expect(schedule.key).toBe('');
+        expect(schedule.options?.singletonKey).toBeUndefined();
+      }
+    } finally {
+      for (const entry of SCHEDULE_REGISTRY) {
+        await boss.unschedule(entry.queue, entry.key);
+      }
+    }
+  });
+
+  it('a nightly retention run is not refused behind an hourly one', async () => {
+    const boss = await startBoss();
+    await boss.deleteQueue('cleanup.retention');
+    await createQueues(boss, ['cleanup.retention'], testLogger());
+    const hourly = await boss.send(
+      'cleanup.retention',
+      { scope: 'hourly' },
+      { singletonKey: 'hourly' },
+    );
+    const nightly = await boss.send(
+      'cleanup.retention',
+      { scope: 'nightly' },
+      { singletonKey: 'nightly' },
+    );
+    expect(hourly).not.toBeNull();
+    expect(nightly).not.toBeNull();
+    expect(
+      await boss.send('cleanup.retention', { scope: 'hourly' }, { singletonKey: 'hourly' }),
+    ).toBeNull();
+    expect(await pendingCount('cleanup.retention')).toBe(2);
   });
 });
 
