@@ -1,5 +1,5 @@
 # TEST-maestro-signup: a first-time sign-up from the welcome screen to Home. Targets are found by
-# id only; text is asserted, never used to find a target.
+# id; text is asserted, and finds only the system's own prompt, which has no id.
 appId: ${APP_ID}
 tags:
   - m01

@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { parseAllDocuments } from 'yaml';
 import { SELECTORS } from '../apps/mobile/e2e/selectors.ts';
 import { repoRoot } from './lib/repo-root.ts';
 
@@ -77,6 +78,47 @@ export function flowIds(source: string): string[] {
   return [...source.matchAll(FLOW_ID)].map((match) => match[1] ?? match[2] ?? match[3] ?? '');
 }
 
+/** The flow commands whose argument is the element they act on. */
+const TARGET_COMMANDS: ReadonlySet<string> = new Set(['tapOn', 'doubleTapOn', 'longPressOn']);
+/**
+ * The labels of the system's own prompts, which carry no testID and are found by their text: the
+ * iOS simulator asks with "Open" before it opens a link in the app.
+ */
+const SYSTEM_PROMPT_LABELS: ReadonlySet<string> = new Set(['Open']);
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** The texts a flow finds a target by: a tap's text, or the element a scroll looks for by text. */
+export function textTargets(source: string): string[] {
+  const found: string[] = [];
+  for (const document of parseAllDocuments(source)) {
+    const steps: unknown = document.toJS();
+    if (!Array.isArray(steps)) {
+      continue;
+    }
+    for (const step of steps as unknown[]) {
+      if (!isRecord(step)) {
+        continue;
+      }
+      for (const [command, argument] of Object.entries(step)) {
+        const target = TARGET_COMMANDS.has(command)
+          ? argument
+          : command === 'scrollUntilVisible' && isRecord(argument)
+            ? argument.element
+            : undefined;
+        if (typeof target === 'string') {
+          found.push(target);
+        } else if (isRecord(target) && typeof target.text === 'string') {
+          found.push(target.text);
+        }
+      }
+    }
+  }
+  return found;
+}
+
 /** The files under a folder, at any depth, whose names match. */
 function filesUnder(dir: string, pattern: RegExp): string[] {
   return readdirSync(join(ROOT, dir), { recursive: true, encoding: 'utf8' })
@@ -137,6 +179,37 @@ describe('the selector registry', () => {
       expect(ids.length, file).toBeGreaterThan(0);
       expect(unknownFlowIds(SELECTORS, ids), file).toEqual([]);
     }
+  });
+
+  it('a flow finds its targets by id, and by text only on a system prompt', () => {
+    for (const file of flowFiles()) {
+      const texts = textTargets(readFileSync(file, 'utf8'));
+      expect(
+        texts.filter((text) => !SYSTEM_PROMPT_LABELS.has(text)),
+        file,
+      ).toEqual([]);
+    }
+  });
+
+  it('reads a target found by text in each form', () => {
+    const flow = [
+      'appId: x',
+      '---',
+      "- tapOn: 'Save'",
+      '- tapOn:',
+      "    text: 'Open'",
+      '    optional: true',
+      '- tapOn:',
+      "    id: 'auth.here'",
+      '- scrollUntilVisible:',
+      '    element:',
+      "      text: 'Far down'",
+      '- scrollUntilVisible:',
+      '    element:',
+      "      id: 'auth.far'",
+      "- assertVisible: 'Shown'",
+    ].join('\n');
+    expect(textTargets(flow)).toEqual(['Save', 'Open', 'Far down']);
   });
 
   it('fails on an unknown id', () => {

@@ -1,5 +1,6 @@
 # CTL-35 on a phone: a new account is deleted from settings, the screen states what is removed and
-# kept, and the app returns to the welcome screen. Targets are found by id only.
+# kept, and the app returns to the welcome screen. Targets are found by id; text is asserted, and
+# finds only the system's own prompt, which has no id.
 appId: ${APP_ID}
 tags:
   - m01
@@ -16,9 +17,10 @@ tags:
       id: 'settings.delete-action'
     timeout: 15000
 - assertVisible: 'It finishes within 24 hours.'
+# The link under the kept list: the last kept item stands just above it.
 - scrollUntilVisible:
     element:
-      text: 'Encrypted backups for up to 27 days, and a keyed fingerprint of the account id in our recovery log for 35 days.'
+      id: 'settings.delete-export-first'
     direction: DOWN
 - assertVisible: 'Encrypted backups for up to 27 days, and a keyed fingerprint of the account id in our recovery log for 35 days.'
 - tapOn:
