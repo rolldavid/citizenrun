@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/CD/tl_2026_11_cd120.zip",
+  "fetchedAt": "2026-11-26T22:11:23.634Z",
+  "sha256": "9c3655be2c645736755d4981f3cca35dcd629483ff33b76de33ff460f652ed8d",
+  "contentType": "application/json",
+  "originalSha256": "20d595d23f27a1a786cb8257c3de26f0ac1cbd76b25b998653b849608d19273e",
+  "transformations": [
+    "GEOID, CD120FP and NAMELSAD of every feature of the .dbf member tl_2026_11_cd120.dbf, written as JSON; originalSha256 is the zip"
+  ]
+}

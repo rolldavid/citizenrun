@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/SLDL/tl_2026_08_sldl.zip",
+  "fetchedAt": "2026-11-26T22:11:19.480Z",
+  "sha256": "b61cce234fbcc76a75f7ab1f99f3c680767c4dfc0b76b139c3a2d9a5c9199f94",
+  "contentType": "application/x-dbf",
+  "originalSha256": "70e468fb4cf70875b52c72dbd65b1b990f3d6fb080ba10923e7c59967c80f373",
+  "transformations": [
+    "the .dbf member of the zip (tl_2026_08_sldl.dbf), unchanged; originalSha256 is the zip"
+  ]
+}

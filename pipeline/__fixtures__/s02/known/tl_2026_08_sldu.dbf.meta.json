@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/SLDU/tl_2026_08_sldu.zip",
+  "fetchedAt": "2026-11-26T22:11:17.272Z",
+  "sha256": "52a36b741f88977254e7fbfe933dc98ff52edd1119617ac7ddc126dd5eebc4c2",
+  "contentType": "application/x-dbf",
+  "originalSha256": "74d1aab4a31e24c8078ecebe6ee12e0ee5047c6f17efb80b63d50d6064da4097",
+  "transformations": [
+    "the .dbf member of the zip (tl_2026_08_sldu.dbf), unchanged; originalSha256 is the zip"
+  ]
+}

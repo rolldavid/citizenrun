@@ -1,0 +1,14 @@
+{
+  "url": "https://data.openstates.org/people/current/co.csv",
+  "fetchedAt": "2026-11-26T22:10:50.573Z",
+  "sha256": "567d8212f5b3f763c225757f69c257b4424db9541e0fa6c621f953c2a20ae3dc",
+  "contentType": "text/csv; charset=UTF-8",
+  "originalSha256": "2fcd489d6753de0bde7fa5e4f18a05eb8ab1dbf1de39c20e7d7ee6acbdec08e2",
+  "transformations": [
+    "every row kept; the ten columns the parser reads kept unchanged",
+    "capitol_address and district_address set to a fixture address on every row",
+    "capitol_voice, capitol_fax, district_voice and district_fax set to 555-0100 on every row",
+    "email set to fixture@example.test on every row; every other unread column emptied",
+    "written as CSV with LF line endings, fields quoted only where they hold a comma, quote or line break"
+  ]
+}

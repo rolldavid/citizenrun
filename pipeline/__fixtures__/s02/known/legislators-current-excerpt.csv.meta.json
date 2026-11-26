@@ -1,0 +1,13 @@
+{
+  "url": "https://unitedstates.github.io/congress-legislators/legislators-current.csv",
+  "fetchedAt": "2026-11-26T22:10:50.742Z",
+  "sha256": "03809df65239892f6904e9e117e9323be6ed5d133cadda4cbc9ab65f27801c1b",
+  "contentType": "text/csv; charset=utf-8",
+  "originalSha256": "428f54db6f95ec9cea75942ab37815412df4baa60afa1f614f40f7cd57017bf6",
+  "transformations": [
+    "kept the header, the rows of WY and DC and the first PR row, in file order",
+    "address set to a fixture address and phone to 555-0100 on every kept row",
+    "contact_form and birthday emptied on every kept row",
+    "written as CSV with LF line endings, fields quoted only where they hold a comma, quote or line break"
+  ]
+}
