@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { ConfidenceSchema } from '../bundle/common.ts';
+import { SOURCE_URL_MAX } from '../policy/links.ts'; // L-links
 import { ERROR_CODES, FIELD_CODES } from '../errors.ts';
 import type { ErrorCode } from '../errors.ts';
 
@@ -63,3 +65,63 @@ export const MediaSchema = z
   .meta({ id: 'Media' });
 
 export type Media = z.infer<typeof MediaSchema>;
+
+const ConfidenceComponent = ConfidenceSchema.meta({ id: 'Confidence' });
+
+/** How sure a sourced value is: `low` is a template default or an estimate (D-073). */
+export type Confidence = z.infer<typeof ConfidenceSchema>;
+
+/** The proof of one act-on value as the API sends it, inside an entity's `fieldMeta` (D-439). */
+export type FieldMeta = {
+  sourceUrl: string | null;
+  quote: string | null;
+  confidence: Confidence;
+  checkedAt: string;
+  ruleCitation: string | null;
+};
+
+/** `FieldMeta` on the wire: `sourceUrl` and `quote` may be null only at `low` confidence (D-439). */
+export const FieldMetaSchema: z.ZodType<FieldMeta> = z
+  .object({
+    sourceUrl: z
+      .string()
+      .max(SOURCE_URL_MAX)
+      .regex(/^https:\/\//)
+      .nullable(),
+    quote: z.string().max(2000).nullable(),
+    confidence: ConfidenceComponent,
+    checkedAt: InstantSchema,
+    ruleCitation: z.string().max(500).nullable(),
+  })
+  .superRefine((meta, ctx) => {
+    if (meta.confidence === 'low') {
+      return;
+    }
+    for (const key of ['sourceUrl', 'quote'] as const) {
+      if (meta[key] === null) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          params: { code: 'not_allowed' },
+          message: 'High and medium confidence need a source and a quote.',
+        });
+      }
+    }
+  })
+  .meta({ id: 'FieldMeta' });
+
+/** The wire `fieldMeta` map, keyed by the camelCase field name; a null value has no entry (D-439). */
+export const FieldMetaWireMapSchema = z
+  .record(z.string(), FieldMetaSchema)
+  .meta({ id: 'FieldMetaMap' });
+
+export type FieldMetaWireMap = Record<string, FieldMeta>;
+
+/** One value with its proof, as a view-model hands it to a component (D-439). */
+export type Sourced<T> = { value: T | null; meta: FieldMeta | null };
+
+/** The wire form of one sourced value, for a response whose contract says so. */
+export function sourcedSchema<S extends z.ZodType>(value: S): z.ZodType<Sourced<z.infer<S>>> {
+  // `.required()` states what zod cannot infer for a generic value schema: both keys are always sent.
+  return z.object({ value: value.nullable(), meta: FieldMetaSchema.nullable() }).required();
+}

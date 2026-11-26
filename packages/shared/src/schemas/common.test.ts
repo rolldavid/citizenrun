@@ -1,6 +1,15 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { ErrorEnvelopeSchema, InstantSchema, MediaSchema, pageSchema } from './common.ts';
+import { ConfidenceSchema, FieldMetaRowSchema } from '../bundle/common.ts';
+import {
+  ErrorEnvelopeSchema,
+  FieldMetaSchema,
+  FieldMetaWireMapSchema,
+  InstantSchema,
+  MediaSchema,
+  pageSchema,
+  sourcedSchema,
+} from './common.ts';
 
 describe('ErrorEnvelopeSchema', () => {
   it('the envelope accepts a registry code', () => {
@@ -135,5 +144,107 @@ describe('InstantSchema', () => {
   it('an instant with an offset or a date alone fails', () => {
     expect(InstantSchema.safeParse('2027-03-05T22:00:00.000+01:00').success).toBe(false);
     expect(InstantSchema.safeParse('2027-03-05').success).toBe(false);
+  });
+});
+
+describe('FieldMetaSchema', () => {
+  const sourced = {
+    sourceUrl: 'https://example.test/fixture-notice',
+    quote: 'Fixture quote of the notice.',
+    confidence: 'high',
+    checkedAt: '2027-03-05T22:00:00.000Z',
+    ruleCitation: null,
+  };
+
+  function issuesOf(value: unknown) {
+    return (FieldMetaSchema.safeParse(value).error?.issues ?? []).map((issue) => ({
+      path: issue.path.join('.'),
+      code: 'params' in issue ? issue.params?.['code'] : issue.code,
+    }));
+  }
+
+  it('field meta with a source parses', () => {
+    expect(FieldMetaSchema.parse(sourced)).toEqual(sourced);
+    expect(
+      FieldMetaSchema.safeParse({ ...sourced, confidence: 'medium', ruleCitation: 'Fixture § 1' })
+        .success,
+    ).toBe(true);
+  });
+
+  it('high or medium confidence needs a source and a quote', () => {
+    for (const confidence of ['high', 'medium']) {
+      expect(issuesOf({ ...sourced, confidence, sourceUrl: null })).toEqual([
+        { path: 'sourceUrl', code: 'not_allowed' },
+      ]);
+      expect(issuesOf({ ...sourced, confidence, quote: null })).toEqual([
+        { path: 'quote', code: 'not_allowed' },
+      ]);
+      expect(issuesOf({ ...sourced, confidence, sourceUrl: null, quote: null })).toEqual([
+        { path: 'sourceUrl', code: 'not_allowed' },
+        { path: 'quote', code: 'not_allowed' },
+      ]);
+    }
+  });
+
+  it('low confidence may have neither', () => {
+    expect(
+      FieldMetaSchema.safeParse({ ...sourced, confidence: 'low', sourceUrl: null, quote: null })
+        .success,
+    ).toBe(true);
+  });
+
+  it('http links are refused', () => {
+    expect(
+      FieldMetaSchema.safeParse({ ...sourced, sourceUrl: 'http://example.test' }).success,
+    ).toBe(false);
+    expect(
+      FieldMetaSchema.safeParse({
+        ...sourced,
+        sourceUrl: `https://example.test/${'a'.repeat(2048)}`,
+      }).success,
+    ).toBe(false);
+  });
+
+  it('every key is required', () => {
+    for (const missing of Object.keys(sourced)) {
+      const partial = Object.fromEntries(
+        Object.entries(sourced).filter(([key]) => key !== missing),
+      );
+      expect(FieldMetaSchema.safeParse(partial).success, missing).toBe(false);
+    }
+  });
+
+  it('the confidence values equal the stored ones', () => {
+    const stored = {
+      source_url: 'https://example.test/fixture-notice',
+      quote: 'Fixture quote of the notice.',
+      checked_at: '2027-03-05T22:00:00.000Z',
+    };
+    const candidates = ['high', 'medium', 'low', 'unknown'];
+    const wire = candidates.filter(
+      (confidence) => FieldMetaSchema.safeParse({ ...sourced, confidence }).success,
+    );
+    const row = candidates.filter(
+      (confidence) => FieldMetaRowSchema.safeParse({ ...stored, confidence }).success,
+    );
+    expect(wire).toEqual(row);
+    expect(wire).toEqual(ConfidenceSchema.options);
+  });
+
+  it('gives FieldMeta and the wire map their component ids', () => {
+    expect(z.globalRegistry.get(FieldMetaSchema)?.id).toBe('FieldMeta');
+    expect(z.globalRegistry.get(FieldMetaWireMapSchema)?.id).toBe('FieldMetaMap');
+  });
+});
+
+describe('sourcedSchema', () => {
+  const SourcedCents = sourcedSchema(z.number().int());
+
+  it('a sourced value carries its value and proof, each nullable', () => {
+    expect(SourcedCents.safeParse({ value: 1200, meta: null }).success).toBe(true);
+    expect(SourcedCents.safeParse({ value: null, meta: null }).success).toBe(true);
+    expect(SourcedCents.safeParse({ value: 'x', meta: null }).success).toBe(false);
+    expect(SourcedCents.safeParse({ meta: null }).success).toBe(false);
+    expect(SourcedCents.safeParse({ value: 1 }).success).toBe(false);
   });
 });

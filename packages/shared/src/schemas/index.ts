@@ -6,3 +6,8 @@ export * from './safety.ts';
 export * from './uploads.ts';
 export * from './web.ts';
 export * from './admin-actions.ts';
+export * from './field-meta.ts';
+export * from './civic.ts';
+export * from './offices.ts';
+export * from './explore.ts';
+export * from './people.ts';
