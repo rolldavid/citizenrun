@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
-import { color, size } from '@/ui/tokens';
+import { color, size, space } from '@/ui/tokens';
 
 import { Checkbox } from './checkbox';
 import type { CheckboxProps } from './checkbox';
@@ -253,6 +253,28 @@ describe('Checkbox', () => {
     const end = boxOf(drawState('positionEnd'));
     expect(end.nextElementSibling).toBeNull();
     expect(end.previousElementSibling?.textContent).toBe(STATES.positionEnd.label);
+  });
+
+  it('the fill and the ring keep room at each side of the box and the label', () => {
+    const side = `${String(space.x2)}px`;
+    for (const state of ['unchecked', 'positionEnd'] as const) {
+      const target = drawState(state);
+      const row = boxOf(target).parentElement;
+      expect(row?.style.paddingLeft, state).toBe(side);
+      expect(row?.style.paddingRight, state).toBe(side);
+      // The row reaches as far out of its column, so the box stays on the column's edge.
+      const reach = target.closest<HTMLElement>('[style*="margin"]');
+      expect(reach?.style.marginLeft, state).toBe(`-${side}`);
+      expect(reach?.style.marginRight, state).toBe(`-${side}`);
+    }
+    // A label with a link: the target under the row keeps the same room.
+    const split = drawState('withLink');
+    const inner = boxOf(split).parentElement;
+    expect(inner?.style.paddingLeft).toBe(side);
+    expect(inner?.style.paddingRight).toBe(side);
+    const splitRow = split.closest<HTMLElement>('[style*="margin"]');
+    expect(splitRow?.style.marginLeft).toBe(`-${side}`);
+    expect(splitRow?.style.paddingLeft).toBe(side);
   });
 
   it('a pointer and a press fill the row, and focus rings it', () => {

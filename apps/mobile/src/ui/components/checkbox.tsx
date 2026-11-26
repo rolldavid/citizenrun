@@ -24,6 +24,10 @@ export type CheckboxProps = {
   testID: string;
 };
 
+// The room the row's fill and its focus ring keep at each side of the box and the label. The row
+// reaches that far out of its column, so the box stays on the column's edge.
+const SIDE = space.x2;
+const REACH: ViewStyle = { marginHorizontal: -SIDE };
 // The row every checkbox stands in: the box and the label, centered on each other.
 const ROW: ViewStyle = {
   flexDirection: 'row',
@@ -31,6 +35,7 @@ const ROW: ViewStyle = {
   gap: space.x3,
   minHeight: size.target,
   paddingVertical: space.x2,
+  paddingHorizontal: SIDE,
 };
 const WORDS: ViewStyle = { flex: 1 };
 const BOX: ViewStyle = {
@@ -43,7 +48,13 @@ const BOX: ViewStyle = {
 };
 
 // A label with a link in it: the row holds the press target and the label side by side.
-const SPLIT_ROW: ViewStyle = { flexDirection: 'row', alignItems: 'center', minHeight: size.target };
+const SPLIT_ROW: ViewStyle = {
+  ...REACH,
+  flexDirection: 'row',
+  alignItems: 'center',
+  minHeight: size.target,
+  paddingHorizontal: SIDE,
+};
 // The press target lies under the whole row and stands at its middle until the row is measured.
 const UNDER: ViewStyle = {
   position: 'absolute',
@@ -53,7 +64,7 @@ const UNDER: ViewStyle = {
   left: 0,
   justifyContent: 'center',
 };
-const TARGET: ViewStyle = { flexDirection: 'row', alignItems: 'center' };
+const TARGET: ViewStyle = { flexDirection: 'row', alignItems: 'center', paddingHorizontal: SIDE };
 const TARGET_END: ViewStyle = { ...TARGET, justifyContent: 'flex-end' };
 // The room the box takes beside the label, and the gap between them.
 const BESIDE_BOX = size.checkbox + space.x3;
@@ -108,27 +119,29 @@ export function Checkbox({
 
   if (typeof label === 'string') {
     return (
-      <Pressable
-        role="checkbox"
-        label={labelText}
-        state={{ checked }}
-        haptic="selection"
-        feedback="moveAndFill"
-        hover="fill"
-        disabled={disabled}
-        testID={testID}
-        onPress={toggle}
-      >
-        <View style={ROW}>
-          {position === 'start' ? box : null}
-          <View style={WORDS}>
-            <Text role="body" tone={disabled ? 'disabled' : 'primary'}>
-              {label}
-            </Text>
+      <View style={REACH}>
+        <Pressable
+          role="checkbox"
+          label={labelText}
+          state={{ checked }}
+          haptic="selection"
+          feedback="moveAndFill"
+          hover="fill"
+          disabled={disabled}
+          testID={testID}
+          onPress={toggle}
+        >
+          <View style={ROW}>
+            {position === 'start' ? box : null}
+            <View style={WORDS}>
+              <Text role="body" tone={disabled ? 'disabled' : 'primary'}>
+                {label}
+              </Text>
+            </View>
+            {position === 'end' ? box : null}
           </View>
-          {position === 'end' ? box : null}
-        </View>
-      </Pressable>
+        </Pressable>
+      </View>
     );
   }
 
