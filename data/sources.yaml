@@ -86,6 +86,20 @@
   ci_status: unknown
   notes: Opened 2026-11-26. The directory holds one folder per state, DC, Puerto Rico and National, named after the state with underscores (District_of_Columbia/); each state folder holds the legacy-format zip <st>2020.pl.zip (dc2020.pl.zip, 1.3M, dated 2021-08-12). The host answers the path with its two hyphens written plainly with a "Request Rejected" page, so the URL writes them as %2D%2D. Field positions come from the technical documentation https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/summary-file/2020Census_PL94_171Redistricting_StatesTechDoc_English.pdf (Figure 2-4 and the data dictionary). robots.txt of www2.census.gov allows the directory.
 
+- id: gov-finance
+  kind: dataset
+  name: 2022 Census of Governments, State and Local Government Finances, Individual Unit File
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/programs-surveys/gov-finances/tables/2022/2022_Individual_Unit_File.zip
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Does not qualify, so no budget is loaded. Opened 2026-11-26 from the directory https://www2.census.gov/programs-surveys/gov-finances/tables/2022/ and downloaded through the fetcher (application/zip, 9,719,280 bytes). The zip holds Fin_PID_2022.txt, a fixed-width unit list whose 12-character id ends in the unit's PID6, and 2022FinEstDAT_07152026modp.txt, the finance data in item-code form, one line per unit and finance item (the 12-character id, a three-character item code and the amount), with no column of each unit's total expenditure. Summing item codes into a total is a classification this pipeline does not define. robots.txt of www2.census.gov allows the directory.
+
 - id: openstates
   kind: dataset
   name: Open States legislator CSV files

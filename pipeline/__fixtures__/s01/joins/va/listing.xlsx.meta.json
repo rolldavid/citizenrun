@@ -1,0 +1,13 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip",
+  "fetchedAt": "2026-11-26T20:11:49.024Z",
+  "sha256": "24f63cbfd8183aabf417c136b483b7153ad04bff66bdcf77a52115deb199b569",
+  "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "originalSha256": "50e8d4c0905d2637897b1a68c887e9b19ee8cdcb226d1852e6fb067f50f6b421",
+  "transformations": [
+    "extracted Govt_Units_2026_Final.xlsx from gov_units_2026.zip; originalSha256 is that workbook",
+    "kept the headers and the rows of 26 units of VA: the first counties, municipalities, townships and school units by PID6",
+    "emptied ADDRESS1, ADDRESS2 and ZIP4; the Public Pension Sys tab is left out",
+    "rewritten with exceljs"
+  ]
+}

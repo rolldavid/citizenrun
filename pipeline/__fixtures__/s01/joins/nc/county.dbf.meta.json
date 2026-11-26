@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/COUNTY/tl_2026_us_county.zip",
+  "fetchedAt": "2026-11-26T20:04:28.832Z",
+  "sha256": "4089811ab31bc48859998ea545221d688e55435202da126c754fa87e66aab6c1",
+  "contentType": "application/x-dbf",
+  "originalSha256": "b527c9ba7aeb8f17ef118f026eae5e5a938aa1d00b873bc32342d0dce59321c0",
+  "transformations": [
+    "extracted the .dbf table from tl_2026_us_county.zip; originalSha256 is that zip",
+    "kept the 10 features the fixture units join to and 5 that none joins (mapshaper -filter)"
+  ]
+}

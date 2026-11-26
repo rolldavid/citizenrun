@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/UNSD/tl_2026_37_unsd.zip",
+  "fetchedAt": "2026-11-26T20:04:28.832Z",
+  "sha256": "f43412e92e76f39ca4d9703cec6c0781fc7dd4e72b2332c91945711572af721b",
+  "contentType": "application/x-dbf",
+  "originalSha256": "1025f77ffdc18eb53e990cb1e7dd2442dd53475d49ef14eaa270ea6bc5764269",
+  "transformations": [
+    "extracted the .dbf table from tl_2026_37_unsd.zip; originalSha256 is that zip",
+    "kept the 7 features the fixture units join to and 5 that none joins (mapshaper -filter)"
+  ]
+}

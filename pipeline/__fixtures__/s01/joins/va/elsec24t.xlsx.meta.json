@@ -1,0 +1,12 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/school-finances/tables/2024/secondary-education-finance/elsec24t.xlsx",
+  "fetchedAt": "2026-11-26T20:11:49.024Z",
+  "sha256": "b2f15c819fedc5a01080896c389f0196ba8e68c3f70ccbb96bc0bafc197c97c7",
+  "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "originalSha256": "af178bc61c85b579ed54745e9a039ccb563e60a02f763d6d884bf14935b9d4cf",
+  "transformations": [
+    "kept the header row and the rows of the fixture listing school units",
+    "kept the first 12 columns (STATE to ENROLL)",
+    "rewritten with exceljs"
+  ]
+}

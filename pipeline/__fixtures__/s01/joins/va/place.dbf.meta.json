@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/PLACE/tl_2026_51_place.zip",
+  "fetchedAt": "2026-11-26T20:11:49.024Z",
+  "sha256": "d18edffe6fb185b5fbc2c765841e34a45df619c77802901a0ffd8d64657cecf0",
+  "contentType": "application/x-dbf",
+  "originalSha256": "ef4b56daff25a287e57583c4c24e934a25ba7e3430f25defbe21c13754883a40",
+  "transformations": [
+    "extracted the .dbf table from tl_2026_51_place.zip; originalSha256 is that zip",
+    "kept the 10 features the fixture units join to and 5 that none joins (mapshaper -filter)"
+  ]
+}

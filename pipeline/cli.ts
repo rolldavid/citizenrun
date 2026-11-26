@@ -28,9 +28,11 @@ import { runLocalFetch } from './lib/local-fetch.ts';
 import { repoRoot } from './lib/paths.ts';
 import { ReachabilityReportSchema, probeReachability } from './lib/reachability.ts';
 import type { ReachabilityTarget } from './lib/reachability.ts';
-import { NO_FETCHER, createRunContext } from './lib/runner.ts';
+import { NO_FETCHER, createRunContext, runStage } from './lib/runner.ts';
 import type { RunContext } from './lib/runner.ts';
 import { loadTimezoneRegister, zoneForState } from './lib/timezones.ts';
+import { seedDataset } from './stages/base/datasets-seed.ts';
+import { s01Base } from './stages/s01-base.ts';
 
 type Command = {
   name: string;
@@ -105,7 +107,74 @@ function pipelineVersion(): string {
   return PackageVersionSchema.parse(raw).version;
 }
 
+const BASE_USAGE =
+  'usage: pnpm run pipeline base [--state <ST,ST|all|US>] [--dry-run] [--plan-out <path>]';
+const SEED_USAGE =
+  'usage: pnpm run pipeline datasets seed --dataset <id> --edition <e> --file <path> --source-url <url>';
+const SEED_FLAGS: ReadonlySet<string> = new Set(['dataset', 'edition', 'file', 'source-url']);
+
 const COMMANDS: readonly Command[] = [
+  {
+    name: 'base',
+    needsFetcher: true,
+    async run(ctx, args) {
+      const planOut = args.flags.get('plan-out');
+      if ([...args.flags.keys()].some((flag) => flag !== 'plan-out')) {
+        console.error(BASE_USAGE);
+        return 2;
+      }
+      if (planOut !== undefined) {
+        const all = await s01Base.states(ctx);
+        const wanted = args.states;
+        const states =
+          wanted === null || wanted === 'all' ? all : all.filter((code) => wanted.includes(code));
+        writeFileSync(planOut, `${JSON.stringify({ states })}\n`);
+        return 0;
+      }
+      const { exitCode, summaries } = await runStage(s01Base, ctx, args.states ?? 'all', {
+        dryRun: args.dryRun,
+      });
+      if (args.dryRun) {
+        for (const summary of summaries) {
+          const files = summary.files.map((file) => `${file.name} ${String(file.rows)}`).join(', ');
+          console.log(`dry run ${summary.state}: ${summary.status}; ${files}`);
+        }
+      }
+      return exitCode;
+    },
+  },
+  {
+    name: 'datasets seed',
+    needsFetcher: false,
+    async run(ctx, args) {
+      const flag = (name: string) => args.flags.get(name);
+      const dataset = flag('dataset');
+      const edition = flag('edition');
+      const file = flag('file');
+      const sourceUrl = flag('source-url');
+      if (
+        args.states !== null ||
+        [...args.flags.keys()].some((name) => !SEED_FLAGS.has(name)) ||
+        dataset === undefined ||
+        edition === undefined ||
+        file === undefined ||
+        sourceUrl === undefined
+      ) {
+        console.error(SEED_USAGE);
+        return 2;
+      }
+      const outcome = await seedDataset(ctx, { dataset, edition, file, sourceUrl });
+      if (outcome.exitCode === 2) {
+        console.error(outcome.usage);
+        console.error(SEED_USAGE);
+        return 2;
+      }
+      console.log(
+        `seeded ${outcome.key}: ${String(outcome.bytes)} bytes, sha256 ${outcome.sha256}`,
+      );
+      return 0;
+    },
+  },
   {
     name: 'housekeeping',
     needsFetcher: false,

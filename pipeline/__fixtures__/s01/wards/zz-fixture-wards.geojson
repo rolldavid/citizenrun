@@ -1,0 +1,73 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "DISTRICT_NAME": "District 1",
+        "OBJECTID": 1
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -80.01,
+              35.0
+            ],
+            [
+              -80.0,
+              35.0
+            ],
+            [
+              -80.0,
+              35.01
+            ],
+            [
+              -80.01,
+              35.01
+            ],
+            [
+              -80.01,
+              35.0
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "DISTRICT_NAME": "District 2",
+        "OBJECTID": 2
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -80.0,
+              35.0
+            ],
+            [
+              -79.99,
+              35.0
+            ],
+            [
+              -79.99,
+              35.01
+            ],
+            [
+              -80.0,
+              35.01
+            ],
+            [
+              -80.0,
+              35.0
+            ]
+          ]
+        ]
+      }
+    }
+  ]
+}

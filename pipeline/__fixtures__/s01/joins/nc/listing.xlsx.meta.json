@@ -1,0 +1,13 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip",
+  "fetchedAt": "2026-11-26T20:04:28.832Z",
+  "sha256": "d7da9af4e2036ad4e8013fbef4a1a79b5a6cf6697144577f4d3be141df6e4216",
+  "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "originalSha256": "50e8d4c0905d2637897b1a68c887e9b19ee8cdcb226d1852e6fb067f50f6b421",
+  "transformations": [
+    "extracted Govt_Units_2026_Final.xlsx from gov_units_2026.zip; originalSha256 is that workbook",
+    "kept the headers and the rows of 30 units of NC: the first counties, municipalities, townships and school units by PID6",
+    "emptied ADDRESS1, ADDRESS2 and ZIP4; the Public Pension Sys tab is left out",
+    "rewritten with exceljs"
+  ]
+}
