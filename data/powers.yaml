@@ -1,0 +1,173 @@
+# The powers that connect issues to offices. Ids are frozen once released.
+- id: zoning-land-use
+  name: 'Approve zoning, land-use plans and permits'
+  description: 'Decides what may be built where, through zoning, land-use plans and building permits.'
+  issues: [rent-housing, data-centers-ai, climate, water-land]
+- id: rent-tenant-rules
+  name: 'Set rent rules and tenant protections'
+  description: 'Sets local rules on rent and tenant protections where state law allows.'
+  issues: [rent-housing]
+- id: housing-court
+  name: 'Decide eviction and housing cases'
+  description: 'Hears and decides eviction and other housing cases.'
+  issues: [rent-housing]
+- id: building-energy-codes
+  name: 'Adopt building and energy codes'
+  description: 'Adopts the building and energy codes new and renovated buildings must meet.'
+  issues: [climate, rent-housing]
+- id: utility-rates
+  name: 'Set electric, gas and water rates for regulated utilities'
+  description: 'Approves or rejects the rates that regulated utilities may charge their customers.'
+  issues: [utility-bills, data-centers-ai, climate]
+- id: utility-resource-plans
+  name: 'Approve power plants and clean-energy plans'
+  description: "Approves utilities' plans for new power plants, closures and clean-energy targets."
+  issues: [climate, utility-bills]
+- id: large-load-contracts
+  name: 'Decide who pays for data center and large-load grid costs'
+  description: 'Decides the terms on which very large electricity users, such as data centers, pay for the grid they need.'
+  issues: [data-centers-ai, utility-bills]
+- id: public-power-governance
+  name: 'Run a public or member-owned utility: rates, power supply, shutoffs'
+  description: 'Governs a public or member-owned utility, including its rates, where it buys power and its shutoff rules.'
+  issues: [utility-bills, climate, data-centers-ai]
+- id: oil-gas-permits
+  name: 'Permit and regulate drilling and pipelines'
+  description: 'Issues and enforces permits for oil and gas drilling and pipelines.'
+  issues: [climate, water-land]
+- id: state-land-leasing
+  name: 'Lease public land for energy, minerals and grazing'
+  description: 'Decides how public land is leased for energy, mining and grazing.'
+  issues: [climate, water-land]
+- id: tax-abatements
+  name: 'Grant tax abatements and incentive deals'
+  description: 'Grants or refuses tax abatements and incentive deals for businesses.'
+  issues: [corporate-subsidies, data-centers-ai]
+- id: school-tax-abatements
+  name: 'Approve abatements that cut school revenue'
+  description: 'Approves or refuses tax abatements that reduce school district revenue.'
+  issues: [corporate-subsidies, schools]
+- id: property-assessment
+  name: 'Set property valuations'
+  description: 'Sets the assessed value of property on which property taxes are charged.'
+  issues: [property-taxes, corporate-subsidies, data-centers-ai]
+- id: assessment-appeals
+  name: 'Hear assessment appeals and equalize values'
+  description: 'Hears appeals of property assessments and evens out values across owners.'
+  issues: [property-taxes]
+- id: property-tax-levy
+  name: 'Set property tax rates and levies'
+  description: 'Sets property tax rates and the total amount levied.'
+  issues: [property-taxes]
+- id: local-wage-labor-standards
+  name: 'Set local wage, leave and contractor standards'
+  description: 'Sets local minimum wage, paid leave and contractor labor standards where state law allows.'
+  issues: [wages-workers]
+- id: labor-law-enforcement
+  name: 'Enforce wage and labor law'
+  description: 'Investigates and enforces wage and labor laws.'
+  issues: [wages-workers]
+- id: public-employee-bargaining
+  name: 'Bargain with and set pay for public workers'
+  description: "Negotiates with and sets pay for the public body's own workers."
+  issues: [wages-workers]
+- id: charging-decisions
+  name: 'Decide which cases to charge or decline'
+  description: 'Decides which criminal cases to charge, and which to decline or drop.'
+  issues: [policing-justice]
+- id: jail-and-patrol
+  name: 'Run the jail and county law enforcement'
+  description: 'Runs the county jail and county law enforcement.'
+  issues: [policing-justice]
+- id: police-jail-budget
+  name: 'Set police and jail budgets and oversight'
+  description: 'Sets police and jail budgets and oversees how they are spent.'
+  issues: [policing-justice]
+- id: bail-and-sentencing
+  name: 'Set bail and sentences'
+  description: 'Sets bail and imposes sentences in criminal cases.'
+  issues: [policing-justice]
+- id: public-hospital-governance
+  name: 'Govern public hospitals and charity care'
+  description: 'Governs public hospitals, including their charity care policies.'
+  issues: [healthcare]
+- id: public-health-programs
+  name: 'Fund health departments and care for the uninsured'
+  description: 'Funds the health department and care for people without insurance.'
+  issues: [healthcare]
+- id: insurance-rate-review
+  name: 'Approve or reject insurer rates'
+  description: 'Approves or rejects the rates insurers may charge.'
+  issues: [healthcare, medicare-for-all]
+- id: state-health-law
+  name: 'Pass state health law: Medicaid, mandates, public option, single payer'
+  description: 'Passes state health law, including Medicaid rules, coverage mandates, a public option or single payer.'
+  issues: [healthcare, medicare-for-all]
+- id: federal-legislation
+  name: 'Vote on federal law and spending'
+  description: 'Votes on federal laws and federal spending.'
+  issues: [medicare-for-all, defund-israel, foreign-wars]
+- id: school-governance
+  name: 'Set school budgets and policy, hire the superintendent'
+  description: "Sets the school district's budget and policies and hires its superintendent."
+  issues: [schools]
+- id: state-education-policy
+  name: 'Set statewide school standards and funding rules'
+  description: 'Sets statewide school standards and the rules for school funding.'
+  issues: [schools]
+- id: water-supply-rates
+  name: 'Set water rates and allocate water to large users'
+  description: 'Sets water rates and decides how much water large users may take.'
+  issues: [water-land, data-centers-ai]
+- id: soil-water-conservation
+  name: 'Direct conservation and watershed programs'
+  description: 'Directs local soil, water and watershed conservation programs.'
+  issues: [water-land, climate]
+- id: transit-service-fares
+  name: 'Set transit routes, fares and capital plans'
+  description: 'Sets transit routes, fares and plans for new lines and vehicles.'
+  issues: [transit, climate]
+- id: local-transport-funding
+  name: 'Fund streets, bus lanes and local transit'
+  description: 'Funds streets, bus lanes and local transit.'
+  issues: [transit]
+- id: election-administration
+  name: 'Run elections: rolls, polling places, mail ballots, certification'
+  description: 'Runs elections, including voter rolls, polling places, mail ballots and certification.'
+  issues: [voting-access]
+- id: election-rules-enforcement
+  name: 'Set statewide election rules and enforce campaign finance law'
+  description: 'Sets statewide election rules and enforces campaign finance law.'
+  issues: [voting-access, money-in-politics]
+- id: local-campaign-finance
+  name: 'Set local public financing, contribution limits and disclosure'
+  description: 'Sets local public campaign financing, contribution limits and disclosure rules.'
+  issues: [money-in-politics]
+- id: party-nominations
+  name: 'Fill vacancies, endorse, pick delegates and party officers'
+  description: 'Fills party vacancies, makes endorsements and picks delegates and party officers.'
+  issues: [nominations, medicare-for-all, defund-israel, foreign-wars]
+- id: poll-worker-appointments
+  name: 'Name poll workers and election board members'
+  description: 'Names poll workers and members of election boards.'
+  issues: [voting-access]
+- id: public-fund-investment
+  name: 'Invest and bank public money, including bond purchases'
+  description: 'Invests and banks public money, including which bonds it buys.'
+  issues: [public-money, defund-israel, foreign-wars]
+- id: pension-investment
+  name: 'Set pension investment and divestment policy'
+  description: 'Sets how a public pension fund invests and what it divests from.'
+  issues: [public-money, defund-israel, foreign-wars, climate]
+- id: state-legislation
+  name: 'Pass state law and budgets, including rules that preempt or free local action'
+  description: 'Passes state laws and budgets, including laws that limit or allow local action.'
+  issues:
+    [
+      rent-housing,
+      wages-workers,
+      data-centers-ai,
+      corporate-subsidies,
+      money-in-politics,
+      defund-israel,
+    ]

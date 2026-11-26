@@ -1,0 +1,288 @@
+# The kinds of elected office. Ids are frozen once released; types share an illustration only in the three pairs the list names.
+- id: us-senate
+  name: 'U.S. Senator'
+  level: federal
+  illustration: congress
+  electorate: public
+  aliases: ['united states senator', 'u.s. senate', 'us senate']
+- id: us-house
+  name: 'U.S. Representative'
+  level: federal
+  illustration: congress
+  electorate: public
+  aliases:
+    ['united states representative', 'u.s. house of representatives', 'representative in congress']
+- id: governor
+  name: 'Governor'
+  level: state
+  illustration: governor
+  electorate: public
+  aliases: ['governor']
+- id: statewide-executive-other
+  name: 'Other statewide executive (lieutenant governor, auditor, agriculture commissioner)'
+  level: state
+  illustration: statewide-executive-other
+  electorate: public
+  aliases:
+    [
+      'lieutenant governor',
+      'state auditor',
+      'agriculture commissioner',
+      'commissioner of agriculture',
+    ]
+- id: attorney-general
+  name: 'State attorney general'
+  level: state
+  illustration: attorney-general
+  electorate: public
+  aliases: ['attorney general']
+- id: secretary-of-state
+  name: 'Secretary of state'
+  level: state
+  illustration: secretary-of-state
+  electorate: public
+  aliases: ['secretary of state']
+- id: state-treasurer
+  name: 'State treasurer, comptroller or controller'
+  level: state
+  illustration: state-treasurer
+  electorate: public
+  aliases: ['state treasurer', 'comptroller', 'controller']
+- id: state-senate
+  name: 'State senator'
+  level: state
+  illustration: legislature
+  electorate: public
+  aliases: ['state senator', 'state senate']
+- id: state-house
+  name: 'State representative'
+  level: state
+  illustration: legislature
+  electorate: public
+  aliases:
+    ['state representative', 'house of representatives', 'house of delegates', 'state assembly']
+- id: utility-commission
+  name: 'Public utility or public service commissioner'
+  level: state
+  illustration: utility-commission
+  electorate: public
+  aliases:
+    [
+      'public service commissioner',
+      'public service commission',
+      'public utility commissioner',
+      'public utility commission',
+    ]
+- id: oil-gas-land-commission
+  name: 'Oil and gas regulator or land commissioner'
+  level: state
+  illustration: oil-gas-land-commission
+  electorate: public
+  aliases: ['railroad commissioner', 'land commissioner']
+- id: insurance-commissioner
+  name: 'Insurance commissioner'
+  level: state
+  illustration: insurance-commissioner
+  electorate: public
+  aliases: ['insurance commissioner', 'commissioner of insurance']
+- id: labor-commissioner
+  name: 'Labor commissioner'
+  level: state
+  illustration: labor-commissioner
+  electorate: public
+  aliases: ['labor commissioner', 'commissioner of labor']
+- id: state-education-board
+  name: 'State board of education member or superintendent'
+  level: state
+  illustration: state-education-board
+  electorate: public
+  aliases: ['state board of education', 'superintendent of public instruction']
+- id: state-appellate-judge
+  name: 'State supreme or appellate court judge'
+  level: state
+  illustration: state-appellate-judge
+  electorate: public
+  aliases: ['supreme court justice', 'court of appeals judge']
+- id: county-commission
+  name: 'County commissioner, supervisor or council member'
+  level: county
+  illustration: county-commission
+  electorate: public
+  aliases:
+    [
+      'county commissioner',
+      'board of commissioners',
+      'county supervisor',
+      'board of supervisors',
+      'county council',
+    ]
+- id: county-executive
+  name: 'County executive, county judge or county mayor'
+  level: county
+  illustration: county-executive
+  electorate: public
+  aliases: ['county executive', 'county judge', 'county mayor']
+- id: sheriff
+  name: 'Sheriff'
+  level: county
+  illustration: sheriff
+  electorate: public
+  aliases: ['sheriff']
+- id: district-attorney
+  name: "District, state's or county attorney"
+  level: county
+  illustration: district-attorney
+  electorate: public
+  aliases: ['district attorney', "state's attorney", 'county attorney']
+- id: county-clerk
+  name: 'County clerk, auditor or elections official'
+  level: county
+  illustration: county-clerk
+  electorate: public
+  aliases: ['county clerk', 'county auditor']
+- id: county-treasurer
+  name: 'County treasurer or tax collector'
+  level: county
+  illustration: county-treasurer
+  electorate: public
+  aliases: ['county treasurer', 'tax collector']
+- id: county-assessor
+  name: 'Assessor or property appraiser'
+  level: county
+  illustration: county-assessor
+  electorate: public
+  aliases: ['assessor', 'property appraiser']
+- id: board-of-review
+  name: 'Board of review or equalization member'
+  level: county
+  illustration: board-of-review
+  electorate: public
+  aliases: ['board of review', 'board of equalization']
+- id: trial-judge
+  name: 'Trial court judge (including housing judge and justice of the peace)'
+  level: county
+  illustration: trial-judge
+  electorate: public
+  aliases: ['trial court judge', 'housing judge', 'justice of the peace']
+- id: county-row-other
+  name: 'Other county office (coroner, recorder, clerk of court, surveyor, constable)'
+  level: county
+  illustration: county-row-other
+  electorate: public
+  aliases: ['coroner', 'recorder', 'clerk of court', 'surveyor', 'constable']
+- id: mayor
+  name: 'Mayor'
+  level: local
+  illustration: mayor
+  electorate: public
+  aliases: ['mayor']
+- id: city-council
+  name: 'City or town council member'
+  level: local
+  illustration: city-council
+  electorate: public
+  aliases: ['city council', 'town council', 'council member']
+- id: township-board
+  name: 'Township supervisor or trustee'
+  level: local
+  illustration: township-board
+  electorate: public
+  aliases: ['township supervisor', 'township trustee']
+- id: city-officer
+  name: 'City treasurer, clerk, controller or attorney'
+  level: local
+  illustration: city-officer
+  electorate: public
+  aliases: ['city treasurer', 'city clerk', 'city controller', 'city attorney']
+- id: school-board
+  name: 'School board member'
+  level: local
+  illustration: school-board
+  electorate: public
+  aliases: ['school board', 'board of education']
+- id: community-college-board
+  name: 'Community college trustee'
+  level: local
+  illustration: community-college-board
+  electorate: public
+  aliases: ['community college trustee']
+- id: water-district-board
+  name: 'Water, irrigation or sanitation district board member'
+  level: special
+  illustration: water-district-board
+  electorate: public
+  aliases: ['water district', 'irrigation district', 'sanitation district', 'sanitary district']
+- id: soil-water-conservation-board
+  name: 'Soil and water conservation district supervisor'
+  level: special
+  illustration: soil-water-conservation-board
+  electorate: public
+  aliases: ['soil and water conservation district supervisor', 'soil and water']
+- id: hospital-district-board
+  name: 'Hospital or health district board member'
+  level: special
+  illustration: hospital-district-board
+  electorate: public
+  aliases: ['hospital district', 'health district']
+- id: transit-board
+  name: 'Transit district board member'
+  level: special
+  illustration: transit-board
+  electorate: public
+  aliases: ['transit district']
+- id: public-power-board
+  name: 'Public power district or public utility district board member'
+  level: special
+  illustration: public-power-board
+  electorate: public
+  aliases: ['public power district', 'public utility district']
+- id: fire-district-board
+  name: 'Fire protection district board member'
+  level: special
+  illustration: fire-district-board
+  electorate: public
+  aliases: ['fire protection district', 'fire district']
+- id: special-district-other
+  name: 'Other special district board member (parks, library, port, metro, cemetery)'
+  level: special
+  illustration: special-district-other
+  electorate: public
+  aliases:
+    [
+      'park district',
+      'library district',
+      'port commissioner',
+      'metropolitan district',
+      'cemetery district',
+    ]
+- id: coop-board
+  name: 'Electric co-op director'
+  level: special
+  illustration: coop-board
+  electorate: members
+  aliases: ['electric cooperative director']
+- id: pension-board
+  name: 'Member-elected pension trustee'
+  level: special
+  illustration: pension-board
+  electorate: members
+  aliases: ['pension trustee']
+- id: party-precinct-committee
+  name: 'Precinct committee person'
+  level: special
+  illustration: party-committee
+  electorate: party
+  aliases:
+    [
+      'precinct committee officer',
+      'precinct committeeman',
+      'precinct committeewoman',
+      'precinct chair',
+      'precinct delegate',
+    ]
+- id: party-committee
+  name: 'County or state party committee member'
+  level: special
+  illustration: party-committee
+  electorate: party
+  aliases: ['county party committee', 'state party committee']

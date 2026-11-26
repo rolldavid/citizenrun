@@ -1,0 +1,65 @@
+# Default relevance of each power for each office type (3 decides, 2 shares, 1 indirect). State templates override it; every default is low confidence until a statute quote supports it.
+us-senate: { federal-legislation: 3 }
+us-house: { federal-legislation: 3 }
+governor: { state-legislation: 2 }
+state-senate: { state-legislation: 2, state-health-law: 2 }
+state-house: { state-legislation: 2, state-health-law: 2 }
+attorney-general: { labor-law-enforcement: 2 }
+secretary-of-state: { election-administration: 3, election-rules-enforcement: 3 }
+state-treasurer: { public-fund-investment: 3, pension-investment: 2 }
+utility-commission: { utility-rates: 3, utility-resource-plans: 3, large-load-contracts: 3 }
+oil-gas-land-commission: { oil-gas-permits: 3, state-land-leasing: 2 }
+insurance-commissioner: { insurance-rate-review: 2 }
+labor-commissioner: { labor-law-enforcement: 2 }
+state-education-board: { state-education-policy: 2 }
+county-commission:
+  zoning-land-use: 3
+  building-energy-codes: 2
+  tax-abatements: 3
+  local-wage-labor-standards: 3
+  police-jail-budget: 2
+  public-health-programs: 3
+  local-transport-funding: 2
+  property-tax-levy: 2
+  public-employee-bargaining: 2
+sheriff: { jail-and-patrol: 3 }
+district-attorney: { charging-decisions: 3 }
+county-clerk: { election-administration: 3, election-rules-enforcement: 3 }
+county-treasurer: { public-fund-investment: 2 }
+county-assessor: { property-assessment: 3 }
+board-of-review: { assessment-appeals: 2 }
+trial-judge: { bail-and-sentencing: 3, housing-court: 2 }
+mayor:
+  zoning-land-use: 3
+  rent-tenant-rules: 3
+  public-employee-bargaining: 2
+city-council:
+  zoning-land-use: 3
+  rent-tenant-rules: 3
+  building-energy-codes: 2
+  utility-rates: 2
+  tax-abatements: 3
+  local-wage-labor-standards: 3
+  police-jail-budget: 2
+  public-health-programs: 2
+  local-transport-funding: 2
+  local-campaign-finance: 3
+  property-tax-levy: 2
+  public-employee-bargaining: 2
+city-officer: { public-fund-investment: 2 }
+school-board:
+  school-governance: 3
+  school-tax-abatements: 2
+  property-tax-levy: 2
+  public-employee-bargaining: 2
+water-district-board: { water-supply-rates: 3 }
+soil-water-conservation-board: { soil-water-conservation: 3 }
+hospital-district-board: { public-hospital-governance: 3 }
+transit-board: { transit-service-fares: 3 }
+public-power-board: { public-power-governance: 3, large-load-contracts: 2 }
+coop-board: { public-power-governance: 3, large-load-contracts: 2 }
+pension-board: { pension-investment: 3 }
+party-precinct-committee: { party-nominations: 3, poll-worker-appointments: 2 }
+party-committee: { party-nominations: 3, poll-worker-appointments: 2 }
+# No default powers: statewide-executive-other, state-appellate-judge, county-executive, county-row-other,
+# township-board, community-college-board, fire-district-board, special-district-other.
