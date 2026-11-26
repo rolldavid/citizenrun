@@ -1823,8 +1823,7 @@ async function stepOwnerValues(ctx: Ctx, out: StepPrinter): Promise<void> {
 
 const ROLES_SQL = join('packages', 'db', 'sql', 'roles.sql');
 const PSQL = ['psql', '-U', 'citizenrun', '-d', 'citizenrun', '-v', 'ON_ERROR_STOP=1', '-X', '-q'];
-// The three checks run as one query on standard input: arguments to `railway ssh` reach a remote
-// shell, which would split a quoted `-c` statement at its spaces.
+// The three checks run as one query on standard input, so the three reads take one round trip.
 const SETTINGS_QUERY =
   "select current_setting('shared_buffers'), current_setting('max_connections'), postgis_full_version();\n";
 
