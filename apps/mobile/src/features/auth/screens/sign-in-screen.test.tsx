@@ -130,14 +130,15 @@ afterEach(() => {
 });
 
 describe('SignInScreenView', () => {
-  it('renders every fixture', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(23);
-    for (const [width, height] of [
+  // One case per window size: each draws every fixture in both themes.
+  describe('renders every fixture', () => {
+    it.each([
       [360, 740],
       [430, 932],
       [820, 1180],
       [1440, 900],
-    ] as const) {
+    ] as const)('at %i by %i', (width, height) => {
+      expect(Object.keys(FIXTURES)).toHaveLength(23);
       setViewport(width, height);
       for (const [name, vm] of Object.entries(FIXTURES)) {
         for (const theme of ['light', 'dark'] as const) {
@@ -151,7 +152,7 @@ describe('SignInScreenView', () => {
           expect(screen.getAllByRole('heading', { level: 1 }), name).toHaveLength(1);
         }
       }
-    }
+    });
   });
 
   it('methods order and names', () => {
