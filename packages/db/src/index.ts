@@ -30,11 +30,23 @@ export {
   activeJurisdictions,
   activeOffices,
   activePeople,
+  countSetCandidates,
   HEADLINE_WEIGHT_OTHER,
   HEADLINE_WEIGHT_STARRED,
+  officeListRankedPage,
+  officeListSetPage,
   officeSummaryRows,
+  SET_PATH_MAX,
 } from './sql/civic.ts';
-export type { OfficeElectionCandidateRow, OfficeSummaryRow } from './sql/civic.ts';
+export type {
+  OfficeElectionCandidateRow,
+  OfficeListAfter,
+  OfficeListFilters,
+  OfficeListRow,
+  OfficeListSet,
+  OfficeListSort,
+  OfficeSummaryRow,
+} from './sql/civic.ts';
 export { refreshOfficeSearch } from './sql/office-search.ts';
 export { recomputeHeadlineDeadlines } from './sql/headline-deadline.ts';
 export { lookupDistrictsAtPoint } from './sql/point-lookup.ts';

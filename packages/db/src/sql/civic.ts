@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { SQL } from 'drizzle-orm';
 import type { BuildAliasTable } from 'drizzle-orm/pg-core';
+import { assertNever } from '@citizenrun/shared';
 import type {
   Confidence,
   ElectionKind,
@@ -408,4 +409,367 @@ export async function officeSummaryRows(
     districtOutlineBbox:
       row.districtOutlineBbox === null ? null : row.districtOutlineBbox.map(toNumber),
   }));
+}
+
+// ---------------------------------------------------------------------------------------------------
+// L-office-list: the candidate ids of the office list, in order, with the keyset of step 5. Every
+// value is bound; the sort expression is the only SQL chosen in code, from a closed switch.
+
+export type OfficeListSort = 'opportunity' | 'impact' | 'ease' | 'pay' | 'deadline';
+
+/** The filters of L-office-list step 4; null (or false) is no filter. */
+export type OfficeListFilters = {
+  issueIds: readonly string[] | null;
+  levels: readonly string[] | null;
+  officeTypeIds: readonly string[] | null;
+  jurisdictionKinds: readonly string[] | null;
+  minPayCents: number | null;
+  fitsDayJob: boolean;
+  maxHours: number | null;
+  deadlineWithinDays: number | null;
+  q: string | null;
+};
+
+/** The parts of the set path's candidate set (step 2), intersected; null is not given. */
+export type OfficeListSet = {
+  mineUserId: string | null;
+  districtId: string | null;
+  includeContained: boolean;
+  jurisdictionId: string | null;
+  state: string | null;
+};
+
+/** The last row of the page before: its key, id and placeholder flag; null for the first page. */
+export type OfficeListAfter = { k: number | string | null; id: string; p: boolean } | null;
+
+/** One candidate office: its sort key, placeholder flag, the stored deadline and zone for the exact day test, and the set path's count. */
+export type OfficeListRow = {
+  id: string;
+  k: number | string | null;
+  p: boolean;
+  nextFilingDeadline: string | null;
+  timezone: string | null;
+  total: number | null;
+};
+
+export const SET_PATH_MAX = 5_000; // PB-10
+
+type OfficeListDbRow = {
+  id: string;
+  k: string | null;
+  p: boolean;
+  nextFilingDeadline: string | null;
+  timezone: string | null;
+  total: number | null;
+};
+
+/** The sort key of an office row: its expression (null when the sort has no key yet), direction and how a cursor key is bound. */
+type SortKey = {
+  expr: SQL | null;
+  direction: 'asc' | 'desc';
+  bind: (k: number | string) => SQL;
+  read: (k: string | null) => number | string | null;
+};
+
+function numberKey(k: string | null): number | null {
+  return k === null ? null : toNumber(k);
+}
+
+function noKey(): null {
+  return null;
+}
+
+/**
+ * The key of a sort while no office is scored (so `opportunity` and `impact` have
+ * none and order by id). On the set path a stale deadline sorts with the unknown ones.
+ */
+function sortKeyOf(sort: OfficeListSort, todayPagoPago: string, path: 'set' | 'ranked'): SortKey {
+  switch (sort) {
+    case 'opportunity':
+    case 'impact':
+      return { expr: null, direction: 'desc', bind: (k) => sql`${k}`, read: noKey };
+    case 'ease':
+      return {
+        expr: sql`o.ease`,
+        direction: 'desc',
+        bind: (k) => sql`${k}::numeric`,
+        read: numberKey,
+      };
+    case 'pay':
+      return {
+        expr: sql`o.pay_annual_cents`,
+        direction: 'desc',
+        bind: (k) => sql`${k}::bigint`,
+        read: numberKey,
+      };
+    case 'deadline':
+      return {
+        expr:
+          path === 'set'
+            ? sql`(case when o.next_filing_deadline >= ${todayPagoPago}::date then o.next_filing_deadline end)`
+            : sql`o.next_filing_deadline`,
+        direction: 'asc',
+        bind: (k) => sql`${k}::date`,
+        read: (k) => k,
+      };
+    default:
+      return assertNever(sort);
+  }
+}
+
+/** The candidate set of the set path (step 2): never retired, placeholders only when kept. */
+function setPredicate(set: OfficeListSet, keepPlaceholders: boolean): SQL {
+  const parts: SQL[] = [sql`o.retired_at is null`];
+  if (!keepPlaceholders) {
+    parts.push(sql`not o.placeholder`);
+  }
+  if (set.mineUserId !== null) {
+    // index: user_districts_pkey, offices_district
+    parts.push(
+      sql`o.district_id in (select ud.district_id from user_districts ud
+                            where ud.user_id = ${set.mineUserId}::uuid)`,
+    );
+  }
+  if (set.districtId !== null) {
+    const district = sql`${set.districtId}::uuid`;
+    // index: offices_district, district_fallbacks_via
+    parts.push(
+      set.includeContained
+        ? sql`(o.district_id = ${district}
+               or o.district_id in (select f.district_id from district_fallbacks f
+                                    where f.via_district_id = ${district}))`
+        : sql`o.district_id = ${district}`,
+    );
+  }
+  if (set.jurisdictionId !== null) {
+    // index: offices_jurisdiction
+    parts.push(sql`o.jurisdiction_id = ${set.jurisdictionId}::uuid`);
+  }
+  if (set.state !== null) {
+    parts.push(sql`o.state = ${set.state}`);
+  }
+  return sql.join(parts, sql` and `);
+}
+
+/** The filters of step 4 over `o`, `t` (office type) and `j` (jurisdiction); a nullable column never matches null. */
+function filterPredicate(filters: OfficeListFilters, todayPagoPago: string): SQL[] {
+  const parts: SQL[] = [];
+  if (filters.issueIds !== null) {
+    // index: office_issues_pkey
+    parts.push(
+      sql`exists (select 1 from office_issues oi
+                  where oi.office_id = o.id and oi.issue_id = any(${sql.param(filters.issueIds)}::text[]))`,
+    );
+  }
+  if (filters.levels !== null) {
+    parts.push(sql`t.level = any(${sql.param(filters.levels)}::text[])`);
+  }
+  if (filters.officeTypeIds !== null) {
+    parts.push(sql`o.office_type_id = any(${sql.param(filters.officeTypeIds)}::text[])`);
+  }
+  if (filters.jurisdictionKinds !== null) {
+    parts.push(sql`j.kind = any(${sql.param(filters.jurisdictionKinds)}::text[])`);
+  }
+  if (filters.minPayCents !== null) {
+    parts.push(sql`o.pay_annual_cents >= ${filters.minPayCents}::bigint`);
+  }
+  if (filters.fitsDayJob) {
+    parts.push(sql`o.fits_day_job in ('yes', 'likely')`);
+  }
+  if (filters.maxHours !== null) {
+    parts.push(sql`o.hours_per_week <= ${filters.maxHours}::numeric`);
+  }
+  if (filters.deadlineWithinDays !== null) {
+    // One day past the bound: another zone's today can be one day after Pago Pago's; the exact
+    // daysUntil test drops the extra day.
+    parts.push(
+      sql`o.next_filing_deadline >= ${todayPagoPago}::date
+          and o.next_filing_deadline <= ${todayPagoPago}::date + ${filters.deadlineWithinDays}::int + 1`,
+    );
+  }
+  if (filters.q !== null) {
+    // index: offices_search, offices_title_trgm
+    parts.push(
+      sql`(o.search @@ websearch_to_tsquery('english', ${filters.q}) or o.title % ${filters.q})`,
+    );
+  }
+  return parts;
+}
+
+/** "After the cursor" of step 5 for the given key; with placeholders kept, the placeholder flag leads. */
+function afterPredicate(key: SortKey, after: OfficeListAfter, keepPlaceholders: boolean): SQL[] {
+  if (after === null) {
+    return [];
+  }
+  const id = sql`${after.id}::uuid`;
+  let condition: SQL;
+  if (key.expr === null) {
+    condition = sql`o.id > ${id}`;
+  } else if (after.k === null) {
+    condition = sql`(${key.expr} is null and o.id > ${id})`;
+  } else {
+    const k = key.bind(after.k);
+    const beyond = key.direction === 'desc' ? sql`${key.expr} < ${k}` : sql`${key.expr} > ${k}`;
+    condition = sql`(${beyond} or (${key.expr} = ${k} and o.id > ${id}) or ${key.expr} is null)`;
+  }
+  if (keepPlaceholders) {
+    const p = sql`${after.p}::boolean`;
+    condition = sql`(o.placeholder > ${p} or (o.placeholder = ${p} and ${condition}))`;
+  }
+  return [condition];
+}
+
+/** `<expr> desc nulls last` or `<expr> asc nulls last`. */
+function keyOrder(expr: SQL, direction: 'asc' | 'desc'): SQL {
+  return direction === 'desc' ? sql`${expr} desc nulls last` : sql`${expr} asc nulls last`;
+}
+
+function toOfficeListRows(rows: readonly OfficeListDbRow[], key: SortKey): OfficeListRow[] {
+  return rows.map((row) => ({
+    id: row.id,
+    k: key.read(row.k),
+    p: row.p,
+    nextFilingDeadline: row.nextFilingDeadline,
+    timezone: row.timezone,
+    total: row.total,
+  }));
+}
+
+/** Candidate offices of the set path before the other filters, counted up to SET_PATH_MAX + 1. */
+export async function countSetCandidates(
+  db: Db | Tx,
+  input: { set: OfficeListSet; keepPlaceholders: boolean },
+): Promise<number> {
+  // index: user_districts_pkey, offices_district, district_fallbacks_via, offices_jurisdiction
+  const rows = await db.execute<{ n: number }>(
+    sql`select count(*)::int as n
+        from (select 1 from offices o
+              where ${setPredicate(input.set, input.keepPlaceholders)}
+              limit ${SET_PATH_MAX + 1}) x`,
+    'objects',
+  );
+  return rows[0]?.n ?? 0;
+}
+
+/**
+ * One page of the set path (steps 2, 4 and 5): `limit + 1` rows after `after`, placeholders last
+ * when kept; with `withTotal` the same statement counts every match before the limit (D-518).
+ */
+export async function officeListSetPage(
+  db: Db | Tx,
+  input: {
+    set: OfficeListSet;
+    keepPlaceholders: boolean;
+    filters: OfficeListFilters;
+    sort: OfficeListSort;
+    todayPagoPago: string;
+    after: OfficeListAfter;
+    limit: number;
+    withTotal: boolean;
+  },
+): Promise<OfficeListRow[]> {
+  const key = sortKeyOf(input.sort, input.todayPagoPago, 'set');
+  const where = sql.join(
+    [
+      setPredicate(input.set, input.keepPlaceholders),
+      ...filterPredicate(input.filters, input.todayPagoPago),
+      ...afterPredicate(key, input.after, input.keepPlaceholders),
+    ],
+    sql` and `,
+  );
+  const order = sql.join(
+    [
+      ...(input.keepPlaceholders ? [sql`o.placeholder asc`] : []),
+      ...(key.expr === null ? [] : [keyOrder(key.expr, key.direction)]),
+      sql`o.id`,
+    ],
+    sql`, `,
+  );
+  const total = input.withTotal ? sql`(count(*) over ())::int` : sql`null::int`;
+  // index: offices_pkey, office_types_pkey, jurisdictions_pkey
+  const rows = await db.execute<OfficeListDbRow>(
+    sql`select o.id,
+               ${key.expr ?? sql`null`}::text as k,
+               o.placeholder as p,
+               o.next_filing_deadline::text as "nextFilingDeadline",
+               j.timezone,
+               ${total} as total
+        from offices o
+        join office_types t on t.id = o.office_type_id
+        join jurisdictions j on j.id = o.jurisdiction_id
+        where ${where}
+        order by ${order}
+        limit ${input.limit + 1}`,
+    'objects',
+  );
+  return toOfficeListRows(rows, key);
+}
+
+/**
+ * One page of the ranked path (steps 3 to 5) over one state or many, placeholders excluded:
+ * `limit + 1` rows after `after` on the index of the sort; `total` is null (D-518).
+ */
+export async function officeListRankedPage(
+  db: Db | Tx,
+  input: {
+    states: readonly string[];
+    filters: OfficeListFilters;
+    sort: OfficeListSort;
+    todayPagoPago: string;
+    after: OfficeListAfter;
+    limit: number;
+  },
+): Promise<OfficeListRow[]> {
+  if (input.states.length === 0) {
+    return [];
+  }
+  const key = sortKeyOf(input.sort, input.todayPagoPago, 'ranked');
+  const inner = (state: SQL): SQL => {
+    const where = sql.join(
+      [
+        sql`o.state = ${state}`,
+        sql`o.retired_at is null`,
+        sql`not o.placeholder`,
+        ...(input.sort === 'deadline'
+          ? [sql`o.next_filing_deadline >= ${input.todayPagoPago}::date`]
+          : []),
+        ...filterPredicate(input.filters, input.todayPagoPago),
+        ...afterPredicate(key, input.after, false),
+      ],
+      sql` and `,
+    );
+    const order = key.expr === null ? sql`o.id` : sql`${keyOrder(key.expr, key.direction)}, o.id`;
+    return sql`select o.id,
+                      ${key.expr ?? sql`null::text`} as sk,
+                      ${key.expr ?? sql`null`}::text as k,
+                      o.placeholder as p,
+                      o.next_filing_deadline::text as "nextFilingDeadline",
+                      j.timezone,
+                      null::int as total
+               from offices o
+               join office_types t on t.id = o.office_type_id
+               join jurisdictions j on j.id = o.jurisdiction_id
+               where ${where}
+               order by ${order}
+               limit ${input.limit + 1}`;
+  };
+  const [only] = input.states;
+  if (input.states.length === 1 && only !== undefined) {
+    // index: offices_state_ease, offices_state_pay, offices_state_deadline, offices_pkey
+    const rows = await db.execute<OfficeListDbRow>(inner(sql`${only}`), 'objects');
+    return toOfficeListRows(rows, key);
+  }
+  const outerOrder =
+    key.expr === null ? sql`x.id` : sql`${keyOrder(sql`x.sk`, key.direction)}, x.id`;
+  // index: state_rules_pkey, offices_state_ease, offices_state_pay, offices_state_deadline
+  const rows = await db.execute<OfficeListDbRow>(
+    sql`select x.id, x.k, x.p, x."nextFilingDeadline", x.timezone, x.total
+        from state_rules s
+        cross join lateral (${inner(sql`s.state`)}) x
+        where s.state::text = any(${sql.param(input.states)}::text[])
+        order by ${outerOrder}
+        limit ${input.limit + 1}`,
+    'objects',
+  );
+  return toOfficeListRows(rows, key);
 }

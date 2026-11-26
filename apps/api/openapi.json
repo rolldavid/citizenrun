@@ -3118,6 +3118,35 @@
           "following"
         ]
       },
+      "OfficeListPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeSummary"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "total"
+        ]
+      },
       "OfficeRef": {
         "type": "object",
         "properties": {
@@ -3152,6 +3181,425 @@
           "state",
           "jurisdictionName",
           "retiredAt"
+        ]
+      },
+      "OfficeSort": {
+        "type": "string",
+        "enum": [
+          "opportunity",
+          "impact",
+          "ease",
+          "pay",
+          "deadline"
+        ],
+        "default": "opportunity"
+      },
+      "OfficeSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "officeTypeId": {
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "electorate": {
+            "$ref": "#/components/schemas/Electorate"
+          },
+          "state": {
+            "type": "string"
+          },
+          "jurisdiction": {
+            "$ref": "#/components/schemas/JurisdictionRef"
+          },
+          "district": {
+            "$ref": "#/components/schemas/DistrictRef"
+          },
+          "outline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "svg": {
+                "type": "string"
+              },
+              "bbox": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "svg",
+              "bbox"
+            ]
+          },
+          "placeholder": {
+            "type": "boolean"
+          },
+          "completeness": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "complete",
+              "partial",
+              "minimal",
+              null
+            ]
+          },
+          "partisan": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "seats": {
+            "type": "integer"
+          },
+          "bodySize": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "seatsUpNext": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payAnnualCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payKind": {
+            "$ref": "#/components/schemas/PayKind"
+          },
+          "payAmountCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payPeriod": {
+            "$ref": "#/components/schemas/PayPeriod"
+          },
+          "hoursPerWeek": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fitsDayJob": {
+            "$ref": "#/components/schemas/FitsDayJob"
+          },
+          "fullTime": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "signaturesRequired": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "filingFeeCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "costToRunCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "ease": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "easeConfidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              null
+            ]
+          },
+          "impact": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "impactMode": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "single_issue"
+            ]
+          },
+          "impactIssueId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "opportunity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesToWin": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesLow": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesHigh": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesEstimated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "nextElection": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "electionDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "kind": {
+                "$ref": "#/components/schemas/ElectionKind"
+              },
+              "party": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "electionDate",
+              "kind",
+              "party"
+            ]
+          },
+          "filingDeadline": {
+            "$ref": "#/components/schemas/LocalDeadline"
+          },
+          "filingStatus": {
+            "$ref": "#/components/schemas/FilingStatus"
+          },
+          "headlineIssueId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issueId": {
+                  "type": "string"
+                },
+                "relevance": {
+                  "type": "number",
+                  "enum": [
+                    1
+                  ]
+                }
+              },
+              "required": [
+                "issueId",
+                "relevance"
+              ]
+            }
+          },
+          "featuredOfficeholder": {
+            "$ref": "#/components/schemas/PersonSummary"
+          },
+          "featuredHolderSince": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "openSeat": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "vacant",
+              "term_limited",
+              "not_running",
+              null
+            ]
+          },
+          "fieldMeta": {
+            "type": "object",
+            "properties": {
+              "payAnnualCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "payAmountCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "hoursPerWeek": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "filingFeeCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "filingDeadline": {
+                "$ref": "#/components/schemas/FieldMeta"
+              }
+            }
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "following": {
+                "type": "boolean"
+              },
+              "bookmarked": {
+                "type": "boolean"
+              },
+              "running": {
+                "type": "boolean"
+              },
+              "declarationId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "following",
+              "bookmarked",
+              "running",
+              "declarationId"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "officeTypeId",
+          "level",
+          "electorate",
+          "state",
+          "jurisdiction",
+          "district",
+          "outline",
+          "placeholder",
+          "completeness",
+          "partisan",
+          "seats",
+          "bodySize",
+          "seatsUpNext",
+          "payAnnualCents",
+          "payKind",
+          "payAmountCents",
+          "payPeriod",
+          "hoursPerWeek",
+          "fitsDayJob",
+          "fullTime",
+          "signaturesRequired",
+          "filingFeeCents",
+          "costToRunCents",
+          "ease",
+          "easeConfidence",
+          "impact",
+          "impactMode",
+          "impactIssueId",
+          "opportunity",
+          "votesToWin",
+          "votesLow",
+          "votesHigh",
+          "votesEstimated",
+          "nextElection",
+          "filingDeadline",
+          "filingStatus",
+          "headlineIssueId",
+          "issues",
+          "featuredOfficeholder",
+          "featuredHolderSince",
+          "openSeat",
+          "fieldMeta",
+          "retiredAt",
+          "viewer"
         ]
       },
       "OfficeType": {
@@ -6631,6 +7079,270 @@
           },
           "400": {
             "description": "The client header is missing or malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/offices": {
+      "get": {
+        "operationId": "listOffices",
+        "tags": [
+          "explore"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "explore_list"
+        },
+        "x-errors": [
+          "invalid_request",
+          "invalid_cursor",
+          "unauthenticated",
+          "client_header_required",
+          "area_too_large",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mine",
+                "state",
+                "nation"
+              ]
+            },
+            "required": false,
+            "name": "scope",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Z]{2}$"
+            },
+            "required": false,
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "district",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "includeContained",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "jurisdiction",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(,[a-z0-9]+(-[a-z0-9]+)*){0,9}$"
+            },
+            "required": false,
+            "name": "issue",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(local|county|state|federal|special)(,(local|county|state|federal|special)){0,4}$"
+            },
+            "required": false,
+            "name": "level",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(,[a-z0-9]+(-[a-z0-9]+)*){0,9}$"
+            },
+            "required": false,
+            "name": "officeType",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^(state|county|city|township|school_district|special_district|coop|party)(,(state|county|city|township|school_district|special_district|coop|party)){0,7}$"
+            },
+            "required": false,
+            "name": "jurisdictionKind",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 0,
+              "maximum": 100000000
+            },
+            "required": false,
+            "name": "minPay",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "fitsDayJob",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 80
+            },
+            "required": false,
+            "name": "maxHours",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365
+            },
+            "required": false,
+            "name": "deadlineWithin",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "$ref": "#/components/schemas/OfficeSort"
+            },
+            "required": false,
+            "name": "sort",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of offices in the sort order, and the number of matches on a district, jurisdiction or own-districts list.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficeListPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request or the cursor is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The area holds more than 5,000 offices.",
             "content": {
               "application/json": {
                 "schema": {

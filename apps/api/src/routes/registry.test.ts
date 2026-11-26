@@ -20,8 +20,9 @@ const CLIENT_HEADER_EXEMPT_OPERATIONS: readonly string[] = [
 const AUTH_LEVELS: readonly string[] = ['none', 'optional', 'user', 'onboarded', 'admin'];
 // INV-40: names that would put a sensitive value in a URL.
 const SENSITIVE_PARAMETERS: readonly string[] = ['lat', 'lng', 'near', 'address', 'code', 'token'];
-// The one route allowed a `q` parameter, and the one allowed a `token` parameter (INV-40).
-const Q_ALLOWED_OPERATIONS: readonly string[] = ['suggestPlaces'];
+// The route whose `q` is typed address text, which may not travel in its URL, and the one route
+// allowed a `token` parameter (INV-40).
+const Q_FORBIDDEN_OPERATIONS: readonly string[] = ['suggestPlaces'];
 const TOKEN_ALLOWED_OPERATIONS: readonly string[] = ['getCalendarFeed'];
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
 // Hono's method name for middleware added with `use`.
@@ -73,7 +74,7 @@ function sensitiveParameters(document: OpenApiDocument): string[] {
         name === 'token' && TOKEN_ALLOWED_OPERATIONS.includes(operation.operationId);
       const forbidden =
         (SENSITIVE_PARAMETERS.includes(name) && !allowedToken) ||
-        (name === 'q' && !Q_ALLOWED_OPERATIONS.includes(operation.operationId));
+        (name === 'q' && Q_FORBIDDEN_OPERATIONS.includes(operation.operationId));
       if (forbidden) {
         found.push(`${operation.operationId} ${name}`);
       }
@@ -262,7 +263,7 @@ describe('the route registry', () => {
       'probeA lat',
       'probeA token',
       'probeB code',
-      'probeB q',
+      'suggestPlaces q',
     ]);
   });
 
