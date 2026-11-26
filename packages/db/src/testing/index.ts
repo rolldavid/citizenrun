@@ -18,6 +18,8 @@ export {
 } from './storage.ts';
 export { fetchPresignedGet } from './presigned-get.ts';
 export { buildPolicyForm, uploadWithPolicy } from './upload-with-policy.ts';
+export { seedUsersStep } from '../seed/steps/010-users.ts';
+export { SEED_USER_IDS } from '../seed/ids.ts';
 export { captureLogs } from './logs.ts';
 export type { CapturedLine } from './logs.ts';
 export { idAt, uuidFloorAt } from './ids.ts';

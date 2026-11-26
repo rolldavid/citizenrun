@@ -1,6 +1,6 @@
 import { EnvError } from '@citizenrun/shared';
 import { describe, expect, it } from 'vitest';
-import { loadDbEnv } from './env.ts';
+import { loadDbEnv, loadSeedMediaEnv } from './env.ts';
 
 describe('loadDbEnv', () => {
   it('defaults APP_ENV to local', () => {
@@ -47,5 +47,44 @@ describe('loadDbEnv', () => {
       'APP_ENV',
       'DATABASE_URL',
     ]);
+  });
+});
+
+describe('loadSeedMediaEnv', () => {
+  const LOCAL = {
+    MEDIA_BUCKET: 'media',
+    MEDIA_ENDPOINT: 'http://localhost:8333',
+    MEDIA_REGION: 'us-east-1',
+    MEDIA_ACCESS_KEY_ID: 'osdev',
+    MEDIA_SECRET_ACCESS_KEY: 'osdev-secret-key',
+    S3_FORCE_PATH_STYLE: 'true',
+  };
+
+  it('reads the local store settings', () => {
+    const env = loadSeedMediaEnv(LOCAL);
+    expect(env).toEqual({
+      bucket: 'media',
+      endpoint: 'http://localhost:8333',
+      region: 'us-east-1',
+      accessKeyId: 'osdev',
+      secretAccessKey: 'osdev-secret-key',
+      forcePathStyle: true,
+    });
+    expect(Object.isFrozen(env)).toBe(true);
+    expect(loadSeedMediaEnv({ ...LOCAL, S3_FORCE_PATH_STYLE: undefined }).forcePathStyle).toBe(
+      false,
+    );
+  });
+
+  it('the seed media settings are required', () => {
+    let caught: unknown = null;
+    try {
+      loadSeedMediaEnv({ ...LOCAL, MEDIA_BUCKET: undefined });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(EnvError);
+    expect(caught instanceof EnvError ? caught.variables : null).toEqual(['MEDIA_BUCKET']);
+    expect(caught instanceof Error ? caught.message : '').not.toContain('osdev-secret-key');
   });
 });
