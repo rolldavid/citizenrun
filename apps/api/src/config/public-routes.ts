@@ -9,6 +9,7 @@ export const PUBLIC_ROUTES = [
   'GET /v1/offices/:id/candidates',
   'GET /v1/offices/:idOrSlug',
   'GET /v1/openapi.json',
+  'GET /v1/people/:idOrSlug',
   'POST /v1/auth/apple',
   'POST /v1/auth/apple/callback',
   'POST /v1/auth/apple/handoff',

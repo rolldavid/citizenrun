@@ -3714,6 +3714,311 @@
           null
         ]
       },
+      "PersonDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "party": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photo": {
+            "$ref": "#/components/schemas/Media"
+          },
+          "photoCredit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "claimed": {
+            "type": "boolean"
+          },
+          "rosterOnly": {
+            "type": "boolean"
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "following": {
+                "type": "boolean"
+              },
+              "isOwner": {
+                "type": "boolean"
+              },
+              "claimStatus": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "pending",
+                  "approved",
+                  "rejected",
+                  "revoked",
+                  null
+                ]
+              },
+              "photoPending": {
+                "type": "boolean"
+              },
+              "pendingClaim": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "senderEmail": {
+                    "type": "string"
+                  },
+                  "sendTo": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "senderEmail",
+                  "sendTo"
+                ]
+              }
+            },
+            "required": [
+              "following",
+              "isOwner",
+              "claimStatus",
+              "photoPending",
+              "pendingClaim"
+            ]
+          },
+          "photoLicense": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photoSourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photoSource": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "public_record",
+              "owner",
+              null
+            ]
+          },
+          "origin": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "bundle",
+              "filing",
+              "admin",
+              null
+            ]
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "donateUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "volunteerUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pendingLinks": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "website": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "donateUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "volunteerUrl": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "requestedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "website",
+              "donateUrl",
+              "volunteerUrl",
+              "requestedAt"
+            ]
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "office": {
+                  "$ref": "#/components/schemas/OfficeRef"
+                },
+                "seatLabel": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "since": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "until": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "current": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "office",
+                "seatLabel",
+                "since",
+                "until",
+                "current"
+              ]
+            }
+          },
+          "candidacies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidacyView"
+            }
+          },
+          "claimedBy": {
+            "type": "null"
+          },
+          "followerCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "tools": {
+            "type": "object",
+            "properties": {
+              "claims": {
+                "type": "boolean"
+              },
+              "links": {
+                "type": "boolean"
+              },
+              "help": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "claims",
+              "links",
+              "help"
+            ]
+          },
+          "help": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "available": {
+                "type": "boolean"
+              },
+              "offered": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "available",
+              "offered"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "party",
+          "photo",
+          "photoCredit",
+          "claimed",
+          "rosterOnly",
+          "retiredAt",
+          "viewer",
+          "photoLicense",
+          "photoSourceUrl",
+          "photoSource",
+          "origin",
+          "website",
+          "donateUrl",
+          "volunteerUrl",
+          "pendingLinks",
+          "seats",
+          "candidacies",
+          "claimedBy",
+          "followerCount",
+          "tools",
+          "help"
+        ]
+      },
       "PersonSummary": {
         "type": [
           "object",
@@ -8169,6 +8474,99 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OpenApiDocument"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/people/{idOrSlug}": {
+      "get": {
+        "operationId": "getPerson",
+        "tags": [
+          "people"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "civic_read",
+          "public": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "client_header_required",
+          "not_found",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "idOrSlug",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The person, their seats and their candidacies; a merged person answers the survivor.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No person has that id or slug, or the person has no profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

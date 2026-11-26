@@ -16,6 +16,7 @@ import { registerHealthRoutes } from './health/index.ts';
 import { registerMeRoutes } from './me/index.ts';
 import { registerMetaRoutes } from './meta/index.ts';
 import { registerOfficeRoutes } from './offices/index.ts';
+import { registerPeopleRoutes } from './people/index.ts';
 import { registerReferenceRoutes } from './reference/index.ts';
 import { registerSafetyRoutes } from './safety/index.ts';
 import { registerUploadRoutes } from './uploads/index.ts';
@@ -44,6 +45,7 @@ export function registerRoutes(
   registerGeoRoutes(v1, deps, ctx);
   registerExploreRoutes(v1, deps, ctx);
   registerOfficeRoutes(v1, deps, ctx);
+  registerPeopleRoutes(v1, deps, ctx);
   registerMetaRoutes(v1, deps, ctx);
   registerSafetyRoutes(v1, deps, ctx);
   if (options.devMailbox) {

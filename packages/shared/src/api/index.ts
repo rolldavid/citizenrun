@@ -6,6 +6,7 @@ export * from './explore/explore.ts';
 export * from './geo/geo.ts';
 export * from './me/me.ts';
 export * from './offices/offices.ts';
+export * from './people/people.ts';
 export * from './reference/reference.ts';
 export * from './safety/safety.ts';
 export * from './uploads/uploads.ts';
