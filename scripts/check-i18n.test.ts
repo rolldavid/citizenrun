@@ -1,7 +1,8 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { catalogsFrom, checkCatalogs, collectUses, main } from './check-i18n.ts';
+import { catalogsFrom, checkCatalogs, collectUses, listSourceFiles, main } from './check-i18n.ts';
 import type { Problem, ProblemKind, Use } from './check-i18n.ts';
 import { BrandSchema } from './gen-brand.ts';
 import { repoRoot } from './lib/repo-root.ts';
@@ -156,6 +157,30 @@ describe('collectUses', () => {
   it('leaves the namespace unset when the file names none', () => {
     const uses = collectUses([{ path: 'packages/shared/src/x.ts', text: "t('notKnownYet');" }]);
     expect(uses.map((item) => item.namespace)).toEqual([null]);
+  });
+});
+
+describe('listSourceFiles', () => {
+  it('leaves out every generated folder and the catalogs', () => {
+    const root = mkdtempSync(join(tmpdir(), 'check-i18n-'));
+    try {
+      for (const path of [
+        'packages/shared/src/api/client.ts',
+        'packages/shared/src/i18n/en/common.ts',
+        'packages/cards/src/generated/index.ts',
+        'packages/cards/src/card.tsx',
+        'apps/mobile/src/screen.tsx',
+      ]) {
+        mkdirSync(dirname(join(root, path)), { recursive: true });
+        writeFileSync(join(root, path), 'export {};\n');
+      }
+      expect(listSourceFiles(root)).toEqual([
+        'apps/mobile/src/screen.tsx',
+        'packages/cards/src/card.tsx',
+      ]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 

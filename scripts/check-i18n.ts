@@ -44,7 +44,12 @@ const SKIPPED_FOLDERS: ReadonlySet<string> = new Set([
   'ios',
   'android',
 ]);
-const SKIPPED_PATHS: ReadonlySet<string> = new Set(['packages/shared/src/api', CATALOG_DIR]);
+// The generated folders and the catalogs.
+const SKIPPED_PATHS: ReadonlySet<string> = new Set([
+  'packages/shared/src/api',
+  'packages/cards/src/generated',
+  CATALOG_DIR,
+]);
 
 const DEFAULT_NAMESPACE = 'common';
 const FIXED_NAMESPACES: ReadonlySet<string> = new Set([
