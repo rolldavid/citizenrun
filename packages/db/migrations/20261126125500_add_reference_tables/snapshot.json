@@ -1,0 +1,615 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "18b5495f-9306-480a-afb6-83b03bf2ba65",
+  "prevIds": [
+    "c5380945-87b6-4fce-b72b-75afb43db003"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "issue_powers"
+      ],
+      "writes": [
+        "s|tbl|public.issue_powers",
+        "n|tbl|public.issue_powers",
+        "e|tbl|public.issue_powers",
+        "n|rel|public.issue_powers",
+        "n|type|public.issue_powers",
+        "n|rel|public.issue_powers_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "office_types"
+      ],
+      "writes": [
+        "s|tbl|public.office_types",
+        "n|tbl|public.office_types",
+        "e|tbl|public.office_types",
+        "n|rel|public.office_types",
+        "n|type|public.office_types",
+        "n|rel|public.office_types_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "powers"
+      ],
+      "writes": [
+        "s|tbl|public.powers",
+        "n|tbl|public.powers",
+        "e|tbl|public.powers",
+        "n|rel|public.powers",
+        "n|type|public.powers",
+        "n|rel|public.powers_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "issue_powers",
+        "issue_powers_power"
+      ],
+      "writes": [
+        "s|idx|public.issue_powers_power",
+        "n|idx|public.issue_powers_power",
+        "e|idx|public.issue_powers_power",
+        "n|rel|public.issue_powers_power"
+      ],
+      "reads": [
+        "n|tbl|public.issue_powers",
+        "n|sch|public",
+        "n|col|public.issue_powers.power_id",
+        "n|col|public.issue_powers.issue_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "powers",
+        "powers_search"
+      ],
+      "writes": [
+        "s|idx|public.powers_search",
+        "n|idx|public.powers_search",
+        "e|idx|public.powers_search",
+        "n|rel|public.powers_search"
+      ],
+      "reads": [
+        "n|tbl|public.powers",
+        "n|sch|public",
+        "n|col|public.powers.search"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "issue_powers"
+      ],
+      "writes": [
+        "s|fk|public.issue_powers.issue_powers_issue_id_fkey",
+        "n|fk|public.issue_powers.issue_powers_issue_id_fkey",
+        "e|fk|public.issue_powers.issue_powers_issue_id_fkey",
+        "n|con|public.issue_powers.issue_powers_issue_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.issue_powers",
+        "n|sch|public",
+        "n|tbl|public.issues",
+        "n|sch|public",
+        "n|col|public.issue_powers.issue_id",
+        "n|col|public.issues.id",
+        "e|uniqueness|public.issues.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "issue_powers"
+      ],
+      "writes": [
+        "s|fk|public.issue_powers.issue_powers_power_id_fkey",
+        "n|fk|public.issue_powers.issue_powers_power_id_fkey",
+        "e|fk|public.issue_powers.issue_powers_power_id_fkey",
+        "n|con|public.issue_powers.issue_powers_power_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.issue_powers",
+        "n|sch|public",
+        "n|tbl|public.powers",
+        "n|sch|public",
+        "n|col|public.issue_powers.power_id",
+        "n|col|public.powers.id",
+        "e|uniqueness|public.powers.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "issue_powers",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "office_types",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "powers",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "issue_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "power_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "level",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "illustration",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "electorate",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'public'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "aliases",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 1,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "description",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "phrases",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 1,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "search",
+        "type": "tsvector",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "issue_powers_power",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "power_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "issue_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "powers_search",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "search",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "issue_powers_issue_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "issue_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "issues",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "issue_powers_power_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "power_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "powers",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "issue_powers",
+        "name": "issue_powers_pkey",
+        "columns": [
+          "issue_id",
+          "power_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "office_types_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "powers_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "office_types_id_check",
+        "value": "\"id\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "office_types_level_check",
+        "value": "\"level\" in ('local', 'county', 'state', 'federal', 'special')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "office_types",
+        "name": "office_types_electorate_check",
+        "value": "\"electorate\" in ('public', 'members', 'party')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "powers",
+        "name": "powers_id_check",
+        "value": "\"id\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

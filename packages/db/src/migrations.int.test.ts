@@ -10,7 +10,7 @@ import { ISSUE_IDS, STATE_CODES } from '@citizenrun/shared';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { CLIENT_ERRORS_RETENTION_DAYS } from './index.ts';
 import { runMigrations } from './migrator.ts';
-import { getTestDb, insertClientError } from './testing/index.ts';
+import { getTestDb, insertClientError, resetDb } from './testing/index.ts';
 import { parseStamp } from './testing/names.ts';
 import {
   connectHarnessClient,
@@ -41,6 +41,9 @@ const EXPECTED_OBJECTS = {
     'state_rules',
     'app_events',
     'data_exports',
+    'powers',
+    'issue_powers',
+    'office_types',
   ],
   indexes: [
     'client_errors_created',
@@ -89,6 +92,11 @@ const EXPECTED_OBJECTS = {
     'data_exports_pkey',
     'data_exports_user',
     'data_exports_ready',
+    'powers_pkey',
+    'powers_search',
+    'issue_powers_pkey',
+    'issue_powers_power',
+    'office_types_pkey',
   ],
   constraints: [
     'client_errors_platform_check',
@@ -128,6 +136,10 @@ const EXPECTED_OBJECTS = {
     'state_rules_age_method_check',
     'app_events_platform_check',
     'data_exports_status_check',
+    'powers_id_check',
+    'office_types_id_check',
+    'office_types_level_check',
+    'office_types_electorate_check',
   ],
   // Primary keys and unique constraints, under PostgreSQL's names.
   keys: [
@@ -156,8 +168,16 @@ const EXPECTED_OBJECTS = {
     'state_rules_pkey',
     'app_events_pkey',
     'data_exports_pkey',
+    'powers_pkey',
+    'issue_powers_pkey',
+    'office_types_pkey',
   ],
-  functions: ['os_drop_month_partitions', 'os_ensure_month_partitions'],
+  functions: [
+    'os_drop_month_partitions',
+    'os_ensure_month_partitions',
+    'os_unaccent',
+    'os_name_key',
+  ],
 } as const;
 
 // Each foreign key with its delete rule: `c` cascade, `n` set null, `a` no action.
@@ -172,6 +192,8 @@ const EXPECTED_FOREIGN_KEYS: Readonly<Record<string, 'a' | 'c' | 'n'>> = {
   uploads_user_id_fkey: 'c',
   data_exports_user_id_fkey: 'c',
   state_rules_updated_by_fkey: 'n',
+  issue_powers_issue_id_fkey: 'a',
+  issue_powers_power_id_fkey: 'a',
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -402,6 +424,59 @@ describe('the migrations', () => {
     );
     expect(found.map((row) => row.id)).toEqual([...ISSUE_IDS]);
     expect(found.every((row) => row.icon === row.id)).toBe(true);
+  });
+
+  it('name keys are immutable functions', async () => {
+    const found = await rows<{ name: string; volatility: string; strict: boolean }>(
+      sql`select proname as name, provolatile::text as volatility, proisstrict as strict
+          from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+          where n.nspname = 'public' and proname in ('os_unaccent', 'os_name_key')
+          order by proname`,
+    );
+    expect(found).toEqual([
+      { name: 'os_name_key', volatility: 'i', strict: false },
+      { name: 'os_unaccent', volatility: 'i', strict: true },
+    ]);
+  });
+
+  it('the name key follows its definition', async () => {
+    const [found] = await rows<{
+      accented: string | null;
+      lastOnly: string | null;
+      spaced: string | null;
+      nulls: string | null;
+      empty: string | null;
+    }>(
+      sql`select os_name_key('José', 'O''Brien-García') as accented,
+                 os_name_key(null, 'Cher') as "lastOnly",
+                 os_name_key('  Mary-Kate ', ' Olsen  ') as spaced,
+                 os_name_key(null, null) as nulls,
+                 os_name_key('', '') as empty`,
+    );
+    expect(found).toEqual({
+      accented: 'jose obriengarcia',
+      lastOnly: 'cher',
+      spaced: 'marykate olsen',
+      nulls: null,
+      empty: null,
+    });
+  });
+
+  it('reference tables hold their rows', async () => {
+    await resetDb();
+    const [counts] = await rows<{
+      powers: number;
+      blank: number;
+      links: number;
+      types: number;
+    }>(
+      sql`select (select count(*)::int from powers) as powers,
+                 (select count(*)::int from powers
+                   where phrases = '{}'::text[] and search is null) as blank,
+                 (select count(*)::int from issue_powers) as links,
+                 (select count(*)::int from office_types) as types`,
+    );
+    expect(counts).toEqual({ powers: 41, blank: 41, links: 78, types: 42 });
   });
 
   it('client_errors refuses an unknown platform', async () => {
