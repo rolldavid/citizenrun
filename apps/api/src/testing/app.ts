@@ -5,6 +5,7 @@ import {
   createTestBoss,
   getTestBucket,
   getTestDatabaseUrl,
+  registerScanSource,
 } from '@citizenrun/db/testing';
 import type { CapturedLine } from '@citizenrun/db/testing';
 import { createLogger } from '@citizenrun/shared';
@@ -46,6 +47,9 @@ let countingPool: Pool | null = null;
 let countingDb: Db | null = null;
 let statements = 0;
 let boss: PgBoss | null = null;
+// Each test app's mailer is a scan source of its own: a second registration under one name replaces
+// the first.
+let mailers = 0;
 
 function testDb(): Db {
   if (countingDb === null) {
@@ -87,7 +91,8 @@ afterAll(async () => {
 /**
  * The API under test (TEST-harness-app): `createApp(deps)` on this worker's database, with a fake
  * clock, the API's capture mailer fake, the worker's media bucket, a send-only pg-boss and the log
- * capture. No port is opened; `request` calls the app in process.
+ * capture. No port is opened; `request` calls the app in process. Every message the mailer holds is
+ * read by the always-on privacy scan until the next test (D-855), so make the app inside the test.
  */
 export async function createTestApp(overrides: TestAppOverrides = {}): Promise<TestApp> {
   const media = await getTestBucket('media');
@@ -97,12 +102,15 @@ export async function createTestApp(overrides: TestAppOverrides = {}): Promise<T
     ...overrides.env,
   });
   const capture = captureLogs();
+  const mailer = overrides.mailer ?? new CaptureMailer();
+  mailers += 1;
+  registerScanSource(`api capture mailer ${String(mailers)}`, () => mailer.mailTexts());
   const deps: Deps & { clock: FakeClock; mailer: CaptureMailer } = {
     env,
     db: overrides.db ?? testDb(),
     queue: overrides.queue ?? { enqueue: await testEnqueue() },
     storage: { media },
-    mailer: overrides.mailer ?? new CaptureMailer(),
+    mailer,
     clock: overrides.clock ?? new FakeClock(),
     logger: createLogger({ service: 'api', level: 'debug', sink: capture.sink }),
     lifecycle: overrides.lifecycle ?? createLifecycle(),

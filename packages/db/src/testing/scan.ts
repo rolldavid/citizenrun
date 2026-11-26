@@ -57,7 +57,7 @@ export function base64Forms(value: string): [string, string, string] {
   return [form(0), form(1), form(2)];
 }
 
-/** The patterns of the always-on scan (TC-48): the marker, its three base64 forms, the fixed four and every registered value. */
+/** The patterns of the always-on scan (TC-48): the marker, its three base64 forms, the fixed five and every registered value. */
 export function scanPatterns(markerValue: string, registered: readonly string[]): Pattern[] {
   const [aligned, shiftedOne, shiftedTwo] = base64Forms(markerValue);
   return [
@@ -69,6 +69,7 @@ export function scanPatterns(markerValue: string, registered: readonly string[])
     { name: 'presigned-url', value: 'X-Amz-Signature' },
     { name: 'bearer', value: 'Bearer ' },
     { name: 'session-cookie', value: 'os_session=' },
+    { name: 'admin-session-cookie', value: 'os_admin_session=' },
     ...registered.map((value, index) => ({ name: `registered-${String(index + 1)}`, value })),
   ];
 }

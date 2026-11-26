@@ -7,7 +7,9 @@ const SIX_DIGIT_CODE = /\b\d{6}\b/;
 
 /**
  * The API's mailer fake (TEST-fake-mailer): holds the newest 50 messages, de-duplicated by
- * idempotency key as the capture mailer is, and can be told to fail the next send.
+ * idempotency key as the capture mailer is, and can be told to fail the next send. `createTestApp`
+ * registers `mailTexts()` with the always-on privacy scan (D-855); the fake itself imports nothing
+ * of the database harness, so unit tests can use it.
  */
 export class CaptureMailer implements Mailer {
   readonly #store = createCaptureStore(CAPTURE_KEEP);
@@ -26,6 +28,11 @@ export class CaptureMailer implements Mailer {
     }
     this.#store.add(message);
     return Promise.resolve();
+  }
+
+  /** The subject, text and HTML of every message held, oldest first: what the privacy scan reads. */
+  mailTexts(): string[] {
+    return this.#store.list.flatMap((message) => [message.subject, message.text, message.html]);
   }
 
   /** The last message held for `to`, or null. */

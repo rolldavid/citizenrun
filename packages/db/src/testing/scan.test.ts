@@ -16,12 +16,14 @@ describe('scanTexts', () => {
       { source: 'b', text: 'https://store/key?X-Amz-Signature=abc' },
       { source: 'c', text: 'authorization: Bearer abc' },
       { source: 'd', text: 'cookie: os_session=abc' },
+      { source: 'e', text: 'cookie: __Host-os_admin_session=abc' },
     ];
     expect(scanTexts(texts, scanPatterns(marker(), []))).toEqual([
       { source: 'a', pattern: 'email' },
       { source: 'b', pattern: 'presigned-url' },
       { source: 'c', pattern: 'bearer' },
       { source: 'd', pattern: 'session-cookie' },
+      { source: 'e', pattern: 'admin-session-cookie' },
     ]);
   });
 

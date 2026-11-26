@@ -1,4 +1,5 @@
-import { FakeClock } from '@citizenrun/shared/testing';
+import { PrivacyLeakError, getTestDb, resetDb, scanForLeaks } from '@citizenrun/db/testing';
+import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { createTestApp } from './app.ts';
@@ -53,6 +54,25 @@ describe('createTestApp', () => {
     expect(first.deps.mailer.sent).toHaveLength(1);
     expect(first.deps.mailer.codeFor('USER@example.test')).toBe('123456');
     expect(second.deps.mailer.sent).toEqual([]);
+  });
+
+  it('the privacy scan reads every message the mailer holds', async () => {
+    const { deps } = await createTestApp();
+    await deps.mailer.sendEmail({
+      to: 'user@example.test',
+      subject: 'Fixture subject',
+      text: `Fixture text ${marker()}`,
+      html: '<p>Fixture text</p>',
+      idempotencyKey: 'job:fixture-scan',
+    });
+    const error: unknown = await scanForLeaks(getTestDb()).catch((caught: unknown) => caught);
+    expect(error).toBeInstanceOf(PrivacyLeakError);
+    // Only the text holds the marker; the recipient, always a test address, is not read.
+    expect(error instanceof PrivacyLeakError ? error.findings : null).toEqual([
+      { source: expect.stringMatching(/^api capture mailer \d+ 2$/), pattern: 'marker' },
+    ]);
+    await resetDb();
+    await expect(scanForLeaks(getTestDb())).resolves.toBeUndefined();
   });
 
   it('the fake mailer fails the next send when told to', async () => {
