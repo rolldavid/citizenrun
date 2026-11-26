@@ -552,6 +552,77 @@
           "expiresAt"
         ]
       },
+      "GeoSuggestion": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "lat": {
+            "type": "number"
+          },
+          "lng": {
+            "type": "number"
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "exact",
+              "approx"
+            ]
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "address",
+              "city",
+              "county",
+              "township",
+              "zip"
+            ]
+          }
+        },
+        "required": [
+          "label",
+          "lat",
+          "lng",
+          "precision",
+          "kind"
+        ]
+      },
+      "GeoSuggestionsPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeoSuggestion"
+            },
+            "maxItems": 5
+          },
+          "nextCursor": {
+            "type": "null"
+          },
+          "attribution": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "geoapify",
+              "mapbox",
+              null
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor",
+          "attribution"
+        ]
+      },
       "HandleCheck": {
         "type": "object",
         "properties": {
@@ -1432,6 +1503,27 @@
         },
         "required": [
           "email"
+        ]
+      },
+      "SuggestPlacesBody": {
+        "type": "object",
+        "properties": {
+          "q": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 100
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "address",
+              "place"
+            ]
+          }
+        },
+        "required": [
+          "q",
+          "kind"
         ]
       },
       "SuspendedReason": {
@@ -2604,6 +2696,95 @@
           },
           "426": {
             "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/geo/autocomplete": {
+      "post": {
+        "operationId": "suggestPlaces",
+        "tags": [
+          "geo"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "geo.suggest"
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "account_suspended",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestPlacesBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "At most five suggestions; an empty list when none can be given.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeoSuggestionsPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the account is suspended.",
             "content": {
               "application/json": {
                 "schema": {

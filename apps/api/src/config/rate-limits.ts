@@ -40,6 +40,11 @@ export const RATE_LIMIT_POLICIES = {
   'me.handleSet': [{ subject: 'user', action: 'handle_set', limit: 10, window: '1h', store: 'db' }], // E-ME-08
   'ref.read': [{ subject: 'ip', action: 'ref_read', limit: 120, window: '1m', store: 'memory' }], // E-REF-01, E-REF-02
   'ref.openapi': [{ subject: 'ip', action: 'openapi', limit: 30, window: '1m', store: 'memory' }], // E-REF-03
+  // E-GEO-01
+  'geo.suggest': [
+    { subject: 'user', action: 'geo_suggest', limit: 30, window: '1m', store: 'db' },
+    { subject: 'user', action: 'geo_suggest_day', limit: 150, window: '1d', store: 'db' },
+  ],
   'uploads.create': [{ subject: 'user', action: 'uploads', limit: 30, window: '1m', store: 'db' }], // E-UPL-01
   // E-SAFE-02, D-408
   clientErrors: [

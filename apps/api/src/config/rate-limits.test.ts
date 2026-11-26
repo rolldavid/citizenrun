@@ -41,6 +41,10 @@ describe('rate-limit policies', () => {
       'ref.openapi': [
         { subject: 'ip', action: 'openapi', limit: 30, window: '1m', store: 'memory' },
       ],
+      'geo.suggest': [
+        { subject: 'user', action: 'geo_suggest', limit: 30, window: '1m', store: 'db' },
+        { subject: 'user', action: 'geo_suggest_day', limit: 150, window: '1d', store: 'db' },
+      ],
       'uploads.create': [
         { subject: 'user', action: 'uploads', limit: 30, window: '1m', store: 'db' },
       ],
@@ -76,8 +80,8 @@ describe('rate-limit policies', () => {
     });
   });
 
-  it('the location, push token, event and suggestion policies are not defined yet', () => {
-    for (const name of ['me.location', 'me.pushToken', 'me.events', 'geo.suggest']) {
+  it('the location, push token and event policies are not defined yet', () => {
+    for (const name of ['me.location', 'me.pushToken', 'me.events']) {
       expect(Object.hasOwn(RATE_LIMIT_POLICIES, name), name).toBe(false);
     }
   });

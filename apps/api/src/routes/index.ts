@@ -10,6 +10,7 @@ import { robotsHandler } from '../web/robots.ts';
 import { staticFiles } from '../web/static.ts';
 import { registerAuthRoutes } from './auth/index.ts';
 import { registerDevRoutes } from './dev/index.ts';
+import { registerGeoRoutes } from './geo/index.ts';
 import { registerHealthRoutes } from './health/index.ts';
 import { registerMeRoutes } from './me/index.ts';
 import { registerMetaRoutes } from './meta/index.ts';
@@ -38,6 +39,7 @@ export function registerRoutes(
   registerMeRoutes(v1, deps, ctx);
   registerUploadRoutes(v1, deps, ctx);
   registerReferenceRoutes(v1, deps, ctx);
+  registerGeoRoutes(v1, deps, ctx);
   registerMetaRoutes(v1, deps, ctx);
   registerSafetyRoutes(v1, deps, ctx);
   if (options.devMailbox) {
