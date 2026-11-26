@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { LOADER_SCHEMA_REVISION } from '@citizenrun/shared';
 import type { FullFileR0 } from '../bundle/tables.ts';
-import { fixturePhotoRecord, zzGeometry } from './bundle-fixtures.ts';
-import type { FixtureBundleInput } from './bundle-fixtures.ts';
+import { fixturePhotoRecord, zzBundle, zzGeometry } from './bundle-fixtures.ts';
+import type { FixtureBundleInput, FixtureRows } from './bundle-fixtures.ts';
 
 // One fault per gate of PIPE-loader-gates: each changes a valid zzBundle input so that exactly one
 // gate fails, `gate` being the name expected first and alone among the failed entries of
@@ -217,5 +217,100 @@ export const GATE_FAULTS: readonly GateFault[] = [
       ];
       return input;
     },
+  },
+];
+
+// One entry per side of each hold (PIPE-loader-hold-revert): each changes a
+// second bundle against a first load of `first(today)` so that it crosses its own hold, or stays
+// just under it, and no other.
+
+export type HoldFault = {
+  label: string;
+  /** The hold the second load crosses, alone; null when it stays just under every hold. */
+  hold: string | null;
+  /** The rows of the first load. */
+  first(today: string): FixtureRows;
+  /** The second bundle: `base` (the first load's rows under a new version) with the entry's change; `live` is the first load's rows. */
+  build(base: FixtureBundleInput, live: FixtureRows): FixtureBundleInput;
+};
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function dayBefore(day: string): string {
+  return new Date(Date.parse(`${day}T00:00:00.000Z`) - DAY_MS).toISOString().slice(0, 10);
+}
+
+/** Moves the closing date of the first `count` tracks one day earlier: one track per office, each of its own election. */
+function moveClosingDates(count: number) {
+  return (base: FixtureBundleInput): FixtureBundleInput => {
+    const input = structuredClone(base);
+    const tracks = input.files.filing_tracks ?? [];
+    if (tracks.length < count) {
+      throw new Error('The base input has too few tracks.');
+    }
+    for (const track of tracks.slice(0, count)) {
+      track.closes_on = dayBefore(String(track.closes_on));
+    }
+    return input;
+  };
+}
+
+/** Gives the first `count` offices a new title. */
+function retitle(count: number) {
+  return (base: FixtureBundleInput): FixtureBundleInput => {
+    const input = structuredClone(base);
+    const offices = input.files.offices ?? [];
+    if (offices.length < count) {
+      throw new Error('The base input has too few offices.');
+    }
+    offices.slice(0, count).forEach((office, index) => {
+      office.title = `Fixture Retitled Seat ${String(index + 1)}`;
+    });
+    return input;
+  };
+}
+
+export const HOLD_FAULTS: readonly HoldFault[] = [
+  {
+    // 11 of 400 future deadlines: over 2% and more than 10; 11 of 400 offices is under 20%.
+    label: 'future-deadlines-over',
+    hold: 'future_deadlines',
+    first: (today) => zzBundle({ today, offices: 400, electionsPerOffice: 1 }),
+    build: moveClosingDates(11),
+  },
+  {
+    // 10 of 400: over 2%, but 10 is not more than 10.
+    label: 'future-deadlines-few',
+    hold: null,
+    first: (today) => zzBundle({ today, offices: 400, electionsPerOffice: 1 }),
+    build: moveClosingDates(10),
+  },
+  {
+    // 13 of 600: 1,300 is over 1,200.
+    label: 'future-deadlines-share',
+    hold: 'future_deadlines',
+    first: (today) => zzBundle({ today, offices: 600, electionsPerOffice: 1 }),
+    build: moveClosingDates(13),
+  },
+  {
+    // 12 of 600: 1,200 is not over 1,200.
+    label: 'future-deadlines-share-at',
+    hold: null,
+    first: (today) => zzBundle({ today, offices: 600, electionsPerOffice: 1 }),
+    build: moveClosingDates(12),
+  },
+  {
+    // 5 of 20 live ZZ offices retitled: 500 is over 400.
+    label: 'offices-over',
+    hold: 'offices_changed:ZZ',
+    first: (today) => zzBundle({ today }),
+    build: retitle(5),
+  },
+  {
+    // 4 of 20: 400 is not over 400.
+    label: 'offices-at',
+    hold: null,
+    first: (today) => zzBundle({ today }),
+    build: retitle(4),
   },
 ];

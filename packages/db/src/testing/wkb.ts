@@ -36,6 +36,29 @@ export function squareWkbHex(
   return buffer.toString('hex');
 }
 
+/** The little-endian WKB, as hex, of a MultiPolygon holding one polygon whose ring is `points`, closed by repeating the first. */
+export function ringWkbHex(points: readonly (readonly [number, number])[]): string {
+  const first = points[0];
+  if (first === undefined) {
+    throw new RangeError('A ring has points.');
+  }
+  const ring = [...points, first];
+  const buffer = Buffer.alloc(1 + 4 + 4 + 1 + 4 + 4 + 4 + ring.length * 16);
+  let at = 0;
+  at = buffer.writeUInt8(BYTE_ORDER_LITTLE, at);
+  at = buffer.writeUInt32LE(WKB_MULTIPOLYGON, at);
+  at = buffer.writeUInt32LE(1, at);
+  at = buffer.writeUInt8(BYTE_ORDER_LITTLE, at);
+  at = buffer.writeUInt32LE(WKB_POLYGON, at);
+  at = buffer.writeUInt32LE(1, at);
+  at = buffer.writeUInt32LE(ring.length, at);
+  for (const [x, y] of ring) {
+    at = buffer.writeDoubleLE(x, at);
+    at = buffer.writeDoubleLE(y, at);
+  }
+  return buffer.toString('hex');
+}
+
 /** The lower-case hex SHA-256 of the bytes a hex string decodes to (the geom_hash rule of T-districts). */
 export function sha256Hex(hex: string): string {
   return createHash('sha256').update(Buffer.from(hex, 'hex')).digest('hex');

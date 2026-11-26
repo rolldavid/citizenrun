@@ -19,13 +19,23 @@ import {
   zctaKey,
 } from '@citizenrun/shared';
 import type { BundleManifest } from '@citizenrun/shared';
+import { JOB_PAYLOADS } from '@citizenrun/shared';
 import { sql } from 'drizzle-orm';
+import { fromDrizzle } from 'pg-boss';
 import sharp from 'sharp';
+import { createMediaAssetWriter } from '../bundle/assets.ts';
+import { insertLoadingBundle, loadBundle } from '../bundle/load.ts';
+import type { LoadResult } from '../bundle/load.ts';
+import { bucketReader } from '../bundle/reader.ts';
 import { FULL_FILES_R0 } from '../bundle/tables.ts';
 import type { FullFileR0 } from '../bundle/tables.ts';
 import type { Db } from '../client.ts';
+import { createEnqueue } from '../queue/enqueue.ts';
+import type { Enqueue } from '../queue/enqueue.ts';
+import { testDataBucketClient, testMediaStore } from './bundle-io.ts';
 import { getTestObject, putTestObject } from './storage.ts';
 import { sha256Hex, squareWkbHex } from './wkb.ts';
+import { createTestBoss } from './worker.ts';
 
 // Fixture bundles for the load core (TEST-bundle-loader): every row is made up, for the fixture
 // state ZZ, with names that start "Fixture" and links on example.test.
@@ -718,4 +728,74 @@ export async function snapshotCivic(db: Db): Promise<Record<string, string>> {
     snapshot[table] = row?.md5 ?? '';
   }
   return snapshot;
+}
+
+/**
+ * An Enqueue on a harness pg-boss of this worker. A job the shared job list names goes through
+ * createEnqueue (its payload parsed); a name the list does not hold yet is sent as given on a
+ * queue created on demand, so the load core's follow-up jobs can be read back with fixtureJobs.
+ */
+export async function fixtureEnqueue(): Promise<Enqueue> {
+  const boss = await createTestBoss();
+  const known = createEnqueue(boss);
+  return async (name, payload, options = {}) => {
+    if (Object.hasOwn(JOB_PAYLOADS, name)) {
+      return known(name, payload, options);
+    }
+    if ((await boss.getQueue(name)) === null) {
+      await boss.createQueue(name);
+    }
+    return boss.send(
+      name,
+      payload as object,
+      options.tx === undefined ? {} : { db: fromDrizzle(options.tx, sql) },
+    );
+  };
+}
+
+/** The data of every job of one queue in this worker's pg-boss, oldest first. */
+export async function fixtureJobs(db: Db, name: string): Promise<unknown[]> {
+  const rows = await db.execute<{ data: unknown }>(
+    sql`select data from pgboss.job where name = ${name} order by created_on, id`,
+    'objects',
+  );
+  return rows.map((row) => row.data);
+}
+
+export type LoadFixtureOptions = {
+  /** The load's time; defaults to the version's instant. */
+  now?: Date;
+  approved?: boolean;
+  enqueue?: Enqueue;
+};
+
+/**
+ * Writes a fixture bundle, inserts its `loading` row with insertLoadingBundle and loads it with
+ * loadBundle over this worker's test `data` and `media` buckets.
+ */
+export async function loadFixture(
+  db: Db,
+  input: FixtureBundleInput,
+  options: LoadFixtureOptions = {},
+): Promise<{ bundleId: string; manifestKey: string; result: LoadResult }> {
+  const { manifestKey } = await writeFixtureBundle(input);
+  const bundleId = await db.transaction((tx) =>
+    insertLoadingBundle(tx, { version: input.version, kind: 'full' }),
+  );
+  if (bundleId === null) {
+    throw new Error('A bundle of this version already exists.');
+  }
+  const result = await loadBundle(
+    db,
+    bucketReader(testDataBucketClient(), manifestKey),
+    'manifest.json',
+    {
+      bundleId,
+      approved: options.approved ?? false,
+      now: options.now ?? new Date(versionInstant(input.version)),
+      enqueue: options.enqueue ?? (await fixtureEnqueue()),
+      media: createMediaAssetWriter(testMediaStore()),
+    },
+  );
+  return { bundleId, manifestKey, result };
 }
