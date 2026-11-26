@@ -203,6 +203,19 @@ export const ExportFileSchema = z
     follows: z.array(
       z.object({ targetType: z.string(), targetId: z.uuid(), createdAt: InstantSchema }),
     ),
+    bookmarks: z.array(
+      z.strictObject({ officeId: z.uuid(), slug: z.string(), createdAt: InstantSchema }),
+    ),
+    fieldReportsFiled: z.array(
+      z.strictObject({
+        officeId: z.uuid(),
+        field: z.string().nullable(),
+        message: z.string().nullable(),
+        sourceUrl: z.string().nullable(),
+        status: z.string(),
+        createdAt: InstantSchema,
+      }),
+    ),
   })
   .meta({ id: 'ExportFile' });
 

@@ -72,8 +72,10 @@ describe('J-account.export', () => {
     const file = ExportFileSchema.parse(JSON.parse(text ?? ''));
     expect(Object.keys(file).sort()).toEqual([
       'account',
+      'bookmarks',
       'consents',
       'districts',
+      'fieldReportsFiled',
       'follows',
       'formatVersion',
       'generatedAt',
@@ -92,8 +94,22 @@ describe('J-account.export', () => {
     ]);
     expect(file.consents).toHaveLength(4);
     expect(file.issues).toHaveLength(3);
-    expect(file.districts).toEqual([]);
-    expect(file.follows).toEqual([]);
+    expect(file.districts.map((district) => district.id)).toEqual(kind.civic.districtIds);
+    expect(file.districts.map((district) => district.name)).toEqual([
+      'Fixture District One',
+      'Fixture District Two',
+    ]);
+    expect(file.follows).toEqual([
+      expect.objectContaining({ targetType: 'office', targetId: kind.civic.officeId }),
+    ]);
+    expect(file.bookmarks).toEqual([expect.objectContaining({ officeId: kind.civic.officeId })]);
+    expect(file.fieldReportsFiled).toEqual([
+      expect.objectContaining({
+        officeId: kind.civic.officeId,
+        sourceUrl: 'https://example.test/fixture-report',
+        status: 'open',
+      }),
+    ]);
     expect(lines('account.exported')).toEqual([
       expect.objectContaining({ bytes: new TextEncoder().encode(text ?? '').length }),
     ]);

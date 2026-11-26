@@ -1,10 +1,18 @@
-import { issues, users } from '@citizenrun/db';
+import {
+  bookmarks,
+  districts,
+  fieldReports,
+  issues,
+  offices,
+  userDistricts,
+  users,
+} from '@citizenrun/db';
 import { getTestBucket, getTestDb, insertUser, resetStorage } from '@citizenrun/db/testing';
 import { ExportFileSchema } from '@citizenrun/shared';
 import { loadKeyRing } from '@citizenrun/shared/crypto';
 import type { KeyRing } from '@citizenrun/shared/crypto';
 import { mediaUrl } from '@citizenrun/shared/storage';
-import { FakeClock } from '@citizenrun/shared/testing';
+import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { asc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { testWorkerEnv } from '../../testing/env.ts';
@@ -66,8 +74,6 @@ describe('the export file', () => {
     });
     expect(file.account.avatarUrl).toContain(`/${user.avatarKey ?? ''}?`);
     expect(file.account.avatarUrl).toContain('X-Amz-Signature=');
-    expect(file.districts).toEqual([]);
-    expect(file.follows).toEqual([]);
     expect(ExportFileSchema.safeParse(file).success).toBe(true);
   });
 
@@ -89,6 +95,10 @@ describe('the export file', () => {
     ]);
     expect(file.consents).toEqual([]);
     expect(file.issues).toEqual([]);
+    expect(file.districts).toEqual([]);
+    expect(file.follows).toEqual([]);
+    expect(file.bookmarks).toEqual([]);
+    expect(file.fieldReportsFiled).toEqual([]);
   });
 
   it('lists sign-in methods without their secrets', async () => {
@@ -136,5 +146,101 @@ describe('the export file', () => {
     expect(file.issues).toEqual(
       firstThree.map((issue, index) => ({ issueId: issue.id, starred: index === 1 })),
     );
+  });
+
+  it("lists the user's districts with their names", async () => {
+    const now = new FakeClock().now();
+    const media = await getTestBucket('media');
+    const kind = await insertEveryKind(getTestDb(), media, testKeys(), now);
+
+    const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
+
+    expect(file.districts).toEqual([
+      { id: kind.civic.districtIds[0], name: 'Fixture District One' },
+      { id: kind.civic.districtIds[1], name: 'Fixture District Two' },
+    ]);
+  });
+
+  it('lists follows', async () => {
+    const now = new FakeClock().now();
+    const media = await getTestBucket('media');
+    const kind = await insertEveryKind(getTestDb(), media, testKeys(), now);
+
+    const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
+
+    expect(file.follows).toEqual([
+      { targetType: 'office', targetId: kind.civic.officeId, createdAt: now.toISOString() },
+    ]);
+  });
+
+  it('lists bookmarks with the office slug', async () => {
+    const now = new FakeClock().now();
+    const media = await getTestBucket('media');
+    const kind = await insertEveryKind(getTestDb(), media, testKeys(), now);
+    const [office] = await getTestDb()
+      .select({ slug: offices.slug })
+      .from(offices)
+      .where(eq(offices.id, kind.civic.officeId));
+
+    const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
+
+    expect(file.bookmarks).toEqual([
+      { officeId: kind.civic.officeId, slug: office?.slug, createdAt: now.toISOString() },
+    ]);
+  });
+
+  it('lists the field reports the user filed', async () => {
+    const now = new FakeClock().now();
+    const media = await getTestBucket('media');
+    const kind = await insertEveryKind(getTestDb(), media, testKeys(), now);
+
+    const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
+
+    expect(file.fieldReportsFiled).toEqual([
+      {
+        officeId: kind.civic.officeId,
+        field: null,
+        message: `Fixture note ${marker()}`,
+        sourceUrl: 'https://example.test/fixture-report',
+        status: 'open',
+        createdAt: now.toISOString(),
+      },
+    ]);
+  });
+
+  it("holds nothing of the second user's civic rows", async () => {
+    const now = new FakeClock().now();
+    const media = await getTestBucket('media');
+    const kind = await insertEveryKind(getTestDb(), media, testKeys(), now);
+    const theirDistricts = await getTestDb()
+      .select({ id: districts.id, name: districts.name })
+      .from(userDistricts)
+      .innerJoin(districts, eq(districts.id, userDistricts.districtId))
+      .where(eq(userDistricts.userId, kind.other.id));
+    const theirBookmarks = await getTestDb()
+      .select({ officeId: bookmarks.officeId })
+      .from(bookmarks)
+      .where(eq(bookmarks.userId, kind.other.id));
+    const theirReports = await getTestDb()
+      .select({ officeId: fieldReports.officeId })
+      .from(fieldReports)
+      .where(eq(fieldReports.userId, kind.other.id));
+    expect(theirDistricts).toHaveLength(1);
+    expect(theirBookmarks).toHaveLength(1);
+    expect(theirReports).toHaveLength(1);
+
+    const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
+
+    const text = JSON.stringify(file);
+    for (const value of [
+      kind.other.id,
+      ...theirDistricts.flatMap((row) => [row.id, row.name]),
+      ...theirBookmarks.map((row) => row.officeId),
+      ...theirReports.map((row) => row.officeId),
+    ]) {
+      expect(text).not.toContain(value);
+    }
+    expect(file.fieldReportsFiled).toHaveLength(1);
+    expect(file.follows).toHaveLength(1);
   });
 });

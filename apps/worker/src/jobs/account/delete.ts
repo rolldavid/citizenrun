@@ -2,6 +2,7 @@ import {
   appEvents,
   authIdentities,
   emailCodes,
+  follows,
   rateLimits,
   reservedHandles,
   users,
@@ -152,7 +153,7 @@ async function deleteUnreferencedRows(
   ctx: JobContext,
   userId: string,
   email: string | null,
-): Promise<{ emailCodes: number; appEvents: number; rateLimits: number }> {
+): Promise<{ emailCodes: number; appEvents: number; rateLimits: number; followsOfUser: number }> {
   return ctx.db.transaction(async (tx) => {
     // index: email_codes_email
     const codes =
@@ -163,10 +164,16 @@ async function deleteUnreferencedRows(
     const limits = await tx
       .delete(rateLimits)
       .where(and(gte(rateLimits.key, `u:${userId}:`), lt(rateLimits.key, `u:${userId};`)));
+    // index: follows_target. `target_id` has no foreign key, so other users' follows of this
+    // user would outlive the cascade.
+    const followers = await tx
+      .delete(follows)
+      .where(and(eq(follows.targetType, 'user'), eq(follows.targetId, userId)));
     return {
       emailCodes: codes?.rowCount ?? 0,
       appEvents: events.rowCount ?? 0,
       rateLimits: limits.rowCount ?? 0,
+      followsOfUser: followers.rowCount ?? 0,
     };
   });
 }
@@ -281,6 +288,7 @@ export const accountDelete: JobDefinition<'account.delete'> = {
       emailCodes: rows.emailCodes,
       appEvents: rows.appEvents,
       rateLimits: rows.rateLimits,
+      followsOfUser: rows.followsOfUser,
       objects,
       handleReserved,
     });

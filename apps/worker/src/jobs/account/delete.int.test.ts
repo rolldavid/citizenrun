@@ -1,12 +1,18 @@
 import { generateKeyPairSync } from 'node:crypto';
 import {
+  adminActions,
   appEvents,
   authIdentities,
+  bookmarks,
   createEnqueue,
   emailCodes,
+  fieldReports,
+  follows,
   markAccountDeleting,
   rateLimits,
   reservedHandles,
+  unmatchedFilings,
+  userDistricts,
   users,
 } from '@citizenrun/db';
 import {
@@ -22,7 +28,7 @@ import {
 import { HANDLE_HOLD_DAYS, JOB_PAYLOADS, newId } from '@citizenrun/shared';
 import { keyedHash, loadKeyRing } from '@citizenrun/shared/crypto';
 import type { KeyRing } from '@citizenrun/shared/crypto';
-import { FakeClock } from '@citizenrun/shared/testing';
+import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { and, eq, gte, lt, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { testWorkerEnv } from '../../testing/env.ts';
@@ -60,6 +66,12 @@ const COVERED: readonly string[] = [
   'app_events',
   'data_exports',
   'reserved_handles',
+  'user_districts',
+  'follows',
+  'bookmarks',
+  'field_reports',
+  'admin_actions',
+  'unmatched_filings',
 ];
 
 // The tables that hold no user's data, each with the reason.
@@ -86,8 +98,6 @@ const NOT_USER_DATA: Readonly<Record<string, string>> = {
   officeholders: 'civic data loaded from public records',
   candidacies: 'civic data loaded from public records',
   candidacy_filings: 'civic data loaded from public records',
-  unmatched_filings:
-    'candidate-list rows held for an admin; the admin column is cleared by its foreign key',
   data_bundles: 'data-load history with no user id',
   bundle_changes: 'data-load history with no user id',
   state_rules: 'per-state rules; the admin column is cleared by its foreign key',
@@ -231,6 +241,29 @@ describe('J-account.delete', () => {
       .where(eq(emailCodes.email, kind.user.email));
     expect(codes).toHaveLength(0);
     expect(await userCount(kind.user.id)).toBe(0);
+    // A follow's target has no foreign key: the job removes the follows of the user.
+    const followsOfUser = await getTestDb()
+      .select()
+      .from(follows)
+      .where(and(eq(follows.targetType, 'user'), eq(follows.targetId, kind.user.id)));
+    expect(followsOfUser).toHaveLength(0);
+    // The report stays, unlinked, with its note.
+    const [report] = await getTestDb()
+      .select({ userId: fieldReports.userId, message: fieldReports.message })
+      .from(fieldReports)
+      .where(eq(fieldReports.id, kind.civic.fieldReportId));
+    expect(report).toEqual({ userId: null, message: `Fixture note ${marker()}` });
+    const [filing] = await getTestDb()
+      .select({ decidedBy: unmatchedFilings.decidedBy, resolution: unmatchedFilings.resolution })
+      .from(unmatchedFilings)
+      .where(eq(unmatchedFilings.id, kind.civic.unmatchedFilingId));
+    expect(filing).toEqual({ decidedBy: null, resolution: 'rejected' });
+    // The audit log is kept with the admin's id.
+    const [action] = await getTestDb()
+      .select({ adminId: adminActions.adminId })
+      .from(adminActions)
+      .where(eq(adminActions.id, kind.civic.adminActionId));
+    expect(action?.adminId).toBe(kind.user.id);
     expect(lines('account.deleted')).toEqual([
       expect.objectContaining({
         appleRevoked: 0,
@@ -238,12 +271,16 @@ describe('J-account.delete', () => {
         emailCodes: 1,
         appEvents: 1,
         rateLimits: 2,
+        followsOfUser: 1,
         objects: kind.objectKeys.user.length,
         handleReserved: 1,
       }),
     ]);
-    // No line of the job names the user, the address or the handle.
+    // No line of the job names the user, the address, the handle, a district or an office.
     expect(anyLineHolds(kind.user.id)).toBe(false);
+    for (const id of [...kind.civic.districtIds, kind.civic.officeId]) {
+      expect(anyLineHolds(id)).toBe(false);
+    }
     expect(anyLineHolds(kind.user.email)).toBe(false);
     expect(anyLineHolds(kind.user.handle)).toBe(false);
   });
@@ -313,6 +350,39 @@ describe('J-account.delete', () => {
       .where(eq(emailCodes.email, other?.email ?? ''));
     expect(codes).toHaveLength(1);
     expect(await objectsOf(otherId)).toEqual([...kind.objectKeys.other].sort());
+  });
+
+  it("keeps the other user's civic rows", async () => {
+    const clock = new FakeClock();
+    const kind = await scenario(clock);
+    await markDeleting(kind.user.id);
+    const otherId = kind.other.id;
+    const before = {
+      districts: await rowsHolding('user_districts', 'user_id', otherId),
+      bookmarks: await rowsHolding('bookmarks', 'user_id', otherId),
+      reports: await rowsHolding('field_reports', 'user_id', otherId),
+    };
+    expect(before).toEqual({ districts: 1, bookmarks: 1, reports: 1 });
+
+    await runJob(accountDelete, { userId: kind.user.id, skipDeferral: false }, { clock });
+
+    expect(await rowsHolding('user_districts', 'user_id', otherId)).toBe(before.districts);
+    expect(await rowsHolding('bookmarks', 'user_id', otherId)).toBe(before.bookmarks);
+    expect(await rowsHolding('field_reports', 'user_id', otherId)).toBe(before.reports);
+    const theirFollows = await getTestDb()
+      .select({ targetType: follows.targetType, targetId: follows.targetId })
+      .from(follows)
+      .where(eq(follows.followerId, otherId));
+    // Only their follow of the deleted user is gone.
+    expect(theirFollows).toEqual([{ targetType: 'office', targetId: kind.civic.officeId }]);
+    const userRows = await getTestDb()
+      .select()
+      .from(userDistricts)
+      .where(eq(userDistricts.userId, kind.user.id));
+    expect(userRows).toEqual([]);
+    expect(
+      await getTestDb().select().from(bookmarks).where(eq(bookmarks.userId, kind.user.id)),
+    ).toEqual([]);
   });
 
   it('revokes the Apple token first', async () => {

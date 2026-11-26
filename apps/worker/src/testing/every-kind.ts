@@ -1,6 +1,7 @@
 import {
   authChallenges,
   authIdentities,
+  bookmarks,
   emailCodes,
   issues,
   sessions,
@@ -8,12 +9,20 @@ import {
 } from '@citizenrun/db';
 import type { Db, UserRow } from '@citizenrun/db';
 import {
+  insertAdminAction,
   insertAppEvent,
+  insertBookmark,
   insertConsents,
   insertDataExport,
+  insertDistrict,
+  insertFieldReport,
+  insertFollow,
+  insertOffice,
   insertRateCounter,
+  insertUnmatchedFiling,
   insertUpload,
   insertUser,
+  setUserDistricts,
   setUserIssues,
 } from '@citizenrun/db/testing';
 import { newId } from '@citizenrun/shared';
@@ -41,6 +50,23 @@ export type EveryKind = {
   /** Secrets and hashes no export may contain. */
   forbidden: readonly string[];
   objectKeys: { user: readonly string[]; other: readonly string[] };
+  /** The user's civic rows, and the rows that name the user as an admin. */
+  civic: {
+    districtIds: readonly string[];
+    officeId: string;
+    fieldReportId: string;
+    adminActionId: string;
+    unmatchedFilingId: string;
+  };
+};
+
+/** The ids the civic steps record as they run; empty until their step has run. */
+type EveryKindCivic = {
+  districtIds: string[];
+  officeId: string;
+  fieldReportId: string;
+  adminActionId: string;
+  unmatchedFilingId: string;
 };
 
 /** The scenario while its steps run: each step adds its rows, objects and forbidden values. */
@@ -56,6 +82,7 @@ export type EveryKindBuild = {
   apple: { subject: string; clientId: string; refreshToken: string };
   forbidden: string[];
   objectKeys: { user: string[]; other: string[] };
+  civic: EveryKindCivic;
 };
 
 const MINUTE_MS = 60_000;
@@ -103,6 +130,13 @@ export async function everyKindUsers(
     apple: { subject: '', clientId: APPLE_CLIENT_ID, refreshToken: '' },
     forbidden: [calendarTokenHash],
     objectKeys: { user: [], other: [] },
+    civic: {
+      districtIds: [],
+      officeId: '',
+      fieldReportId: '',
+      adminActionId: '',
+      unmatchedFilingId: '',
+    },
   };
 }
 
@@ -279,6 +313,92 @@ export async function everyKindDataExports(build: EveryKindBuild): Promise<void>
   }
 }
 
+/**
+ * `user_districts`: two exact districts for the user, `Fixture District One` and `Fixture District
+ * Two`, and one for the other user. Ids only: no point or address is stored anywhere.
+ */
+export async function everyKindUserDistricts(build: EveryKindBuild): Promise<void> {
+  const one = await insertDistrict(build.db, { name: 'Fixture District One' });
+  const two = await insertDistrict(build.db, { name: 'Fixture District Two' });
+  await setUserDistricts(build.db, build.user.id, [one.id, two.id]);
+  await setUserDistricts(build.db, build.other.id);
+  build.civic.districtIds = [one.id, two.id];
+}
+
+/**
+ * `follows`: the user and the other user each follow an office, and the other user follows the
+ * user, a row the table allows before the user follow route exists.
+ */
+export async function everyKindFollows(build: EveryKindBuild): Promise<void> {
+  const office = await insertOffice(build.db);
+  const rows = [
+    { followerId: build.user.id, targetType: 'office', targetId: office.id },
+    { followerId: build.other.id, targetType: 'office', targetId: office.id },
+    { followerId: build.other.id, targetType: 'user', targetId: build.user.id },
+  ];
+  for (const row of rows) {
+    await insertFollow(build.db, { ...row, createdAt: build.now });
+  }
+  build.civic.officeId = office.id;
+}
+
+/** `bookmarks`: the user saves the followed office; the other user saves another office. */
+export async function everyKindBookmarks(build: EveryKindBuild): Promise<void> {
+  await insertBookmark(build.db, {
+    userId: build.user.id,
+    officeId: build.civic.officeId,
+    createdAt: build.now,
+  });
+  const another = await insertOffice(build.db);
+  await insertBookmark(build.db, {
+    userId: build.other.id,
+    officeId: another.id,
+    createdAt: build.now,
+  });
+}
+
+/**
+ * `field_reports`: the user reports the followed office with a link, the note carrying the run
+ * marker; the other user reports the office they saved.
+ */
+export async function everyKindFieldReports(build: EveryKindBuild): Promise<void> {
+  const report = await insertFieldReport(build.db, {
+    userId: build.user.id,
+    officeId: build.civic.officeId,
+    sourceUrl: 'https://example.test/fixture-report',
+    createdAt: build.now,
+  });
+  const [saved] = await build.db
+    .select({ officeId: bookmarks.officeId })
+    .from(bookmarks)
+    .where(eq(bookmarks.userId, build.other.id));
+  if (saved === undefined) {
+    throw new Error("The other user's bookmark is missing.");
+  }
+  await insertFieldReport(build.db, {
+    userId: build.other.id,
+    officeId: saved.officeId,
+    createdAt: build.now,
+  });
+  build.civic.fieldReportId = report.id;
+}
+
+/** `admin_actions`: one row written in the user's name, as if the user were an admin. */
+export async function everyKindAdminActions(build: EveryKindBuild): Promise<void> {
+  const row = await insertAdminAction(build.db, { adminId: build.user.id, createdAt: build.now });
+  build.civic.adminActionId = row.id;
+}
+
+/** `unmatched_filings`: one row the user rejected, as if the user were an admin. */
+export async function everyKindUnmatchedFilings(build: EveryKindBuild): Promise<void> {
+  const row = await insertUnmatchedFiling(
+    build.db,
+    { decidedBy: build.user.id, resolution: 'rejected', resolvedAt: build.now },
+    { now: build.now },
+  );
+  build.civic.unmatchedFilingId = row.id;
+}
+
 /** The steps after `users`, in table order. */
 export const EVERY_KIND_STEPS: readonly ((build: EveryKindBuild) => Promise<void>)[] = [
   everyKindAuthIdentities,
@@ -291,6 +411,12 @@ export const EVERY_KIND_STEPS: readonly ((build: EveryKindBuild) => Promise<void
   everyKindRateLimits,
   everyKindAppEvents,
   everyKindDataExports,
+  everyKindUserDistricts,
+  everyKindFollows,
+  everyKindBookmarks,
+  everyKindFieldReports,
+  everyKindAdminActions,
+  everyKindUnmatchedFilings,
 ];
 
 /** Gives one user a row of every kind of owned data that exists, and a second user rows of their own. One step function per table. */
@@ -310,5 +436,6 @@ export async function insertEveryKind(
     apple: { ...build.apple },
     forbidden: [...build.forbidden],
     objectKeys: { user: [...build.objectKeys.user], other: [...build.objectKeys.other] },
+    civic: { ...build.civic, districtIds: [...build.civic.districtIds] },
   };
 }

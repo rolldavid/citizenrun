@@ -1,4 +1,16 @@
-import { authIdentities, issues, userConsents, userIssues, users } from '@citizenrun/db';
+import {
+  authIdentities,
+  bookmarks,
+  districts,
+  fieldReports,
+  follows,
+  issues,
+  offices,
+  userConsents,
+  userDistricts,
+  userIssues,
+  users,
+} from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
 import { ExportFileSchema } from '@citizenrun/shared';
 import type { ExportFile } from '@citizenrun/shared';
@@ -136,6 +148,47 @@ export async function buildExportFile(
     .where(eq(userIssues.userId, userId))
     .orderBy(asc(issues.sort));
 
+  // index: user_districts_pkey. A retired district stays: the row is still the user's.
+  const places = await db
+    .select({ id: districts.id, name: districts.name })
+    .from(userDistricts)
+    .innerJoin(districts, eq(districts.id, userDistricts.districtId))
+    .where(eq(userDistricts.userId, userId))
+    .orderBy(asc(districts.name), asc(districts.id));
+
+  // index: follows_follower
+  const followed = await db
+    .select({
+      targetType: follows.targetType,
+      targetId: follows.targetId,
+      createdAt: follows.createdAt,
+    })
+    .from(follows)
+    .where(eq(follows.followerId, userId))
+    .orderBy(asc(follows.createdAt), asc(follows.targetType), asc(follows.targetId));
+
+  // index: bookmarks_user. A retired office stays: the row is still the user's.
+  const saved = await db
+    .select({ officeId: bookmarks.officeId, slug: offices.slug, createdAt: bookmarks.createdAt })
+    .from(bookmarks)
+    .innerJoin(offices, eq(offices.id, bookmarks.officeId))
+    .where(eq(bookmarks.userId, userId))
+    .orderBy(asc(bookmarks.createdAt), asc(bookmarks.officeId));
+
+  // index: field_reports_user
+  const reports = await db
+    .select({
+      officeId: fieldReports.officeId,
+      field: fieldReports.field,
+      message: fieldReports.message,
+      sourceUrl: fieldReports.sourceUrl,
+      status: fieldReports.status,
+      createdAt: fieldReports.createdAt,
+    })
+    .from(fieldReports)
+    .where(eq(fieldReports.userId, userId))
+    .orderBy(asc(fieldReports.id));
+
   const file: ExportFile = {
     formatVersion: FORMAT_VERSION,
     generatedAt: now.toISOString(),
@@ -153,9 +206,25 @@ export async function buildExportFile(
       createdAt: consent.createdAt.toISOString(),
     })),
     issues: picks.map((pick) => ({ issueId: pick.issueId, starred: pick.starred })),
-    // Their tables do not exist yet.
-    districts: [],
-    follows: [],
+    districts: places.map((place) => ({ id: place.id, name: place.name })),
+    follows: followed.map((follow) => ({
+      targetType: follow.targetType,
+      targetId: follow.targetId,
+      createdAt: follow.createdAt.toISOString(),
+    })),
+    bookmarks: saved.map((bookmark) => ({
+      officeId: bookmark.officeId,
+      slug: bookmark.slug,
+      createdAt: bookmark.createdAt.toISOString(),
+    })),
+    fieldReportsFiled: reports.map((report) => ({
+      officeId: report.officeId,
+      field: report.field,
+      message: report.message,
+      sourceUrl: report.sourceUrl,
+      status: report.status,
+      createdAt: report.createdAt.toISOString(),
+    })),
   };
   // A parse failure is a defect: thrown, retried and then dead-lettered.
   return ExportFileSchema.parse(file);

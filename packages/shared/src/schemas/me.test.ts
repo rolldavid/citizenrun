@@ -166,6 +166,8 @@ describe('Me', () => {
 });
 
 describe('ExportFile', () => {
+  const OFFICE_ID = '0190a8a0-0000-7000-8000-000000000002';
+  const AT = '2027-01-15T10:00:00.000Z';
   const EMPTY_FILE = {
     formatVersion: 1,
     generatedAt: '2027-01-15T10:00:00.000Z',
@@ -193,9 +195,11 @@ describe('ExportFile', () => {
     issues: [],
     districts: [],
     follows: [],
+    bookmarks: [],
+    fieldReportsFiled: [],
   };
 
-  it('ExportFile holds its current sections', () => {
+  it('ExportFile holds its sections', () => {
     expect(Object.keys(ExportFileSchema.shape)).toEqual([
       'formatVersion',
       'generatedAt',
@@ -205,12 +209,52 @@ describe('ExportFile', () => {
       'issues',
       'districts',
       'follows',
+      'bookmarks',
+      'fieldReportsFiled',
     ]);
     expect(Object.keys(ExportFileSchema.shape.account.shape)).not.toContain('notificationSettings');
     expect(Object.keys(ExportFileSchema.shape.account.shape)).not.toContain('calendarTokenHash');
     const result = ExportFileSchema.safeParse(EMPTY_FILE);
     expect(result.success).toBe(true);
     expect(result.data).toEqual(EMPTY_FILE);
+  });
+
+  it('holds the civic sections of a user', () => {
+    const file = {
+      ...EMPTY_FILE,
+      districts: [{ id: OFFICE_ID, name: 'Fixture District One' }],
+      follows: [{ targetType: 'office', targetId: OFFICE_ID, createdAt: AT }],
+      bookmarks: [{ officeId: OFFICE_ID, slug: 'fixture-office-1', createdAt: AT }],
+      fieldReportsFiled: [
+        {
+          officeId: OFFICE_ID,
+          field: null,
+          message: 'Fixture note',
+          sourceUrl: 'https://example.test/fixture-report',
+          status: 'open',
+          createdAt: AT,
+        },
+      ],
+    };
+    expect(ExportFileSchema.parse(file)).toEqual(file);
+    // Each key of the two sections is required, and nothing else is allowed in an entry.
+    const withoutLink = {
+      officeId: OFFICE_ID,
+      field: null,
+      message: 'Fixture note',
+      status: 'open',
+      createdAt: AT,
+    };
+    expect(ExportFileSchema.safeParse({ ...file, fieldReportsFiled: [withoutLink] }).success).toBe(
+      false,
+    );
+    expect(
+      ExportFileSchema.safeParse({
+        ...file,
+        bookmarks: [{ officeId: OFFICE_ID, slug: 'fixture-office-1', createdAt: AT, title: 'x' }],
+      }).success,
+    ).toBe(false);
+    expect(ExportFileSchema.safeParse({ ...EMPTY_FILE, bookmarks: undefined }).success).toBe(false);
   });
 
   it('refuses another format version', () => {
