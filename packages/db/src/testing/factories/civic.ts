@@ -7,6 +7,7 @@ import {
   officeIssues,
   officePowers,
   offices,
+  results,
 } from '../../schema/civic.ts';
 import type {
   ElectionRow,
@@ -15,9 +16,11 @@ import type {
   NewFilingTrackRow,
   NewOfficePowerRow,
   NewOfficeRow,
+  NewResultRow,
   OfficeIssueRow,
   OfficePowerRow,
   OfficeRow,
+  ResultRow,
 } from '../../schema/civic.ts';
 import { districts, jurisdictions } from '../../schema/geo.ts';
 import { officeTypes, powers } from '../../schema/reference.ts';
@@ -313,6 +316,58 @@ export async function insertFilingTrack(
       throw new Error('The filing_tracks insert returned no row.');
     }
     await recomputeHeadlineDeadlines(tx, [electionId]);
+    return row;
+  });
+}
+
+/**
+ * An uncertified general-election result for an office, dated 365 days before `ctx.now` (its UTC
+ * date), keyed `fixture:results:<seq>`, turnout class `standalone_local`, with no election row,
+ * no party and every count, the candidates, the source and the check time null. Without an
+ * `officeId` the row names the civic id of a fixture key; insertResult then creates an office.
+ */
+export function makeResult(
+  overrides: Partial<NewResultRow> = {},
+  ctx: FactoryContext = defaultFactoryContext(),
+): NewResultRow {
+  const seq = nextSequence();
+  const sourceKey = overrides.sourceKey ?? fixtureSourceKey('results', seq);
+  return {
+    officeId: civicId('offices', fixtureSourceKey('offices', seq)),
+    electionId: null,
+    electionDate: utcDatePlus(ctx.now, -365),
+    kind: 'general',
+    party: null,
+    turnoutClass: 'standalone_local',
+    totalVotes: null,
+    winnerVotes: null,
+    marginVotes: null,
+    contested: null,
+    candidates: null,
+    certified: false,
+    sourceUrl: null,
+    checkedAt: null,
+    ...overrides,
+    id: overrides.id ?? civicId('results', sourceKey),
+    sourceKey,
+  };
+}
+
+/** Writes makeResult, creating its office when none is given; returns the stored row. */
+export async function insertResult(
+  db: Db | Tx,
+  overrides: Partial<NewResultRow> = {},
+  ctx: FactoryContext = defaultFactoryContext(),
+): Promise<ResultRow> {
+  return db.transaction(async (tx) => {
+    const officeId = overrides.officeId ?? (await insertOffice(tx)).id;
+    const [row] = await tx
+      .insert(results)
+      .values(makeResult({ ...overrides, officeId }, ctx))
+      .returning();
+    if (row === undefined) {
+      throw new Error('The results insert returned no row.');
+    }
     return row;
   });
 }

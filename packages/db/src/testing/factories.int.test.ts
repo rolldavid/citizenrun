@@ -1,21 +1,36 @@
-import { ISSUE_IDS, LEGAL_VERSIONS, PHOTO_MAX_BYTES, civicId } from '@citizenrun/shared';
+import {
+  ISSUE_IDS,
+  LEGAL_VERSIONS,
+  PHOTO_MAX_BYTES,
+  civicId,
+  looksPersonal,
+} from '@citizenrun/shared';
 import { incomingUploadKey } from '@citizenrun/shared/storage';
 import { marker } from '@citizenrun/shared/testing';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { lookupDistrictsAtPoint } from '../sql/point-lookup.ts';
+import { candidacyFilings, userDistricts, users } from '../schema/index.ts';
 import {
   FIXTURE_POINT,
   fixtureSquareWkt,
   getTestDb,
+  insertCandidacy,
   insertConsents,
+  insertDataBundle,
   insertDataExport,
   insertDistrict,
+  insertElection,
+  insertFieldReport,
   insertFilingTrack,
+  insertFollow,
   insertOffice,
+  insertPerson,
+  insertUnmatchedFiling,
   insertUpload,
   insertUser,
   resetDb,
+  setUserDistricts,
   setUserIssues,
 } from './index.ts';
 
@@ -333,5 +348,143 @@ describe('the civic factories', () => {
     expect(await western()).toEqual([-40, -39.98]);
     await resetDb();
     expect(await western()).toEqual([-40, -39.98]);
+  });
+});
+
+describe('the remaining civic factories', () => {
+  it('insertCandidacy writes its first filing row', async () => {
+    const person = await insertPerson(getTestDb());
+    const election = await insertElection(getTestDb(), {}, { now: NOW });
+    const candidacy = await insertCandidacy(
+      getTestDb(),
+      { personId: person.id, electionId: election.id },
+      { now: NOW },
+    );
+    expect(candidacy.filingKey).toMatch(
+      new RegExp(`^ZZ\\|fixture\\|${election.electionDate}\\|fixture office\\|Fixture Person\\d+$`),
+    );
+    expect(candidacy.id).toBe(civicId('candidacies', candidacy.filingKey));
+    expect(candidacy).toMatchObject({
+      source: 'fixture',
+      status: 'filed',
+      rawName: person.name,
+      firstName: person.firstName,
+      lastName: person.lastName,
+      party: null,
+      filedOn: null,
+      sourceUrl: null,
+      matchConfidence: null,
+      statusHistory: [],
+      overrides: {},
+    });
+    const filings = await getTestDb()
+      .select()
+      .from(candidacyFilings)
+      .where(eq(candidacyFilings.candidacyId, candidacy.id));
+    expect(filings).toHaveLength(1);
+    expect(filings[0]).toMatchObject({
+      filingKey: candidacy.filingKey,
+      source: 'fixture',
+      status: 'filed',
+      goneAt: null,
+    });
+  });
+
+  it('insertUnmatchedFiling holds only allow-listed fields', async () => {
+    const row = await insertUnmatchedFiling(getTestDb(), {}, { now: NOW });
+    expect(Object.keys(row.raw).sort()).toEqual(
+      [
+        'name',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix',
+        'office_text',
+        'district_text',
+        'jurisdiction_text',
+        'party',
+        'filed_on',
+        'status',
+        'election_date',
+        'source_url',
+      ].sort(),
+    );
+    for (const value of Object.values(row.raw)) {
+      expect(value === null || typeof value === 'string').toBe(true);
+      if (typeof value === 'string') {
+        expect(looksPersonal(value), value).toBe(false);
+      }
+    }
+    expect(row.raw).toMatchObject({
+      first_name: 'Fixture',
+      last_name: 'Unmatched',
+      election_date: '2026-06-15',
+      source_url: 'https://example.test/fixture-list',
+    });
+    expect(row.filingKey).toMatch(
+      /^ZZ\|fixture\|2026-06-15\|fixture office\|Fixture Unmatched \d+$/,
+    );
+    expect(row.id).toBe(civicId('unmatched_filings', row.filingKey));
+    expect(row).toMatchObject({ kind: 'filing', source: 'fixture', state: 'ZZ', decidedBy: null });
+  });
+
+  it('insertFieldReport carries the marker in its message', async () => {
+    const report = await insertFieldReport(getTestDb(), {}, { now: NOW });
+    expect(report.message).toBe(`Fixture note ${marker()}`);
+    expect(report).toMatchObject({
+      field: null,
+      sourceUrl: null,
+      status: 'open',
+      exportedAt: null,
+      decidedBy: null,
+      decidedAt: null,
+    });
+    expect(report.userId).not.toBeNull();
+  });
+
+  it('two bundles of one test have different versions', async () => {
+    const first = await insertDataBundle(getTestDb(), {}, { now: NOW });
+    const second = await insertDataBundle(getTestDb(), {}, { now: NOW });
+    expect(first.version).not.toBe(second.version);
+    for (const bundle of [first, second]) {
+      expect(bundle.version).toMatch(/^20260615T12\d{4}Z-full$/);
+      expect(bundle).toMatchObject({ kind: 'full', status: 'loaded', stats: null });
+      expect(bundle.loadedAt?.getTime()).toBe(NOW.getTime());
+    }
+  });
+
+  it("setUserDistricts replaces the user's rows", async () => {
+    const user = await insertUser(getTestDb(), {}, { now: NOW });
+    const [byDefault] = await setUserDistricts(getTestDb(), user.id);
+    expect(byDefault?.userId).toBe(user.id);
+    const one = await insertDistrict(getTestDb());
+    const two = await insertDistrict(getTestDb());
+
+    await setUserDistricts(getTestDb(), user.id, [one.id, two.id]);
+
+    const stored = await getTestDb()
+      .select({ districtId: userDistricts.districtId })
+      .from(userDistricts)
+      .where(eq(userDistricts.userId, user.id));
+    expect(stored.map((row) => row.districtId).sort()).toEqual([one.id, two.id].sort());
+    await setUserDistricts(getTestDb(), user.id, []);
+    expect(
+      await getTestDb().select().from(userDistricts).where(eq(userDistricts.userId, user.id)),
+    ).toEqual([]);
+  });
+
+  it('insertFollow of an office', async () => {
+    const follow = await insertFollow(getTestDb(), {}, { now: NOW });
+    expect(follow.targetType).toBe('office');
+    const [office] = await getTestDb().execute<{ id: string }>(
+      sql`select id from offices where id = ${follow.targetId}`,
+      'objects',
+    );
+    expect(office?.id).toBe(follow.targetId);
+    const [follower] = await getTestDb()
+      .select({ status: users.status })
+      .from(users)
+      .where(eq(users.id, follow.followerId));
+    expect(follower?.status).toBe('active');
   });
 });

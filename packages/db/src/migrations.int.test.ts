@@ -14,9 +14,13 @@ import {
   getTestDb,
   insertClientError,
   insertElection,
+  insertFieldReport,
   insertFilingTrack,
   insertJurisdiction,
   insertOfficePower,
+  insertOfficeholder,
+  insertPerson,
+  insertResult,
   resetDb,
 } from './testing/index.ts';
 import { parseStamp } from './testing/names.ts';
@@ -73,6 +77,11 @@ const EXPECTED_OBJECTS = {
     'unmatched_filings',
     'data_bundles',
     'bundle_changes',
+    'user_districts',
+    'follows',
+    'bookmarks',
+    'field_reports',
+    'admin_actions',
   ],
   indexes: [
     'client_errors_created',
@@ -216,6 +225,22 @@ const EXPECTED_OBJECTS = {
     'unmatched_filings_open',
     'data_bundles_loaded',
     'bundle_changes_bundle',
+    'user_districts_pkey',
+    'user_districts_district',
+    'follows_pkey',
+    'follows_target',
+    'follows_follower',
+    'bookmarks_pkey',
+    'bookmarks_user',
+    'bookmarks_office',
+    'field_reports_pkey',
+    'field_reports_queue',
+    'field_reports_office',
+    'field_reports_user',
+    'field_reports_decided',
+    'admin_actions_pkey',
+    'admin_actions_admin',
+    'admin_actions_target',
   ],
   constraints: [
     'client_errors_platform_check',
@@ -327,6 +352,10 @@ const EXPECTED_OBJECTS = {
     'data_bundles_kind_check',
     'data_bundles_status_check',
     'bundle_changes_op_check',
+    'follows_target_type_check',
+    'follows_not_self_check',
+    'field_reports_status_check',
+    'field_reports_source_url_check',
   ],
   // Primary keys and unique constraints, under PostgreSQL's names.
   keys: [
@@ -399,6 +428,11 @@ const EXPECTED_OBJECTS = {
     'candidacies_person_election_key',
     'unmatched_filings_filing_key_key',
     'data_bundles_version_key',
+    'user_districts_pkey',
+    'follows_pkey',
+    'bookmarks_pkey',
+    'field_reports_pkey',
+    'admin_actions_pkey',
   ],
   functions: [
     'os_drop_month_partitions',
@@ -452,10 +486,20 @@ const EXPECTED_FOREIGN_KEYS: Readonly<Record<string, 'a' | 'c' | 'n'>> = {
   unmatched_filings_person_id_fkey: 'a',
   unmatched_filings_decided_by_fkey: 'n',
   bundle_changes_bundle_id_fkey: 'c',
+  user_districts_user_id_fkey: 'c',
+  user_districts_district_id_fkey: 'c',
+  follows_follower_id_fkey: 'c',
+  bookmarks_user_id_fkey: 'c',
+  bookmarks_office_id_fkey: 'c',
+  field_reports_user_id_fkey: 'n',
+  field_reports_office_id_fkey: 'c',
+  field_reports_decided_by_fkey: 'n',
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
 const CHECK_VIOLATION = '23514';
+// A write to a generated column.
+const GENERATED_ALWAYS = '428C9';
 
 const scratchDatabases: string[] = [];
 const scratchFolders: string[] = [];
@@ -583,6 +627,27 @@ describe('the migrations', () => {
     expect(Object.fromEntries(foreignKeys.map((key) => [key.name, key.rule]))).toEqual(
       EXPECTED_FOREIGN_KEYS,
     );
+    // The audit log keeps no foreign key, so deleting an admin's account never erases it; a
+    // follow's target has none either, since its target may be a civic row or a user.
+    const [unlinked] = await rows<{ n: number }>(
+      sql`select count(*)::int as n from pg_constraint
+          where contype = 'f' and conrelid in ('public.admin_actions'::regclass)`,
+    );
+    expect(unlinked?.n).toBe(0);
+    const [followKeys] = await rows<{ n: number }>(
+      sql`select count(*)::int as n from pg_constraint c
+          join pg_attribute a on a.attrelid = c.conrelid and a.attnum = any(c.conkey)
+          where c.contype = 'f' and c.conrelid = 'public.follows'::regclass
+            and a.attname = 'target_id'`,
+    );
+    expect(followKeys?.n).toBe(0);
+    const [targetIndex] = await rows<{ indexdef: string }>(
+      sql`select indexdef from pg_indexes
+          where schemaname = 'public' and indexname = 'admin_actions_target'`,
+    );
+    expect(targetIndex?.indexdef).toContain(
+      "((target ->> 'type'::text)), ((target ->> 'id'::text))",
+    );
     expect(
       await namesOf(sql`select proname as name from pg_proc p
         join pg_namespace n on n.oid = p.pronamespace
@@ -674,6 +739,16 @@ describe('the migrations', () => {
         () => insertFilingTrack(db, { sourceUrl: 'http://example.test' }),
         'filing_tracks_source_url_check',
       ],
+      [() => insertPerson(db, { website: 'http://example.test' }), 'people_website_check'],
+      [() => insertResult(db, { sourceUrl: 'http://example.test' }), 'results_source_url_check'],
+      [
+        () => insertOfficeholder(db, { cashSourceUrl: 'http://example.test' }),
+        'officeholders_cash_source_url_check',
+      ],
+      [
+        () => insertFieldReport(db, { sourceUrl: 'http://example.test' }),
+        'field_reports_source_url_check',
+      ],
     ];
     for (const [attempt, constraint] of cases) {
       const error = await attempt().then(
@@ -682,6 +757,25 @@ describe('the migrations', () => {
       );
       expect(databaseError(error)).toMatchObject({ code: CHECK_VIOLATION, constraint });
     }
+  });
+
+  it('name keys are generated', async () => {
+    const person = await insertPerson(getTestDb(), {
+      firstName: 'José',
+      lastName: "O'Brien-García",
+    });
+    expect(person.nameKey).toBe('jose obriengarcia');
+    const error = await getTestDb()
+      .execute(sql`update people set name_key = 'fixture' where id = ${person.id}`)
+      .then(
+        () => null,
+        (caught: unknown) => caught,
+      );
+    expect(databaseError(error)).toMatchObject({ code: GENERATED_ALWAYS });
+    const [stored] = await rows<{ key: string | null }>(
+      sql`select name_key as key from people where id = ${person.id}`,
+    );
+    expect(stored?.key).toBe('jose obriengarcia');
   });
 
   it('app events are partitioned by month', async () => {

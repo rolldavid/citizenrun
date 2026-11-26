@@ -47,11 +47,47 @@ export {
   insertFilingTrack,
   insertOffice,
   insertOfficePower,
+  insertResult,
   makeElection,
   makeFilingTrack,
   makeOffice,
   makeOfficePower,
+  makeResult,
   setOfficeIssues,
 } from './civic.ts';
 export type { FilingTrackOverrides, OfficeIssuePick } from './civic.ts';
-export { insertPerson, makePerson } from './people.ts';
+export {
+  insertCandidacy,
+  insertCandidacyFiling,
+  insertGivenNameAlias,
+  insertOfficeholder,
+  insertPerson,
+  insertPersonAlias,
+  insertUnmatchedFiling,
+  makeCandidacy,
+  makeCandidacyFiling,
+  makeGivenNameAlias,
+  makeOfficeholder,
+  makePerson,
+  makePersonAlias,
+  makeUnmatchedFiling,
+} from './people.ts';
+export type { CandidacyFilingOverrides, CandidacyOverrides } from './people.ts';
+export {
+  insertBundleChange,
+  insertDataBundle,
+  makeBundleChange,
+  makeDataBundle,
+} from './bundles.ts';
+export type { BundleChangeOverrides } from './bundles.ts';
+export {
+  insertAdminAction,
+  insertBookmark,
+  insertFieldReport,
+  insertFollow,
+  makeAdminAction,
+  makeBookmark,
+  makeFieldReport,
+  makeFollow,
+  setUserDistricts,
+} from './user-civic.ts';
