@@ -1,12 +1,15 @@
-import { issues } from '@citizenrun/db';
+import { bookmarks, issues, userDistricts } from '@citizenrun/db';
 import {
+  insertBookmark,
   insertConsents,
   insertDataExport,
+  insertDistrict,
   insertUser,
+  setUserDistricts,
   setUserIssues,
 } from '@citizenrun/db/testing';
 import { marker } from '@citizenrun/shared/testing';
-import { asc } from 'drizzle-orm';
+import { asc, eq } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { buildOpenApiDocument } from '../openapi.ts';
 import { createTestApp } from '../testing/app.ts';
@@ -26,6 +29,10 @@ const EXPLICIT_PARAMETERS: Readonly<Record<string, { query: Record<string, strin
 
 // An instant that appears nowhere else: target user A's age record.
 const AGE_CHECKED_AT = '1999-01-02T03:04:05.678Z';
+// Another such instant: when A's districts went stale.
+const DISTRICTS_STALE_AT = '1999-02-03T04:05:06.789Z';
+// What a response would say if it told another viewer that A saved an office.
+const BOOKMARKED = '"bookmarked":true';
 // The 0-based `sort` positions of the two users' issue picks; A stars the last of its three.
 const A_PICK_POSITIONS = [16, 17, 18] as const;
 const A_STARRED_POSITION = 18;
@@ -80,14 +87,22 @@ function base64Forms(value: string): string[] {
   });
 }
 
-type Target = { userId: string; picks: { issueId: string; starred: boolean }[] };
+type Target = {
+  userId: string;
+  picks: { issueId: string; starred: boolean }[];
+  districtIds: string[];
+};
 
 /** Target user A, with the marker in every private column of an account. */
 async function insertTarget(testApp: TestApp, issueIds: readonly string[]): Promise<Target> {
   const { db } = testApp.deps;
   const value = marker();
   // The factory's email is `test_<seq>.<marker>@example.test`.
-  const user = await insertUser(db, { ageCheckedAt: new Date(AGE_CHECKED_AT) });
+  const user = await insertUser(db, {
+    ageCheckedAt: new Date(AGE_CHECKED_AT),
+    locationPrecision: 'exact',
+    districtsStaleAt: new Date(DISTRICTS_STALE_AT),
+  });
   expect(user.email).toContain(value);
   await insertIdentity(db, {
     userId: user.id,
@@ -117,7 +132,17 @@ async function insertTarget(testApp: TestApp, issueIds: readonly string[]): Prom
   }));
   await setUserIssues(db, user.id, picks);
   await insertDataExport(db, { userId: user.id, status: 'ready' });
-  return { userId: user.id, picks };
+  // Two exact districts made for A alone, which no office uses, so no public response may name
+  // them; their names carry the marker. Only their ids are stored for A.
+  const districts = [
+    await insertDistrict(db, { name: `Fixture District ${value} 1` }),
+    await insertDistrict(db, { name: `Fixture District ${value} 2` }),
+  ];
+  const districtIds = districts.map((district) => district.id);
+  await setUserDistricts(db, user.id, districtIds);
+  // The office is public and carries no marker; only the fact that A saved it is private.
+  await insertBookmark(db, { userId: user.id });
+  return { userId: user.id, picks, districtIds };
 }
 
 /** Second user B, with its own picks and the current consents, freshly signed in by bearer. */
@@ -147,6 +172,9 @@ function forbiddenTexts(target: Target): string[] {
     ...base64Forms(value.toLowerCase()),
     target.userId,
     AGE_CHECKED_AT,
+    ...target.districtIds,
+    DISTRICTS_STALE_AT,
+    BOOKMARKED,
     JSON.stringify(target.picks),
     ...target.picks.map((pick) => JSON.stringify(pick)),
   ].map((text) => text.toLowerCase());
@@ -170,6 +198,16 @@ describe('the private columns', () => {
     const own = await signIn(testApp.deps.db, { id: target.userId }, 'bearer');
     const ownBody = await (await testApp.request.get('/v1/me', { auth: own, client: IOS })).text();
     expect(ownBody.toLowerCase()).toContain(marker().toLowerCase());
+    const stored = await testApp.deps.db
+      .select({ districtId: userDistricts.districtId })
+      .from(userDistricts)
+      .where(eq(userDistricts.userId, target.userId));
+    expect(stored.map((row) => row.districtId).sort()).toEqual([...target.districtIds].sort());
+    const saved = await testApp.deps.db
+      .select()
+      .from(bookmarks)
+      .where(eq(bookmarks.userId, target.userId));
+    expect(saved).toHaveLength(1);
 
     const operations = getOperations();
     const unfillable = operations
