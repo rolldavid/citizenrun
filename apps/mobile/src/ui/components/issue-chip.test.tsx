@@ -235,6 +235,16 @@ describe('IssueChip', () => {
     warnings.mockRestore();
   });
 
+  it('an issue this build does not know has one line between its tile and its name', () => {
+    const chip = drawState('unknown');
+    // The chip's own box and line stand round the tile, so the tile inside draws no keyline.
+    expect(chip.line.style.width).toBe('1px');
+    for (const part of chip.tile.querySelectorAll<HTMLElement>('*')) {
+      expect(part.style.borderTopWidth === '' || part.style.borderTopWidth === '0px').toBe(true);
+    }
+    expect(chip.tile.querySelectorAll('svg')).toHaveLength(1);
+  });
+
   it('the fixtures hold the eleven states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     for (const state of STATE_NAMES) {

@@ -16,6 +16,8 @@ export type IssueTileProps = {
   size?: 'tile' | 'chip' | 'chipSmall';
   /** A hairline round the tile; required on a hovered or pressed ground. */
   keyline?: boolean;
+  /** Inside C-IssueChip, whose own box and line stand round the tile: an unknown issue draws no keyline of its own. */
+  bare?: boolean;
   /** The issue's name, where it is not printed beside the tile. Without it the tile is hidden from screen readers. */
   label?: string;
 };
@@ -38,6 +40,7 @@ export function IssueTile({
   issueId,
   size: sizeName = 'tile',
   keyline = false,
+  bare = false,
   label,
 }: IssueTileProps): JSX.Element {
   const theme = useTheme();
@@ -48,7 +51,7 @@ export function IssueTile({
   const { side, icon } = SIZES[sizeName];
   const known = isIssueId(issueId) ? issueId : null;
   const paint = known === null ? null : theme.issue(known);
-  const outlined = keyline || paint === null;
+  const outlined = keyline || (paint === null && !bare);
   const square: ViewStyle = {
     width: side,
     height: side,

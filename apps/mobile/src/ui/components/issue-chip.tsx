@@ -127,7 +127,7 @@ function Chip({
           { width: least, backgroundColor: paint === null ? theme.color.well : paint.fill },
         ]}
       >
-        <IssueTile issueId={issueId} size={sizeName === 'sm' ? 'chipSmall' : 'chip'} />
+        <IssueTile issueId={issueId} size={sizeName === 'sm' ? 'chipSmall' : 'chip'} bare={true} />
         {selected ? (
           <View style={[TILE_RING, { borderColor: theme.color.selectedBg }]}>
             <View style={[TILE_KEYLINE, { borderColor: theme.color.selectedText }]} />
