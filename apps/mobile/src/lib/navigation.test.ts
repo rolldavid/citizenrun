@@ -22,6 +22,7 @@ import {
   resetNavigationState,
   resolveGuard,
   safeInternalPath,
+  searchParamOf,
   shellModeFor,
 } from './navigation';
 import type { GuardInput, GuardResult, GuardSession, NavItemId } from './navigation';
@@ -86,6 +87,16 @@ describe('safeInternalPath and next', () => {
     expect(nextPathOf('/settings/export?x=1#y')).toBe('/settings/export');
     expect(nextPathOf(null)).toBeNull();
     expect(nextPathOf('')).toBeNull();
+  });
+
+  it('takes the first value of a parameter the address repeats', () => {
+    expect(searchParamOf(['/settings', '/settings/export'])).toBe('/settings');
+    expect(searchParamOf('/settings')).toBe('/settings');
+    expect(searchParamOf([])).toBeNull();
+    expect(searchParamOf(undefined)).toBeNull();
+    expect(nextPathOf(searchParamOf(['/settings/export?x=1', '//evil.example']))).toBe(
+      '/settings/export',
+    );
   });
 
   it('never follows next into sign-in or onboarding', () => {

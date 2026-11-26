@@ -46,6 +46,15 @@ export function safeInternalPath(path: string | null): string {
   return second === '/' || second === '\\' ? '/' : path;
 }
 
+// A route's query parameter: the router answers an array for a name the address repeats, and the
+// first value counts.
+export function searchParamOf(value: string | readonly string[] | undefined): string | null {
+  if (value === undefined) {
+    return null;
+  }
+  return typeof value === 'string' ? value : (value[0] ?? null);
+}
+
 // Rules N1, N3
 export function nextPathOf(raw: string | null): string | null {
   if (raw === null || raw === '') {
