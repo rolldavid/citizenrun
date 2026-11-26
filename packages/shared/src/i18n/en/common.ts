@@ -4,6 +4,14 @@ export const common = {
   aboutValue: 'about {{value}}',
   documentTitle: '{{title}} · {{appName}}',
   notFound: { title: 'Page not found | {{appName}}' },
+  legalPages: {
+    documentTitle: '{{title}} | {{appName}}',
+    contactPending: 'Not published yet.',
+    effectiveDate: 'Effective date: {{date}}',
+    footerPrivacy: 'Privacy policy',
+    footerTerms: 'Terms of use',
+    footerContentPolicy: 'Content policy',
+  },
   states: {
     errorTitle: "This didn't load.",
     offlineTitle: 'No connection.',
