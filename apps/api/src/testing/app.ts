@@ -19,6 +19,7 @@ import type { Deps } from '../deps.ts';
 import { createLifecycle } from '../lib/lifecycle.ts';
 import type { Lifecycle } from '../lib/lifecycle.ts';
 import { isCaptureMailer } from '../lib/mailer.ts';
+import { devMailboxEnabled } from '../routes/dev/index.ts';
 import type { CapturedMailbox } from '../lib/mailer.ts';
 import { FakeIdentityProviders } from './fakes/identity.ts';
 import { CaptureMailer } from './fakes/mailer.ts';
@@ -108,7 +109,8 @@ afterAll(async () => {
 });
 
 /**
- * The API under test (TEST-harness-app): `createApp(deps)` on this worker's database, with a fake
+ * The API under test (TEST-harness-app): `createApp(deps)` on this worker's database, with the
+ * development mailbox when the environment allows it, a fake
  * clock, the API's capture mailer fake behind the email counters, the worker's media bucket, a
  * send-only pg-boss, a fake outbound fetch with no routes, the fake sign-in key sets and the log
  * capture. No port is opened; `request` calls the app in process. Every message the mailer holds is
@@ -148,7 +150,7 @@ export async function createTestApp(overrides: TestAppOverrides = {}): Promise<T
     outbound: outbound.fetch,
     identityKeys: identity.keys,
   };
-  const app = createApp(deps);
+  const app = createApp(deps, { devMailbox: devMailboxEnabled(env) });
   const resetStatementCount = (): void => {
     statements = 0;
   };

@@ -4,11 +4,48 @@ import { RATE_LIMIT_POLICIES } from './rate-limits.ts';
 describe('rate-limit policies', () => {
   it("the policies hold the registry's numbers", () => {
     expect(RATE_LIMIT_POLICIES).toEqual({
+      'auth.emailStart': [
+        { subject: 'ip', action: 'auth_code', limit: 10, window: '1h', store: 'db' },
+      ],
+      'auth.emailVerify': [
+        { subject: 'ip', action: 'auth_verify', limit: 60, window: '1h', store: 'db' },
+      ],
+      'auth.nonce': [{ subject: 'ip', action: 'auth_nonce', limit: 60, window: '1h', store: 'db' }],
+      'auth.token': [{ subject: 'ip', action: 'auth_token', limit: 60, window: '1h', store: 'db' }],
+      'auth.appleCallback': [
+        { subject: 'ip', action: 'apple_callback', limit: 30, window: '1h', store: 'db' },
+      ],
+      'auth.appleNotify': [
+        { subject: 'ip', action: 'apple_notify', limit: 600, window: '1h', store: 'db' },
+      ],
+      'dev.mailbox': [
+        { subject: 'ip', action: 'dev_mailbox', limit: 120, window: '1m', store: 'memory' },
+      ],
+      'auth.logout': [
+        { subject: 'user', action: 'logout', limit: 30, window: '1m', store: 'db' },
+        { subject: 'ip', action: 'logout', limit: 60, window: '1m', store: 'db' },
+      ],
+      'me.read': [{ subject: 'user', action: 'me_read', limit: 120, window: '1m', store: 'db' }],
+      'me.write': [{ subject: 'user', action: 'me_write', limit: 30, window: '1m', store: 'db' }],
+      'me.delete': [{ subject: 'user', action: 'me_delete', limit: 5, window: '1h', store: 'db' }],
+      'me.export': [{ subject: 'user', action: 'me_export', limit: 10, window: '1h', store: 'db' }],
+      'me.handleCheck': [
+        { subject: 'user', action: 'handle_check', limit: 60, window: '1m', store: 'db' },
+      ],
+      'me.handleSet': [
+        { subject: 'user', action: 'handle_set', limit: 10, window: '1h', store: 'db' },
+      ],
+      'ref.read': [
+        { subject: 'ip', action: 'ref_read', limit: 120, window: '1m', store: 'memory' },
+      ],
       'ref.openapi': [
         { subject: 'ip', action: 'openapi', limit: 30, window: '1m', store: 'memory' },
       ],
+      'uploads.create': [
+        { subject: 'user', action: 'uploads', limit: 30, window: '1m', store: 'db' },
+      ],
       clientErrors: [
-        { subject: 'user', action: 'client_err', limit: 20, window: '1m', store: 'memory' },
+        { subject: 'user', action: 'client_err', limit: 20, window: '1m', store: 'db' },
         { subject: 'ip', action: 'client_err', limit: 20, window: '1m', store: 'memory' },
       ],
       web_health: [
@@ -23,6 +60,12 @@ describe('rate-limit policies', () => {
         { subject: 'ip', action: 'v1_unmatched', limit: 120, window: '1m', store: 'memory' },
       ],
     });
+  });
+
+  it('the location, push token, event and suggestion policies are not defined yet', () => {
+    for (const name of ['me.location', 'me.pushToken', 'me.events', 'geo.suggest']) {
+      expect(Object.hasOwn(RATE_LIMIT_POLICIES, name), name).toBe(false);
+    }
   });
 
   it('no policy is unlimited', () => {
@@ -44,10 +87,14 @@ describe('rate-limit policies', () => {
     }
   });
 
-  it('no rule uses the db store', () => {
-    const stores = new Set<string>(
-      Object.values(RATE_LIMIT_POLICIES).flatMap((rules) => rules.map((rule) => rule.store)),
-    );
-    expect([...stores]).toEqual(['memory']);
+  it('a user rule always counts in rate_limits, and memory holds only address rules', () => {
+    for (const [name, rules] of Object.entries(RATE_LIMIT_POLICIES)) {
+      for (const rule of rules) {
+        expect(['db', 'memory'], name).toContain(rule.store);
+        if (rule.subject === 'user') {
+          expect(rule.store, name).toBe('db');
+        }
+      }
+    }
   });
 });

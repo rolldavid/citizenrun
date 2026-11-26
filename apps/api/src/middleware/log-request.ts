@@ -28,6 +28,10 @@ export function logRequest(deps: Deps): MiddlewareHandler<RouterEnv> {
       status,
       durationMs,
     };
+    const viewer = c.get('viewer');
+    if (viewer !== null) {
+      fields['userId'] = viewer.userId;
+    }
     const client = c.req.header(CLIENT_HEADER);
     if (client !== undefined && parseClientValue(client) !== null) {
       fields['client'] = client;

@@ -10,10 +10,40 @@ export type RateLimitRule = {
 
 /** Every rate-limit policy, by name; each route names exactly one. */
 export const RATE_LIMIT_POLICIES = {
+  'auth.emailStart': [{ subject: 'ip', action: 'auth_code', limit: 10, window: '1h', store: 'db' }], // E-AUTH-01
+  'auth.emailVerify': [
+    { subject: 'ip', action: 'auth_verify', limit: 60, window: '1h', store: 'db' },
+  ], // E-AUTH-02, D-462
+  'auth.nonce': [{ subject: 'ip', action: 'auth_nonce', limit: 60, window: '1h', store: 'db' }], // E-AUTH-03
+  'auth.token': [{ subject: 'ip', action: 'auth_token', limit: 60, window: '1h', store: 'db' }], // E-AUTH-04, E-AUTH-06, E-AUTH-08
+  'auth.appleCallback': [
+    { subject: 'ip', action: 'apple_callback', limit: 30, window: '1h', store: 'db' },
+  ], // E-AUTH-05
+  'auth.appleNotify': [
+    { subject: 'ip', action: 'apple_notify', limit: 600, window: '1h', store: 'db' },
+  ], // E-AUTH-07
+  'dev.mailbox': [
+    { subject: 'ip', action: 'dev_mailbox', limit: 120, window: '1m', store: 'memory' },
+  ], // E-AUTH-11
+  // E-AUTH-09, E-AUTH-10
+  'auth.logout': [
+    { subject: 'user', action: 'logout', limit: 30, window: '1m', store: 'db' },
+    { subject: 'ip', action: 'logout', limit: 60, window: '1m', store: 'db' },
+  ],
+  'me.read': [{ subject: 'user', action: 'me_read', limit: 120, window: '1m', store: 'db' }], // E-ME-01, E-ME-05, E-ME-18
+  'me.write': [{ subject: 'user', action: 'me_write', limit: 30, window: '1m', store: 'db' }], // E-ME-02, E-ME-09, E-ME-10, E-ME-11, E-ME-12, E-ME-16
+  'me.delete': [{ subject: 'user', action: 'me_delete', limit: 5, window: '1h', store: 'db' }], // E-ME-03
+  'me.export': [{ subject: 'user', action: 'me_export', limit: 10, window: '1h', store: 'db' }], // E-ME-04, E-ME-06
+  'me.handleCheck': [
+    { subject: 'user', action: 'handle_check', limit: 60, window: '1m', store: 'db' },
+  ], // E-ME-07
+  'me.handleSet': [{ subject: 'user', action: 'handle_set', limit: 10, window: '1h', store: 'db' }], // E-ME-08
+  'ref.read': [{ subject: 'ip', action: 'ref_read', limit: 120, window: '1m', store: 'memory' }], // E-REF-01, E-REF-02
   'ref.openapi': [{ subject: 'ip', action: 'openapi', limit: 30, window: '1m', store: 'memory' }], // E-REF-03
+  'uploads.create': [{ subject: 'user', action: 'uploads', limit: 30, window: '1m', store: 'db' }], // E-UPL-01
   // E-SAFE-02, D-408
   clientErrors: [
-    { subject: 'user', action: 'client_err', limit: 20, window: '1m', store: 'memory' },
+    { subject: 'user', action: 'client_err', limit: 20, window: '1m', store: 'db' },
     { subject: 'ip', action: 'client_err', limit: 20, window: '1m', store: 'memory' },
   ],
   web_health: [{ subject: 'ip', action: 'web_health', limit: 600, window: '1m', store: 'memory' }], // E-WEB-01, E-WEB-02

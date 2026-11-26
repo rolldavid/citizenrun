@@ -140,8 +140,9 @@ describe('logRequest', () => {
     await app.request('/v1/fixture/abc', { headers: { 'X-OS-Client': 'ios/1.4.0' } });
     const lines = requestLines(deps);
     expect(lines[0]?.parsed['addrHash']).toMatch(/^[0-9a-f]{16}$/);
-    // No usable address: the field is absent.
-    expect('addrHash' in (lines[1]?.parsed ?? {})).toBe(false);
+    // No header and, in process, no socket: the address is `unknown`, which is hashed like any other.
+    expect(lines[1]?.parsed['addrHash']).toMatch(/^[0-9a-f]{16}$/);
+    expect(lines[1]?.parsed['addrHash']).not.toBe(lines[0]?.parsed['addrHash']);
     for (const line of deps.logs) {
       expect(line.raw).not.toContain(ADDRESS);
     }

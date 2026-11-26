@@ -1,6 +1,8 @@
 import { createRoute } from '@hono/zod-openapi';
 import { describe, expect, it, vi } from 'vitest';
-import { FakeClock } from '@citizenrun/shared/testing';
+import { ApiError } from '@citizenrun/shared';
+import { loadKeyRing } from '@citizenrun/shared/crypto';
+import { FakeClock, eachZone } from '@citizenrun/shared/testing';
 import type { RateLimitPolicyName } from '../config/rate-limits.ts';
 import { createRouter, defineRoute, registerRoute } from '../router.ts';
 import type { RouteContext } from '../router.ts';
@@ -9,13 +11,22 @@ import { handleError, notFound } from './handle-error.ts';
 import { logRequest } from './log-request.ts';
 import {
   addressHash,
+  addressHashOf,
   checkRateLimitPolicyIn,
+  clientAddress,
   createMemoryStore,
+  decideRateLimit,
   limit,
-  normaliseAddress,
   rateLimitV1,
 } from './rate-limit.ts';
 import type { RateLimitPolicyTable } from './rate-limit.ts';
+import {
+  addrKey,
+  emailCodeKey,
+  retryAfterSeconds,
+  userKey,
+  windowStart,
+} from './rate-limit-store.ts';
 import { RATE_LIMIT_POLICIES } from '../config/rate-limits.ts';
 import { requestId } from './request-id.ts';
 import { createRouteMetaIndex } from './route-meta.ts';
@@ -138,18 +149,109 @@ describe('rate limits', () => {
     expect(fixture.errors.at(-1)?.message).toBe('unknown rate-limit policy v1.unmatched');
   });
 
-  it('IPv4, mapped and IPv6 addresses normalise as CTL-07 says', () => {
-    expect(normaliseAddress('203.0.113.7')).toBe('203.0.113.7');
-    expect(normaliseAddress('  203.0.113.7 ')).toBe('203.0.113.7');
-    expect(normaliseAddress('::ffff:203.0.113.7')).toBe('203.0.113.7');
-    expect(normaliseAddress('::ffff:cb00:7107')).toBe('203.0.113.7');
-    expect(normaliseAddress('2001:db8:0:1:aaaa::1')).toBe('2001:db8:0:1::/64');
-    expect(normaliseAddress('2001:0db8:0000:0001:bbbb::2')).toBe('2001:db8:0:1::/64');
-    expect(normaliseAddress('[2001:db8:0:1::5%eth0]')).toBe('2001:db8:0:1::/64');
-    expect(normaliseAddress('2001:DB8::1')).toBe('2001:db8:0:0::/64');
-    expect(normaliseAddress('::1')).toBe('0:0:0:0::/64');
-    expect(normaliseAddress('garbage')).toBeNull();
-    expect(normaliseAddress('')).toBeNull();
+  it('IPv4, mapped and IPv6 addresses hash as CTL-07 normalises them', () => {
+    const ring = createUnitDeps().keyRing;
+    const now = new Date('2027-03-05T12:00:00.000Z');
+    const hash = (addr: string) => addressHashOf(ring, addr, now);
+    expect(hash('  203.0.113.7 ')).toBe(hash('203.0.113.7'));
+    expect(hash('::ffff:203.0.113.7')).toBe(hash('203.0.113.7'));
+    expect(hash('::ffff:cb00:7107')).toBe(hash('203.0.113.7'));
+    expect(hash('2001:0db8:0000:0001:bbbb::2')).toBe(hash('2001:db8:0:1:aaaa::1'));
+    expect(hash('[2001:db8:0:1::5%eth0]')).toBe(hash('2001:db8:0:1:aaaa::1'));
+    expect(hash('2001:DB8::1')).toBe(hash('2001:db8::ffff'));
+    expect(hash('2001:db8:0:2::1')).not.toBe(hash('2001:db8:0:1::1'));
+    expect(hash('203.0.113.8')).not.toBe(hash('203.0.113.7'));
+  });
+
+  it('the address hash uses the daily salt', () => {
+    const ring0 = loadKeyRing('00'.repeat(32), null);
+    expect(addressHashOf(ring0, '203.0.113.7', new Date('2027-03-05T12:00:00.000Z'))).toBe(
+      'e0a44b312533f30faebbd79e8f92007a5625bca457e162bc74c3d1f098d3bac4',
+    );
+    expect(addressHashOf(ring0, '203.0.113.7', new Date('2027-03-06T12:00:00.000Z'))).toBe(
+      'e9f0854f007bf6acedabb795bc8e12ae52dd4cf5b7d34fc3cf8df0cb52f53bd5',
+    );
+  });
+
+  it('one /64 hashes once', () => {
+    const ring = createUnitDeps().keyRing;
+    const now = new Date('2027-03-05T12:00:00.000Z');
+    const hash = (addr: string) => addressHashOf(ring, addr, now);
+    expect(hash('2001:db8:1:2::1')).toBe(hash('2001:db8:1:2:ffff::9'));
+    expect(hash('2001:db8:1:3::1')).not.toBe(hash('2001:db8:1:2::1'));
+    expect(hash('::ffff:203.0.113.7')).toBe(hash('203.0.113.7'));
+  });
+
+  it('the last forwarded element is the client', async () => {
+    const app = createRouter();
+    app.get('/probe/address', (c) => c.text(clientAddress(c, 'x-real-ip')));
+    const forwarded = await app.request('/probe/address', {
+      headers: { 'x-real-ip': '198.51.100.1, 203.0.113.9' },
+    });
+    expect(await forwarded.text()).toBe('203.0.113.9');
+    // No configured header, and in process no socket.
+    const unset = createRouter();
+    unset.get('/probe/address', (c) => c.text(clientAddress(c, null)));
+    const none = await unset.request('/probe/address', { headers: { 'x-real-ip': ADDRESS } });
+    expect(await none.text()).toBe('unknown');
+  });
+
+  it('windows are UTC', async () => {
+    await eachZone(() => {
+      const end = new Date('2027-03-05T23:59:59.999Z');
+      expect(windowStart('1d', end).toISOString()).toBe('2027-03-05T00:00:00.000Z');
+      expect(windowStart('1h', end).toISOString()).toBe('2027-03-05T23:00:00.000Z');
+      expect(windowStart('1m', end).toISOString()).toBe('2027-03-05T23:59:00.000Z');
+      expect(windowStart('1m', new Date('2027-03-05T12:34:00.000Z')).toISOString()).toBe(
+        '2027-03-05T12:34:00.000Z',
+      );
+    });
+  });
+
+  it('Retry-After is whole seconds to the end', () => {
+    expect(retryAfterSeconds('1h', new Date('2027-03-05T12:59:59.999Z'))).toBe(1);
+    expect(retryAfterSeconds('1h', new Date('2027-03-05T12:00:00.000Z'))).toBe(3600);
+    expect(retryAfterSeconds('1m', new Date('2027-03-05T12:00:30.500Z'))).toBe(30);
+    expect(retryAfterSeconds('1d', new Date('2027-03-05T23:00:00.000Z'))).toBe(3600);
+  });
+
+  it('the largest Retry-After wins', () => {
+    expect(
+      decideRateLimit([
+        { count: 21, limit: 20, retryAfter: 30 },
+        { count: 5, limit: 60, retryAfter: 9000 },
+        { count: 11, limit: 10, retryAfter: 3000 },
+      ]),
+    ).toEqual({ refused: true, retryAfter: 3000 });
+    expect(
+      decideRateLimit([
+        { count: 20, limit: 20, retryAfter: 30 },
+        { count: 1, limit: 10, retryAfter: 3000 },
+      ]),
+    ).toEqual({ refused: false, retryAfter: 0 });
+    expect(decideRateLimit([])).toEqual({ refused: false, retryAfter: 0 });
+  });
+
+  it('keys follow the three families', () => {
+    expect(userKey('u1', 'logout', '1m')).toBe('u:u1:logout:1m');
+    expect(addrKey('h', 'auth_code', '1h')).toBe('ip:h:auth_code:1h');
+    expect(emailCodeKey('e')).toBe('em:e:code:1h');
+  });
+
+  it('a 429 ApiError thrown by a service carries Retry-After', async () => {
+    const deps = createUnitDeps();
+    for (const code of ['rate_limited', 'signup_limit_reached'] as const) {
+      const app = createRouter();
+      app.use('*', requestVariables(deps));
+      app.post('/v1/fixture', () => {
+        throw new ApiError(code, { retryAfterSeconds: 20 });
+      });
+      app.onError(handleError(deps));
+      const response = await app.request('/v1/fixture', { method: 'POST' });
+      expect(response.status).toBe(429);
+      expect(response.headers.get('retry-after')).toBe('20');
+      expect(await response.json()).toMatchObject({ error: { code } });
+    }
   });
 
   it('the last element of a forwarded list is used', async () => {
@@ -239,13 +341,12 @@ describe('rate limits', () => {
   });
 
   it('requests without an address share one bucket', async () => {
-    const deps = createUnitDeps();
+    const deps = createUnitDeps({ env: { CLIENT_IP_HEADER: undefined } });
     const { app } = fixtureApp(deps);
-    // No header and, in process, no socket: both count under the key ip:none:fixture:1m.
+    // No configured header and, in process, no socket: every request is the address `unknown`.
     expect((await app.request('/v1/fixture', from(null))).status).toBe(200);
-    expect((await app.request('/v1/fixture', from('not an address'))).status).toBe(200);
-    expect((await app.request('/v1/fixture', from(null))).status).toBe(429);
     expect((await app.request('/v1/fixture', from(ADDRESS))).status).toBe(200);
+    expect((await app.request('/v1/fixture', from(OTHER_ADDRESS))).status).toBe(429);
   });
 
   it('a full store refuses new keys after dropping past windows', () => {
@@ -355,31 +456,49 @@ describe('rate limits', () => {
     expect((await second.request('/v1/fixture', from(ADDRESS))).status).toBe(200);
   });
 
-  it('a user rule needs a viewer and a db rule is refused', async () => {
+  it('a user rule needs a viewer and a logged-out rule none', async () => {
     const deps = createUnitDeps();
     const now = deps.clock.now();
-    const userOnly: RateLimitPolicyTable = {
+    const table: RateLimitPolicyTable = {
       users: [{ subject: 'user', action: 'fixture_u', limit: 2, window: '1m', store: 'memory' }],
+      anonymous: [
+        {
+          subject: 'ip',
+          action: 'fixture_a',
+          limit: 2,
+          window: '1m',
+          store: 'memory',
+          when: 'logged_out',
+        },
+      ],
+    };
+    const check = (policy: string, userId: string | null) =>
+      checkRateLimitPolicyIn(deps, table, { policy, userId, addrHash: 'fixture-hash', now });
+    for (let n = 0; n < 3; n += 1) {
+      expect(await check('users', null)).toEqual({ ok: true });
+      expect(await check('anonymous', 'fixture-user')).toEqual({ ok: true });
+    }
+    // Half of 2 per replica: the second request of each counted rule is refused.
+    expect(await check('users', 'fixture-user')).toEqual({ ok: true });
+    expect((await check('users', 'fixture-user')).ok).toBe(false);
+    expect(await check('anonymous', null)).toEqual({ ok: true });
+    expect((await check('anonymous', null)).ok).toBe(false);
+  });
+
+  it('a db rule counts through the database', async () => {
+    // Unit deps have no database: a db rule reaches it instead of passing uncounted.
+    const deps = createUnitDeps();
+    const table: RateLimitPolicyTable = {
       stored: [{ subject: 'ip', action: 'fixture_db', limit: 2, window: '1m', store: 'db' }],
     };
-    for (let n = 0; n < 3; n += 1) {
-      expect(
-        await checkRateLimitPolicyIn(deps, userOnly, {
-          policy: 'users',
-          userId: null,
-          addrHash: null,
-          now,
-        }),
-      ).toEqual({ ok: true });
-    }
     await expect(
-      checkRateLimitPolicyIn(deps, userOnly, {
+      checkRateLimitPolicyIn(deps, table, {
         policy: 'stored',
         userId: null,
-        addrHash: null,
-        now,
+        addrHash: 'fixture-hash',
+        now: deps.clock.now(),
       }),
-    ).rejects.toThrow('rate limit store db is not available');
+    ).rejects.toThrow('unit deps have no database');
   });
 
   it('a web route gets a plain-text 429', async () => {

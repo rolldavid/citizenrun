@@ -1,5 +1,5 @@
 import type { Handler } from 'hono';
-import { CreateClientErrorBodySchema, ErrorEnvelopeSchema } from '@citizenrun/shared';
+import { CreateClientErrorBodySchema, ErrorEnvelopeSchema, LIMITS } from '@citizenrun/shared';
 import type { CreateClientErrorBody } from '@citizenrun/shared';
 import type { Deps } from '../../deps.ts';
 import { defineRoute } from '../../router.ts';
@@ -27,7 +27,12 @@ export const createClientErrorRoute = defineRoute({
     426: { description: 'The build is too old.', content: ERROR_RESPONSE },
     429: { description: 'Too many requests.', content: ERROR_RESPONSE },
   },
-  meta: { auth: 'optional', rateLimit: 'clientErrors', bodyLimitBytes: 4096, public: true },
+  meta: {
+    auth: 'optional',
+    rateLimit: 'clientErrors',
+    bodyLimitBytes: LIMITS.clientErrorBytes,
+    public: true,
+  },
   errors: [
     'invalid_request',
     'client_header_required',

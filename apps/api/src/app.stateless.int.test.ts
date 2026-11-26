@@ -1,17 +1,20 @@
-import { clientErrors, workerHeartbeats } from '@citizenrun/db';
-import { getTestDb, insertWorkerHeartbeat } from '@citizenrun/db/testing';
+import { clientErrors, rateLimits, workerHeartbeats } from '@citizenrun/db';
+import { getTestDb, insertUser, insertWorkerHeartbeat } from '@citizenrun/db/testing';
 import { newId } from '@citizenrun/shared';
 import { FakeClock } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
+import { signIn } from './testing/auth.ts';
 import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
 
 // INV-15: two instances over one database keep nothing in process but the per-replica memory
-// counters, the web export read at start and the per-app address key.
+// counters and the web export read at start; sessions and per-user limits live in Postgres.
 
 const MINUTE_MS = 60_000;
 // clientErrors allows 20 a minute per address, held in memory at half per replica (D-240, D-408).
 const CLIENT_ERRORS_PER_REPLICA = 10;
+// clientErrors allows 20 a minute per user, counted in rate_limits (D-408).
+const CLIENT_ERRORS_PER_USER = 20;
 
 let nextHost = 100;
 function freshIp(): string {
@@ -110,5 +113,48 @@ describe('a stateless API', () => {
     }
     expect(ids.size).toBe(20);
     expect(ids.has('')).toBe(false);
+  });
+  it('a session created through A authenticates on B', async () => {
+    const [a, b] = await twoInstances();
+    const user = await insertUser(getTestDb());
+    const auth = await signIn(getTestDb(), user, 'bearer');
+    const onA = await a.request.post('/v1/client-errors', {
+      auth,
+      ip: freshIp(),
+      body: validReport(),
+    });
+    const onB = await b.request.post('/v1/client-errors', {
+      auth,
+      ip: freshIp(),
+      body: validReport(),
+    });
+    expect(onA.status).toBe(204);
+    expect(onB.status).toBe(204);
+    const rows = await getTestDb().select().from(rateLimits);
+    expect(rows.map((row) => [row.key, row.count])).toEqual([[`u:${user.id}:client_err:1m`, 2]]);
+  });
+
+  it('a per-user limit counted on A is enforced on B', async () => {
+    const [a, b] = await twoInstances();
+    // Within one minute of the shared clock.
+    const minute = Math.ceil(a.deps.clock.now().getTime() / MINUTE_MS) * MINUTE_MS;
+    a.deps.clock.set(new Date(minute + 1000));
+    const user = await insertUser(getTestDb());
+    const auth = await signIn(getTestDb(), user, 'bearer');
+    for (let n = 1; n <= CLIENT_ERRORS_PER_USER; n += 1) {
+      const response = await a.request.post('/v1/client-errors', {
+        auth,
+        ip: `203.0.113.${String(n)}`,
+        body: validReport(),
+      });
+      expect(response.status, `report ${String(n)}`).toBe(204);
+    }
+    const refusedByB = await b.request.post('/v1/client-errors', {
+      auth,
+      ip: '203.0.113.21',
+      body: validReport(),
+    });
+    expect(refusedByB.status).toBe(429);
+    expect(refusedByB.headers.get('retry-after')).toBe('59');
   });
 });

@@ -45,7 +45,10 @@ export function createDocDeps(): Deps {
   ) as Deps; // the proxy satisfies no member by design: any read throws
 }
 
-/** Builds the whole app over `createDocDeps()` and returns its document; nothing starts or connects. */
+/**
+ * Builds the whole app over `createDocDeps()`, without the development mailbox, and returns its
+ * document; nothing starts or connects.
+ */
 export function buildOpenApiDocument(): OpenApiDocument {
-  return documentFor(createApp(createDocDeps()));
+  return documentFor(createApp(createDocDeps(), { devMailbox: false }));
 }

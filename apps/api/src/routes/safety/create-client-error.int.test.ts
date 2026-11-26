@@ -1,10 +1,12 @@
-import { clientErrors } from '@citizenrun/db';
-import { getTestDb } from '@citizenrun/db/testing';
-import { ERROR_CODES, ErrorEnvelopeSchema, newId } from '@citizenrun/shared';
+import { clientErrors, rateLimits } from '@citizenrun/db';
+import { getTestDb, insertUser } from '@citizenrun/db/testing';
+import { ERROR_CODES, ErrorEnvelopeSchema, LIMITS, newId } from '@citizenrun/shared';
 import type { ErrorCode } from '@citizenrun/shared';
 import { marker } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { buildOpenApiDocument } from '../../openapi.ts';
+import { signIn } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
 import type { TestApp } from '../../testing/app.ts';
 import type { TestRequestOptions, TestResponse } from '../../testing/request.ts';
@@ -289,5 +291,46 @@ describe('POST /v1/client-errors', () => {
     expect(lines[0]?.parsed).toMatchObject({ method: 'POST', route: PATH, status: 204 });
     expect(lines[0]?.raw).not.toContain('render.failed');
     expect(lines[0]?.raw).not.toContain('office-screen');
+  });
+  it('a suspended viewer gets 403 account_suspended', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db, {
+      status: 'suspended',
+      suspendedAt: testApp.deps.clock.now(),
+      suspendedReason: 'spam',
+    });
+    const auth = await signIn(testApp.deps.db, user, 'bearer');
+    const response = await post(testApp, validReport(), { auth });
+    await expectEnvelope(response, 'account_suspended');
+    expect(await storedRows()).toHaveLength(0);
+  });
+
+  it('the user rule is counted in rate_limits', async () => {
+    const testApp = await createTestApp();
+    const user = await insertUser(testApp.deps.db);
+    const auth = await signIn(testApp.deps.db, user, 'bearer');
+    expect((await post(testApp, validReport(), { auth })).status).toBe(204);
+    expect((await post(testApp, validReport(), { auth })).status).toBe(204);
+    const rows = await getTestDb().select().from(rateLimits);
+    expect(rows.map((row) => [row.key, row.count])).toEqual([[`u:${user.id}:client_err:1m`, 2]]);
+  });
+
+  it('a body over LIMITS.clientErrorBytes is refused', async () => {
+    const testApp = await createTestApp();
+    const base = JSON.stringify(validReport());
+    const padded = JSON.stringify({
+      ...validReport(),
+      pad: 'x'.repeat(LIMITS.clientErrorBytes + 1 - base.length - ',"pad":""'.length),
+    });
+    expect(Buffer.byteLength(padded)).toBe(LIMITS.clientErrorBytes + 1);
+    await expectEnvelope(
+      await postRaw(testApp, padded, { 'Content-Length': String(LIMITS.clientErrorBytes + 1) }),
+      'payload_too_large',
+    );
+    await expectEnvelope(await postRaw(testApp, padded), 'payload_too_large');
+    expect(await storedRows()).toHaveLength(0);
+    const paths = buildOpenApiDocument()['paths'] as Record<string, Record<string, unknown>>; // the document's own paths object
+    const operation = paths[PATH]?.['post'] as { 'x-route': { bodyLimitBytes?: number } }; // createClientError's operation
+    expect(operation['x-route'].bodyLimitBytes).toBe(LIMITS.clientErrorBytes);
   });
 });

@@ -155,7 +155,14 @@ describe('the route registry', () => {
       hide: true,
       operationId: 'probeHidden',
       responses: { 200: { description: 'Ok.' } },
-      meta: { auth: 'none', rateLimit: 'clientErrors', clientHeader: 'exempt', bodyLimitBytes: 64 },
+      // Declared as the development mailbox is: no client header and no request-forgery check.
+      meta: {
+        auth: 'none',
+        rateLimit: 'clientErrors',
+        clientHeader: 'exempt',
+        originCheck: 'exempt',
+        bodyLimitBytes: 64,
+      },
       errors: [],
     });
     const app = createApp(createUnitDeps(), {

@@ -60,12 +60,13 @@ function mapError(deps: Deps, error: Error, c: Context<RouterEnv>): Mapped {
   return { code: 'internal', fields: {} };
 }
 
+// The wait of a 429: the error's own, else the one the chain put on the context.
 function retryAfterOf(error: Error, c: Context<RouterEnv>): number | null {
-  const fromContext: unknown = c.get('retryAfterSeconds');
-  if (typeof fromContext === 'number') {
-    return fromContext;
+  if (error instanceof ApiError && error.retryAfterSeconds !== null) {
+    return error.retryAfterSeconds;
   }
-  return error instanceof ApiError ? error.retryAfterSeconds : null;
+  const fromContext: unknown = c.get('retryAfterSeconds');
+  return typeof fromContext === 'number' ? fromContext : null;
 }
 
 function answer(
@@ -81,7 +82,7 @@ function answer(
       'Content-Type': JSON_CONTENT_TYPE,
       'Cache-Control': NO_STORE,
     };
-    if (code === 'rate_limited' && retryAfterSeconds !== null) {
+    if (status === 429 && retryAfterSeconds !== null) {
       headers['Retry-After'] = String(retryAfterSeconds);
     }
     return c.json(envelope(code, fields), status, headers);
