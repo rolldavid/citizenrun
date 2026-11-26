@@ -14,6 +14,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 import { bytea, citext } from '../types.ts';
+import { districts } from './geo.ts';
 import { issues } from './reference.ts';
 
 /** A person who signed up (T-users). */
@@ -320,6 +321,36 @@ export const userIssues = pgTable(
 
 export type UserIssueRow = typeof userIssues.$inferSelect;
 export type NewUserIssueRow = typeof userIssues.$inferInsert;
+
+/**
+ * The districts a user lives in: ids only, never the point or the address they came from; private
+ * to the user (T-user_districts).
+ */
+export const userDistricts = pgTable(
+  'user_districts',
+  {
+    userId: uuid('user_id').notNull(),
+    districtId: uuid('district_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ name: 'user_districts_pkey', columns: [table.userId, table.districtId] }),
+    foreignKey({
+      name: 'user_districts_user_id_fkey',
+      columns: [table.userId],
+      foreignColumns: [users.id],
+    }).onDelete('cascade'),
+    foreignKey({
+      name: 'user_districts_district_id_fkey',
+      columns: [table.districtId],
+      foreignColumns: [districts.id],
+    }).onDelete('cascade'),
+    index('user_districts_district').on(table.districtId),
+  ],
+);
+
+export type UserDistrictRow = typeof userDistricts.$inferSelect;
+export type NewUserDistrictRow = typeof userDistricts.$inferInsert;
 
 /** A user's export requests; the file is built by the worker (T-data_exports). */
 export const dataExports = pgTable(

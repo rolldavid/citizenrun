@@ -1,0 +1,1568 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "6a60e5ab-c87e-439e-94eb-33efacdf8a9c",
+  "prevIds": [
+    "640dbfa9-74cf-462b-97cd-355543137778"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "user_districts"
+      ],
+      "writes": [
+        "s|tbl|public.user_districts",
+        "n|tbl|public.user_districts",
+        "e|tbl|public.user_districts",
+        "n|rel|public.user_districts",
+        "n|type|public.user_districts",
+        "n|rel|public.user_districts_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "bookmarks"
+      ],
+      "writes": [
+        "s|tbl|public.bookmarks",
+        "n|tbl|public.bookmarks",
+        "e|tbl|public.bookmarks",
+        "n|rel|public.bookmarks",
+        "n|type|public.bookmarks",
+        "n|rel|public.bookmarks_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "field_reports"
+      ],
+      "writes": [
+        "s|tbl|public.field_reports",
+        "n|tbl|public.field_reports",
+        "e|tbl|public.field_reports",
+        "n|rel|public.field_reports",
+        "n|type|public.field_reports",
+        "n|rel|public.field_reports_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "follows"
+      ],
+      "writes": [
+        "s|tbl|public.follows",
+        "n|tbl|public.follows",
+        "e|tbl|public.follows",
+        "n|rel|public.follows",
+        "n|type|public.follows",
+        "n|rel|public.follows_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "admin_actions"
+      ],
+      "writes": [
+        "s|tbl|public.admin_actions",
+        "n|tbl|public.admin_actions",
+        "e|tbl|public.admin_actions",
+        "n|rel|public.admin_actions",
+        "n|type|public.admin_actions",
+        "n|rel|public.admin_actions_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "user_districts",
+        "user_districts_district"
+      ],
+      "writes": [
+        "s|idx|public.user_districts_district",
+        "n|idx|public.user_districts_district",
+        "e|idx|public.user_districts_district",
+        "n|rel|public.user_districts_district"
+      ],
+      "reads": [
+        "n|tbl|public.user_districts",
+        "n|sch|public",
+        "n|col|public.user_districts.district_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "bookmarks",
+        "bookmarks_user"
+      ],
+      "writes": [
+        "s|idx|public.bookmarks_user",
+        "n|idx|public.bookmarks_user",
+        "e|idx|public.bookmarks_user",
+        "n|rel|public.bookmarks_user"
+      ],
+      "reads": [
+        "n|tbl|public.bookmarks",
+        "n|sch|public",
+        "n|col|public.bookmarks.user_id",
+        "n|col|public.bookmarks.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "bookmarks",
+        "bookmarks_office"
+      ],
+      "writes": [
+        "s|idx|public.bookmarks_office",
+        "n|idx|public.bookmarks_office",
+        "e|idx|public.bookmarks_office",
+        "n|rel|public.bookmarks_office"
+      ],
+      "reads": [
+        "n|tbl|public.bookmarks",
+        "n|sch|public",
+        "n|col|public.bookmarks.office_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "field_reports",
+        "field_reports_queue"
+      ],
+      "writes": [
+        "s|idx|public.field_reports_queue",
+        "n|idx|public.field_reports_queue",
+        "e|idx|public.field_reports_queue",
+        "n|rel|public.field_reports_queue"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|col|public.field_reports.id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "field_reports",
+        "field_reports_office"
+      ],
+      "writes": [
+        "s|idx|public.field_reports_office",
+        "n|idx|public.field_reports_office",
+        "e|idx|public.field_reports_office",
+        "n|rel|public.field_reports_office"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|col|public.field_reports.office_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "field_reports",
+        "field_reports_user"
+      ],
+      "writes": [
+        "s|idx|public.field_reports_user",
+        "n|idx|public.field_reports_user",
+        "e|idx|public.field_reports_user",
+        "n|rel|public.field_reports_user"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|col|public.field_reports.user_id",
+        "n|col|public.field_reports.id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "field_reports",
+        "field_reports_decided"
+      ],
+      "writes": [
+        "s|idx|public.field_reports_decided",
+        "n|idx|public.field_reports_decided",
+        "e|idx|public.field_reports_decided",
+        "n|rel|public.field_reports_decided"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|col|public.field_reports.decided_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "follows",
+        "follows_target"
+      ],
+      "writes": [
+        "s|idx|public.follows_target",
+        "n|idx|public.follows_target",
+        "e|idx|public.follows_target",
+        "n|rel|public.follows_target"
+      ],
+      "reads": [
+        "n|tbl|public.follows",
+        "n|sch|public",
+        "n|col|public.follows.target_type",
+        "n|col|public.follows.target_id",
+        "n|col|public.follows.created_at",
+        "n|col|public.follows.follower_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "follows",
+        "follows_follower"
+      ],
+      "writes": [
+        "s|idx|public.follows_follower",
+        "n|idx|public.follows_follower",
+        "e|idx|public.follows_follower",
+        "n|rel|public.follows_follower"
+      ],
+      "reads": [
+        "n|tbl|public.follows",
+        "n|sch|public",
+        "n|col|public.follows.follower_id",
+        "n|col|public.follows.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "admin_actions",
+        "admin_actions_admin"
+      ],
+      "writes": [
+        "s|idx|public.admin_actions_admin",
+        "n|idx|public.admin_actions_admin",
+        "e|idx|public.admin_actions_admin",
+        "n|rel|public.admin_actions_admin"
+      ],
+      "reads": [
+        "n|tbl|public.admin_actions",
+        "n|sch|public",
+        "n|col|public.admin_actions.admin_id",
+        "n|col|public.admin_actions.id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "admin_actions",
+        "admin_actions_target"
+      ],
+      "writes": [
+        "s|idx|public.admin_actions_target",
+        "n|idx|public.admin_actions_target",
+        "e|idx|public.admin_actions_target",
+        "n|rel|public.admin_actions_target"
+      ],
+      "reads": [
+        "n|tbl|public.admin_actions",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "user_districts"
+      ],
+      "writes": [
+        "s|fk|public.user_districts.user_districts_user_id_fkey",
+        "n|fk|public.user_districts.user_districts_user_id_fkey",
+        "e|fk|public.user_districts.user_districts_user_id_fkey",
+        "n|con|public.user_districts.user_districts_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.user_districts",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.user_districts.user_id",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "user_districts"
+      ],
+      "writes": [
+        "s|fk|public.user_districts.user_districts_district_id_fkey",
+        "n|fk|public.user_districts.user_districts_district_id_fkey",
+        "e|fk|public.user_districts.user_districts_district_id_fkey",
+        "n|con|public.user_districts.user_districts_district_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.user_districts",
+        "n|sch|public",
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.user_districts.district_id",
+        "n|col|public.districts.id",
+        "e|uniqueness|public.districts.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "bookmarks"
+      ],
+      "writes": [
+        "s|fk|public.bookmarks.bookmarks_user_id_fkey",
+        "n|fk|public.bookmarks.bookmarks_user_id_fkey",
+        "e|fk|public.bookmarks.bookmarks_user_id_fkey",
+        "n|con|public.bookmarks.bookmarks_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.bookmarks",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.bookmarks.user_id",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "bookmarks"
+      ],
+      "writes": [
+        "s|fk|public.bookmarks.bookmarks_office_id_fkey",
+        "n|fk|public.bookmarks.bookmarks_office_id_fkey",
+        "e|fk|public.bookmarks.bookmarks_office_id_fkey",
+        "n|con|public.bookmarks.bookmarks_office_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.bookmarks",
+        "n|sch|public",
+        "n|tbl|public.offices",
+        "n|sch|public",
+        "n|col|public.bookmarks.office_id",
+        "n|col|public.offices.id",
+        "e|uniqueness|public.offices.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "field_reports"
+      ],
+      "writes": [
+        "s|fk|public.field_reports.field_reports_user_id_fkey",
+        "n|fk|public.field_reports.field_reports_user_id_fkey",
+        "e|fk|public.field_reports.field_reports_user_id_fkey",
+        "n|con|public.field_reports.field_reports_user_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.field_reports.user_id",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "field_reports"
+      ],
+      "writes": [
+        "s|fk|public.field_reports.field_reports_office_id_fkey",
+        "n|fk|public.field_reports.field_reports_office_id_fkey",
+        "e|fk|public.field_reports.field_reports_office_id_fkey",
+        "n|con|public.field_reports.field_reports_office_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|tbl|public.offices",
+        "n|sch|public",
+        "n|col|public.field_reports.office_id",
+        "n|col|public.offices.id",
+        "e|uniqueness|public.offices.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "field_reports"
+      ],
+      "writes": [
+        "s|fk|public.field_reports.field_reports_decided_by_fkey",
+        "n|fk|public.field_reports.field_reports_decided_by_fkey",
+        "e|fk|public.field_reports.field_reports_decided_by_fkey",
+        "n|con|public.field_reports.field_reports_decided_by_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.field_reports",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.field_reports.decided_by",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "follows"
+      ],
+      "writes": [
+        "s|fk|public.follows.follows_follower_id_fkey",
+        "n|fk|public.follows.follows_follower_id_fkey",
+        "e|fk|public.follows.follows_follower_id_fkey",
+        "n|con|public.follows.follows_follower_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.follows",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.follows.follower_id",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "user_districts",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "bookmarks",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "field_reports",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "follows",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "admin_actions",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "district_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "office_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "user_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "office_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "message",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'open'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "exported_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "decided_by",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "decided_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follower_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "target_type",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "target_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "admin_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "action",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "target",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "user_districts_district",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "district_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "bookmarks_user",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "bookmarks_office",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "office_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_queue",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"status\" = 'open'",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_office",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "office_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_user",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "user_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_decided",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "decided_at",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"decided_at\" is not null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_target",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "target_type",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "target_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          },
+          {
+            "value": "follower_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_follower",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "follower_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "admin_actions_admin",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "admin_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "admin_actions_target",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "(\"target\" ->> 'type')",
+            "isExpression": true,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "(\"target\" ->> 'id')",
+            "isExpression": true,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "user_districts_user_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "user_districts_district_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "district_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "districts",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "bookmarks_user_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "bookmarks_office_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "office_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "offices",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_user_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "user_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_office_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "office_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "offices",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_decided_by_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "decided_by"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_follower_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "follower_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "user_districts",
+        "name": "user_districts_pkey",
+        "columns": [
+          "user_id",
+          "district_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bookmarks",
+        "name": "bookmarks_pkey",
+        "columns": [
+          "user_id",
+          "office_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_pkey",
+        "columns": [
+          "follower_id",
+          "target_type",
+          "target_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "admin_actions",
+        "name": "admin_actions_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_status_check",
+        "value": "\"status\" in ('open', 'fixed', 'rejected')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "field_reports",
+        "name": "field_reports_source_url_check",
+        "value": "\"source_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_target_type_check",
+        "value": "\"target_type\" in ('user', 'person', 'office')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "follows",
+        "name": "follows_not_self_check",
+        "value": "\"target_type\" <> 'user' or \"target_id\" <> \"follower_id\"",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
