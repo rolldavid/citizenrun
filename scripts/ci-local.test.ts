@@ -460,6 +460,7 @@ describe('the worker smoke', () => {
       'backup.check',
       'db.connections-check',
       'cost.check',
+      'cleanup.retention',
     ]);
     expect(workerQueuesFailure(rows)).toBeNull();
     const clock = { name: '__pgboss__send-it', policy: 'standard', scheduled: false };
