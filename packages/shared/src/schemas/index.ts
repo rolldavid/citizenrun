@@ -5,3 +5,4 @@ export * from './reference.ts';
 export * from './safety.ts';
 export * from './uploads.ts';
 export * from './web.ts';
+export * from './admin-actions.ts';

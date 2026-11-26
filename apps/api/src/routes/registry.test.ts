@@ -209,6 +209,23 @@ describe('the route registry', () => {
     expect(exempt).toEqual([...CLIENT_HEADER_EXEMPT_OPERATIONS].sort());
   });
 
+  it('no route is in the admin area', () => {
+    const app = createApp(createDocDeps());
+    const index = createRouteMetaIndex();
+    index.load(app);
+    const mounted = index.all();
+    expect(mounted.length).toBeGreaterThan(0);
+    for (const entry of mounted) {
+      expect(entry.meta.auth, entry.path).not.toBe('admin');
+    }
+    const adminArea = (path: string) => path === '/v1/admin' || path.startsWith('/v1/admin/');
+    expect(app.routes.filter((route) => adminArea(route.path))).toEqual([]);
+    expect(operations.filter((operation) => adminArea(operation.path))).toEqual([]);
+    expect(operations.filter((operation) => routeMetaOf(operation)['auth'] === 'admin')).toEqual(
+      [],
+    );
+  });
+
   it('no operation declares a sensitive query or path parameter', () => {
     expect(sensitiveParameters(document)).toEqual([]);
   });

@@ -487,7 +487,11 @@
                   "export_not_ready",
                   "unavailable_in_state",
                   "age_signal_required",
-                  "upload_too_large"
+                  "upload_too_large",
+                  "bundle_busy",
+                  "bundle_not_reloadable",
+                  "bundle_not_held",
+                  "bundle_not_revertable"
                 ]
               },
               "message": {

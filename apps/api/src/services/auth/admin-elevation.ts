@@ -1,4 +1,4 @@
-import { users } from '@citizenrun/db';
+import { recordSystemAdminAction, users } from '@citizenrun/db';
 import type { Tx } from '@citizenrun/db';
 import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import type { AdminEmails } from '../../middleware/gates.ts';
@@ -6,7 +6,8 @@ import type { AdminEmails } from '../../middleware/gates.ts';
 /**
  * L-admin-elevation: a user whose email is in `adminEmails` and whose role is `user` becomes an
  * admin; true when a row changed. Never demotes and checks no provider. An empty
- * set makes no query. The caller logs `auth.admin_bootstrap` after its transaction commits.
+ * set makes no query. A promotion writes the `admin.bootstrap` audit row in the same transaction
+ * (CTL-16). The caller logs `auth.admin_bootstrap` after its transaction commits.
  */
 export async function applyAdminElevation(
   tx: Tx,
@@ -27,5 +28,13 @@ export async function applyAdminElevation(
       ),
     )
     .returning({ id: users.id });
-  return promoted.length > 0;
+  if (promoted.length === 0) {
+    return false;
+  }
+  await recordSystemAdminAction(tx, {
+    adminId: input.userId,
+    action: 'admin.bootstrap',
+    target: { type: 'user', id: input.userId },
+  });
+  return true;
 }

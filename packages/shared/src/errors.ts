@@ -50,6 +50,10 @@ export const ERROR_CODES = {
   unavailable_in_state: { status: 403, message: 'Not available in this state.' },
   age_signal_required: { status: 422, message: 'Store age signal is required.' },
   upload_too_large: { status: 422, message: 'Upload is larger than allowed.' },
+  bundle_busy: { status: 409, message: 'Another bundle action is in progress.' },
+  bundle_not_reloadable: { status: 409, message: 'The bundle cannot be reloaded.' },
+  bundle_not_held: { status: 409, message: 'The bundle is not held.' },
+  bundle_not_revertable: { status: 409, message: 'The bundle cannot be reverted.' },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

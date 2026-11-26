@@ -48,4 +48,9 @@ export const errors = {
   unavailable_in_state: "{{appName}} isn't available in your state yet.",
   age_signal_required: 'Confirm your age in the phone app to continue.',
   upload_too_large: 'That photo is too large. Choose a smaller one.',
+  bundle_busy: 'Another bundle action is running. Try again when it finishes.',
+  bundle_not_reloadable:
+    "This bundle can't be loaded again. A newer bundle is loaded, or this one is waiting.",
+  bundle_not_held: "This bundle isn't waiting for approval.",
+  bundle_not_revertable: 'Only one of the last seven loaded bundles can be reverted.',
 } as const;

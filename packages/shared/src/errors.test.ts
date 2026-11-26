@@ -56,6 +56,14 @@ const ACCOUNT_CODE_STATUSES: Record<string, number> = {
   upload_too_large: 422,
 };
 
+// The codes the admin bundle routes answer with, and their statuses.
+const BUNDLE_CODE_STATUSES: Record<string, number> = {
+  bundle_busy: 409,
+  bundle_not_reloadable: 409,
+  bundle_not_held: 409,
+  bundle_not_revertable: 409,
+};
+
 describe('error registry', () => {
   it('every error code maps to one status', () => {
     const entries = Object.entries(ERROR_CODES);
@@ -69,10 +77,23 @@ describe('error registry', () => {
     expect(ERROR_CODES.internal).toEqual({ status: 500, message: 'Internal error.' });
   });
 
-  it('holds exactly the starting codes and the account codes', () => {
+  it('holds exactly the starting codes, the account codes and the bundle codes', () => {
     expect(Object.keys(ERROR_CODES).sort()).toEqual(
-      [...STARTING_CODES, ...Object.keys(ACCOUNT_CODE_STATUSES)].sort(),
+      [
+        ...STARTING_CODES,
+        ...Object.keys(ACCOUNT_CODE_STATUSES),
+        ...Object.keys(BUNDLE_CODE_STATUSES),
+      ].sort(),
     );
+  });
+
+  it('every bundle code has its status', () => {
+    for (const [code, status] of Object.entries(BUNDLE_CODE_STATUSES)) {
+      expect(Object.hasOwn(ERROR_CODES, code), code).toBe(true);
+      expect(Object.entries(ERROR_CODES).find(([key]) => key === code)?.[1].status, code).toBe(
+        status,
+      );
+    }
   });
 
   it('every account code has its status', () => {
