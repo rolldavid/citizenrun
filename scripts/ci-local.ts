@@ -3,6 +3,8 @@
 //   pnpm ci:local [--nightly] [--job <name>[,<name>...]] [--base <ref>] [--update-snapshots]
 //     [--keep-going] [--durations]
 // It uses no secret and no cloud account. Every job runs at the host's own architecture.
+import { spawn } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import {
   appendFileSync,
@@ -18,7 +20,7 @@ import {
 import { availableParallelism, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { JOB_POLICIES } from '@citizenrun/shared';
+import { BRAND, JOB_POLICIES } from '@citizenrun/shared';
 import { z } from 'zod';
 import { run } from './lib/exec.ts';
 import { repoRoot } from './lib/repo-root.ts';
@@ -902,6 +904,241 @@ export const CI_JOBS: readonly CiJob[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------------------------
+// The nightly jobs' local forms
+
+/** The arguments of the migration-compat job: the previous code is `base` (default main). */
+export function migrationCompatArgs(base: string): string[] {
+  return ['exec', 'tsx', 'scripts/migration-compat.ts', '--base', base];
+}
+
+/** Where the Android build reaches the stack: the emulator's address of this machine. */
+export const ANDROID_API_ORIGIN = 'http://10.0.2.2:8080';
+export const ANDROID_APK = 'apps/mobile/android/app/build/outputs/apk/release/app-release.apk';
+const MAESTRO_FLOWS = 'apps/mobile/.maestro';
+const SEED_FACTS = 'apps/mobile/e2e/.stack/seed-facts.json';
+const EMULATOR_AVD = 'api34';
+const STACK_ORIGIN = 'http://localhost:8080';
+// The stack builds the web export and both services before it starts.
+const STACK_READY_SECONDS = 900;
+const EMULATOR_BOOT_SECONDS = 300;
+
+/** A set, non-empty variable, or null. */
+function setValue(env: Env, name: string): string | null {
+  const value = env[name];
+  return value === undefined || value === '' ? null : value;
+}
+
+/**
+ * The variables of the `e2e` build: the development variant, the emulator's API origin, and the
+ * Firebase file only when the shell holds its path.
+ */
+export function androidBuildEnv(env: Env): Record<string, string> {
+  const firebase = setValue(env, 'GOOGLE_SERVICES_JSON');
+  return {
+    APP_VARIANT: 'development',
+    EXPO_PUBLIC_API_ORIGIN: ANDROID_API_ORIGIN,
+    ...(firebase === null ? {} : { GOOGLE_SERVICES_JSON: firebase }),
+  };
+}
+
+/** Push can register only with the Expo project id and a Firebase file in the build. */
+export function pushConfigured(projectId: string | null, env: Env): boolean {
+  return projectId !== null && setValue(env, 'GOOGLE_SERVICES_JSON') !== null;
+}
+
+/** One `-e <key>=<value>` per top-level seed fact; a value that is not a string as compact JSON. */
+export function seedFactArgs(facts: Readonly<Record<string, unknown>>): string[] {
+  return Object.entries(facts).flatMap(([key, value]) => [
+    '-e',
+    `${key}=${typeof value === 'string' ? value : JSON.stringify(value)}`,
+  ]);
+}
+
+/** `maestro test` with the development identifiers, the push flag and the seed facts. */
+export function maestroTestArgs(options: {
+  env: Env;
+  projectId: string | null;
+  facts: Readonly<Record<string, unknown>>;
+}): string[] {
+  const development = BRAND.variants.development;
+  return [
+    'test',
+    MAESTRO_FLOWS,
+    '-e',
+    `APP_ID=${development.androidPackage}`,
+    '-e',
+    `APP_SCHEME=${development.scheme}`,
+    '-e',
+    `PUSH_CONFIGURED=${String(pushConfigured(options.projectId, options.env))}`,
+    ...seedFactArgs(options.facts),
+  ];
+}
+
+/** Whether `adb devices` lists an emulator that is ready. */
+export function adbListsEmulator(output: string): boolean {
+  return output.split('\n').some((line) => /^emulator-\d+\s+device\b/.test(line.trim()));
+}
+
+const SeedFactsSchema = z.record(z.string(), z.unknown());
+
+function readSeedFacts(root: string): Record<string, unknown> {
+  const file = join(root, SEED_FACTS);
+  return existsSync(file) ? SeedFactsSchema.parse(JSON.parse(readFileSync(file, 'utf8'))) : {};
+}
+
+/** An Android SDK tool: from the SDK the shell names, else from PATH. */
+function androidTool(env: Env, folder: string, name: string): string {
+  const sdk = setValue(env, 'ANDROID_HOME') ?? setValue(env, 'ANDROID_SDK_ROOT');
+  return sdk === null ? name : join(sdk, folder, name);
+}
+
+/** Runs a command in `cwd` without a shell; a non-zero exit fails the job. */
+async function stepIn(
+  ctx: JobContext,
+  cwd: string,
+  command: string,
+  args: readonly string[],
+  extraEnv: Env = {},
+): Promise<void> {
+  const result = await run(command, args, { cwd, env: { ...ctx.env, ...extraEnv }, inherit: true });
+  if (result.code !== 0) {
+    throw new JobFailure(`${command} ${args.join(' ')} exited ${String(result.code)}`);
+  }
+}
+
+/** Starts a long-running child without a shell. */
+function startChild(
+  ctx: JobContext,
+  command: string,
+  args: readonly string[],
+  stdio: 'inherit' | 'ignore',
+): { child: ChildProcess; exited: Promise<void> } {
+  const child = spawn(command, args, { cwd: ctx.root, env: ctx.env, shell: false, stdio });
+  const exited = new Promise<void>((resolve) => {
+    child.on('exit', () => {
+      resolve();
+    });
+    child.on('error', () => {
+      resolve();
+    });
+  });
+  return { child, exited };
+}
+
+async function stopChild(started: { child: ChildProcess; exited: Promise<void> }): Promise<void> {
+  if (started.child.exitCode === null && started.child.signalCode === null) {
+    started.child.kill('SIGTERM');
+  }
+  await started.exited;
+}
+
+function running(child: ChildProcess): boolean {
+  return child.exitCode === null && child.signalCode === null;
+}
+
+async function waitForStack(child: ChildProcess): Promise<void> {
+  const deadline = Date.now() + STACK_READY_SECONDS * 1000;
+  while (Date.now() < deadline && running(child)) {
+    try {
+      const response = await fetch(`${STACK_ORIGIN}/readyz`, { signal: AbortSignal.timeout(2000) });
+      await response.body?.cancel();
+      if (response.status === 200) {
+        return;
+      }
+    } catch {
+      // Not listening yet.
+    }
+    await sleep(1000);
+  }
+  throw new JobFailure(
+    `the stack did not answer 200 on /readyz within ${String(STACK_READY_SECONDS)} seconds`,
+  );
+}
+
+async function waitForBoot(ctx: JobContext, adb: string): Promise<void> {
+  const deadline = Date.now() + EMULATOR_BOOT_SECONDS * 1000;
+  while (Date.now() < deadline) {
+    try {
+      const result = await run(adb, ['shell', 'getprop', 'sys.boot_completed'], { env: ctx.env });
+      if (result.code === 0 && result.stdout.trim() === '1') {
+        return;
+      }
+    } catch {
+      // adb is not ready yet.
+    }
+    await sleep(2000);
+  }
+  throw new JobFailure(`the emulator did not boot within ${String(EMULATOR_BOOT_SECONDS)} seconds`);
+}
+
+/** The local form of nightly.yml's maestro-android: the e2e build, the stack, the emulator, the flows. */
+async function maestroAndroidJob(ctx: JobContext): Promise<void> {
+  if (!existsSync(join(ctx.root, MAESTRO_FLOWS))) {
+    throw new JobFailure(`${MAESTRO_FLOWS} holds no flow yet`);
+  }
+  const buildEnv = androidBuildEnv(ctx.env);
+  await step(
+    ctx,
+    'pnpm',
+    [
+      '--filter',
+      '@citizenrun/mobile',
+      'exec',
+      'expo',
+      'prebuild',
+      '--platform',
+      'android',
+      '--clean',
+      '--no-install',
+    ],
+    buildEnv,
+  );
+  await stepIn(
+    ctx,
+    join(ctx.root, 'apps/mobile/android'),
+    './gradlew',
+    [':app:assembleRelease', '--no-daemon'],
+    buildEnv,
+  );
+  const adb = androidTool(ctx.env, 'platform-tools', 'adb');
+  const stack = startChild(
+    ctx,
+    'pnpm',
+    ['exec', 'tsx', 'scripts/e2e-stack.ts', '--build'],
+    'inherit',
+  );
+  let emulator: { child: ChildProcess; exited: Promise<void> } | null = null;
+  try {
+    await waitForStack(stack.child);
+    const devices = await capture(ctx, adb, ['devices']);
+    if (!adbListsEmulator(devices)) {
+      emulator = startChild(
+        ctx,
+        androidTool(ctx.env, 'emulator', 'emulator'),
+        ['-avd', EMULATOR_AVD, '-no-window', '-no-snapshot-save'],
+        'ignore',
+      );
+    }
+    await waitForBoot(ctx, adb);
+    await step(ctx, adb, ['install', '-r', ANDROID_APK]);
+    await step(
+      ctx,
+      'maestro',
+      maestroTestArgs({
+        env: ctx.env,
+        projectId: BRAND.expo.projectId,
+        facts: readSeedFacts(ctx.root),
+      }),
+    );
+  } finally {
+    if (emulator !== null) {
+      await stopChild(emulator);
+    }
+    await stopChild(stack);
+  }
+}
+
 export const NIGHTLY_JOBS: readonly CiJob[] = [
   {
     name: 'verify',
@@ -911,6 +1148,15 @@ export const NIGHTLY_JOBS: readonly CiJob[] = [
       await step(ctx, 'pnpm', ['verify'], { TEST_SHUFFLE: '1' });
     },
   },
+  {
+    name: 'migration-compat',
+    workflow: 'nightly',
+    needsPgDump17: true,
+    run: async (ctx) => {
+      await step(ctx, 'pnpm', migrationCompatArgs(ctx.base));
+    },
+  },
+  { name: 'maestro-android', workflow: 'nightly', needsPgDump17: false, run: maestroAndroidJob },
 ];
 
 // ---------------------------------------------------------------------------------------------

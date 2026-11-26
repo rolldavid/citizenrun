@@ -3,7 +3,14 @@ name: nightly
 on:
   schedule:
     - cron: '17 7 * * *'
+  # A release tag dispatches `only: maestro-android` on the tag, which runs that job alone.
   workflow_dispatch:
+    inputs:
+      only:
+        description: Which jobs to run
+        type: choice
+        options: [all, maestro-android]
+        default: all
 
 permissions:
   contents: read
@@ -14,6 +21,7 @@ concurrency:
 
 jobs:
   verify:
+    if: github.event_name != 'workflow_dispatch' || inputs.only == 'all'
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     services:
@@ -39,9 +47,38 @@ jobs:
         env:
           TEST_SHUFFLE: '1'
 
+  # The previous code's API and worker integration tests against the current migrations.
+  migration-compat:
+    # origin/staging exists only once staging does; until then the local run is the check.
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event_name != 'workflow_dispatch' || inputs.only == 'all')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - run: sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+      - run: sudo apt-get install -y --no-install-recommends postgresql-client-17
+      - run: echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - run: pnpm exec tsx scripts/migration-compat.ts --base origin/staging
+
   bucket-smoke:
     # Runs only once staging exists (PC9-42, D-561).
-    if: vars.RAILWAY_STAGING_READY == 'true'
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event_name != 'workflow_dispatch' || inputs.only == 'all')
     environment: staging
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -51,3 +88,138 @@ jobs:
       - run: pnpm exec railway run --service api --environment staging -- pnpm exec tsx scripts/smoke-bucket.ts
         env:
           RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
+
+  # Every Maestro flow on an API 34 emulator, against the seeded stack (D-181).
+  maestro-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Give the runner /dev/kvm
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('pnpm-lock.yaml') }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-34
+      - name: Make the emulator snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "The emulator snapshot is made."
+      - name: Prebuild the e2e profile
+        run: pnpm --filter @citizenrun/mobile exec expo prebuild --platform android --clean --no-install
+        env:
+          APP_VARIANT: development
+          EXPO_PUBLIC_API_ORIGIN: http://10.0.2.2:8080
+      - name: Build the APK
+        working-directory: apps/mobile/android
+        run: ./gradlew :app:assembleRelease --no-daemon
+        env:
+          APP_VARIANT: development
+          EXPO_PUBLIC_API_ORIGIN: http://10.0.2.2:8080
+      - run: pnpm build:web && pnpm build:api && pnpm build:worker
+      - name: Start the seeded stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup pnpm exec tsx scripts/e2e-stack.ts > "$RUNNER_TEMP/e2e-stack.log" 2>&1 &
+          for _ in $(seq 1 180); do
+            if curl -fsS -o /dev/null http://localhost:8080/readyz; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/e2e-stack.log"
+          echo "/readyz did not answer 200 within 180 seconds"
+          exit 1
+      - name: Install the Maestro CLI
+        shell: bash
+        env:
+          # The pinned release and the SHA-256 of its archive.
+          MAESTRO_VERSION: 2.12.1
+          MAESTRO_SHA256: 54dbb0716425626604973cbb374c585ca30272375d9ce15177a1152765ddd9d7
+        run: |
+          set -euo pipefail
+          curl -fsSL -o "$RUNNER_TEMP/maestro.zip" \
+            "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip"
+          echo "${MAESTRO_SHA256}  $RUNNER_TEMP/maestro.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Write the flow command
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Push registers only with the Expo project id and a Firebase file; this job passes none.
+          if [ "$(jq -r '.expo.projectId // ""' brand.json)" != "" ] && [ -n "${GOOGLE_SERVICES_JSON:-}" ]; then
+            push=true
+          else
+            push=false
+          fi
+          cat > "$RUNNER_TEMP/maestro-run.sh" <<EOF
+          #!/usr/bin/env bash
+          set -euo pipefail
+          args=(-e "APP_ID=\$(jq -r .variants.development.androidPackage brand.json)")
+          args+=(-e "APP_SCHEME=\$(jq -r .variants.development.scheme brand.json)")
+          args+=(-e "PUSH_CONFIGURED=${push}")
+          facts=apps/mobile/e2e/.stack/seed-facts.json
+          if [ -f "\$facts" ]; then
+            while IFS= read -r fact; do
+              args+=(-e "\$fact")
+            done < <(jq -r 'to_entries[] | "\(.key)=\(.value | if type == "string" then . else tojson end)"' "\$facts")
+          fi
+          adb install -r apps/mobile/android/app/build/outputs/apk/release/app-release.apk
+          maestro test apps/mobile/.maestro "\${args[@]}"
+          EOF
+          chmod +x "$RUNNER_TEMP/maestro-run.sh"
+      - name: Run the flows
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: 34
+          arch: x86_64
+          target: google_apis
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: bash "$RUNNER_TEMP/maestro-run.sh"
+      - if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: maestro-tests
+          path: ~/.maestro/tests
+          retention-days: 3

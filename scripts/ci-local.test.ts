@@ -1,11 +1,12 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { parse } from 'yaml';
 import { z } from 'zod';
-import { JOB_POLICIES } from '@citizenrun/shared';
+import { BRAND, JOB_POLICIES } from '@citizenrun/shared';
 import {
+  ANDROID_API_ORIGIN,
   CI_JOBS,
   IMAGE_SMOKES,
   MIN_FREE_BYTES_FOR_IMAGES,
@@ -23,9 +24,15 @@ import {
   selectJobs,
   showLogsAndRemove,
   WORKER_CONTAINER,
+  adbListsEmulator,
+  androidBuildEnv,
   logEvents,
+  maestroTestArgs,
+  migrationCompatArgs,
   parseQueueRows,
   productQueues,
+  pushConfigured,
+  seedFactArgs,
   workerQueuesFailure,
   workerRunArgs,
   workerStartState,
@@ -66,12 +73,17 @@ describe('ci-local', () => {
     expect(CI_JOBS.every((job) => job.workflow === 'ci')).toBe(true);
   });
 
-  it('the nightly jobs are the workflow jobs other than bucket-smoke', () => {
+  it('the nightly jobs match the workflow', () => {
     const jobs = workflowJobs('nightly.yml');
     expect(jobs).toContain('bucket-smoke');
     expect(jobs.filter((name) => !(NO_LOCAL_FORM as readonly string[]).includes(name))).toEqual(
       NIGHTLY_JOBS.map((job) => job.name),
     );
+    expect(NIGHTLY_JOBS.map((job) => job.name)).toEqual([
+      'verify',
+      'migration-compat',
+      'maestro-android',
+    ]);
     expect(NIGHTLY_JOBS.every((job) => job.workflow === 'nightly')).toBe(true);
   });
 
@@ -79,12 +91,17 @@ describe('ci-local', () => {
     const needing = [...CI_JOBS, ...NIGHTLY_JOBS]
       .filter((job) => job.needsPgDump17)
       .map((job) => job.name);
-    expect(needing).toEqual(['integration', 'images', 'verify']);
+    expect(needing).toEqual(['integration', 'images', 'verify', 'migration-compat']);
   });
 
   it('selection follows the flags', () => {
     expect(names([])).toEqual(CI_JOBS.map((job) => job.name));
-    expect(names(['--nightly'])).toEqual(['verify']);
+    expect(names(['--nightly'])).toEqual(['verify', 'migration-compat', 'maestro-android']);
+    expect(names(['--nightly', '--job', 'verify,migration-compat'])).toEqual([
+      'verify',
+      'migration-compat',
+    ]);
+    expect(names(['--job', 'maestro-android'])).toEqual(['maestro-android']);
     expect(names(['--job', 'audit,secrets,images'])).toEqual(['images', 'audit', 'secrets']);
     expect(names(['--job', 'verify'])).toEqual(['verify']);
     expect(names(['--nightly', '--job', 'verify'])).toEqual(['verify']);
@@ -95,13 +112,13 @@ describe('ci-local', () => {
     const attempt = (): unknown => selectJobs(parseCiLocalArgs(['--job', 'lint']));
     expect(attempt).toThrow(UsageError);
     expect(attempt).toThrow(
-      'unknown job lint; valid jobs: static, unit, integration, web, images, e2e, audit, secrets, verify',
+      'unknown job lint; valid jobs: static, unit, integration, web, images, e2e, audit, secrets, verify, migration-compat, maestro-android',
     );
   });
 
   it('with --nightly only nightly jobs are accepted', () => {
     expect(() => selectJobs(parseCiLocalArgs(['--nightly', '--job', 'unit']))).toThrow(
-      'unknown job unit; valid jobs: verify',
+      'unknown job unit; valid jobs: verify, migration-compat, maestro-android',
     );
   });
 
@@ -187,6 +204,117 @@ describe('ci-local', () => {
     expect(median([4, 1, 3, 2])).toBe(2.5);
     expect(median([7])).toBe(7);
     expect(() => median([])).toThrow();
+  });
+});
+
+describe('the nightly local forms', () => {
+  let folder: string | null = null;
+
+  afterEach(() => {
+    if (folder !== null) {
+      rmSync(folder, { recursive: true, force: true });
+      folder = null;
+    }
+  });
+
+  it('migration-compat passes the base', async () => {
+    expect(migrationCompatArgs(parseCiLocalArgs(['--base', 'abc']).base)).toEqual([
+      'exec',
+      'tsx',
+      'scripts/migration-compat.ts',
+      '--base',
+      'abc',
+    ]);
+    expect(migrationCompatArgs(parseCiLocalArgs([]).base)).toContain('main');
+    expect(migrationCompatArgs(parseCiLocalArgs([]).base).slice(-2)).toEqual(['--base', 'main']);
+
+    // The job itself, with a stand-in pnpm on PATH that records its arguments.
+    folder = mkdtempSync(join(tmpdir(), 'ci-local-compat-'));
+    const record = join(folder, 'args.txt');
+    const shim = join(folder, 'pnpm');
+    writeFileSync(shim, `#!/bin/sh\nprintf '%s\\n' "$@" > '${record}'\n`);
+    chmodSync(shim, 0o755);
+    const job = NIGHTLY_JOBS.find((entry) => entry.name === 'migration-compat');
+    await job?.run({
+      root: ROOT,
+      base: 'abc',
+      updateSnapshots: false,
+      env: { PATH: `${folder}:/usr/bin:/bin`, TZ: 'UTC' },
+    });
+    expect(readFileSync(record, 'utf8').trim().split('\n')).toEqual([
+      'exec',
+      'tsx',
+      'scripts/migration-compat.ts',
+      '--base',
+      'abc',
+    ]);
+  });
+
+  it('maestro-android passes the development identifiers', () => {
+    const brand = z
+      .object({
+        variants: z.object({
+          development: z.object({ androidPackage: z.string(), scheme: z.string() }),
+        }),
+      })
+      .parse(JSON.parse(readFileSync(join(ROOT, 'brand.json'), 'utf8')));
+    const development = brand.variants.development;
+    const args = maestroTestArgs({ env: {}, projectId: null, facts: {} });
+    expect(args.slice(0, 2)).toEqual(['test', 'apps/mobile/.maestro']);
+    expect(args).toContain(`APP_ID=${development.androidPackage}`);
+    expect(args).toContain(`APP_SCHEME=${development.scheme}`);
+    expect(BRAND.variants.development.androidPackage).toBe(development.androidPackage);
+    // Read from the brand module, never written into the script.
+    const source = readFileSync(join(ROOT, 'scripts/ci-local.ts'), 'utf8');
+    expect(source).not.toContain(development.androidPackage);
+    expect(source).not.toContain(`'${development.scheme}'`);
+
+    expect(
+      seedFactArgs({ officeWithDeadline: 'office one', durhamPoint: { lat: 36, lng: -78.9 } }),
+    ).toEqual(['-e', 'officeWithDeadline=office one', '-e', 'durhamPoint={"lat":36,"lng":-78.9}']);
+    const withFacts = maestroTestArgs({ env: {}, projectId: null, facts: { handle: 'seed' } });
+    expect(withFacts.slice(-2)).toEqual(['-e', 'handle=seed']);
+
+    expect(androidBuildEnv({})).toEqual({
+      APP_VARIANT: 'development',
+      EXPO_PUBLIC_API_ORIGIN: ANDROID_API_ORIGIN,
+    });
+    expect(ANDROID_API_ORIGIN).toBe('http://10.0.2.2:8080');
+    expect(adbListsEmulator('List of devices attached\nemulator-5554\tdevice\n')).toBe(true);
+    expect(adbListsEmulator('List of devices attached\nemulator-5554\toffline\n')).toBe(false);
+    expect(adbListsEmulator('List of devices attached\nR58M12345\tdevice\n')).toBe(false);
+  });
+
+  it('push is off without a Firebase file', () => {
+    expect(pushConfigured('fixture-project-id', {})).toBe(false);
+    expect(pushConfigured('fixture-project-id', { GOOGLE_SERVICES_JSON: '' })).toBe(false);
+    expect(pushConfigured(null, { GOOGLE_SERVICES_JSON: '/fixture/google-services.json' })).toBe(
+      false,
+    );
+    expect(
+      pushConfigured('fixture-project-id', {
+        GOOGLE_SERVICES_JSON: '/fixture/google-services.json',
+      }),
+    ).toBe(true);
+    expect(maestroTestArgs({ env: {}, projectId: BRAND.expo.projectId, facts: {} })).toContain(
+      'PUSH_CONFIGURED=false',
+    );
+    expect(
+      maestroTestArgs({
+        env: { GOOGLE_SERVICES_JSON: '/fixture/google-services.json' },
+        projectId: 'fixture-project-id',
+        facts: {},
+      }),
+    ).toContain('PUSH_CONFIGURED=true');
+    // The Firebase file reaches the build only when the shell holds it.
+    expect(androidBuildEnv({})).not.toHaveProperty('GOOGLE_SERVICES_JSON');
+    expect(androidBuildEnv({ GOOGLE_SERVICES_JSON: '' })).not.toHaveProperty(
+      'GOOGLE_SERVICES_JSON',
+    );
+    expect(
+      androidBuildEnv({ GOOGLE_SERVICES_JSON: '/fixture/google-services.json' })
+        .GOOGLE_SERVICES_JSON,
+    ).toBe('/fixture/google-services.json');
   });
 });
 
