@@ -115,7 +115,7 @@ describe('SettingsScreenView', () => {
   it('notifications is not pressable', () => {
     draw(fixtures.settingsDefault);
     const row = screen.getByTestId('settings.row-notifications');
-    expect(row.textContent).toBe('NotificationsSoon');
+    expect(row.textContent).toBe('Notifications Soon');
     expect(row.getAttribute('role')).toBeNull();
     expect(row.tagName).not.toBe('A');
     expect(row.querySelector('a, button, [role="button"], [role="link"]')).toBeNull();
@@ -176,12 +176,12 @@ describe('SettingsScreenView', () => {
   it('appearance shows the choice', () => {
     draw(fixtures.settingsDefault);
     expect(screen.getByTestId('settings.row-appearance').textContent).toBe(
-      'AppearanceMatch my device',
+      'Appearance Match my device',
     );
     draw(withData({ themeChoice: 'dark' }));
-    expect(screen.getByTestId('settings.row-appearance').textContent).toBe('AppearanceDark');
+    expect(screen.getByTestId('settings.row-appearance').textContent).toBe('Appearance Dark');
     draw(withData({ themeChoice: 'light' }));
-    expect(screen.getByTestId('settings.row-appearance').textContent).toBe('AppearanceLight');
+    expect(screen.getByTestId('settings.row-appearance').textContent).toBe('Appearance Light');
   });
 
   it('generic states', () => {

@@ -107,7 +107,7 @@ describe('SettingsAccountScreenView', () => {
     const waiting = vi.fn();
     draw({ ...withData(fixtures.accountNoEmail, { onOpenAddEmail: waiting }), stale: true });
     const offline = screen.getByTestId('settings.account-add-email');
-    expect(offline.textContent).toBe('Add an emailNeeds a connection');
+    expect(offline.textContent).toBe('Add an email Needs a connection');
     expect(offline.getAttribute('role')).toBeNull();
     fireEvent.click(offline);
     expect(waiting).not.toHaveBeenCalled();

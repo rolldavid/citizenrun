@@ -60,6 +60,23 @@ const DOT: ViewStyle = {
 // The part of a row that is a link while its action is a target of its own.
 const LINK_PART: ViewStyle = { flex: 1, minWidth: 0 };
 const LINK_LINE: ViewStyle = { flexDirection: 'row', alignItems: 'center' };
+// Out of the row's layout, so a word space takes no room in it.
+const WORD_SPACE: ViewStyle = { position: 'absolute' };
+
+/**
+ * A space between two parts of what a row says. Each part stands in a box of its own with nothing
+ * between them in the page's text, where the last word of one would run into the first word of the
+ * next. It draws nothing and no screen reader meets it.
+ */
+function WordSpace(): JSX.Element {
+  return (
+    <View style={WORD_SPACE}>
+      <Text role="caption" hidden={true}>
+        {' '}
+      </Text>
+    </View>
+  );
+}
 
 /**
  * C-ListRow: the row of every list. A leading element, a title over one caption line, and one
@@ -96,12 +113,13 @@ export function ListRow({
 
   const worded = typeof subtitle === 'string' ? `${title}. ${subtitle}` : title;
   // A setting or a count printed at the row's end is part of what the row says.
-  const said =
+  const printed =
     trailing?.kind === 'value'
-      ? `${worded}. ${trailing.text}`
+      ? trailing.text
       : trailing?.kind === 'count'
-        ? `${worded}. ${String(trailing.value)}`
-        : worded;
+        ? String(trailing.value)
+        : null;
+  const said = printed === null ? worded : `${worded}. ${printed}`;
   const name = unread ? t('ui.row.unread', { label: said }) : said;
   const action = trailing?.kind === 'action' ? trailing.node : null;
 
@@ -128,12 +146,17 @@ export function ListRow({
           </View>
         )}
         {typeof subtitle === 'string' ? (
-          <Text role="caption" tone="secondary" numberOfLines={1}>
-            {subtitle}
-          </Text>
+          <>
+            <WordSpace />
+            <Text role="caption" tone="secondary" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          </>
         ) : (
           subtitle
         )}
+        {/* The setting or the count stands after the words, in the tail. */}
+        {printed === null ? null : <WordSpace />}
       </View>
     </>
   );

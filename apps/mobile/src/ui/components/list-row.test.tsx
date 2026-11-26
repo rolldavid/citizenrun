@@ -339,6 +339,54 @@ describe('ListRow', () => {
     expect(plain.getAttribute('aria-label')).toBe('Notifications');
   });
 
+  it('the parts of a row read as separate words, in the order of its name', () => {
+    // The words of a text: letters and digits, apart at anything else.
+    const words = (text: string | null): string[] =>
+      (text ?? '')
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((word) => word !== '');
+    const setting = draw({
+      href: '/dev/gallery',
+      trailing: { kind: 'value', text: 'Match my device' },
+    });
+    expect(setting.textContent).toBe('Notifications Match my device');
+    const counted = draw({ onPress: () => undefined, trailing: { kind: 'count', value: 128 } });
+    expect(counted.textContent).toBe('Notifications 128');
+    const captioned = draw({ href: '/dev/gallery', subtitle: 'Mentions and replies' });
+    expect(captioned.textContent).toBe('Notifications Mentions and replies');
+    const all = draw({
+      href: '/dev/gallery',
+      subtitle: 'Mentions and replies',
+      trailing: { kind: 'value', text: 'System' },
+    });
+    expect(all.textContent).toBe('Notifications Mentions and replies System');
+    // A row's name holds the words it shows, one after another.
+    for (const row of [setting, counted, captioned, all]) {
+      expect(words(row.textContent)).toEqual(words(row.getAttribute('aria-label')));
+    }
+    for (const state of ['value', 'count', 'iconLeading', 'unread'] as const) {
+      const row = drawState(state);
+      const name = words(row.getAttribute('aria-label')).join(' ');
+      expect(` ${name} `, state).toContain(` ${words(row.textContent).join(' ')} `);
+    }
+    // A row with one part gains nothing, and a row that opens nothing reads the same way.
+    expect(draw({ href: '/dev/gallery', trailing: { kind: 'chevron' } }).textContent).toBe(
+      'Notifications',
+    );
+    expect(draw({ trailing: { kind: 'value', text: 'Soon' } }).textContent).toBe(
+      'Notifications Soon',
+    );
+    // A space is out of the row's layout and hidden from a screen reader.
+    const spaces = [...all.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].filter(
+      (part) => part.textContent === ' ',
+    );
+    expect(spaces).toHaveLength(2);
+    for (const space of spaces) {
+      expect(space.parentElement?.style.position).toBe('absolute');
+    }
+  });
+
   it('link row', () => {
     const row = draw({ href: '/dev/gallery', subtitle: 'Mentions and replies' });
     expect(row.tagName).toBe('A');
