@@ -94,7 +94,14 @@ export function ListRow({
       : {}),
   };
 
-  const said = typeof subtitle === 'string' ? `${title}. ${subtitle}` : title;
+  const worded = typeof subtitle === 'string' ? `${title}. ${subtitle}` : title;
+  // A setting or a count printed at the row's end is part of what the row says.
+  const said =
+    trailing?.kind === 'value'
+      ? `${worded}. ${trailing.text}`
+      : trailing?.kind === 'count'
+        ? `${worded}. ${String(trailing.value)}`
+        : worded;
   const name = unread ? t('ui.row.unread', { label: said }) : said;
   const action = trailing?.kind === 'action' ? trailing.node : null;
 

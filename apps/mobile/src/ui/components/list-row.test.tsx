@@ -191,10 +191,17 @@ describe('ListRow', () => {
     for (const state of STATE_NAMES) {
       const row = drawState(state);
       const fixture = ALL[state];
-      const said =
+      const worded =
         typeof fixture.subtitle === 'string'
           ? `${fixture.title}. ${fixture.subtitle}`
           : fixture.title;
+      // A setting or a count at the row's end is read with it.
+      const said =
+        fixture.trailing?.kind === 'value'
+          ? `${worded}. ${fixture.trailing.text}`
+          : fixture.trailing?.kind === 'count'
+            ? `${worded}. ${String(fixture.trailing.value)}`
+            : worded;
       if (fixture.href !== undefined) {
         expect(screen.getByRole('link', { name: said }), state).toBe(row);
       } else if (fixture.onPress !== undefined) {
@@ -313,6 +320,23 @@ describe('ListRow', () => {
     draw({ subtitle: <Text role="caption">Filing closes Fri, Nov 27</Text> });
     expect(lines('Filing closes Fri, Nov 27')).toBeUndefined();
     expect(screen.getByText('Filing closes Fri, Nov 27')).toBeTruthy();
+  });
+
+  it('a setting or a count at the end of a row is part of its name', () => {
+    // What a person reads on the row is what a screen reader and a voice command are given.
+    const setting = draw({ href: '/dev/gallery', trailing: { kind: 'value', text: 'System' } });
+    expect(setting.getAttribute('aria-label')).toBe('Notifications. System');
+    const counted = draw({ onPress: () => undefined, trailing: { kind: 'count', value: 128 } });
+    expect(counted.getAttribute('aria-label')).toBe('Notifications. 128');
+    const both = draw({
+      href: '/dev/gallery',
+      subtitle: 'Mentions and replies',
+      trailing: { kind: 'value', text: 'System' },
+    });
+    expect(both.getAttribute('aria-label')).toBe('Notifications. Mentions and replies. System');
+    // A chevron says nothing.
+    const plain = draw({ href: '/dev/gallery', trailing: { kind: 'chevron' } });
+    expect(plain.getAttribute('aria-label')).toBe('Notifications');
   });
 
   it('link row', () => {
