@@ -133,28 +133,46 @@ export async function appleHandoff(
     if (consumedBy === null) {
       throw new ApiError('handoff_invalid');
     }
+    // The age record read again under the user's lock: of two hand-offs for one new user at once,
+    // only the first writes the sign-up records.
+    let completed = false;
     if (ageMissing) {
       if (input.signup === null) {
         throw new ApiError('signup_details_required');
       }
-      await completeDeferredSignup(tx, {
-        userId: consumedBy,
-        signup: input.signup,
-        platform: ANDROID,
-        now,
-      });
+      // index: users_pkey
+      const [locked] = await tx
+        .select({ ageMethod: users.ageMethod })
+        .from(users)
+        .where(eq(users.id, consumedBy))
+        .for('update');
+      if (locked?.ageMethod === null) {
+        await completeDeferredSignup(tx, {
+          userId: consumedBy,
+          signup: input.signup,
+          platform: ANDROID,
+          now,
+        });
+        completed = true;
+      }
     }
-    return finishSignIn(tx, {
+    const signedIn = await finishSignIn(tx, {
       userId: consumedBy,
       carriedSessionId: input.session?.id ?? null,
       platform: ANDROID,
       now,
       adminEmails,
     });
+    return { ...signedIn, completed };
   });
   if (finished.promoted) {
     deps.logger.info('auth.admin_bootstrap', { userId });
   }
-  // 8. `created` is true when the age record was null before this request.
-  return { userId, created: ageMissing, session: finished.session, promoted: finished.promoted };
+  // 8. `created` is true when this request wrote the age record that was null before it.
+  return {
+    userId,
+    created: finished.completed,
+    session: finished.session,
+    promoted: finished.promoted,
+  };
 }

@@ -15,6 +15,7 @@ import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signIn } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
+import { withWritesHeld } from '../../testing/held-writes.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { insertIdentity } from '../../testing/factories.ts';
 import { FIXTURE_APPLE, FakeIdentityProviders } from '../../testing/fakes/identity.ts';
@@ -198,6 +199,37 @@ describe('POST /v1/auth/apple/handoff', () => {
     expect(session?.platform).toBe('android');
     expect(session?.tokenHash).toBe(sha256Hex(info.token ?? ''));
     expect((await handoffRow(code, nonce))?.usedAt).not.toBeNull();
+  });
+
+  it('two hand-offs at once for one new user write its sign-up records once', async () => {
+    const subject = freshSubject();
+    const first = await callback({ subject });
+    const second = await callback({ subject });
+    const userId = (await handoffRow(first.code, first.nonce))?.userId ?? '';
+    expect((await handoffRow(second.code, second.nonce))?.userId).toBe(userId);
+
+    const answers = await withWritesHeld('auth_challenges', 2, () => [
+      handoff({ code: first.code, nonce: first.nonce.nonce, signup: signup() }),
+      handoff({ code: second.code, nonce: second.nonce.nonce, signup: signup() }),
+    ]);
+
+    const infos = await Promise.all(answers.map((response) => expectSignedIn(response)));
+    expect(infos.map((info) => info.me.id)).toEqual([userId, userId]);
+    expect(infos.map((info) => info.created).sort()).toEqual([false, true]);
+    const consents = await testApp.deps.db
+      .select()
+      .from(userConsents)
+      .where(eq(userConsents.userId, userId));
+    expect(consents.map((consent) => consent.kind).sort()).toEqual([
+      'content_policy',
+      'privacy_policy',
+      'terms',
+    ]);
+    const events = await testApp.deps.db
+      .select()
+      .from(appEvents)
+      .where(and(eq(appEvents.userId, userId), eq(appEvents.name, 'account_created')));
+    expect(events).toHaveLength(1);
   });
 
   it('without signup the code stays usable', async () => {
