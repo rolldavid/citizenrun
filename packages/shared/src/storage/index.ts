@@ -8,6 +8,8 @@ export {
   avatarKeys,
   avatarUploadPrefix,
   avatarUserPrefix,
+  civicFormKey,
+  civicPhotoKey,
   exportKey,
   exportUserPrefix,
   incomingUploadKey,

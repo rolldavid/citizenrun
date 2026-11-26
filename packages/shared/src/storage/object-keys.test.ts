@@ -4,6 +4,8 @@ import {
   avatarKeys,
   avatarUploadPrefix,
   avatarUserPrefix,
+  civicFormKey,
+  civicPhotoKey,
   exportKey,
   exportUserPrefix,
   incomingUploadKey,
@@ -98,5 +100,17 @@ describe('L-object-keys', () => {
     expect(() => incomingUploadKey(USER, UPLOAD, heic)).toThrow(RangeError);
     const inherited = 'toString' as UploadContentType; // an Object.prototype name is not a content type
     expect(() => incomingUploadKey(USER, UPLOAD, inherited)).toThrow(RangeError);
+  });
+
+  it('a civic photo key is its content hash', () => {
+    const sha = 'ab'.repeat(32);
+    expect(civicPhotoKey(sha)).toBe(`civic/photos/${sha}.jpg`);
+    expect(() => civicPhotoKey('ABC')).toThrow(RangeError);
+  });
+
+  it('a civic form key is its content hash', () => {
+    const sha = '0f'.repeat(32);
+    expect(civicFormKey(sha)).toBe(`civic/forms/${sha}.pdf`);
+    expect(() => civicFormKey('ABC')).toThrow(RangeError);
   });
 });

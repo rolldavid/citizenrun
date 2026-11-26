@@ -66,3 +66,22 @@ export function exportKey(userId: string, exportId: string): string {
 export function exportUserPrefix(userId: string): string {
   return `exports/${id(userId)}/`;
 }
+
+const SHA256_PATTERN = /^[0-9a-f]{64}$/;
+
+function sha256(value: string): string {
+  if (!SHA256_PATTERN.test(value)) {
+    throw new RangeError('A civic object key hash must be 64 lower-case hex characters');
+  }
+  return value;
+}
+
+/** civic/photos/<sha256>.jpg, a bundle photo (L-object-keys). */
+export function civicPhotoKey(sha256Hex: string): string {
+  return `civic/photos/${sha256(sha256Hex)}.jpg`;
+}
+
+/** civic/forms/<sha256>.pdf, a bundle form (L-object-keys). */
+export function civicFormKey(sha256Hex: string): string {
+  return `civic/forms/${sha256(sha256Hex)}.pdf`;
+}
