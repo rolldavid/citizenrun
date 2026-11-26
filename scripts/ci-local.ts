@@ -1008,7 +1008,7 @@ async function stepIn(
 }
 
 /** Starts a long-running child without a shell. */
-function startChild(
+export function startChild(
   ctx: JobContext,
   command: string,
   args: readonly string[],
@@ -1026,11 +1026,89 @@ function startChild(
   return { child, exited };
 }
 
-async function stopChild(started: { child: ChildProcess; exited: Promise<void> }): Promise<void> {
-  if (started.child.exitCode === null && started.child.signalCode === null) {
-    started.child.kill('SIGTERM');
+/** How long the processes a stopped child started have to exit before they are killed. */
+const STOP_GRACE_SECONDS = 30;
+
+/** The ids of every process under `root` in a `ps -A -o pid=,ppid=` listing, nearest first. */
+export function descendantsOf(listing: string, root: number): number[] {
+  const children = new Map<number, number[]>();
+  for (const line of listing.split('\n')) {
+    const [pid, ppid] = line.trim().split(/\s+/).map(Number);
+    if (
+      pid !== undefined &&
+      ppid !== undefined &&
+      Number.isInteger(pid) &&
+      Number.isInteger(ppid)
+    ) {
+      children.set(ppid, [...(children.get(ppid) ?? []), pid]);
+    }
+  }
+  const found: number[] = [];
+  const queue = [root];
+  for (let parent = queue.shift(); parent !== undefined; parent = queue.shift()) {
+    for (const child of children.get(parent) ?? []) {
+      if (child !== root && !found.includes(child)) {
+        found.push(child);
+        queue.push(child);
+      }
+    }
+  }
+  return found;
+}
+
+/** The ids of `pids` that are still running (listed, and not a zombie). */
+async function stillRunning(pids: readonly number[]): Promise<number[]> {
+  if (pids.length === 0) {
+    return [];
+  }
+  const listed = new Set<number>();
+  for (const line of (await run('ps', ['-A', '-o', 'pid=,stat='])).stdout.split('\n')) {
+    const [pid, stat] = line.trim().split(/\s+/);
+    if (pid !== undefined && stat !== undefined && !stat.startsWith('Z')) {
+      listed.add(Number(pid));
+    }
+  }
+  return pids.filter((pid) => listed.has(pid));
+}
+
+function signalPid(pid: number, signal: NodeJS.Signals): void {
+  try {
+    process.kill(pid, signal);
+  } catch {
+    // It has exited already.
+  }
+}
+
+/**
+ * Stops a child and every process it started. The tree is read before the child is signalled: a
+ * wrapper such as pnpm's does not pass SIGTERM on, and once it exits what it started is re-parented
+ * and keeps running (the seeded stack would keep port 8080). Whatever is left after the grace
+ * period is killed.
+ */
+export async function stopChild(started: {
+  child: ChildProcess;
+  exited: Promise<void>;
+}): Promise<void> {
+  const pid = started.child.pid;
+  if (!running(started.child) || pid === undefined) {
+    await started.exited;
+    return;
+  }
+  const tree = descendantsOf((await run('ps', ['-A', '-o', 'pid=,ppid='])).stdout, pid);
+  started.child.kill('SIGTERM');
+  for (const each of tree) {
+    signalPid(each, 'SIGTERM');
   }
   await started.exited;
+  const deadline = Date.now() + STOP_GRACE_SECONDS * 1000;
+  let left = await stillRunning(tree);
+  while (left.length > 0 && Date.now() < deadline) {
+    await sleep(200);
+    left = await stillRunning(tree);
+  }
+  for (const each of left) {
+    signalPid(each, 'SIGKILL');
+  }
 }
 
 function running(child: ChildProcess): boolean {

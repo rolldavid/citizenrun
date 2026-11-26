@@ -1,4 +1,5 @@
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -15,6 +16,7 @@ import {
   UsageError,
   availableBytes,
   ciRange,
+  descendantsOf,
   freeSpaceFailure,
   gitleaksAssetFor,
   median,
@@ -23,6 +25,8 @@ import {
   readGitleaksPin,
   selectJobs,
   showLogsAndRemove,
+  startChild,
+  stopChild,
   WORKER_CONTAINER,
   adbListsEmulator,
   androidBuildEnv,
@@ -651,5 +655,70 @@ describe('the worker smoke', () => {
         0,
       ),
     ).toBe('worker smoke: the worker logged worker.stop_failed');
+  });
+});
+
+/** Whether a process is running: listed by `ps` and not a zombie. */
+function isRunning(pid: number): boolean {
+  try {
+    return !execFileSync('ps', ['-o', 'stat=', '-p', String(pid)], { encoding: 'utf8' })
+      .trim()
+      .startsWith('Z');
+  } catch {
+    return false;
+  }
+}
+
+async function pidWrittenTo(file: string): Promise<number> {
+  const deadline = Date.now() + 3000;
+  while (Date.now() < deadline) {
+    const text = existsSync(file) ? readFileSync(file, 'utf8').trim() : '';
+    if (/^\d+$/.test(text)) {
+      return Number(text);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  }
+  throw new Error('the child wrote no pid');
+}
+
+describe('a long-running child of a job', () => {
+  const dirs: string[] = [];
+  afterEach(() => {
+    for (const dir of dirs.splice(0)) {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('finds every process under it, at any depth', () => {
+    const listing = [
+      '    1     0',
+      '   10     1',
+      '   11    10',
+      '   12    11',
+      '   13    10',
+      '   20     1',
+      '',
+    ].join('\n');
+    expect(descendantsOf(listing, 10)).toEqual([11, 13, 12]);
+    expect(descendantsOf(listing, 12)).toEqual([]);
+    expect(descendantsOf('', 10)).toEqual([]);
+  });
+
+  it('stopping it stops the processes it started too', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'ci-local-child-'));
+    dirs.push(dir);
+    const pidFile = join(dir, 'grandchild.pid');
+    const ctx = { root: ROOT, base: 'HEAD', updateSnapshots: false, env: process.env };
+    // A wrapper that does not pass SIGTERM on to what it started, as pnpm's does not.
+    const started = startChild(
+      ctx,
+      'sh',
+      ['-c', 'sleep 30 & echo $! > "$0"; wait', pidFile],
+      'ignore',
+    );
+    const grandchild = await pidWrittenTo(pidFile);
+    expect(isRunning(grandchild)).toBe(true);
+    await stopChild(started);
+    expect(isRunning(grandchild)).toBe(false);
   });
 });
