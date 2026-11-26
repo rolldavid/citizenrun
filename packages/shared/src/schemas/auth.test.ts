@@ -4,8 +4,10 @@ import * as auth from './auth.ts';
 import {
   AppleCallbackFormSchema,
   AppleHandoffBodySchema,
+  EmailAddressSchema,
   SessionInfoSchema,
   SignInWithAppleBodySchema,
+  SignInIntentSchema,
   SignInWithGoogleBodySchema,
   SignupDetailsSchema,
   StartEmailSignInBodySchema,
@@ -255,14 +257,62 @@ describe('SessionInfo', () => {
   });
 });
 
+// Shared rules that are no OpenAPI component of their own, so they carry no component id.
+const NOT_COMPONENTS: ReadonlySet<string> = new Set(['EmailAddressSchema', 'SignInIntentSchema']);
+
 describe('component ids', () => {
   it('component ids equal the type names', () => {
     const named = Object.entries(auth).flatMap(([name, value]) =>
-      name.endsWith('Schema') && value instanceof z.ZodType ? [{ name, schema: value }] : [],
+      name.endsWith('Schema') && value instanceof z.ZodType && !NOT_COMPONENTS.has(name)
+        ? [{ name, schema: value }]
+        : [],
     );
     expect(named.length).toBe(14);
     for (const { name, schema } of named) {
       expect(schema.meta()?.id).toBe(name.slice(0, -'Schema'.length));
     }
+  });
+});
+
+describe('EmailAddress', () => {
+  it("EmailAddress is StartEmailSignInBody's email rule", () => {
+    expect(EmailAddressSchema).toBe(StartEmailSignInBodySchema.shape.email);
+    expect(EmailAddressSchema.parse('  Person@Example.TEST ')).toBe('person@example.test');
+    expect(fieldIssues(EmailAddressSchema.safeParse('not-an-email'))).toEqual([
+      { path: '', code: 'invalid_format', params: undefined },
+    ]);
+    const tooLong = `${'a'.repeat(242)}@example.test`;
+    expect(tooLong).toHaveLength(255);
+    const issues = EmailAddressSchema.safeParse(tooLong).error?.issues ?? [];
+    expect(issues.map((issue) => [issue.code, 'origin' in issue ? issue.origin : null])).toEqual([
+      ['too_big', 'string'],
+    ]);
+    expect(EmailAddressSchema.meta()?.id).toBeUndefined();
+  });
+});
+
+describe('SignInIntent', () => {
+  it('SignInIntent holds the two provider intents', () => {
+    expect(SignInIntentSchema.options).toEqual(['sign_in', 'reauth']);
+    expect(SignInIntentSchema.safeParse('add_email').success).toBe(false);
+    const bodies = [
+      {
+        schema: SignInWithAppleBodySchema,
+        body: { idToken: 'header.payload.signature', code: null, nonce: TOKEN },
+      },
+      { schema: AppleHandoffBodySchema, body: { code: TOKEN, nonce: TOKEN } },
+      {
+        schema: SignInWithGoogleBodySchema,
+        body: { idToken: 'header.payload.signature', nonce: TOKEN },
+      },
+    ];
+    for (const { schema, body } of bodies) {
+      expect(schema.parse(body).intent).toBe('sign_in');
+      for (const intent of SignInIntentSchema.options) {
+        expect(schema.parse({ ...body, intent }).intent).toBe(intent);
+      }
+      expect(schema.safeParse({ ...body, intent: 'add_email' }).success).toBe(false);
+    }
+    expect(SignInIntentSchema.meta()?.id).toBeUndefined();
   });
 });

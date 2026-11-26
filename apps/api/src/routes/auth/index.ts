@@ -1,12 +1,16 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Deps } from '../../deps.ts';
+import { registerRoute } from '../../router.ts';
 import type { ApiEnv as RouterEnv, RouteContext } from '../../router.ts';
+import { startEmailSignInHandler, startEmailSignInRoute } from './start-email-sign-in.ts';
+import { verifyEmailSignInHandler, verifyEmailSignInRoute } from './verify-email-sign-in.ts';
 
 /** Attaches the sign-in routes (E-AUTH) to the `/v1` router. Registration reads nothing from `deps`. */
-export const registerAuthRoutes: (
+export function registerAuthRoutes(
   router: OpenAPIHono<RouterEnv>,
   deps: Deps,
   ctx: RouteContext,
-) => void = () => {
-  // No operation yet: the sign-in and account packages register theirs here.
-};
+): void {
+  registerRoute(router, startEmailSignInRoute, startEmailSignInHandler(deps), ctx);
+  registerRoute(router, verifyEmailSignInRoute, verifyEmailSignInHandler(deps), ctx);
+}

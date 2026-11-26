@@ -1,6 +1,6 @@
 import { clientErrors, rateLimits, workerHeartbeats } from '@citizenrun/db';
 import { getTestDb, insertUser, insertWorkerHeartbeat } from '@citizenrun/db/testing';
-import { newId } from '@citizenrun/shared';
+import { LEGAL_VERSIONS, newId } from '@citizenrun/shared';
 import { FakeClock } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { signIn } from './testing/auth.ts';
@@ -156,5 +156,43 @@ describe('a stateless API', () => {
     });
     expect(refusedByB.status).toBe(429);
     expect(refusedByB.headers.get('retry-after')).toBe('59');
+  });
+
+  it('an email challenge started on A is verified on B', async () => {
+    const [a, b] = await twoInstances();
+    const email = 'stateless@example.test';
+    const started = await a.request.post('/v1/auth/email/start', {
+      ip: freshIp(),
+      body: { email },
+    });
+    expect(started.status).toBe(200);
+    const { pendingToken } = await started.json<{ pendingToken: string }>();
+    const code = a.fakes.mailer.codeFor(email);
+    expect(code).toMatch(/^[0-9]{6}$/);
+    expect(b.fakes.mailer.sent).toHaveLength(0);
+    const verified = await b.request.post('/v1/auth/email/verify', {
+      ip: freshIp(),
+      body: {
+        pendingToken,
+        code,
+        signup: {
+          age: { method: 'self_declared', sourceTier: 'self' },
+          agreements: {
+            termsVersion: LEGAL_VERSIONS.terms,
+            contentPolicyVersion: LEGAL_VERSIONS.content_policy,
+            privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
+          },
+          aiScreening: null,
+        },
+      },
+    });
+    expect(verified.status).toBe(200);
+    const { token } = await verified.json<{ token: string }>();
+    const onA = await a.request.post('/v1/client-errors', {
+      auth: { kind: 'bearer', token },
+      ip: freshIp(),
+      body: validReport(),
+    });
+    expect(onA.status).toBe(204);
   });
 });

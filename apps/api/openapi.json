@@ -17,6 +17,38 @@
       }
     },
     "schemas": {
+      "AgeRecord": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "method": {
+            "type": "string",
+            "enum": [
+              "store_signal",
+              "self_declared"
+            ]
+          },
+          "sourceTier": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "declared",
+              "self"
+            ]
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "method",
+          "sourceTier",
+          "checkedAt"
+        ]
+      },
       "ClientErrorFrame": {
         "type": "object",
         "properties": {
@@ -41,6 +73,46 @@
           "file",
           "line",
           "column"
+        ]
+      },
+      "ConsentState": {
+        "type": "object",
+        "properties": {
+          "terms": {
+            "$ref": "#/components/schemas/DocumentConsent"
+          },
+          "contentPolicy": {
+            "$ref": "#/components/schemas/DocumentConsent"
+          },
+          "privacyPolicy": {
+            "$ref": "#/components/schemas/DocumentConsent"
+          },
+          "aiScreening": {
+            "type": "string",
+            "enum": [
+              "granted",
+              "declined",
+              "not_asked"
+            ]
+          },
+          "needed": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "terms",
+                "content_policy",
+                "privacy_policy"
+              ]
+            }
+          }
+        },
+        "required": [
+          "terms",
+          "contentPolicy",
+          "privacyPolicy",
+          "aiScreening",
+          "needed"
         ]
       },
       "CreateClientErrorBody": {
@@ -110,6 +182,45 @@
           "platform",
           "frames",
           "requestId"
+        ]
+      },
+      "DocumentConsent": {
+        "type": "object",
+        "properties": {
+          "agreedVersion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "currentVersion": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "agreedVersion",
+          "currentVersion"
+        ]
+      },
+      "EmailStartResult": {
+        "type": "object",
+        "properties": {
+          "pendingToken": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resendAvailableAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "pendingToken",
+          "expiresAt",
+          "resendAvailableAt"
         ]
       },
       "ErrorEnvelope": {
@@ -215,6 +326,276 @@
           "status"
         ]
       },
+      "Me": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "handle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "avatar": {
+            "$ref": "#/components/schemas/Media"
+          },
+          "avatarPending": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "emailStatus": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "bounced",
+              "complained",
+              "disabled"
+            ]
+          },
+          "signInMethods": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "email",
+                "apple",
+                "google"
+              ]
+            }
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "admin"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "suspended"
+            ]
+          },
+          "suspension": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "reason": {
+                "$ref": "#/components/schemas/SuspendedReason"
+              },
+              "since": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "reason",
+              "since"
+            ]
+          },
+          "onboardingStep": {
+            "$ref": "#/components/schemas/OnboardingStep"
+          },
+          "onboardedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "newAccountUntil": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "handleChangeAvailableAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UserIssue"
+            }
+          },
+          "locale": {
+            "type": "string"
+          },
+          "age": {
+            "$ref": "#/components/schemas/AgeRecord"
+          },
+          "consents": {
+            "$ref": "#/components/schemas/ConsentState"
+          },
+          "session": {
+            "$ref": "#/components/schemas/SessionState"
+          }
+        },
+        "required": [
+          "id",
+          "handle",
+          "name",
+          "bio",
+          "link",
+          "avatar",
+          "avatarPending",
+          "email",
+          "emailStatus",
+          "signInMethods",
+          "role",
+          "status",
+          "suspension",
+          "onboardingStep",
+          "onboardedAt",
+          "createdAt",
+          "newAccountUntil",
+          "handleChangeAvailableAt",
+          "issues",
+          "locale",
+          "age",
+          "consents",
+          "session"
+        ]
+      },
+      "Media": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "image",
+              "video"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "blurhash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "thumb": {
+            "$ref": "#/components/schemas/MediaVariant"
+          },
+          "poster": {
+            "$ref": "#/components/schemas/MediaVariant"
+          },
+          "durationMs": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "key",
+          "url",
+          "width",
+          "height",
+          "blurhash",
+          "thumb",
+          "poster",
+          "durationMs"
+        ]
+      },
+      "MediaVariant": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "url",
+          "width",
+          "height"
+        ]
+      },
+      "OnboardingStep": {
+        "type": "string",
+        "enum": [
+          "photo",
+          "handle",
+          "issues",
+          "location",
+          "done"
+        ]
+      },
       "OpenApiDocument": {
         "type": "object",
         "additionalProperties": {}
@@ -241,6 +622,268 @@
         "required": [
           "db",
           "worker"
+        ]
+      },
+      "SessionInfo": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "me": {
+            "$ref": "#/components/schemas/Me"
+          }
+        },
+        "required": [
+          "token",
+          "expiresAt",
+          "created",
+          "me"
+        ]
+      },
+      "SessionState": {
+        "type": "object",
+        "properties": {
+          "platform": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android",
+              "web"
+            ]
+          },
+          "authenticatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sensitiveActionsUntil": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "platform",
+          "authenticatedAt",
+          "expiresAt",
+          "sensitiveActionsUntil"
+        ]
+      },
+      "SignupDetails": {
+        "type": "object",
+        "properties": {
+          "age": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "enum": [
+                  "store_signal",
+                  "self_declared"
+                ]
+              },
+              "sourceTier": {
+                "type": "string",
+                "enum": [
+                  "confirmed",
+                  "declared",
+                  "self"
+                ]
+              }
+            },
+            "required": [
+              "method",
+              "sourceTier"
+            ]
+          },
+          "agreements": {
+            "type": "object",
+            "properties": {
+              "termsVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              "contentPolicyVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              },
+              "privacyPolicyVersion": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 32
+              }
+            },
+            "required": [
+              "termsVersion",
+              "contentPolicyVersion",
+              "privacyPolicyVersion"
+            ]
+          },
+          "aiScreening": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "AL",
+              "AK",
+              "AZ",
+              "AR",
+              "CA",
+              "CO",
+              "CT",
+              "DE",
+              "FL",
+              "GA",
+              "HI",
+              "ID",
+              "IL",
+              "IN",
+              "IA",
+              "KS",
+              "KY",
+              "LA",
+              "ME",
+              "MD",
+              "MA",
+              "MI",
+              "MN",
+              "MS",
+              "MO",
+              "MT",
+              "NE",
+              "NV",
+              "NH",
+              "NJ",
+              "NM",
+              "NY",
+              "NC",
+              "ND",
+              "OH",
+              "OK",
+              "OR",
+              "PA",
+              "RI",
+              "SC",
+              "SD",
+              "TN",
+              "TX",
+              "UT",
+              "VT",
+              "VA",
+              "WA",
+              "WV",
+              "WI",
+              "WY",
+              "DC",
+              "PR",
+              "GU",
+              "VI",
+              "AS",
+              "MP",
+              null
+            ]
+          }
+        },
+        "required": [
+          "age",
+          "agreements",
+          "aiScreening"
+        ]
+      },
+      "StartEmailSignInBody": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254,
+            "format": "email"
+          },
+          "pendingToken": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "SuspendedReason": {
+        "type": "string",
+        "enum": [
+          "content_policy",
+          "spam",
+          "impersonation",
+          "copyright",
+          "under_18",
+          "legal",
+          "other"
+        ]
+      },
+      "UserIssue": {
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "starred": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "issueId",
+          "starred"
+        ]
+      },
+      "VerifyEmailSignInBody": {
+        "type": "object",
+        "properties": {
+          "pendingToken": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]{43}$"
+          },
+          "code": {
+            "type": "string",
+            "pattern": "^[0-9]{6}$"
+          },
+          "intent": {
+            "type": "string",
+            "enum": [
+              "sign_in",
+              "reauth",
+              "add_email"
+            ],
+            "default": "sign_in"
+          },
+          "signup": {
+            "$ref": "#/components/schemas/SignupDetails"
+          }
+        },
+        "required": [
+          "pendingToken",
+          "code"
         ]
       }
     },
@@ -325,6 +968,223 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ReadyzResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/email/start": {
+      "post": {
+        "operationId": "startEmailSignIn",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "auth.emailStart",
+          "public": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "client_header_required",
+          "origin_rejected",
+          "email_undeliverable",
+          "rate_limited",
+          "email_signin_paused",
+          "unavailable"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartEmailSignInBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The challenge, its expiry and the earliest resend.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailStartResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Email to this address is not deliverable.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Email sign-in is paused, or the mail provider failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/email/verify": {
+      "post": {
+        "operationId": "verifyEmailSignIn",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "auth.emailVerify",
+          "public": true,
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "account_deleting",
+          "unavailable_in_state",
+          "age_signal_required",
+          "reauth_mismatch",
+          "email_already_set",
+          "email_in_use",
+          "code_expired",
+          "code_invalid",
+          "code_attempts_exhausted",
+          "signup_details_required",
+          "consent_version_outdated",
+          "rate_limited",
+          "signup_limit_reached"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailSignInBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in; on the web the session cookie is set and the token is null.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The intent needs a session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the sign-in is refused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The intent conflicts with the account.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The code or the sign-up details cannot be used.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests or sign-ups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

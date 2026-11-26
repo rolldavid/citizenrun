@@ -16,4 +16,16 @@ describe('escapeHtml', () => {
   it('escapes every occurrence and leaves an existing entity escaped once more', () => {
     expect(escapeHtml('a<b<c&amp;')).toBe('a&lt;b&lt;c&amp;amp;');
   });
+
+  it('each character alone', () => {
+    expect(escapeHtml('&')).toBe('&amp;');
+    expect(escapeHtml('<')).toBe('&lt;');
+    expect(escapeHtml('>')).toBe('&gt;');
+    expect(escapeHtml('"')).toBe('&quot;');
+    expect(escapeHtml("'")).toBe('&#39;');
+  });
+
+  it('ampersand once', () => {
+    expect(escapeHtml('a & b')).toBe('a &amp; b');
+  });
 });

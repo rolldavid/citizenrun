@@ -181,3 +181,11 @@ export type SignInWithGoogleBody = z.infer<typeof SignInWithGoogleBodySchema>;
 export const LogoutBodySchema = z.object({}).meta({ id: 'LogoutBody' });
 
 export type LogoutBody = z.infer<typeof LogoutBodySchema>;
+
+/** The one email rule of the sign-in routes: StartEmailSignInBody's `email` field itself (E-AUTH-01, E-AUTH-11). */
+export const EmailAddressSchema = StartEmailSignInBodySchema.shape.email;
+
+/** The intents of the provider sign-ins; E-AUTH-02 also allows 'add_email'. */
+export const SignInIntentSchema = z.enum(['sign_in', 'reauth']);
+
+export type SignInIntent = z.infer<typeof SignInIntentSchema>;

@@ -1,6 +1,7 @@
 import { createInstance } from 'i18next';
 import type { i18n } from 'i18next';
 import { BRAND } from '../brand.ts';
+import { auth } from './en/auth.ts';
 import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
 import { native } from './en/native.ts';
@@ -12,7 +13,7 @@ export { formatDate } from './format/date.ts';
 export type { DateStyle } from './format/date.ts';
 
 export const RESOURCES = {
-  en: { common, errors, native, notifications, system, hello },
+  en: { common, errors, native, notifications, system, hello, auth },
 } as const;
 
 export const NAMESPACES = [
@@ -22,6 +23,7 @@ export const NAMESPACES = [
   'notifications',
   'system',
   'hello',
+  'auth',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
