@@ -65,6 +65,9 @@ const COVERED: readonly string[] = [
 // The tables that hold no user's data, each with the reason.
 const NOT_USER_DATA: Readonly<Record<string, string>> = {
   issues: 'the issue list a migration loads',
+  powers: 'the list of powers a migration loads',
+  issue_powers: 'issue links a migration loads',
+  office_types: 'the office types a migration loads',
   state_rules: 'per-state rules; the admin column is cleared by its foreign key',
   usage_counters: 'service counters with no user id',
   client_errors: 'error reports stored with no user id',
