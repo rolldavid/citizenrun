@@ -110,7 +110,11 @@ test('a list of 1,000 rows of three kinds scrolls to the end with recycling and 
     (text.startsWith(REPORT_ONLY_PREFIX) ? reportOnly : errors).push(text);
   };
   page.on('console', (message) => {
-    if (message.type() === 'error') keep(message.text());
+    if (message.type() !== 'error') return;
+    // A logged-out visitor's session probe answers 401 by design; the browser logs that response itself.
+    const probe =
+      message.location().url.endsWith('/v1/me') && message.text().includes('status of 401');
+    if (!probe) keep(message.text());
   });
   page.on('pageerror', (error) => {
     keep(error.message);
