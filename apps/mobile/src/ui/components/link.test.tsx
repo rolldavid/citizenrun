@@ -85,6 +85,33 @@ function draw(given: ProbeProps = {}, options: RenderWithProvidersOptions = {}):
   return screen.getByTestId(PROBE);
 }
 
+const SENTENCE = 'probe.sentence';
+const linkedWords = (
+  <Text role="caption" tone="primary">
+    Terms
+  </Text>
+);
+
+/** Renders one C-Link inside a sentence, as a consent line holds one, to an outside address. */
+function drawInSentence(
+  given: ProbeProps = {},
+  options: RenderWithProvidersOptions = {},
+): { sentence: HTMLElement; link: HTMLElement } {
+  const { preview, children, ...props } = given;
+  show(
+    <Text role="caption" tone="secondary" testID={SENTENCE}>
+      By going on you accept the{' '}
+      <Link href="https://www.example.test/terms" external={true} testID={PROBE} {...props}>
+        {children ?? linkedWords}
+      </Link>
+      .
+    </Text>,
+    preview,
+    options,
+  );
+  return { sentence: screen.getByTestId(SENTENCE), link: screen.getByTestId(PROBE) };
+}
+
 /** The view that carries the underline: the anchor's one child. */
 function underlineOf(anchor: HTMLElement): HTMLElement {
   const child = anchor.firstElementChild;
@@ -302,6 +329,98 @@ describe('Link', () => {
     expect(anchor.style.borderRadius).toBe('0px');
     expect(anchor.style.outlineStyle).toBe('solid');
     expect(anchor.style.outlineWidth).toBe('2px');
+  });
+
+  it('inside a line of text the link is text in that line and holds no box', () => {
+    const { sentence, link } = drawInSentence();
+    expect(link.tagName).toBe('A');
+    // Nothing stands between the sentence and its link, and no view is set into the line: a phone
+    // would lay a view there as a block, off the baseline of the words beside it.
+    expect(link.parentElement).toBe(sentence);
+    expect(sentence.querySelectorAll('div')).toHaveLength(0);
+    expect(sentence.querySelectorAll('[style*="border-bottom"]')).toHaveLength(0);
+    expect(sentence.querySelectorAll('[style*="flex"]')).toHaveLength(0);
+    expect(link.style.textDecorationLine).toBe('underline');
+    expect(sentence.textContent).toBe('By going on you accept the Terms.');
+    // The same link through an in-app path.
+    const inApp = drawInSentence({ href: '/office/fixture-office', external: false });
+    expect(inApp.link.tagName).toBe('A');
+    expect(inApp.link.getAttribute('href')).toBe('/office/fixture-office');
+    expect(inApp.link.getAttribute('target')).toBeNull();
+    expect(inApp.sentence.querySelectorAll('div')).toHaveLength(0);
+  });
+
+  it('the underline in a line of text is one point, and two under a pointer or the keyboard', () => {
+    const { link } = drawInSentence();
+    expect(link.style.textDecorationThickness).toBe('1px');
+    expect(link.style.textUnderlineOffset).toBe('0.18em');
+    // A space the line breaks at inside the link is not underlined.
+    expect(link.style.whiteSpace).toBe('normal');
+    expect(link.style.textDecorationColor).toBe(written('#141412'));
+    expect(drawInSentence({}, { theme: 'dark' }).link.style.textDecorationColor).toBe(
+      written('#F3F1EA'),
+    );
+
+    const hovered = drawInSentence().link;
+    fireEvent.mouseEnter(hovered);
+    expect(hovered.style.textDecorationThickness).toBe('2px');
+    fireEvent.mouseLeave(hovered);
+    expect(hovered.style.textDecorationThickness).toBe('1px');
+
+    // Focus thickens it and draws the square ring; both go when focus leaves.
+    const focused = drawInSentence().link;
+    act(() => {
+      focused.focus();
+    });
+    expect(focused.style.textDecorationThickness).toBe('2px');
+    expect(focused.style.outlineStyle).toBe('solid');
+    expect(focused.style.outlineWidth).toBe('2px');
+    expect(focused.style.borderRadius).toBe('0px');
+    act(() => {
+      focused.blur();
+    });
+    expect(focused.style.textDecorationThickness).toBe('1px');
+    expect(focused.style.outlineStyle).toBe('');
+
+    // The gallery's forced states reach it as they reach the boxed link.
+    for (const preview of [{ hovered: true }, { focused: true }]) {
+      expect(drawInSentence({ preview }).link.style.textDecorationThickness).toBe('2px');
+    }
+  });
+
+  it('an outside link in a line of text opens in a new tab and says so', () => {
+    const { link } = drawInSentence({ label: 'Terms' });
+    expect(link.getAttribute('href')).toBe('https://www.example.test/terms');
+    expect(link.getAttribute('target')).toBe('_blank');
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer nofollow');
+    expect(screen.getByRole('link', { name: 'Terms, opens in your browser' })).toBe(link);
+    // With no name of its own it is named by the words inside it.
+    const unnamed = drawInSentence({ href: '/office/fixture-office', external: false }).link;
+    expect(unnamed.hasAttribute('aria-label')).toBe(false);
+    expect(screen.getByRole('link', { name: 'Terms' })).toBe(unnamed);
+  });
+
+  it('plain words in a line of text take the type of that line', () => {
+    const { sentence, link } = drawInSentence({ children: 'Terms' });
+    expect(link.childElementCount).toBe(0);
+    expect(link.textContent).toBe('Terms');
+    expect(link.style.fontSize).toBe('');
+    expect(link.getAttribute('aria-label')).toBe('Terms, opens in your browser');
+    expect(sentence.textContent).toBe('By going on you accept the Terms.');
+  });
+
+  it('a refused address in a line of text draws its words there and opens nothing', () => {
+    for (const href of ['http://example.test', 'javascript:alert(1)', '/office/fixture-office']) {
+      const { sentence, link } = drawInSentence({ href });
+      expect(link.tagName, href).toBe('SPAN');
+      expect(link.parentElement, href).toBe(sentence);
+      expect(link.style.textDecorationLine, href).toBe('');
+      expect(document.querySelectorAll('a'), href).toHaveLength(0);
+      expect(document.querySelectorAll('[href]'), href).toHaveLength(0);
+      expect(screen.queryByRole('link'), href).toBeNull();
+      expect(sentence.querySelectorAll('div'), href).toHaveLength(0);
+      expect(sentence.textContent, href).toBe('By going on you accept the Terms.');
+    }
   });
 
   it('is named by its label, or by its words', () => {

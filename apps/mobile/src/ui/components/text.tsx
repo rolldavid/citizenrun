@@ -40,6 +40,18 @@ type WebHeadingProps = { 'aria-level'?: 1 | 2 | 3; tabIndex?: -1 };
 
 const TEXT_ALIGN = { start: 'left', center: 'center', end: 'right' } as const;
 
+/** True under a C-Text: what is drawn there stands in its line of text. */
+const TextRunContext = createContext(false);
+
+/**
+ * True where the caller is drawn inside a C-Text. A phone sets a box that stands there on the line
+ * as one block, off the baseline of the words beside it, so what belongs in the sentence is drawn
+ * as text.
+ */
+export function useInTextRun(): boolean {
+  return useContext(TextRunContext);
+}
+
 /** The largest text scale a holder lets the C-Text in it take; null where there is no holder. */
 const ScaleLimitContext = createContext<number | null>(null);
 
@@ -140,22 +152,24 @@ export function Text({
 
   return (
     <ToneContext.Provider value={resolved}>
-      <NativeText
-        ref={ref}
-        {...headingProps(heading)}
-        role={heading === undefined ? undefined : 'heading'}
-        style={style}
-        numberOfLines={numberOfLines}
-        selectable={selectable}
-        maxFontSizeMultiplier={largest}
-        aria-label={accessibilityLabel}
-        aria-hidden={hidden ? true : undefined}
-        accessibilityElementsHidden={hidden ? true : undefined}
-        importantForAccessibility={hidden ? 'no-hide-descendants' : undefined}
-        testID={testID}
-      >
-        {children}
-      </NativeText>
+      <TextRunContext.Provider value={true}>
+        <NativeText
+          ref={ref}
+          {...headingProps(heading)}
+          role={heading === undefined ? undefined : 'heading'}
+          style={style}
+          numberOfLines={numberOfLines}
+          selectable={selectable}
+          maxFontSizeMultiplier={largest}
+          aria-label={accessibilityLabel}
+          aria-hidden={hidden ? true : undefined}
+          accessibilityElementsHidden={hidden ? true : undefined}
+          importantForAccessibility={hidden ? 'no-hide-descendants' : undefined}
+          testID={testID}
+        >
+          {children}
+        </NativeText>
+      </TextRunContext.Provider>
     </ToneContext.Provider>
   );
 }
