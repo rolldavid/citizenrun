@@ -1,0 +1,56 @@
+name: pipeline-snapshots
+
+on:
+  schedule:
+    - cron: '53 5 * * *'
+  workflow_dispatch:
+    inputs:
+      states:
+        description: States to snapshot (all, or a comma list of state codes)
+        type: string
+        default: all
+      command:
+        description: Which command to run
+        type: choice
+        options: [snapshots, reachability]
+        default: snapshots
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-snapshots
+  cancel-in-progress: false
+
+jobs:
+  snapshots:
+    # Runs once staging exists: it reads the staging Environment's data bucket (D-561).
+    if: vars.RAILWAY_STAGING_READY == 'true'
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 120
+    container: mcr.microsoft.com/playwright:v1.65.1-noble
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      S3_FORCE_PATH_STYLE: 'false'
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - if: inputs.command != 'reachability'
+        env:
+          STATES: ${{ inputs.states || 'all' }}
+        run: pnpm run pipeline snapshots --state "$STATES"
+      - if: inputs.command == 'reachability'
+        run: pnpm run pipeline reachability --states NC,WA,TX,LA,VA --out reachability.json
+      # The report holds status codes and flags only: no body content and no list (D-116).
+      - if: inputs.command == 'reachability'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reachability-${{ github.run_id }}
+          path: reachability.json
+          retention-days: 7

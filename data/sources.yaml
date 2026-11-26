@@ -316,13 +316,13 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of voterportal.sos.la.gov disallows /CandidateInquiry/Parish/, /CandidateInquiry/Statewide/ and /candidateinquiryhttps*, and allows /candidateinquiry.
+  notes: 'robots.txt of voterportal.sos.la.gov disallows /CandidateInquiry/Parish/, /CandidateInquiry/Statewide/ and /candidateinquiryhttps*, and allows /candidateinquiry. The page''s Export to CSV control posts to /CandidateInquiry/StatewideCandidate/Export or requests /CandidateInquiry/ParishCandidate/Export, both outside the disallowed prefixes (checked 2026-11-26), but it exports only after offices or a parish are chosen on the page, which no recipe kind does: the snapshot entry holds a marker for the export text and the archiver refuses it.'
 
 - id: va-elections
   kind: adapter
   name: Virginia candidate lists
   publisher: Virginia Department of Elections
-  url: https://www.elections.virginia.gov/
+  url: https://www.elections.virginia.gov/casting-a-ballot/candidate-list/
   terms_url: https://www.elections.virginia.gov/about-us/policies-and-guidelines/
   terms_read_on: 2026-11-26
   basis: Candidate lists published by the Department of Elections; the site's policies page states no reuse terms, and its footer reads "All rights reserved".
@@ -330,13 +330,13 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of www.elections.virginia.gov disallows *.json, *.csv, *.xls and *.xlsx, and allows /casting-a-ballot/candidate-list/.
+  notes: robots.txt of www.elections.virginia.gov disallows *.json, *.csv, *.xls and *.xlsx, and allows /casting-a-ballot/candidate-list/. The snapshot archives the all-offices list page of the next general election (november-3-2026-gen-elect-all-offices on 2026-11-26), an HTML page; the recipe moves to the next election's page when it is published.
 
 - id: tx-sos
   kind: adapter
   name: Texas candidate information
   publisher: Texas Secretary of State
-  url: https://www.sos.texas.gov/
+  url: https://goelect.txelections.civixapps.com/ivis-cbp-ui/candidate-information
   terms_url: https://www.sos.texas.gov/disclaimer.shtml
   terms_read_on: 2026-11-26
   basis: Candidate information published by the Secretary of State; the site disclaimer governs use of the site and states no reuse restriction.
@@ -344,13 +344,13 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: The candidate-information page links to an application at goelect.txelections.civixapps.com, whose robots.txt allows /ivis-cbp-ui/candidate-information.
+  notes: 'The candidate-information page links to an application at goelect.txelections.civixapps.com, whose robots.txt allows /ivis-cbp-ui/candidate-information. On 2026-11-26 the application answered the pipeline''s browser with a Cloudflare block page (status 403), so its export control was not seen: the snapshot entry keeps the marker for the export text, the archiver refuses it, and no further request goes to the host from this machine.'
 
 - id: tx-2027-05-01
   kind: adapter
   name: Texas candidate information, filing window for the May 1, 2027 election
   publisher: Texas Secretary of State
-  url: https://www.sos.texas.gov/
+  url: https://goelect.txelections.civixapps.com/ivis-cbp-ui/candidate-information
   terms_url: https://www.sos.texas.gov/disclaimer.shtml
   terms_read_on: 2026-11-26
   basis: Candidate information published by the Secretary of State; the site disclaimer governs use of the site and states no reuse restriction.
@@ -358,7 +358,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: The same application as tx-sos, archived during the filing window only.
+  notes: 'The same application as tx-sos, archived during the filing window only. Its export text is not recorded for the same reason as tx-sos: on 2026-11-26 the application answered with a Cloudflare block page (status 403).'
 
 - id: pa-dos
   kind: adapter
@@ -372,13 +372,13 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: www.pavoterservices.pa.gov has no robots.txt (404). On 2026-11-26 its ElectionInfo page answered with an Incapsula block page (status 200) instead of the search.
+  notes: www.pavoterservices.pa.gov has no robots.txt (404). On 2026-11-26 its ElectionInfo page answered with an Incapsula block page (status 200) instead of the search. The candidate search URL and its export text are not recorded, because the host answered a block page; the snapshot entry keeps its markers and the archiver refuses it.
 
 - id: ky-sos
   kind: adapter
   name: Kentucky county candidate filings
   publisher: Kentucky Secretary of State
-  url: https://www.sos.ky.gov/
+  url: https://web.sos.ky.gov/CandidateFilings/countyfilings.aspx
   terms_url: https://www.kentucky.gov/policies/Pages/disclaimer.aspx
   terms_read_on: 2026-11-26
   basis: Candidate filings published by the Secretary of State; the Commonwealth's disclaimer states no reuse terms.
@@ -386,7 +386,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: www.sos.ky.gov and web.sos.ky.gov have no robots.txt (404); the county filings page at web.sos.ky.gov loaded on 2026-11-26.
+  notes: www.sos.ky.gov and web.sos.ky.gov have no robots.txt (404); the county filings page at web.sos.ky.gov loaded on 2026-11-26. The page offers the export control "Excel spreadsheet of All Candidates", which a visitor presses without choosing or typing anything.
 
 - id: ga-sos
   kind: adapter
@@ -400,7 +400,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: Host challenged the check on 2026-11-26. robots.txt answered with a challenge page (403); the host challenges automated requests, so its terms were not read.
+  notes: 'Host challenged the check on 2026-11-26. robots.txt answered with a challenge page (403); the host challenges automated requests, so its terms were not read. The list page URL is not recorded for the same reason: the snapshot entry keeps its marker and the archiver refuses it.'
 
 - id: oh-sos
   kind: adapter
@@ -414,7 +414,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: Host challenged the check on 2026-11-26. robots.txt answered 403 and the home page a challenge page (403); the host challenges automated requests, so its terms were not read.
+  notes: 'Host challenged the check on 2026-11-26. robots.txt answered 403 and the home page a challenge page (403); the host challenges automated requests, so its terms were not read. The list page URL is not recorded for the same reason: the snapshot entry keeps its marker and the archiver refuses it.'
 
 - id: wi-elections
   kind: adapter
@@ -428,7 +428,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: Host challenged the check on 2026-11-26. robots.txt was readable, and the home page answered with a challenge page (403); the host challenges automated requests, so its terms were not read.
+  notes: 'Host challenged the check on 2026-11-26. robots.txt was readable, and the home page answered with a challenge page (403); the host challenges automated requests, so its terms were not read. The list page URL is not recorded for the same reason: the snapshot entry keeps its marker and the archiver refuses it.'
 
 # --- crawl hosts ---
 

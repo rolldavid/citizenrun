@@ -22,31 +22,33 @@
   recipe:
     kind: playwright_export
     url: https://voterportal.sos.la.gov/candidateinquiry
-    export_button_text: Export to CSV
+    export_button_text: '<none usable: the export needs offices or a parish chosen first>'
 
 - source: va-elections
   state: VA
   always: true
   recipe:
     kind: get
-    url: '<the all-offices candidate list page under https://www.elections.virginia.gov/casting-a-ballot/candidate-list/, recorded at build>'
+    url: https://www.elections.virginia.gov/casting-a-ballot/candidate-list/november-3-2026-gen-elect-all-offices/
 
 - source: tx-sos
   state: TX
   always: true
+  blocked: true
   recipe:
     kind: playwright_export
-    url: '<the candidate-information app linked from https://www.sos.texas.gov/elections/candidates/index.shtml, recorded at build>'
-    export_button_text: '<recorded at build>'
+    url: https://goelect.txelections.civixapps.com/ivis-cbp-ui/candidate-information
+    export_button_text: '<not recorded: the app answered a block page>'
 
 - source: tx-2027-05-01
   state: TX
   always: false
   windows: [{ from: 2027-01-13, to: 2027-02-12 }]
+  blocked: true
   recipe:
     kind: playwright_export
-    url: '<the candidate-information app linked from https://www.sos.texas.gov/elections/candidates/index.shtml, recorded at build>'
-    export_button_text: '<recorded at build>'
+    url: https://goelect.txelections.civixapps.com/ivis-cbp-ui/candidate-information
+    export_button_text: '<not recorded: the app answered a block page>'
 
 - source: pa-dos
   state: PA
@@ -54,8 +56,8 @@
   windows: [{ from: 2027-02-16, to: 2027-03-09 }]
   recipe:
     kind: playwright_export
-    url: '<the candidate search under https://www.pavoterservices.pa.gov/ElectionInfo, recorded at build>'
-    export_button_text: '<recorded at build>'
+    url: '<the candidate search under https://www.pavoterservices.pa.gov/ElectionInfo, not recorded: the host answered a block page>'
+    export_button_text: '<not recorded: the host answered a block page>'
 
 - source: ky-sos
   state: KY
@@ -63,8 +65,8 @@
   windows: [{ from: 2026-11-26, to: 2027-01-08 }]
   recipe:
     kind: playwright_export
-    url: '<the county filings list linked from https://web.sos.ky.gov/CandidateFilings/countyfilings.aspx, recorded at build>'
-    export_button_text: '<recorded at build>'
+    url: https://web.sos.ky.gov/CandidateFilings/countyfilings.aspx
+    export_button_text: Excel spreadsheet of All Candidates
 
 - source: ga-sos
   state: GA
@@ -72,7 +74,7 @@
   blocked: true
   recipe:
     kind: get
-    url: '<recorded at build>'
+    url: '<not recorded: the host challenges automated requests>'
 
 - source: oh-sos
   state: OH
@@ -80,7 +82,7 @@
   blocked: true
   recipe:
     kind: get
-    url: '<recorded at build>'
+    url: '<not recorded: the host challenges automated requests>'
 
 - source: wi-elections
   state: WI
@@ -88,4 +90,4 @@
   blocked: true
   recipe:
     kind: get
-    url: '<recorded at build>'
+    url: '<not recorded: the host challenges automated requests>'
