@@ -89,6 +89,10 @@ async function appleAvailable(): Promise<boolean> {
   if (getAppEnv().appleServicesId === null) {
     return false;
   }
+  // A face without Apple's logo artwork is not Apple's button, so it is never offered.
+  if (APPLE_LOGO === null) {
+    return false;
+  }
   try {
     // Apple refuses a return URL that is not https.
     return session.apiOrigin.startsWith('https://');

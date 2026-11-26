@@ -47,6 +47,7 @@ export type AppleLogoArt = { width: number; height: number; d: string };
 
 /**
  * The logo, which is only ever Apple's own artwork from Apple Design Resources, copied unchanged
- * and never redrawn. Null until that artwork is here; the button then draws its title alone.
+ * and never redrawn. Null until that artwork is here. A face without the logo is not Apple's
+ * button, so while this is null Android reports Apple sign-in as unavailable and no screen offers it.
  */
 export const APPLE_LOGO: AppleLogoArt | null = null;

@@ -6,6 +6,7 @@ import type { Mock, MockInstance } from 'vitest';
 
 import { appleAuthorizeUrl, appleReturnUrl } from './apple-redirect';
 import type * as NativeIndex from './index.native';
+import type * as ProviderArt from './provider-art';
 import type {
   AppleSignInButtonProps,
   AppleSignInResult,
@@ -101,9 +102,24 @@ const APPEARANCE: ProviderButtonAppearance = {
 
 type Element = ReactElement<Record<string, unknown>>;
 
-async function load(os: 'ios' | 'android'): Promise<Auth> {
+/** A fixture drawing in place of Apple's artwork: a 30 by 44 box with one outline. */
+const FIXTURE_LOGO: ProviderArt.AppleLogoArt = { width: 30, height: 44, d: 'M0 0h30v44h-30z' };
+
+/**
+ * The module's real phone file. With `logo` given, the art file's logo is that value for this
+ * load; without it the art file is the repository's own.
+ */
+async function load(os: 'ios' | 'android', logo?: ProviderArt.AppleLogoArt | null): Promise<Auth> {
   rn.Platform.OS = os;
   vi.resetModules();
+  if (logo === undefined) {
+    vi.doUnmock('./provider-art');
+  } else {
+    vi.doMock('./provider-art', async () => ({
+      ...(await vi.importActual<typeof ProviderArt>('./provider-art')),
+      APPLE_LOGO: logo,
+    }));
+  }
   return (await vi.importActual<typeof NativeIndex>('./index.native')).auth;
 }
 
@@ -230,6 +246,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.doUnmock('./provider-art');
   for (const spy of consoleSpies) {
     expect(spy).not.toHaveBeenCalled();
   }
@@ -321,19 +338,38 @@ describe('Apple on iOS', () => {
     const auth = await load('ios');
     expect(await auth.prepare()).toEqual({ apple: false, google: false });
   });
+
+  it('asks the system, whatever the art file holds', async () => {
+    // The native button carries Apple's own logo, so the drawn face's artwork has no say.
+    expect(await (await load('ios', null)).prepare()).toMatchObject({ apple: true });
+    expect(apple.isAvailableAsync).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('Apple on Android', () => {
   it('Android Apple off without the Services ID or https', async () => {
     origin.value = 'https://api.example.test';
-    expect(await (await load('android')).prepare()).toMatchObject({ apple: false });
+    expect(await (await load('android', FIXTURE_LOGO)).prepare()).toMatchObject({ apple: false });
 
     env.appleServicesId = FIXTURE_SERVICES_ID;
     origin.value = 'http://10.0.2.2:8080';
-    expect(await (await load('android')).prepare()).toMatchObject({ apple: false });
+    expect(await (await load('android', FIXTURE_LOGO)).prepare()).toMatchObject({ apple: false });
 
     origin.value = 'https://api.example.test';
-    expect(await (await load('android')).prepare()).toMatchObject({ apple: true });
+    expect(await (await load('android', FIXTURE_LOGO)).prepare()).toMatchObject({ apple: true });
+    expect(apple.isAvailableAsync).not.toHaveBeenCalled();
+  });
+
+  it("Android Apple off without Apple's logo artwork", async () => {
+    // Everything else Apple sign-in needs is here; only the artwork decides.
+    env.appleServicesId = FIXTURE_SERVICES_ID;
+    origin.value = 'https://api.example.test';
+    expect(await (await load('android', null)).prepare()).toMatchObject({ apple: false });
+    expect(await (await load('android', FIXTURE_LOGO)).prepare()).toMatchObject({ apple: true });
+
+    // The repository's own art file: the button is offered only once it holds the logo.
+    const { APPLE_LOGO } = await vi.importActual<typeof ProviderArt>('./provider-art');
+    expect(await (await load('android')).prepare()).toMatchObject({ apple: APPLE_LOGO !== null });
     expect(apple.isAvailableAsync).not.toHaveBeenCalled();
   });
 
