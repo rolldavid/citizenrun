@@ -173,7 +173,7 @@ describe('rate limits', () => {
     expect(first).toMatch(/^[0-9a-f]{64}$/);
     expect(sameDay).toBe(first);
     expect(nextDay).not.toBe(first);
-    expect(first).not.toContain('203');
+    expect(first).not.toContain(ADDRESS);
     // Two addresses of one /64 share a hash; another /64 does not.
     expect(await hashOf(app, '2001:db8:0:1::5')).toBe(await hashOf(app, '2001:db8:0:1:ffff::9'));
     expect(await hashOf(app, '2001:db8:0:1::5')).not.toBe(await hashOf(app, '2001:db8:0:2::5'));
