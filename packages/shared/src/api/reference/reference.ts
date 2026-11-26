@@ -14,7 +14,7 @@ import type {
   UseQueryResult,
 } from '@tanstack/react-query';
 
-import type { ErrorEnvelope, IssuePage, OpenApiDocument } from '../model';
+import type { ErrorEnvelope, IssuePage, OfficeTypePage, OpenApiDocument } from '../model';
 
 import { apiFetch } from '../../http/mutator.ts';
 import type { ErrorType } from '../../http/mutator.ts';
@@ -136,6 +136,112 @@ export function useListIssues<
   queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
   const queryOptions = getListIssuesQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getListOfficeTypesUrl = () => {
+  return `/v1/office-types`;
+};
+
+export const listOfficeTypes = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<OfficeTypePage> => {
+  return apiFetch<OfficeTypePage>(getListOfficeTypesUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getListOfficeTypesQueryKey = () => {
+  return [`/v1/office-types`] as const;
+};
+
+export const getListOfficeTypesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listOfficeTypes>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOfficeTypes>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOfficeTypesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOfficeTypes>>> = ({ signal }) =>
+    listOfficeTypes({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOfficeTypes>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type ListOfficeTypesQueryResult = NonNullable<Awaited<ReturnType<typeof listOfficeTypes>>>;
+export type ListOfficeTypesQueryError = ErrorType<ErrorEnvelope>;
+
+export function useListOfficeTypes<
+  TData = Awaited<ReturnType<typeof listOfficeTypes>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOfficeTypes>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOfficeTypes>>,
+          TError,
+          Awaited<ReturnType<typeof listOfficeTypes>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOfficeTypes<
+  TData = Awaited<ReturnType<typeof listOfficeTypes>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOfficeTypes>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listOfficeTypes>>,
+          TError,
+          Awaited<ReturnType<typeof listOfficeTypes>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOfficeTypes<
+  TData = Awaited<ReturnType<typeof listOfficeTypes>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOfficeTypes>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useListOfficeTypes<
+  TData = Awaited<ReturnType<typeof listOfficeTypes>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof listOfficeTypes>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getListOfficeTypesQueryOptions(options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData, TError>;

@@ -927,6 +927,67 @@
           "expiresAt"
         ]
       },
+      "OfficeType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string",
+            "enum": [
+              "local",
+              "county",
+              "state",
+              "federal",
+              "special"
+            ]
+          },
+          "illustration": {
+            "type": "string"
+          },
+          "electorate": {
+            "type": "string",
+            "enum": [
+              "public",
+              "members",
+              "party"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "level",
+          "illustration",
+          "electorate"
+        ]
+      },
+      "OfficeTypePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OfficeType"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
       "OnboardingStep": {
         "type": "string",
         "enum": [
@@ -3661,6 +3722,75 @@
           },
           "409": {
             "description": "The step has not been reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/office-types": {
+      "get": {
+        "operationId": "listOfficeTypes",
+        "tags": [
+          "reference"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "ref.read",
+          "public": true
+        },
+        "x-errors": [
+          "client_header_required",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "responses": {
+          "200": {
+            "description": "Every office type in id order, never paged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficeTypePage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The client header is missing or malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
             "content": {
               "application/json": {
                 "schema": {

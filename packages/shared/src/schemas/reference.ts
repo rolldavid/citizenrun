@@ -24,3 +24,21 @@ export type Issue = z.infer<typeof IssueSchema>;
 export const IssuePageSchema = pageSchema(IssueSchema, 'IssuePage');
 
 export type IssuePage = z.infer<typeof IssuePageSchema>;
+
+/** One office type of the reference list (OfficeType); `aliases` is matcher data and is not sent. */
+export const OfficeTypeSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    level: z.enum(['local', 'county', 'state', 'federal', 'special']),
+    illustration: z.string(),
+    electorate: z.enum(['public', 'members', 'party']),
+  })
+  .meta({ id: 'OfficeType' });
+
+export type OfficeType = z.infer<typeof OfficeTypeSchema>;
+
+/** Every office type in id order, never paged (E-REF-02). */
+export const OfficeTypePageSchema = pageSchema(OfficeTypeSchema, 'OfficeTypePage');
+
+export type OfficeTypePage = z.infer<typeof OfficeTypePageSchema>;
