@@ -18,10 +18,15 @@ import {
 import { ApiError } from '@citizenrun/shared';
 import type { ConsentState, Me } from '@citizenrun/shared';
 import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
+import { z } from 'zod';
 import type { Deps } from '../../deps.ts';
 import { toAvatarMedia } from '../../lib/media.ts';
+import { loadLocationState } from './location-state.ts';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+// users.location_precision, a checked text column.
+const PrecisionSchema = z.enum(['exact', 'approx']);
 
 // The three agreements, in the order `consents.needed` lists them.
 const AGREEMENTS = ['terms', 'content_policy', 'privacy_policy'] as const;
@@ -134,6 +139,14 @@ export async function loadMe(
     avatarPending = pending !== undefined;
   }
 
+  // E-ME-01 step 3, from the users row above.
+  const location = await loadLocationState(db, {
+    userId,
+    locationPrecision:
+      user.locationPrecision === null ? null : PrecisionSchema.parse(user.locationPrecision),
+    districtsStaleAt: user.districtsStaleAt,
+  });
+
   const handleChangeAvailableAt =
     user.handleChangedAt === null ? null : addMs(user.handleChangedAt, HANDLE_CHANGE_DAYS * DAY_MS);
 
@@ -183,5 +196,6 @@ export async function loadMe(
         SENSITIVE_RECENT_SIGNIN_MS,
       ).toISOString(),
     },
+    location,
   });
 }

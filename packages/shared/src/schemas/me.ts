@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { ISSUES_MAX, ISSUES_MIN, STARRED_MAX } from '../constants/accounts.ts';
+import { DistrictRefSchema } from './civic.ts';
 import { InstantSchema, MediaSchema } from './common.ts';
 
 // Response schemas send every key, with null for a value not known (L-wire-format); request schemas drop
@@ -76,6 +77,24 @@ export const SessionStateSchema = z
 
 export type SessionState = z.infer<typeof SessionStateSchema>;
 
+/** Four numbers: west, south, east, north (or the minimum and maximum x and y of a projected box). */
+const BoxSchema = z.tuple([z.number(), z.number(), z.number(), z.number()]);
+
+/** The user's stored location, as the rail and the settings read it (D-529). */
+export const LocationStateSchema = z
+  .object({
+    isSet: z.boolean(),
+    precision: z.enum(['exact', 'approx']).nullable(),
+    districtCount: z.number().int(),
+    bbox: BoxSchema.nullable(),
+    placeName: z.string().nullable(),
+    officeCount: z.number().int(),
+    needsConfirmation: z.boolean(),
+  })
+  .meta({ id: 'LocationState' });
+
+export type LocationState = z.infer<typeof LocationStateSchema>;
+
 /** The signed-in user's own view of their account; never sent for another user. */
 export const MeSchema = z
   .object({
@@ -102,10 +121,77 @@ export const MeSchema = z
     age: AgeRecordSchema.nullable(),
     consents: ConsentStateSchema,
     session: SessionStateSchema,
+    location: LocationStateSchema,
   })
   .meta({ id: 'Me' });
 
 export type Me = z.infer<typeof MeSchema>;
+
+/** One district the user's location resolved to, with its outline for the district reveal (D-210). */
+export const ViewerDistrictSchema = z
+  .object({
+    district: DistrictRefSchema,
+    approximate: z.boolean(),
+    outline: z.object({ svg: z.string(), bbox: BoxSchema }).nullable(),
+    // [lng, lat]
+    labelPoint: z.tuple([z.number(), z.number()]).nullable(),
+  })
+  .meta({ id: 'ViewerDistrict' });
+
+export type ViewerDistrict = z.infer<typeof ViewerDistrictSchema>;
+
+/** The answer of `PUT /v1/me/location` (E-ME-13): the stored districts, their counts and the account. */
+export const LocationResultSchema = z
+  .object({
+    outcome: z.enum(['matched', 'not_covered_yet']),
+    territory: z.enum(['PR', 'GU', 'VI', 'AS', 'MP']).nullable(),
+    districts: z.array(ViewerDistrictSchema),
+    exactDistrictCount: z.number().int(),
+    officeCount: z.number().int(),
+    me: MeSchema,
+  })
+  .meta({ id: 'LocationResult' });
+
+export type LocationResult = z.infer<typeof LocationResultSchema>;
+
+const LOCATION_POINT_KEYS = ['lat', 'lng', 'precision'] as const;
+
+/**
+ * The body of `PUT /v1/me/location` (E-ME-13): a point with its precision, or a typed address, never
+ * both. One object with a refinement, so every refusal names its field.
+ */
+export const SetLocationBodySchema = z
+  .object({
+    // z.number() refuses infinite values.
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+    precision: z.enum(['exact', 'approx']).optional(),
+    address: z.string().trim().min(3).max(200).optional(),
+  })
+  .superRefine((body, ctx) => {
+    const hasAddress = body.address !== undefined;
+    for (const key of LOCATION_POINT_KEYS) {
+      const present = body[key] !== undefined;
+      if (hasAddress && present) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          params: { code: 'not_allowed' },
+          message: 'A point is not sent with an address.',
+        });
+      } else if (!hasAddress && !present) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [key],
+          params: { code: 'required' },
+          message: 'A point needs its latitude, longitude and precision.',
+        });
+      }
+    }
+  })
+  .meta({ id: 'SetLocationBody' });
+
+export type SetLocationBody = z.infer<typeof SetLocationBodySchema>;
 
 /** Whether a handle can be taken, with the normalised handle and the reason it cannot (L-handle-service). */
 export const HandleCheckSchema = z

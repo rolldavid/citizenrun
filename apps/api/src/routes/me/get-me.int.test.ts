@@ -2,9 +2,11 @@ import { issues } from '@citizenrun/db';
 import {
   insertConsent,
   insertConsents,
+  insertDistrict,
   insertRateCounter,
   insertUpload,
   insertUser,
+  setUserDistricts,
   setUserIssues,
 } from '@citizenrun/db/testing';
 import { ERROR_CODES, ErrorEnvelopeSchema, LEGAL_VERSIONS, MeSchema } from '@citizenrun/shared';
@@ -17,6 +19,7 @@ import { signIn, signInAdmin } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { insertIdentity } from '../../testing/factories.ts';
+import { insertLocationFixture } from '../../testing/location.ts';
 import type { TestAuth, TestRequestOptions, TestResponse } from '../../testing/request.ts';
 
 // E-ME-01: TEST-api-ME for GET /v1/me.
@@ -358,5 +361,74 @@ describe('GET /v1/me', () => {
     await expectEnvelope(response, 'rate_limited');
     const left = Math.ceil((windowStart.getTime() + MINUTE_MS - now().getTime()) / SECOND_MS);
     expect(response.headers.get('retry-after')).toBe(String(left));
+  });
+});
+
+describe('GET /v1/me location', () => {
+  it('a user with no districts has no location', async () => {
+    const { auth } = await newUser();
+    expect((await readMe(auth)).location).toEqual({
+      isSet: false,
+      precision: null,
+      districtCount: 0,
+      bbox: null,
+      placeName: null,
+      officeCount: 0,
+      needsConfirmation: false,
+    });
+  });
+
+  it('two exact districts give a bbox that holds both', async () => {
+    const { user, auth } = await newUser({ locationPrecision: 'approx' });
+    const first = await insertDistrict(testApp.deps.db, {
+      wkt: 'POLYGON((-40.00 30.00,-39.99 30.00,-39.99 30.01,-40.00 30.01,-40.00 30.00))',
+    });
+    const second = await insertDistrict(testApp.deps.db, {
+      wkt: 'POLYGON((-39.90 30.10,-39.89 30.10,-39.89 30.11,-39.90 30.11,-39.90 30.10))',
+    });
+    await setUserDistricts(testApp.deps.db, user.id, [first.id, second.id]);
+    const { location } = await readMe(auth);
+    expect(location).toMatchObject({ isSet: true, precision: 'approx', districtCount: 2 });
+    expect(location.bbox).toEqual([-40, 30, -39.89, 30.11]);
+  });
+
+  it("the place name is the city's", async () => {
+    const fixture = await insertLocationFixture(testApp.deps.db, now());
+    const { user, auth } = await newUser();
+    await setUserDistricts(testApp.deps.db, user.id, [fixture.city.id, fixture.countyA.id]);
+    expect((await readMe(auth)).location.placeName).toBe(fixture.cityJurisdiction.name);
+    expect(fixture.cityJurisdiction.name).toBe('Fixture City');
+    // Without the city, the exact county's name.
+    await setUserDistricts(testApp.deps.db, user.id, [fixture.countyA.id, fixture.state.id]);
+    expect((await readMe(auth)).location.placeName).toBe('Fixture County A');
+  });
+
+  it('only approximate districts give no place name', async () => {
+    const fixture = await insertLocationFixture(testApp.deps.db, now());
+    const { user, auth } = await newUser();
+    await setUserDistricts(testApp.deps.db, user.id, [fixture.special.id]);
+    const { location } = await readMe(auth);
+    expect(location).toMatchObject({
+      isSet: true,
+      districtCount: 1,
+      bbox: null,
+      placeName: null,
+      officeCount: 0,
+    });
+  });
+
+  it('the office count reads exact districts only', async () => {
+    const fixture = await insertLocationFixture(testApp.deps.db, now());
+    const { user, auth } = await newUser();
+    // County A: two live offices, a placeholder and a retired one; S: one office, approximate.
+    await setUserDistricts(testApp.deps.db, user.id, [fixture.countyA.id, fixture.special.id]);
+    expect((await readMe(auth)).location.officeCount).toBe(2);
+  });
+
+  it('a stale mark asks for confirmation', async () => {
+    const { auth } = await newUser({ locationPrecision: 'exact', districtsStaleAt: now() });
+    const { location } = await readMe(auth);
+    expect(location.needsConfirmation).toBe(true);
+    expect(location.precision).toBe('exact');
   });
 });

@@ -45,6 +45,8 @@ export * from './healthzResponse.ts';
 export * from './healthzResponseStatus.ts';
 export * from './issue.ts';
 export * from './issuePage.ts';
+export * from './locationState.ts';
+export * from './locationStatePrecision.ts';
 export * from './logoutBody.ts';
 export * from './me.ts';
 export * from './media.ts';

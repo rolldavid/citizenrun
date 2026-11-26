@@ -7,10 +7,13 @@ import {
   DataExportStatusSchema,
   ExportFileSchema,
   HandleCheckSchema,
+  LocationResultSchema,
+  LocationStateSchema,
   MeSchema,
   RecordAgeSignalBodySchema,
   RecordConsentBodySchema,
   SetIssuesBodySchema,
+  SetLocationBodySchema,
   SkipOnboardingStepBodySchema,
   UpdateMeBodySchema,
 } from './me.ts';
@@ -82,6 +85,15 @@ const NEW_USER_ME = {
     expiresAt: '2027-04-15T10:00:00.000Z',
     sensitiveActionsUntil: '2027-01-15T10:15:00.000Z',
   },
+  location: {
+    isSet: false,
+    precision: null,
+    districtCount: 0,
+    bbox: null,
+    placeName: null,
+    officeCount: 0,
+    needsConfirmation: false,
+  },
 };
 
 function picks(count: number, starred = 0) {
@@ -117,7 +129,44 @@ describe('Me', () => {
       'age',
       'consents',
       'session',
+      'location',
     ]);
+  });
+
+  it('Me holds location', () => {
+    expect(Object.keys(LocationStateSchema.shape)).toEqual([
+      'isSet',
+      'precision',
+      'districtCount',
+      'bbox',
+      'placeName',
+      'officeCount',
+      'needsConfirmation',
+    ]);
+    const located = {
+      ...NEW_USER_ME,
+      location: {
+        isSet: true,
+        precision: 'approx',
+        districtCount: 5,
+        bbox: [-40.05, 29.95, -39.95, 30.05],
+        placeName: 'Fixture City',
+        officeCount: 3,
+        needsConfirmation: true,
+      },
+    };
+    expect(MeSchema.parse(located)).toEqual(located);
+    const withoutLocation: Record<string, unknown> = { ...NEW_USER_ME };
+    delete withoutLocation['location'];
+    expect(MeSchema.safeParse(withoutLocation).success).toBe(false);
+    expect(
+      MeSchema.safeParse({ ...located, location: { ...located.location, precision: 'rough' } })
+        .success,
+    ).toBe(false);
+    expect(
+      MeSchema.safeParse({ ...located, location: { ...located.location, bbox: [1, 2, 3] } })
+        .success,
+    ).toBe(false);
   });
 
   it("a new user's Me parses", () => {
@@ -157,6 +206,7 @@ describe('Me', () => {
       HandleCheckSchema,
       DataExportStatusSchema,
       AccountDeletionViewSchema,
+      LocationResultSchema,
     ]) {
       expect(optionalKeys(schema)).toEqual([]);
     }
@@ -401,6 +451,67 @@ describe('handle and onboarding bodies', () => {
     expect(SkipOnboardingStepBodySchema.safeParse({ step: 'photo' }).success).toBe(true);
     expect(SkipOnboardingStepBodySchema.safeParse({ step: 'location' }).success).toBe(true);
     expect(SkipOnboardingStepBodySchema.safeParse({ step: 'handle' }).success).toBe(false);
+  });
+});
+
+describe('SetLocationBody', () => {
+  it('the location body takes a point or an address', () => {
+    expect(
+      SetLocationBodySchema.parse({ lat: 30.004321, lng: -39.995678, precision: 'exact' }),
+    ).toEqual({
+      lat: 30.004321,
+      lng: -39.995678,
+      precision: 'exact',
+    });
+    expect(SetLocationBodySchema.parse({ lat: -90, lng: 180, precision: 'approx' })).toEqual({
+      lat: -90,
+      lng: 180,
+      precision: 'approx',
+    });
+    expect(SetLocationBodySchema.parse({ address: '  100 Fixture Way, Fixture City  ' })).toEqual({
+      address: '100 Fixture Way, Fixture City',
+    });
+
+    expect(fieldIssues(SetLocationBodySchema.safeParse({}))).toEqual([
+      { path: 'lat', code: 'custom', params: { code: 'required' } },
+      { path: 'lng', code: 'custom', params: { code: 'required' } },
+      { path: 'precision', code: 'custom', params: { code: 'required' } },
+    ]);
+    expect(fieldIssues(SetLocationBodySchema.safeParse({ address: 'ab' }))).toEqual([
+      { path: 'address', code: 'too_small', params: undefined },
+    ]);
+    expect(fieldIssues(SetLocationBodySchema.safeParse({ address: 'a'.repeat(201) }))).toEqual([
+      { path: 'address', code: 'too_big', params: undefined },
+    ]);
+    expect(
+      fieldIssues(SetLocationBodySchema.safeParse({ lat: 91, lng: 0, precision: 'exact' })),
+    ).toEqual([{ path: 'lat', code: 'too_big', params: undefined }]);
+    expect(
+      fieldIssues(SetLocationBodySchema.safeParse({ lat: 0, lng: -181, precision: 'exact' })),
+    ).toEqual([{ path: 'lng', code: 'too_small', params: undefined }]);
+    expect(fieldIssues(SetLocationBodySchema.safeParse({ address: 'x y z', lat: 1 }))).toEqual([
+      { path: 'lat', code: 'custom', params: { code: 'not_allowed' } },
+    ]);
+    expect(
+      fieldIssues(
+        SetLocationBodySchema.safeParse({ address: 'x y z', lat: 1, lng: 1, precision: 'exact' }),
+      ).map((issue) => issue.path),
+    ).toEqual(['lat', 'lng', 'precision']);
+    expect(
+      fieldIssues(SetLocationBodySchema.safeParse({ lat: 1, lng: 1, precision: 'fast' })),
+    ).toEqual([{ path: 'precision', code: 'invalid_value', params: undefined }]);
+    expect(SetLocationBodySchema.safeParse({ lat: '1', lng: 1, precision: 'exact' }).success).toBe(
+      false,
+    );
+  });
+
+  it('a body key is never required by the schema', () => {
+    expect(optionalKeys(SetLocationBodySchema).sort()).toEqual([
+      'address',
+      'lat',
+      'lng',
+      'precision',
+    ]);
   });
 });
 

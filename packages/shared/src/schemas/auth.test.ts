@@ -249,6 +249,15 @@ describe('SessionInfo', () => {
         expiresAt: '2027-04-15T10:00:00.000Z',
         sensitiveActionsUntil: '2027-01-15T10:15:00.000Z',
       },
+      location: {
+        isSet: false,
+        precision: null,
+        districtCount: 0,
+        bbox: null,
+        placeName: null,
+        officeCount: 0,
+        needsConfirmation: false,
+      },
     };
     const info = { token: null, expiresAt: '2027-04-15T10:00:00.000Z', created: false, me };
     expect(SessionInfoSchema.parse(info)).toEqual(info);

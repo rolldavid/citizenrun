@@ -4,16 +4,18 @@ import {
   insertConsents,
   insertUpload,
   insertUser,
+  setUserDistricts,
   setUserIssues,
 } from '@citizenrun/db/testing';
 import { sessions, users } from '@citizenrun/db';
-import { ApiError, LEGAL_VERSIONS, MeSchema } from '@citizenrun/shared';
+import { ApiError, LEGAL_VERSIONS, MeSchema, SessionInfoSchema } from '@citizenrun/shared';
 import { asc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signInAdmin } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { insertIdentity, insertSession } from '../../testing/factories.ts';
+import { insertLocationFixture } from '../../testing/location.ts';
 import { loadConsentState, loadMe } from './load-me.ts';
 
 const MINUTE_MS = 60_000;
@@ -315,5 +317,50 @@ describe('loadMe', () => {
     const state = await loadConsentState(testApp.deps.db, user.id);
     expect(state.terms.agreedVersion).toBe(LEGAL_VERSIONS.terms);
     expect(state.needed).toEqual(['content_policy', 'privacy_policy']);
+  });
+});
+
+describe('loadMe location', () => {
+  it('every Me carries location', async () => {
+    const email = 'fixture.signin.location@example.test';
+    const user = await insertUser(testApp.deps.db, {
+      email,
+      locationPrecision: 'exact',
+      districtsStaleAt: testApp.deps.clock.now(),
+    });
+    await insertConsents(testApp.deps.db, user.id);
+    const fixture = await insertLocationFixture(testApp.deps.db, testApp.deps.clock.now());
+    await setUserDistricts(testApp.deps.db, user.id, [
+      fixture.city.id,
+      fixture.countyA.id,
+      fixture.state.id,
+      fixture.special.id,
+    ]);
+
+    // A sign-in's SessionInfo.me, through E-AUTH-01 and E-AUTH-02.
+    const started = await testApp.request.post('/v1/auth/email/start', { body: { email } });
+    expect(started.status).toBe(200);
+    const { pendingToken } = await started.json<{ pendingToken: string }>();
+    const code = testApp.fakes.mailer.codeFor(email) ?? '';
+    const verified = await testApp.request.post('/v1/auth/email/verify', {
+      body: { pendingToken, code },
+    });
+    expect(verified.status).toBe(200);
+    const info = SessionInfoSchema.parse(await verified.json());
+    expect(info.me.location).toEqual({
+      isSet: true,
+      precision: 'exact',
+      districtCount: 4,
+      bbox: [-40.1, 29.9, -39.8, 30.2],
+      placeName: 'Fixture City',
+      officeCount: 3,
+      needsConfirmation: true,
+    });
+
+    const response = await testApp.request.get('/v1/me', {
+      auth: { kind: 'bearer', token: info.token ?? '' },
+    });
+    expect(response.status).toBe(200);
+    expect(MeSchema.parse(await response.json()).location).toEqual(info.me.location);
   });
 });

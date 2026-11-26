@@ -56,6 +56,15 @@ export function fixtureMe(overrides: Partial<Me> = {}): Me {
       expiresAt: '2027-04-15T12:00:00.000Z',
       sensitiveActionsUntil: '2027-01-15T12:15:00.000Z',
     },
+    location: {
+      isSet: false,
+      precision: null,
+      districtCount: 0,
+      bbox: null,
+      placeName: null,
+      officeCount: 0,
+      needsConfirmation: false,
+    },
     ...overrides,
   };
 }

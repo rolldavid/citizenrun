@@ -710,6 +710,69 @@
           "nextCursor"
         ]
       },
+      "LocationState": {
+        "type": "object",
+        "properties": {
+          "isSet": {
+            "type": "boolean"
+          },
+          "precision": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "exact",
+              "approx",
+              null
+            ]
+          },
+          "districtCount": {
+            "type": "integer"
+          },
+          "bbox": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "placeName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "officeCount": {
+            "type": "integer"
+          },
+          "needsConfirmation": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "isSet",
+          "precision",
+          "districtCount",
+          "bbox",
+          "placeName",
+          "officeCount",
+          "needsConfirmation"
+        ]
+      },
       "LogoutBody": {
         "type": "object",
         "properties": {}
@@ -852,6 +915,9 @@
           },
           "session": {
             "$ref": "#/components/schemas/SessionState"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationState"
           }
         },
         "required": [
@@ -877,7 +943,8 @@
           "locale",
           "age",
           "consents",
-          "session"
+          "session",
+          "location"
         ]
       },
       "Media": {

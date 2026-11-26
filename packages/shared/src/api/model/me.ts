@@ -3,6 +3,7 @@
  */
 import type { AgeRecord } from './ageRecord.ts';
 import type { ConsentState } from './consentState.ts';
+import type { LocationState } from './locationState.ts';
 import type { Media } from './media.ts';
 import type { MeEmailStatus } from './meEmailStatus.ts';
 import type { MeRole } from './meRole.ts';
@@ -45,4 +46,5 @@ export interface Me {
   age: AgeRecord | null;
   consents: ConsentState;
   session: SessionState;
+  location: LocationState;
 }
