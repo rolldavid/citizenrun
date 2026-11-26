@@ -16,6 +16,7 @@ export {
   getTestObject,
   listTestKeys,
 } from './storage.ts';
+export { fetchPresignedGet } from './presigned-get.ts';
 export { captureLogs } from './logs.ts';
 export type { CapturedLine } from './logs.ts';
 export { idAt, uuidFloorAt } from './ids.ts';
