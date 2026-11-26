@@ -6,6 +6,7 @@ import {
   getTestBucket,
   getTestDb,
   insertDataExport,
+  insertUpload,
   insertUser,
 } from '@citizenrun/db/testing';
 import { JOB_NAMES, newId } from '@citizenrun/shared';
@@ -16,6 +17,7 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
 import { avatarUpload, setAvatarColumns } from './lib/media/testing/avatar-upload.ts';
 import { mediaProcessImage } from './jobs/media/process-image.ts';
@@ -31,7 +33,7 @@ import { insertEveryKind } from './testing/every-kind.ts';
 import type { EveryKind } from './testing/every-kind.ts';
 import { CaptureMailer } from './testing/fakes/mailer.ts';
 import { createFakeOutbound } from './testing/fakes/outbound.ts';
-import { runJob, runQueued } from './testing/job.ts';
+import { peekQueue, runJob, runQueued } from './testing/job.ts';
 
 // TEST-privacy-logscan's worker suite: every queue runs over values carrying the marker on its
 // success, retry and permanent-failure paths, or is listed with the reason it cannot carry one.
@@ -348,6 +350,40 @@ async function uploadsCleanupPaths(): Promise<void> {
   expectNoMediaValueLogged(user, [old.upload.key, current.keys.small]);
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+async function cleanupRetentionPaths(): Promise<void> {
+  const clock = new FakeClock();
+  const createdAt = new Date(clock.now().getTime() - 25 * HOUR_MS);
+
+  // Success: an unfinished sign-up is marked and its deletion job holds ids only.
+  const user = await insertUser(getTestDb(), {
+    createdAt,
+    ageMethod: null,
+    ageResult: null,
+    ageSourceTier: null,
+    ageCheckedAt: null,
+  });
+  expect(user.email).toContain(marker());
+  const done = await runJob(cleanupRetention, { scope: 'hourly' }, { clock });
+  expect(done.outcome).toBe('completed');
+  const jobs = await peekQueue('account.delete');
+  expect(jobs.map((job) => job.data)).toEqual([{ userId: user.id, skipDeferral: false }]);
+  expect(JSON.stringify(jobs)).not.toContain(marker());
+
+  // Retry: the media bucket does not exist and one stale upload waits, so H4 throws.
+  const stale = await insertUpload(getTestDb(), { createdAt });
+  const retried = await runJob(
+    cleanupRetention,
+    { scope: 'hourly' },
+    { clock, media: await missingMediaBucket() },
+  );
+  expect(retried.outcome).toBe('failed');
+
+  expectNoMediaValueLogged(user, [stale.key]);
+  expect(anyLineHolds(stale.userId)).toBe(false);
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -357,6 +393,11 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'cost.check': { covered: false, reason: EMPTY_PAYLOAD },
   'account.delete': { covered: true, run: accountDeletePaths },
   'account.export': { covered: true, run: accountExportPaths },
+  'cleanup.retention': {
+    covered: true,
+    run: cleanupRetentionPaths,
+    noPermanentPath: "a rule's failure is always retried; no rule has a permanent failure",
+  },
   'uploads.cleanup': {
     covered: true,
     run: uploadsCleanupPaths,
@@ -415,5 +456,9 @@ describe('worker privacy', () => {
 
   it('upload cleanup never logs the user or an object key', async () => {
     await runCovered('uploads.cleanup');
+  });
+
+  it('retention never logs a user or an object key', async () => {
+    await runCovered('cleanup.retention');
   });
 });

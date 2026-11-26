@@ -146,6 +146,23 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 5, // J-account.export
     },
   },
+  'cleanup.retention': {
+    queue: {
+      policy: JOB_POLICIES['cleanup.retention'], // J-cleanup.retention
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-cleanup.retention
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-cleanup.retention
+      expireInSeconds: 7200, // J-cleanup.retention
+      heartbeatSeconds: 60, // J-cleanup.retention
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-cleanup.retention
+      pollingIntervalSeconds: 10, // J-cleanup.retention
+    },
+  },
   'uploads.cleanup': {
     queue: {
       policy: JOB_POLICIES['uploads.cleanup'], // J-uploads.cleanup

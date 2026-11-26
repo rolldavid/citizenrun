@@ -7,6 +7,7 @@ import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
 import { mediaProcessImage } from './jobs/media/process-image.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
@@ -40,6 +41,7 @@ export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
   costCheckJob,
   accountDelete,
   accountExport,
+  cleanupRetention,
   uploadsCleanup,
   mediaProcessImage,
   notifyEmail,

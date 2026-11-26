@@ -96,6 +96,7 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'cost.check': {},
   'account.delete': { userId: SAMPLE_ID, skipDeferral: false },
   'account.export': { exportId: SAMPLE_ID },
+  'cleanup.retention': { scope: 'hourly' },
   'uploads.cleanup': { scope: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
   'media.process.image': { target: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
   'notify.email': { template: 'signin_method_added', userId: SAMPLE_ID, provider: 'apple' },
@@ -247,6 +248,15 @@ describe('the job list', () => {
     expect(
       schema.safeParse({ scope: 'post', postId: SAMPLE_ID, uploadIds: [SAMPLE_ID] }).success,
     ).toBe(false);
+  });
+
+  it('a cleanup.retention payload names its scope only', () => {
+    const schema = JOB_PAYLOADS['cleanup.retention'];
+    expect(schema.safeParse({ scope: 'hourly' }).success).toBe(true);
+    expect(schema.safeParse({ scope: 'nightly' }).success).toBe(true);
+    expect(schema.safeParse({ scope: 'weekly' }).success).toBe(false);
+    expect(schema.safeParse({}).success).toBe(false);
+    expect(schema.safeParse({ scope: 'hourly', rule: 'H1' }).success).toBe(false);
   });
 
   it('an unknown email template is refused', () => {

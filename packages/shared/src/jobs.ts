@@ -15,6 +15,7 @@ export const JOB_NAMES = [
   'cost.check',
   'account.delete',
   'account.export',
+  'cleanup.retention',
   'uploads.cleanup',
   'media.process.image',
   'notify.email',
@@ -37,6 +38,7 @@ export const JOB_POLICIES = {
   'cost.check': 'stately',
   'account.delete': 'standard',
   'account.export': 'standard',
+  'cleanup.retention': 'stately',
   'uploads.cleanup': 'standard',
   'media.process.image': 'standard',
   'notify.email': 'standard',
@@ -86,6 +88,7 @@ export const JOB_PAYLOADS = {
   // skipDeferral: D-492.
   'account.delete': z.object({ userId: Id, skipDeferral: z.boolean().default(false) }).strict(),
   'account.export': z.object({ exportId: Id }).strict(),
+  'cleanup.retention': z.object({ scope: z.enum(['hourly', 'nightly']) }).strict(),
   'uploads.cleanup': z.discriminatedUnion('scope', [
     z.object({ scope: z.literal('avatar'), userId: Id, uploadId: Id }).strict(),
   ]),
