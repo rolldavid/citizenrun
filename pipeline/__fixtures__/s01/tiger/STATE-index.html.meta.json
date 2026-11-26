@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/STATE/",
+  "fetchedAt": "2026-11-26T19:05:24.205Z",
+  "sha256": "3c3594f57f41b25d04b789e79fc26dd7249599ce9cfeb155cfe93290baa82d9e",
+  "contentType": "text/html;charset=ISO-8859-1",
+  "originalSha256": "1070099f69ca09ea64bf598ef6f2c9852886e48009c8428edf318f6bee74db6f",
+  "transformations": [
+    "line endings written as LF: the page mixes CRLF and LF, and the repository stores text files with LF"
+  ]
+}

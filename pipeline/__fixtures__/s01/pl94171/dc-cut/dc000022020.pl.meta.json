@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File%2D%2DPL_94-171/District_of_Columbia/dc2020.pl.zip",
+  "fetchedAt": "2026-11-26T19:10:18.930Z",
+  "sha256": "015b009cd878ee07d60c90ead0f79f1edbdeb06879cb74723d4af742c2b2d061",
+  "contentType": "text/plain",
+  "originalSha256": "c488abab5ead9794d3ba5ad450183cf2d0617da1373d5a3dc0b6e8ec9a83a69a",
+  "transformations": [
+    "extracted dc000022020.pl from dc2020.pl.zip; originalSha256 is that file",
+    "kept the summary level 040 line and the first 20 summary level 750 lines by LOGRECNO"
+  ]
+}

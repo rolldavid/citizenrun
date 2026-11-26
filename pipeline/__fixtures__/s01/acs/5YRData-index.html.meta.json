@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/",
+  "fetchedAt": "2026-11-26T19:05:30.526Z",
+  "sha256": "d4f24b1608b38f0adb0868bdd5bd2ea58f3827fa325bb69e9c9b675f647170e7",
+  "contentType": "text/html;charset=ISO-8859-1",
+  "originalSha256": "e3257539a5bb9acf5fefd76674844625329f78102b33c2ef4c0d9b3edc14c63f",
+  "transformations": [
+    "line endings written as LF: the page mixes CRLF and LF, and the repository stores text files with LF"
+  ]
+}

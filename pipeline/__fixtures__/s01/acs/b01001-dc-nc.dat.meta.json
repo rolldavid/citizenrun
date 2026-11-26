@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/acsdt5y2024-b01001.dat",
+  "fetchedAt": "2026-11-26T19:10:30.909Z",
+  "sha256": "2df33ba3a2a8fda97653924a4e44bbff77a154bca67d0e999b09a036809fa623",
+  "contentType": "application/octet-stream",
+  "originalSha256": "1637b18a96881b81e050df1cd3d5ac38a33208b9b69b40e1dbeb3c4e13718f0e",
+  "transformations": [
+    "kept the header and four GEO_ID lines"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/school-finances/tables/2024/secondary-education-finance/elsec24t.xlsx",
+  "fetchedAt": "2026-11-26T19:10:09.673Z",
+  "sha256": "b8ce933c7821e0fbfa2d8d5578e97b35fa8e4775c6a3f1fca3804e4c1004a329",
+  "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "originalSha256": "af178bc61c85b579ed54745e9a039ccb563e60a02f763d6d884bf14935b9d4cf",
+  "transformations": [
+    "kept the header and first 50 rows of the elsec24t sheet; the File Information sheet dropped",
+    "rewritten with exceljs"
+  ]
+}

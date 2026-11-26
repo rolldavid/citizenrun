@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/TABBLOCK20/tl_2026_11_tabblock20.zip",
+  "fetchedAt": "2026-11-26T19:10:16.464Z",
+  "sha256": "fd4eea7e7db5daf7a26a9a9c968d353cd0a2f3fa63849276d982c737ebaca1ec",
+  "contentType": "application/x-dbf",
+  "originalSha256": "788b17d219c02c191f16b0c93a2cf4493627792c1ae6e3be29ea4aea33edfe2d",
+  "transformations": [
+    "extracted tl_2026_11_tabblock20.dbf from tl_2026_11_tabblock20.zip; originalSha256 is that table",
+    "kept the 20 blocks of the P.L. 94-171 cut with mapshaper -filter, which rewrote the table"
+  ]
+}

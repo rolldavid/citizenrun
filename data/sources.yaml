@@ -42,7 +42,7 @@
   attribution: U.S. Census Bureau
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: The 2025 cartographic boundary directory lists cb_2025_us_state_500k.zip (opened 2026-11-26).
+  notes: The 2025 cartographic boundary directory https://www2.census.gov/geo/tiger/GENZ2025/shp/ lists cb_2025_us_state_500k.zip (3.1M, dated 2026-04-23; opened 2026-11-26). Downloaded through the fetcher on 2026-11-26 as application/zip, 3,245,373 bytes, Last-Modified Thu, 23 Apr 2026 13:45:35 GMT, no ETag. robots.txt of www2.census.gov allows the file.
 
 - id: school-finance
   kind: dataset
@@ -70,13 +70,13 @@
   attribution: U.S. Census Bureau
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: Table B01001 is the one file of the directory whose name ends in b01001.dat. robots.txt of www2.census.gov allows the directory.
+  notes: Table B01001 is the one file of the directory whose name ends in b01001.dat, acsdt5y2024-b01001.dat (dated 2026-01-29), beside its iterations b01001a to b01001i. Downloaded through the fetcher on 2026-11-26 as application/octet-stream, 200,356,282 bytes, Last-Modified Thu, 29 Jan 2026 12:30:41 GMT, no ETag; pipe-delimited with the header GEO_ID, B01001_E001, B01001_M001 and so on to B01001_M049. robots.txt of www2.census.gov allows the directory.
 
 - id: pl94171
   kind: dataset
   name: 2020 Census Redistricting Data (P.L. 94-171) Summary File
   publisher: U.S. Census Bureau
-  url: https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/
+  url: https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File%2D%2DPL_94-171/
   terms_url: https://www.census.gov/about/policies/citation.html
   terms_read_on: 2026-11-26
   basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
@@ -84,7 +84,7 @@
   attribution: U.S. Census Bureau
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: Opened 2026-11-26. The directory holds one folder per state, DC, Puerto Rico and National. A request for the path as written above was answered with a "Request Rejected" page; the same path with the two hyphens written as %2D%2D returned the directory listing.
+  notes: Opened 2026-11-26. The directory holds one folder per state, DC, Puerto Rico and National, named after the state with underscores (District_of_Columbia/); each state folder holds the legacy-format zip <st>2020.pl.zip (dc2020.pl.zip, 1.3M, dated 2021-08-12). The host answers the path with its two hyphens written plainly with a "Request Rejected" page, so the URL writes them as %2D%2D. Field positions come from the technical documentation https://www2.census.gov/programs-surveys/decennial/2020/technical-documentation/complete-tech-docs/summary-file/2020Census_PL94_171Redistricting_StatesTechDoc_English.pdf (Figure 2-4 and the data dictionary). robots.txt of www2.census.gov allows the directory.
 
 - id: openstates
   kind: dataset
@@ -316,7 +316,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: 'robots.txt of voterportal.sos.la.gov disallows /CandidateInquiry/Parish/, /CandidateInquiry/Statewide/ and /candidateinquiryhttps*, and allows /candidateinquiry. The page''s Export to CSV control posts to /CandidateInquiry/StatewideCandidate/Export or requests /CandidateInquiry/ParishCandidate/Export, both outside the disallowed prefixes (checked 2026-11-26), but it exports only after offices or a parish are chosen on the page, which no recipe kind does: the snapshot entry holds a marker for the export text and the archiver refuses it.'
+  notes: "robots.txt of voterportal.sos.la.gov disallows /CandidateInquiry/Parish/, /CandidateInquiry/Statewide/ and /candidateinquiryhttps*, and allows /candidateinquiry. The page's Export to CSV control posts to /CandidateInquiry/StatewideCandidate/Export or requests /CandidateInquiry/ParishCandidate/Export, both outside the disallowed prefixes (checked 2026-11-26), but it exports only after offices or a parish are chosen on the page, which no recipe kind does: the snapshot entry holds a marker for the export text and the archiver refuses it."
 
 - id: va-elections
   kind: adapter
@@ -344,7 +344,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: 'The candidate-information page links to an application at goelect.txelections.civixapps.com, whose robots.txt allows /ivis-cbp-ui/candidate-information. On 2026-11-26 the application answered the pipeline''s browser with a Cloudflare block page (status 403), so its export control was not seen: the snapshot entry keeps the marker for the export text, the archiver refuses it, and no further request goes to the host from this machine.'
+  notes: "The candidate-information page links to an application at goelect.txelections.civixapps.com, whose robots.txt allows /ivis-cbp-ui/candidate-information. On 2026-11-26 the application answered the pipeline's browser with a Cloudflare block page (status 403), so its export control was not seen: the snapshot entry keeps the marker for the export text, the archiver refuses it, and no further request goes to the host from this machine."
 
 - id: tx-2027-05-01
   kind: adapter

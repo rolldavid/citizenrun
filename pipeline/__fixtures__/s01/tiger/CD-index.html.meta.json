@@ -1,0 +1,10 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/CD/",
+  "fetchedAt": "2026-11-26T19:05:26.303Z",
+  "sha256": "436e33f6e77ae19a56e538a8d1cd90a51f08e2a64a6ffb0c6c5d8ac346e2f8c4",
+  "contentType": "text/html;charset=ISO-8859-1",
+  "originalSha256": "ebceeab915600f71c91128c5affbfec270df9a7bf66f100bd4b140c86706c57c",
+  "transformations": [
+    "line endings written as LF: the page mixes CRLF and LF, and the repository stores text files with LF"
+  ]
+}

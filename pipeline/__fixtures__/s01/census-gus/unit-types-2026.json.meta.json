@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip",
+  "fetchedAt": "2026-11-26T19:10:06.973Z",
+  "sha256": "ca8352902bc9545c5b9f1156191309d2678264f69a57ed43654a8c5ade696e8b",
+  "contentType": "application/json",
+  "originalSha256": "50e8d4c0905d2637897b1a68c887e9b19ee8cdcb226d1852e6fb067f50f6b421",
+  "transformations": [
+    "distinct UNIT_TYPE values of the General Purpose tab",
+    "written as a sorted JSON array"
+  ]
+}
