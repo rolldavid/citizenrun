@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach } from 'vitest';
 import { KEEP_TABLES } from './keep-tables.ts';
 import { captureLogs } from './logs.ts';
 import { clearScanRegistrations, scanForLeaks } from './scan.ts';
-import { resetSequence } from './sequence.ts';
+import { resetDistrictOrdinal, resetSequence } from './sequence.ts';
 import { closeStorage } from './storage.ts';
 import {
   KEPT_ROWS_SCHEMA,
@@ -66,9 +66,10 @@ async function restoreStateRules(db: Db): Promise<void> {
 /**
  * Empties this worker's database before a test: truncates every application table of schema
  * `public` not in KEEP_TABLES (extension tables such as PostGIS's `spatial_ref_sys` are not
- * application tables), deletes every pg-boss job, restarts the factory sequence, clears the log
- * capture, forgets the registered scan values and sources, and restores `state_rules` to the
- * migration's rows plus the fixture state `ZZ`.
+ * application tables), deletes every pg-boss job, restarts the factory sequence and the
+ * district ordinal of the fixture geometry, clears the log capture, forgets the registered scan
+ * values and sources, and restores `state_rules` to the migration's rows plus the fixture state
+ * `ZZ`.
  */
 export async function resetDb(): Promise<void> {
   const db = getTestDb();
@@ -99,6 +100,7 @@ export async function resetDb(): Promise<void> {
   // The privacy scan of the previous test has already read these rows (TEST-harness-db).
   await resetBoss.deleteAllJobs();
   resetSequence();
+  resetDistrictOrdinal();
   captureLogs().clear();
   clearScanRegistrations();
   await restoreStateRules(db);

@@ -10,7 +10,15 @@ import { ISSUE_IDS, STATE_CODES } from '@citizenrun/shared';
 import { afterAll, describe, expect, inject, it } from 'vitest';
 import { CLIENT_ERRORS_RETENTION_DAYS } from './index.ts';
 import { runMigrations } from './migrator.ts';
-import { getTestDb, insertClientError, resetDb } from './testing/index.ts';
+import {
+  getTestDb,
+  insertClientError,
+  insertElection,
+  insertFilingTrack,
+  insertJurisdiction,
+  insertOfficePower,
+  resetDb,
+} from './testing/index.ts';
 import { parseStamp } from './testing/names.ts';
 import {
   connectHarnessClient,
@@ -44,6 +52,27 @@ const EXPECTED_OBJECTS = {
     'powers',
     'issue_powers',
     'office_types',
+    'jurisdictions',
+    'districts',
+    'district_parts',
+    'district_fallbacks',
+    'district_display',
+    'zip_centroids',
+    'offices',
+    'office_powers',
+    'office_issues',
+    'elections',
+    'filing_tracks',
+    'results',
+    'people',
+    'person_aliases',
+    'given_name_aliases',
+    'officeholders',
+    'candidacies',
+    'candidacy_filings',
+    'unmatched_filings',
+    'data_bundles',
+    'bundle_changes',
   ],
   indexes: [
     'client_errors_created',
@@ -97,6 +126,96 @@ const EXPECTED_OBJECTS = {
     'issue_powers_pkey',
     'issue_powers_power',
     'office_types_pkey',
+    'jurisdictions_pkey',
+    'districts_pkey',
+    'district_parts_pkey',
+    'district_fallbacks_pkey',
+    'district_display_pkey',
+    'zip_centroids_pkey',
+    'offices_pkey',
+    'office_powers_pkey',
+    'office_issues_pkey',
+    'elections_pkey',
+    'filing_tracks_pkey',
+    'results_pkey',
+    'people_pkey',
+    'person_aliases_pkey',
+    'given_name_aliases_pkey',
+    'officeholders_pkey',
+    'candidacies_pkey',
+    'candidacy_filings_pkey',
+    'unmatched_filings_pkey',
+    'data_bundles_pkey',
+    'bundle_changes_pkey',
+    'jurisdictions_source_key_key',
+    'jurisdictions_census_id_key',
+    'districts_source_key_key',
+    'districts_tile_id_key',
+    'offices_source_key_key',
+    'offices_slug_key',
+    'offices_tile_id_key',
+    'elections_source_key_key',
+    'elections_contest_key',
+    'filing_tracks_source_key_key',
+    'filing_tracks_track_key',
+    'results_source_key_key',
+    'results_contest_key',
+    'people_source_key_key',
+    'people_slug_key',
+    'officeholders_source_key_key',
+    'candidacies_filing_key_key',
+    'candidacies_person_election_key',
+    'unmatched_filings_filing_key_key',
+    'data_bundles_version_key',
+    'jurisdictions_state',
+    'jurisdictions_parent',
+    'jurisdictions_name_trgm',
+    'districts_geom',
+    'districts_label_point',
+    'districts_jurisdiction',
+    'districts_level',
+    'district_parts_geom',
+    'district_parts_district',
+    'district_fallbacks_via',
+    'district_display_band0',
+    'district_display_band1',
+    'district_display_band2',
+    'district_display_band3',
+    'offices_search',
+    'offices_title_trgm',
+    'offices_district',
+    'offices_jurisdiction',
+    'offices_office_type',
+    'offices_state_rank',
+    'offices_state_spt',
+    'offices_state_ease',
+    'offices_state_pay',
+    'offices_state_deadline',
+    'office_powers_power',
+    'office_issues_issue',
+    'elections_deadline',
+    'elections_date',
+    'elections_opens',
+    'filing_tracks_closes',
+    'results_date',
+    'results_election',
+    'people_name_trgm',
+    'people_name_key_trgm',
+    'people_last_name',
+    'people_one_owner',
+    'people_photo_key',
+    'people_pending_links',
+    'person_aliases_trgm',
+    'given_name_aliases_alias',
+    'officeholders_office',
+    'officeholders_person',
+    'candidacies_election',
+    'candidacies_created',
+    'candidacy_filings_candidacy',
+    'candidacy_filings_source',
+    'unmatched_filings_open',
+    'data_bundles_loaded',
+    'bundle_changes_bundle',
   ],
   constraints: [
     'client_errors_platform_check',
@@ -140,6 +259,74 @@ const EXPECTED_OBJECTS = {
     'office_types_id_check',
     'office_types_level_check',
     'office_types_electorate_check',
+    'jurisdictions_kind_check',
+    'jurisdictions_state_check',
+    'jurisdictions_website_check',
+    'districts_level_check',
+    'districts_geometry_quality_check',
+    'districts_lean_check',
+    'districts_lean_basis_check',
+    'districts_outline_svg_check',
+    'districts_outline_bbox_check',
+    'district_parts_level_check',
+    'district_fallbacks_distinct_check',
+    'district_display_zoom_band_check',
+    'district_display_level_check',
+    'zip_centroids_zip_check',
+    'zip_centroids_state_check',
+    'offices_slug_check',
+    'offices_state_check',
+    'offices_seats_check',
+    'offices_seats_up_next_check',
+    'offices_vacant_seats_up_next_check',
+    'offices_party_selection_check',
+    'offices_pay_kind_check',
+    'offices_pay_period_check',
+    'offices_benefits_check',
+    'offices_meeting_times_check',
+    'offices_fits_day_job_check',
+    'offices_ease_check',
+    'offices_ease_confidence_check',
+    'offices_decided_in_check',
+    'offices_completeness_check',
+    'office_powers_relevance_check',
+    'office_powers_confidence_check',
+    'office_powers_source_url_check',
+    'office_issues_relevance_check',
+    'elections_kind_check',
+    'elections_party_check',
+    'elections_deadline_basis_check',
+    'elections_turnout_class_check',
+    'elections_filing_window_check',
+    'elections_filing_deadline_check',
+    'filing_tracks_track_check',
+    'filing_tracks_basis_check',
+    'filing_tracks_confidence_check',
+    'filing_tracks_window_check',
+    'filing_tracks_source_url_check',
+    'results_kind_check',
+    'results_turnout_class_check',
+    'results_party_check',
+    'results_source_url_check',
+    'people_slug_check',
+    'people_party_check',
+    'people_website_check',
+    'people_donate_url_check',
+    'people_volunteer_url_check',
+    'people_photo_source_url_check',
+    'given_name_aliases_source_check',
+    'officeholders_cash_source_url_check',
+    'candidacies_status_check',
+    'candidacies_party_check',
+    'candidacies_match_confidence_check',
+    'candidacies_source_url_check',
+    'candidacy_filings_status_check',
+    'candidacy_filings_source_url_check',
+    'unmatched_filings_kind_check',
+    'unmatched_filings_resolution_check',
+    'data_bundles_kind_check',
+    'data_bundles_status_check',
+    'bundle_changes_op_check',
   ],
   // Primary keys and unique constraints, under PostgreSQL's names.
   keys: [
@@ -171,6 +358,47 @@ const EXPECTED_OBJECTS = {
     'powers_pkey',
     'issue_powers_pkey',
     'office_types_pkey',
+    'jurisdictions_pkey',
+    'districts_pkey',
+    'district_parts_pkey',
+    'district_fallbacks_pkey',
+    'district_display_pkey',
+    'zip_centroids_pkey',
+    'offices_pkey',
+    'office_powers_pkey',
+    'office_issues_pkey',
+    'elections_pkey',
+    'filing_tracks_pkey',
+    'results_pkey',
+    'people_pkey',
+    'person_aliases_pkey',
+    'given_name_aliases_pkey',
+    'officeholders_pkey',
+    'candidacies_pkey',
+    'candidacy_filings_pkey',
+    'unmatched_filings_pkey',
+    'data_bundles_pkey',
+    'bundle_changes_pkey',
+    'jurisdictions_source_key_key',
+    'jurisdictions_census_id_key',
+    'districts_source_key_key',
+    'districts_tile_id_key',
+    'offices_source_key_key',
+    'offices_slug_key',
+    'offices_tile_id_key',
+    'elections_source_key_key',
+    'elections_contest_key',
+    'filing_tracks_source_key_key',
+    'filing_tracks_track_key',
+    'results_source_key_key',
+    'results_contest_key',
+    'people_source_key_key',
+    'people_slug_key',
+    'officeholders_source_key_key',
+    'candidacies_filing_key_key',
+    'candidacies_person_election_key',
+    'unmatched_filings_filing_key_key',
+    'data_bundles_version_key',
   ],
   functions: [
     'os_drop_month_partitions',
@@ -194,6 +422,36 @@ const EXPECTED_FOREIGN_KEYS: Readonly<Record<string, 'a' | 'c' | 'n'>> = {
   state_rules_updated_by_fkey: 'n',
   issue_powers_issue_id_fkey: 'a',
   issue_powers_power_id_fkey: 'a',
+  jurisdictions_parent_id_fkey: 'a',
+  districts_jurisdiction_id_fkey: 'a',
+  district_parts_district_id_fkey: 'c',
+  district_fallbacks_district_id_fkey: 'c',
+  district_fallbacks_via_district_id_fkey: 'c',
+  district_display_district_id_fkey: 'c',
+  offices_jurisdiction_id_fkey: 'a',
+  offices_district_id_fkey: 'a',
+  offices_office_type_id_fkey: 'a',
+  offices_next_election_id_fkey: 'n',
+  office_powers_office_id_fkey: 'c',
+  office_powers_power_id_fkey: 'a',
+  office_issues_office_id_fkey: 'c',
+  office_issues_issue_id_fkey: 'a',
+  elections_office_id_fkey: 'c',
+  filing_tracks_election_id_fkey: 'c',
+  results_office_id_fkey: 'c',
+  results_election_id_fkey: 'n',
+  people_claimed_by_fkey: 'n',
+  people_merged_into_fkey: 'a',
+  person_aliases_person_id_fkey: 'c',
+  officeholders_office_id_fkey: 'c',
+  officeholders_person_id_fkey: 'a',
+  candidacies_person_id_fkey: 'a',
+  candidacies_election_id_fkey: 'c',
+  candidacy_filings_candidacy_id_fkey: 'c',
+  unmatched_filings_office_id_fkey: 'a',
+  unmatched_filings_person_id_fkey: 'a',
+  unmatched_filings_decided_by_fkey: 'n',
+  bundle_changes_bundle_id_fkey: 'c',
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url));
@@ -341,6 +599,89 @@ describe('the migrations', () => {
           where table_schema = 'public' and table_name = 'rate_limits' and column_name = 'key'`,
     );
     expect(keyColumn?.collation).toBe('C');
+    // Schema `staging` holds the two load tables, both unlogged, outside the Drizzle schema.
+    const staging = await rows<{ name: string; kind: string; persistence: string }>(
+      sql`select c.relname as name, c.relkind::text as kind, c.relpersistence::text as persistence
+          from pg_class c join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'staging' and c.relkind in ('r', 'i')
+          order by c.relname`,
+    );
+    expect(staging).toEqual([
+      { name: 'bundle_rows', kind: 'r', persistence: 'u' },
+      { name: 'bundle_rows_key', kind: 'i', persistence: 'u' },
+      { name: 'bundle_rows_pkey', kind: 'i', persistence: 'u' },
+      { name: 'district_geometry', kind: 'r', persistence: 'u' },
+      { name: 'district_geometry_pkey', kind: 'i', persistence: 'u' },
+    ]);
+    const [unloggedElsewhere] = await rows<{ n: number }>(
+      sql`select count(*)::int as n from pg_class c join pg_namespace n on n.oid = c.relnamespace
+          where n.nspname = 'public' and c.relkind = 'r' and c.relpersistence = 'u'
+            and c.relname <> 'rate_limits'`,
+    );
+    expect(unloggedElsewhere?.n).toBe(0);
+  });
+
+  it('identity ids stay under two to the fifty-third', async () => {
+    const found = await rows<{ name: string; max: string }>(
+      sql`select c.relname as name, s.seqmax::text as max from pg_sequence s
+          join pg_class c on c.oid = s.seqrelid
+          where c.oid in (pg_get_serial_sequence('districts', 'tile_id')::regclass,
+                          pg_get_serial_sequence('offices', 'tile_id')::regclass)
+          order by c.relname`,
+    );
+    expect(found).toEqual([
+      { name: 'districts_tile_id_seq', max: '9007199254740991' },
+      { name: 'offices_tile_id_seq', max: '9007199254740991' },
+    ]);
+  });
+
+  it('a deadline after the election is refused', async () => {
+    const election = await insertElection(getTestDb(), { electionDate: '2027-06-01' });
+    const error = await insertFilingTrack(getTestDb(), {
+      electionId: election.id,
+      opensOn: '2027-05-01',
+      closesOn: '2027-06-02',
+    }).then(
+      () => null,
+      (caught: unknown) => caught,
+    );
+    expect(databaseError(error)).toMatchObject({
+      code: CHECK_VIOLATION,
+      constraint: 'elections_filing_deadline_check',
+    });
+    const [tracks] = await rows<{ n: number }>(
+      sql`select count(*)::int as n from filing_tracks where election_id = ${election.id}`,
+    );
+    expect(tracks?.n).toBe(0);
+    const [headline] = await rows<{ deadline: string | null }>(
+      sql`select filing_deadline::text as deadline from elections where id = ${election.id}`,
+    );
+    expect(headline?.deadline).toBeNull();
+  });
+
+  it('links are https only', async () => {
+    const db = getTestDb();
+    const cases: readonly [() => Promise<unknown>, string][] = [
+      [
+        () => insertJurisdiction(db, { website: 'http://example.test' }),
+        'jurisdictions_website_check',
+      ],
+      [
+        () => insertOfficePower(db, { sourceUrl: 'http://example.test' }),
+        'office_powers_source_url_check',
+      ],
+      [
+        () => insertFilingTrack(db, { sourceUrl: 'http://example.test' }),
+        'filing_tracks_source_url_check',
+      ],
+    ];
+    for (const [attempt, constraint] of cases) {
+      const error = await attempt().then(
+        () => null,
+        (caught: unknown) => caught,
+      );
+      expect(databaseError(error)).toMatchObject({ code: CHECK_VIOLATION, constraint });
+    }
   });
 
   it('app events are partitioned by month', async () => {

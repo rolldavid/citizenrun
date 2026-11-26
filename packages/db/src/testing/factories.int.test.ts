@@ -1,12 +1,18 @@
-import { ISSUE_IDS, LEGAL_VERSIONS, PHOTO_MAX_BYTES } from '@citizenrun/shared';
+import { ISSUE_IDS, LEGAL_VERSIONS, PHOTO_MAX_BYTES, civicId } from '@citizenrun/shared';
 import { incomingUploadKey } from '@citizenrun/shared/storage';
 import { marker } from '@citizenrun/shared/testing';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { lookupDistrictsAtPoint } from '../sql/point-lookup.ts';
 import {
+  FIXTURE_POINT,
+  fixtureSquareWkt,
   getTestDb,
   insertConsents,
   insertDataExport,
+  insertDistrict,
+  insertFilingTrack,
+  insertOffice,
   insertUpload,
   insertUser,
   resetDb,
@@ -176,5 +182,156 @@ describe('the account factories', () => {
         ),
       ),
     ).toMatchObject({ code: '23514', constraint: 'uploads_content_type_check' });
+  });
+});
+
+describe('the civic factories', () => {
+  it('insertDistrict builds parts, display and hashes', async () => {
+    const district = await insertDistrict(getTestDb());
+    expect(district.geometryQuality).toBe('exact');
+    expect(district.geomHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(district.outlineBbox).toHaveLength(4);
+    expect(district.outlineBbox?.every((value) => Number.isFinite(value))).toBe(true);
+    expect('geom' in district).toBe(false);
+    expect('labelPoint' in district).toBe(false);
+    const [row] = await getTestDb().execute<{
+      parts: number;
+      band3: number;
+      inside: boolean;
+      hash: boolean;
+    }>(
+      sql`select (select count(*)::int from district_parts where district_id = d.id) as parts,
+                 (select count(*)::int from district_display
+                   where district_id = d.id and zoom_band = 3) as band3,
+                 st_within(d.label_point, st_geomfromtext(${fixtureSquareWkt(0)}, 4326)) as inside,
+                 d.geom_hash = encode(sha256(st_asbinary(d.geom)), 'hex') as hash
+          from districts d where d.id = ${district.id}`,
+      'objects',
+    );
+    expect(row).toEqual({ parts: 1, band3: 1, inside: true, hash: true });
+  });
+
+  it('the first district contains the default fixture point', async () => {
+    const first = await insertDistrict(getTestDb());
+    expect((await lookupDistrictsAtPoint(getTestDb(), FIXTURE_POINT)).map((row) => row.id)).toEqual(
+      [first.id],
+    );
+    await resetDb();
+    await insertUser(getTestDb());
+    const office = await insertOffice(getTestDb());
+    expect((await lookupDistrictsAtPoint(getTestDb(), FIXTURE_POINT)).map((row) => row.id)).toEqual(
+      [office.districtId],
+    );
+  });
+
+  it('an approximate district has no geometry', async () => {
+    const district = await insertDistrict(getTestDb(), { geometryQuality: 'county_approx' });
+    expect(district).toMatchObject({ geomHash: null, outlineBbox: null });
+    const [row] = await getTestDb().execute<{
+      geom: boolean;
+      label: boolean;
+      parts: number;
+      display: number;
+    }>(
+      sql`select d.geom is null as geom, d.label_point is null as label,
+                 (select count(*)::int from district_parts where district_id = d.id) as parts,
+                 (select count(*)::int from district_display where district_id = d.id) as display
+          from districts d where d.id = ${district.id}`,
+      'objects',
+    );
+    expect(row).toEqual({ geom: true, label: true, parts: 0, display: 0 });
+  });
+
+  it('insertFilingTrack recomputes the headline deadline', async () => {
+    const track = await insertFilingTrack(getTestDb(), {}, { now: NOW });
+    expect(track).toMatchObject({
+      track: 'nonpartisan',
+      opensOn: '2026-08-14',
+      closesOn: '2026-08-28',
+      closesTime: null,
+      basis: 'computed',
+      sourceUrl: 'https://example.test/fixture-source',
+      quote: 'Fixture quote.',
+      confidence: 'medium',
+    });
+    const [election] = await getTestDb().execute<{
+      source_key: string;
+      election_date: string;
+      opens: string;
+      deadline: string;
+      basis: string;
+    }>(
+      sql`select source_key, election_date::text as election_date, filing_opens::text as opens,
+                 filing_deadline::text as deadline, deadline_basis as basis
+          from elections where id = ${track.electionId}`,
+      'objects',
+    );
+    expect(election).toMatchObject({
+      election_date: '2026-10-13',
+      opens: '2026-08-14',
+      deadline: '2026-08-28',
+      basis: 'computed',
+    });
+    expect(track.sourceKey).toBe(`${election?.source_key ?? ''}|nonpartisan`);
+  });
+
+  it('civic ids derive from the source key', async () => {
+    const office = await insertOffice(getTestDb(), { sourceKey: 'fixture:offices:x' });
+    expect(office.id).toBe(civicId('offices', 'fixture:offices:x'));
+    const district = await insertDistrict(getTestDb());
+    expect(district.sourceKey).toMatch(/^fixture:districts:\d+$/);
+    expect(district.id).toBe(civicId('districts', district.sourceKey));
+  });
+
+  it('facts default to null', async () => {
+    const office = await insertOffice(getTestDb());
+    const operational = new Set([
+      'id',
+      'sourceKey',
+      'slug',
+      'tileId',
+      'jurisdictionId',
+      'districtId',
+      'officeTypeId',
+      'state',
+      'title',
+      'placeholder',
+      'seats',
+      'fieldMeta',
+      'overrides',
+      'changedAt',
+      'updatedAt',
+      'createdAt',
+    ]);
+    const facts = Object.entries(office).filter(([name]) => !operational.has(name));
+    expect(facts.length).toBeGreaterThan(40);
+    expect(facts.filter(([, value]) => value !== null)).toEqual([]);
+    expect(office).toMatchObject({
+      state: 'ZZ',
+      placeholder: false,
+      seats: 1,
+      fieldMeta: {},
+      overrides: {},
+      officeTypeId: 'attorney-general',
+    });
+  });
+
+  it('the district ordinal restarts after resetDb', async () => {
+    const western = async (): Promise<number[]> => {
+      const made = [await insertDistrict(getTestDb()), await insertDistrict(getTestDb())];
+      const found: number[] = [];
+      for (const district of made) {
+        const [row] = await getTestDb().execute<{ west: number }>(
+          sql`select round(st_xmin(geom)::numeric, 3)::float8 as west from districts
+              where id = ${district.id}`,
+          'objects',
+        );
+        found.push(row?.west ?? Number.NaN);
+      }
+      return found;
+    };
+    expect(await western()).toEqual([-40, -39.98]);
+    await resetDb();
+    expect(await western()).toEqual([-40, -39.98]);
   });
 });

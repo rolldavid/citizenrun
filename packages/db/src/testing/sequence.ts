@@ -10,3 +10,17 @@ export function nextSequence(): number {
 export function resetSequence(): void {
   current = 0;
 }
+
+let districtOrdinal = 0;
+
+/** The ordinal of the next fixture district in the test: 0, 1, 2, ... until resetDistrictOrdinal(). */
+export function nextDistrictOrdinal(): number {
+  const ordinal = districtOrdinal;
+  districtOrdinal += 1;
+  return ordinal;
+}
+
+/** Restarts the district ordinal, so the next fixture district is number 0 again. */
+export function resetDistrictOrdinal(): void {
+  districtOrdinal = 0;
+}
