@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { eq, sql } from 'drizzle-orm';
-import { userDistricts, users } from '@citizenrun/db';
+import { fieldReports, userDistricts, users } from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
-import { getTestDb, insertConsents, insertUser } from '@citizenrun/db/testing';
+import { getTestDb, insertConsents, insertOffice, insertUser } from '@citizenrun/db/testing';
 import {
   AppleCallbackFormSchema,
   AppleHandoffBodySchema,
@@ -10,6 +10,7 @@ import {
   CheckHandleQuerySchema,
   CreateClientErrorBodySchema,
   ERROR_CODES,
+  FieldReportInputSchema,
   LEGAL_VERSIONS,
   SetHandleBodySchema,
   SetLocationBodySchema,
@@ -105,6 +106,8 @@ const CHECK_HANDLE = '/v1/handles/check';
 const SET_HANDLE = '/v1/me/handle';
 const SUGGEST_PLACES = '/v1/geo/autocomplete';
 const SET_LOCATION = '/v1/me/location';
+// A field report's path: validation answers before the office is read, so any office id serves.
+const FIELD_REPORTS_OF_UNKNOWN = '/v1/offices/00000000-0000-7000-8000-00000000ffff/field-reports';
 // A fixture key, never a real one: Geoapify with the suggestion fake behind it.
 const FIXTURE_GEO_KEY = 'fixture-geo-key';
 const GEOAPIFY_ENV = { GEO_PROVIDER: 'geoapify', GEO_API_KEY: FIXTURE_GEO_KEY } as const;
@@ -398,6 +401,25 @@ function markedPoint(): Record<string, unknown> {
 /** The coordinates of the default point as six-decimal text, the form the scan looks for. */
 function pointTexts(): string[] {
   return [DEFAULT_FIXTURE_POINT.lat.toFixed(6), DEFAULT_FIXTURE_POINT.lng.toFixed(6)];
+}
+
+/** A report's note with the marker in it. */
+function markedNote(): string {
+  return `Fixture note ${marker()}`;
+}
+
+/** A link whose host holds the marker; the API stores it lower-cased and never requests it. */
+function markedLink(): string {
+  return `https://${marker()}.example.test/page`;
+}
+
+/** An office and a signed-in user whose email holds no marker. */
+async function reportingUser(
+  testApp: TestApp,
+): Promise<{ path: string; userId: string; auth: TestAuth }> {
+  const office = await insertOffice(testApp.deps.db);
+  const { userId, auth } = await unmarkedUserWithId(testApp);
+  return { path: `/v1/offices/${office.id}/field-reports`, userId, auth };
 }
 
 /** A test app with the location fixture and a Census fake that matches the marked address. */
@@ -969,6 +991,53 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       return { testApp, response, secrets: [] };
     },
   },
+  createFieldReport: {
+    path: FIELD_REPORTS_OF_UNKNOWN,
+    fields: ['message', 'sourceUrl'],
+    validBody: () => ({ field: 'pay_annual_cents', message: 'Fixture note.' }),
+    isValid: (body) => FieldReportInputSchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 201,
+    // The marked note and link reach field_reports, their one store.
+    success: async () => {
+      const testApp = await createTestApp();
+      const { path, userId, auth } = await reportingUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        path,
+        { field: 'pay_annual_cents', message: markedNote(), sourceUrl: markedLink() },
+        {},
+        auth,
+      );
+      expect(response.status).toBe(201);
+      const [row] = await getTestDb()
+        .select()
+        .from(fieldReports)
+        .where(eq(fieldReports.userId, userId));
+      expect(row?.message).toBe(markedNote());
+      expect(row?.sourceUrl).toBe(markedLink().toLowerCase());
+      expect(testApp.fakes.outbound.calls).toEqual([]);
+      return { testApp, response, secrets: [] };
+    },
+    // An http link beside the marked note: refused as text, never requested.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      const { path, userId, auth } = await reportingUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        path,
+        { field: null, message: markedNote(), sourceUrl: `http://${marker()}.example.test` },
+        {},
+        auth,
+      );
+      await expectEnvelope(response, 'link_invalid');
+      expect(
+        await getTestDb().select().from(fieldReports).where(eq(fieldReports.userId, userId)),
+      ).toEqual([]);
+      expect(testApp.fakes.outbound.calls).toEqual([]);
+      return { testApp, response, secrets: [] };
+    },
+  },
 };
 
 /** Operations with a string field that a user never types, each with its reason. */
@@ -978,6 +1047,8 @@ const NO_USER_TEXT: Readonly<Record<string, string>> = {
   recordConsent: 'An enumerated kind and a version compared with a constant.',
   recordAgeSignal: 'An enumerated age band and source tier.',
   createUpload: 'Enumerated kind, purpose and content type, and a size.',
+  getOffice: 'An issue id from the reference list.',
+  listOfficeCandidates: 'An election id and an opaque cursor.',
 };
 
 function setAt(body: Record<string, unknown>, path: string, value: unknown): void {
@@ -1315,6 +1386,39 @@ describe('the API privacy suite', () => {
       'objects',
     );
     expect(locationJobs[0]?.n).toBe(0);
+  });
+
+  it('field report note is not logged', async () => {
+    const testApp = await createTestApp();
+    const { path, userId, auth } = await reportingUser(testApp);
+    const response = await sendSignedIn(
+      testApp,
+      path,
+      { field: null, message: markedNote() },
+      {},
+      auth,
+    );
+    expect(response.status).toBe(201);
+    const stored = await getTestDb()
+      .select({ message: fieldReports.message })
+      .from(fieldReports)
+      .where(eq(fieldReports.userId, userId));
+    expect(stored).toEqual([{ message: markedNote() }]);
+    // The validation failure of an unknown field beside the marked note keeps it out too.
+    const refused = await sendSignedIn(
+      testApp,
+      path,
+      { field: 'not_a_field', message: markedNote() },
+      {},
+      auth,
+    );
+    await expectEnvelope(refused, 'invalid_request');
+    await expectNothingLeaked(testApp, []);
+    const events = await getTestDb().execute<{ text: string }>(
+      sql`select coalesce(string_agg(props::text, ''), '') as text from app_events`,
+      'objects',
+    );
+    expectNoMarkerIn(events[0]?.text ?? '');
   });
 
   it('every operation that takes text is listed', async () => {

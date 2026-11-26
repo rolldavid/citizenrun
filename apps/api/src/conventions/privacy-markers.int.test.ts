@@ -4,6 +4,7 @@ import {
   insertConsents,
   insertDataExport,
   insertDistrict,
+  insertOffice,
   insertUser,
   setUserDistricts,
   setUserIssues,
@@ -22,10 +23,22 @@ import type { TestAuth } from '../testing/request.ts';
 // through every GET operation of the document, logged out and by a second user; no body holds it.
 // The operations come from the document, so a later route is covered by adding nothing.
 
+type CallParameters = { path?: Record<string, string>; query: Record<string, string> };
+
 /** Operations whose parameters the fixtures cannot fill, with the parameters they are called with. */
-const EXPLICIT_PARAMETERS: Readonly<Record<string, { query: Record<string, string> }>> = {
-  checkHandle: { query: { handle: 'fixture_b' } },
-};
+function explicitParameters(target: Target): Readonly<Record<string, CallParameters>> {
+  return {
+    checkHandle: { query: { handle: 'fixture_b' } },
+    // The office A saved, by its slug and by its id.
+    getOffice: { path: { idOrSlug: target.officeSlug }, query: {} },
+    listOfficeCandidates: { path: { id: target.officeId }, query: {} },
+  };
+}
+
+/** The document's path with each `{name}` replaced by its explicit value. */
+function filledPath(path: string, values: Record<string, string> = {}): string {
+  return path.replaceAll(/\{(.+?)\}/g, (whole, name: string) => values[name] ?? whole);
+}
 
 // An instant that appears nowhere else: target user A's age record.
 const AGE_CHECKED_AT = '1999-01-02T03:04:05.678Z';
@@ -91,6 +104,8 @@ type Target = {
   userId: string;
   picks: { issueId: string; starred: boolean }[];
   districtIds: string[];
+  officeId: string;
+  officeSlug: string;
 };
 
 /** Target user A, with the marker in every private column of an account. */
@@ -141,8 +156,9 @@ async function insertTarget(testApp: TestApp, issueIds: readonly string[]): Prom
   const districtIds = districts.map((district) => district.id);
   await setUserDistricts(db, user.id, districtIds);
   // The office is public and carries no marker; only the fact that A saved it is private.
-  await insertBookmark(db, { userId: user.id });
-  return { userId: user.id, picks, districtIds };
+  const office = await insertOffice(db);
+  await insertBookmark(db, { userId: user.id, officeId: office.id });
+  return { userId: user.id, picks, districtIds, officeId: office.id, officeSlug: office.slug };
 }
 
 /** Second user B, with its own picks and the current consents, freshly signed in by bearer. */
@@ -209,21 +225,29 @@ describe('the private columns', () => {
       .where(eq(bookmarks.userId, target.userId));
     expect(saved).toHaveLength(1);
 
+    const explicit = explicitParameters(target);
     const operations = getOperations();
     const unfillable = operations
       .filter((operation) => operation.hasParameters)
-      .filter((operation) => !(operation.operationId in EXPLICIT_PARAMETERS))
+      .filter((operation) => !(operation.operationId in explicit))
       .map((operation) => operation.operationId);
     expect(unfillable).toEqual([]);
     const known = new Set(operations.map((operation) => operation.operationId));
-    expect(Object.keys(EXPLICIT_PARAMETERS).filter((id) => !known.has(id))).toEqual([]);
+    expect(Object.keys(explicit).filter((id) => !known.has(id))).toEqual([]);
 
     const called = new Set<string>();
     for (const operation of operations) {
-      const query = EXPLICIT_PARAMETERS[operation.operationId]?.query ?? {};
+      const parameters = explicit[operation.operationId];
+      const path = filledPath(operation.path, parameters?.path);
+      const query = parameters?.query ?? {};
       for (const auth of [null, viewer]) {
-        const response = await testApp.request.get(operation.path, { auth, client: IOS, query });
+        const response = await testApp.request.get(path, { auth, client: IOS, query });
         const body = (await response.text()).toLowerCase();
+        if (operation.operationId === 'getOffice') {
+          // INV-06: the office A saved is not saved for anyone else.
+          expect(response.status).toBe(200);
+          expect(body).toContain('"bookmarked":false');
+        }
         for (const text of forbidden) {
           expect(
             body,
@@ -238,5 +262,7 @@ describe('the private columns', () => {
     expect(called).toContain('getExport');
     expect(called).toContain('listIssues');
     expect(called).toContain('listOfficeTypes');
+    expect(called).toContain('getOffice');
+    expect(called).toContain('listOfficeCandidates');
   });
 });
