@@ -6,6 +6,7 @@ import { brandVariant } from '@citizenrun/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createApp } from '../app.ts';
 import { sha256Source } from '../config/csp.ts';
+import { defineRoute, registerRoute } from '../router.ts';
 import { createTestApp } from '../testing/app.ts';
 import type { TestApp } from '../testing/app.ts';
 import { webAssetsFor } from './assets.ts';
@@ -27,6 +28,8 @@ const PERMISSIONS_POLICY =
 // web_page allows 240 a minute and web_static 1,200, each held at half per replica (D-240).
 const SHELL_PER_REPLICA = 120;
 const STATIC_PER_REPLICA = 600;
+// v1.unmatched allows 120 a minute, half per replica (D-854).
+const UNMATCHED_V1_PER_REPLICA = 60;
 
 let temporaryDirs: string[] = [];
 
@@ -328,12 +331,16 @@ describe('the web shell and static files', () => {
   it('an unclaimed /v1 GET never meets the shell limiter or compression', async () => {
     const testApp = await createTestApp();
     const ip = { 'x-real-ip': '203.0.113.122', 'Accept-Encoding': 'gzip' };
+    // Past v1.unmatched the refusal is the /v1 envelope, never the shell's plain-text 429.
     for (let n = 1; n <= SHELL_PER_REPLICA + 1; n += 1) {
       const response = await send(testApp, 'GET', '/v1/nope', ip);
-      expect(response.status, `unknown /v1 request ${String(n)}`).toBe(404);
+      const refused = n > UNMATCHED_V1_PER_REPLICA;
+      expect(response.status, `unknown /v1 request ${String(n)}`).toBe(refused ? 429 : 404);
       expect(response.headers.get('content-type')).toBe('application/json; charset=utf-8');
       expect(await response.json()).toEqual({
-        error: { code: 'not_found', message: 'Not found.', fields: {} },
+        error: refused
+          ? { code: 'rate_limited', message: expect.any(String), fields: {} }
+          : { code: 'not_found', message: 'Not found.', fields: {} },
       });
     }
     const routes = testApp.logs
@@ -343,10 +350,23 @@ describe('the web shell and static files', () => {
     // The same address still gets the shell: the /v1 requests took nothing from web_page.
     await expectShell(await send(testApp, 'GET', '/', { 'x-real-ip': '203.0.113.122' }));
 
-    // A /v1 route mounted after the registry is not gzipped by the catch-all row.
+    // A /v1 route mounted after the registry is not gzipped by the catch-all row. It declares a
+    // policy above the shell's, so its 121 requests from one address all pass.
+    const probeRoute = defineRoute({
+      method: 'get',
+      path: '/v1/__probe',
+      hide: true,
+      operationId: 'getProbe',
+      responses: { 200: { description: 'Ok.' } },
+      meta: { auth: 'none', rateLimit: 'web_static', clientHeader: 'exempt' },
+      errors: [],
+    });
     const app = createApp(testApp.deps, {
       extraRoutes: (probe) => {
-        probe.get('/v1/__probe', (c) => c.text('x'.repeat(4_096)));
+        registerRoute(probe, probeRoute, (c) => c.text('x'.repeat(4_096)), {
+          routeMiddleware: [],
+          getOpenApiDocument: () => ({}),
+        });
       },
     });
     const url = new URL('/v1/__probe', testApp.deps.env.PUBLIC_URL).toString();

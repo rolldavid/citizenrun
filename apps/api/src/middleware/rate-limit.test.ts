@@ -119,6 +119,25 @@ describe('rate limits', () => {
     expect(errors.at(-1)?.message).toBe('unknown rate-limit policy not_in_table');
   });
 
+  it('a /v1 request no route declares counts against v1.unmatched', async () => {
+    const deps = createUnitDeps();
+    const { app } = buildApp(deps, RATE_LIMIT_POLICIES, () => undefined);
+    // 120 a minute, halved per replica: the 61st unknown request from one address is refused.
+    const statuses: number[] = [];
+    for (let n = 0; n < 61; n += 1) {
+      statuses.push((await app.request(`/v1/nothing/${String(n)}`, from(ADDRESS))).status);
+    }
+    expect(statuses.slice(0, 60).every((status) => status === 404)).toBe(true);
+    expect(statuses[60]).toBe(429);
+    expect((await app.request('/v1/nothing', from(OTHER_ADDRESS))).status).toBe(404);
+
+    // A table without the policy fails loudly instead of letting the request pass.
+    const fixture = fixtureApp(createUnitDeps());
+    const unknown = await fixture.app.request('/v1/nothing', from(ADDRESS));
+    expect(unknown.status).toBe(500);
+    expect(fixture.errors.at(-1)?.message).toBe('unknown rate-limit policy v1.unmatched');
+  });
+
   it('IPv4, mapped and IPv6 addresses normalise as CTL-07 says', () => {
     expect(normaliseAddress('203.0.113.7')).toBe('203.0.113.7');
     expect(normaliseAddress('  203.0.113.7 ')).toBe('203.0.113.7');

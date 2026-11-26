@@ -19,6 +19,9 @@ describe('rate-limit policies', () => {
       ],
       web_page: [{ subject: 'ip', action: 'web_page', limit: 240, window: '1m', store: 'memory' }],
       web_seo: [{ subject: 'ip', action: 'web_seo', limit: 120, window: '1m', store: 'memory' }],
+      'v1.unmatched': [
+        { subject: 'ip', action: 'v1_unmatched', limit: 120, window: '1m', store: 'memory' },
+      ],
     });
   });
 

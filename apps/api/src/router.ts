@@ -156,9 +156,23 @@ export type RouteContext = {
   getOpenApiDocument: () => OpenApiDocument;
 };
 
+/** The declared metadata of a route registered with `hide: true`, which the document never holds. */
+export type HiddenRouteMeta = { meta: ApiRouteMeta; operationId: string };
+
+// Each hidden route's metadata, keyed by the first handler of its chain: Hono keeps that function
+// when a router is mounted, so the route metadata index finds it under the mounted path (D-854).
+const hiddenRouteMeta = new WeakMap<object, HiddenRouteMeta>();
+
+/** The metadata a hidden route declared, when `handler` is the first handler of its chain. */
+export function hiddenRouteMetaOf(handler: unknown): HiddenRouteMeta | undefined {
+  return typeof handler === 'function' ? hiddenRouteMeta.get(handler) : undefined;
+}
+
 /**
  * Registers a route on a router; its own middleware first puts the route's metadata on the context,
- * then runs the route middleware of `ctx` in order, ahead of validation and the handler.
+ * then runs the route middleware of `ctx` in order, ahead of validation and the handler. A route
+ * with `hide: true` stays out of the document, and its metadata still reaches the route metadata
+ * index (D-854).
  */
 export function registerRoute(
   router: OpenAPIHono<ApiEnv>,
@@ -171,5 +185,8 @@ export function registerRoute(
     c.set('routeMeta', meta);
     await next();
   };
+  if (route.hide === true) {
+    hiddenRouteMeta.set(setRouteMeta, { meta, operationId: route.operationId ?? '' });
+  }
   router.openapi({ ...route, middleware: [setRouteMeta, ...ctx.routeMiddleware] }, handler);
 }

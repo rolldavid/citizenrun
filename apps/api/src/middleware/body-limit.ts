@@ -11,9 +11,9 @@ export const DEFAULT_BODY_LIMIT_BYTES = 65_536; // L-body-limit
 const LIMITED_METHODS: ReadonlySet<string> = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 /**
- * L-body-limit for `/v1`: a write to a matched operation may carry at most its `bodyLimitBytes`
- * (default 65,536), checked from `Content-Length` and while reading; over it is 413
- * `payload_too_large`.
+ * L-body-limit for `/v1`: a write may carry at most its route's `bodyLimitBytes`, and 65,536 bytes
+ * when the route states none or no route's metadata matched (D-854), checked from `Content-Length`
+ * and while reading; over it is 413 `payload_too_large`.
  */
 export function bodyLimit(_deps: Deps, index: RouteMetaIndex): MiddlewareHandler<RouterEnv> {
   const byLimit = new Map<number, MiddlewareHandler<RouterEnv>>();
@@ -36,10 +36,6 @@ export function bodyLimit(_deps: Deps, index: RouteMetaIndex): MiddlewareHandler
       return;
     }
     const meta = index.match(c);
-    if (meta === null) {
-      await next();
-      return;
-    }
-    return limiterFor(meta.bodyLimitBytes ?? DEFAULT_BODY_LIMIT_BYTES)(c, next);
+    return limiterFor(meta?.bodyLimitBytes ?? DEFAULT_BODY_LIMIT_BYTES)(c, next);
   };
 }

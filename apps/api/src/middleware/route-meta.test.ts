@@ -86,6 +86,80 @@ describe('route metadata index', () => {
     expect(seen[1]).toEqual({ meta: null, route: '/*' });
   });
 
+  it('an earlier catch-all does not hide the route behind it', async () => {
+    const index = createRouteMetaIndex();
+    const seen: (ResolvedRouteMeta | null)[] = [];
+    const app = createRouter();
+    app.use('*', async (c, next) => {
+      seen.push(index.match(c));
+      await next();
+    });
+    // As the shell's catch-all does for /v1, this one passes the request on.
+    app.get('*', async (_c, next) => {
+      await next();
+    });
+    registerRoute(app, readDoc, (c) => c.json({ ok: true }), NO_CONTEXT);
+    index.load(app);
+    expect((await app.request('/v1/doc')).status).toBe(200);
+    expect(seen[0]?.operationId).toBe('readDoc');
+  });
+
+  it('a hidden route on a mounted router matches under its mounted path', async () => {
+    const hidden = defineRoute({
+      method: 'post',
+      path: '/dev/probe',
+      hide: true,
+      operationId: 'readProbe',
+      responses: { 200: { description: 'Ok.' } },
+      meta: { auth: 'none', rateLimit: 'ref.openapi', clientHeader: 'exempt' },
+      errors: [],
+    });
+    const index = createRouteMetaIndex();
+    const seen: (ResolvedRouteMeta | null)[] = [];
+    const app = createRouter();
+    app.use('*', async (c, next) => {
+      seen.push(index.match(c));
+      await next();
+    });
+    const v1 = createRouter();
+    registerRoute(v1, hidden, (c) => c.json({ ok: true }), NO_CONTEXT);
+    // A router with its own error handler is wrapped by Hono when mounted; the metadata still holds.
+    const wrapped = createRouter();
+    wrapped.onError((_error, c) => c.text('wrapped', 500));
+    registerRoute(
+      wrapped,
+      { ...hidden, operationId: 'readWrapped' },
+      (c) => c.text(''),
+      NO_CONTEXT,
+    );
+    app.route('/v1', v1);
+    app.route('/v1/wrapped', wrapped);
+    index.load(app);
+    await app.request('/v1/dev/probe', { method: 'POST' });
+    await app.request('/v1/wrapped/dev/probe', { method: 'POST' });
+    expect(seen.map((meta) => meta?.operationId)).toEqual(['readProbe', 'readWrapped']);
+    expect(seen[0]).toEqual({
+      auth: 'none',
+      rateLimit: 'ref.openapi',
+      clientHeader: 'exempt',
+      operationId: 'readProbe',
+    });
+    expect(index.all().map(({ method, path }) => `${method} ${path}`)).toEqual([
+      'POST /v1/dev/probe',
+      'POST /v1/wrapped/dev/probe',
+    ]);
+    expect(app.openAPIRegistry.definitions).toEqual([]);
+  });
+
+  it('a hidden route and an operation on one method and path throw at load', () => {
+    const app = createRouter();
+    registerRoute(app, readDoc, (c) => c.json({ ok: true }), NO_CONTEXT);
+    registerRoute(app, { ...readDoc, hide: true }, (c) => c.json({}), NO_CONTEXT);
+    expect(() => {
+      createRouteMetaIndex().load(app);
+    }).toThrow('route GET /v1/doc is registered twice');
+  });
+
   it('a duplicate method and path throws at load', () => {
     const app = createRouter();
     registerRoute(app, readDoc, (c) => c.json({ ok: true }), NO_CONTEXT);

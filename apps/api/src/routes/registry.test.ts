@@ -3,9 +3,11 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createApp } from '../app.ts';
 import { RATE_LIMIT_POLICIES } from '../config/rate-limits.ts';
-import { buildOpenApiDocument, createDocDeps } from '../openapi.ts';
+import { createRouteMetaIndex } from '../middleware/route-meta.ts';
+import { buildOpenApiDocument, createDocDeps, documentFor } from '../openapi.ts';
 import type { OpenApiDocument } from '../openapi.ts';
-import { createRouter } from '../router.ts';
+import { createRouter, defineRoute, registerRoute } from '../router.ts';
+import { createUnitDeps } from '../testing/unit-deps.ts';
 
 // The /v1 paths that may be registered without being an operation of the document (D-438).
 const REGISTRATION_EXEMPT_PATHS: readonly string[] = ['/v1/ws'];
@@ -144,6 +146,48 @@ describe('the route registry', () => {
       await next();
     });
     expect(undocumentedV1Routes(probe.routes, operations)).toEqual(['GET /v1/__plain/{id}']);
+  });
+
+  it('a hidden /v1 route declares its metadata and stays out of the document', async () => {
+    const hidden = defineRoute({
+      method: 'post',
+      path: '/__hidden',
+      hide: true,
+      operationId: 'probeHidden',
+      responses: { 200: { description: 'Ok.' } },
+      meta: { auth: 'none', rateLimit: 'clientErrors', clientHeader: 'exempt', bodyLimitBytes: 64 },
+      errors: [],
+    });
+    const app = createApp(createUnitDeps(), {
+      extraRoutes: (root) => {
+        const v1 = createRouter();
+        registerRoute(v1, hidden, (c) => c.json({ ok: true }), {
+          routeMiddleware: [],
+          getOpenApiDocument: () => ({}),
+        });
+        root.route('/v1', v1);
+      },
+    });
+    const index = createRouteMetaIndex();
+    index.load(app);
+    expect(index.all().find((entry) => entry.path === '/v1/__hidden')?.meta.operationId).toBe(
+      'probeHidden',
+    );
+    const paths = documentFor(app)['paths'];
+    expect(Object.keys(isRecord(paths) ? paths : {})).not.toContain('/v1/__hidden');
+    // The route's own exemption and body limit apply, with no client header.
+    const post = (path: string, bytes: number) =>
+      app.request(path, { method: 'POST', body: 'a'.repeat(bytes) });
+    expect((await post('/v1/__hidden', 64)).status).toBe(200);
+    expect((await post('/v1/__hidden', 65)).status).toBe(413);
+  });
+
+  it('a /v1 request no route declares gets the default body limit', async () => {
+    const app = createApp(createUnitDeps());
+    const post = (bytes: number) =>
+      app.request('/v1/__nothing', { method: 'POST', body: 'a'.repeat(bytes) });
+    expect((await post(65_536)).status).toBe(404);
+    expect((await post(65_537)).status).toBe(413);
   });
 
   it('the client-header exemptions are the listed ones', () => {

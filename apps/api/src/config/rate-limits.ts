@@ -20,6 +20,10 @@ export const RATE_LIMIT_POLICIES = {
   web_static: [{ subject: 'ip', action: 'web_static', limit: 1200, window: '1m', store: 'memory' }], // E-WEB-04
   web_page: [{ subject: 'ip', action: 'web_page', limit: 240, window: '1m', store: 'memory' }], // E-WEB-05
   web_seo: [{ subject: 'ip', action: 'web_seo', limit: 120, window: '1m', store: 'memory' }], // E-WEB-03
+  // D-854: a /v1 request that no route's metadata matches
+  'v1.unmatched': [
+    { subject: 'ip', action: 'v1_unmatched', limit: 120, window: '1m', store: 'memory' },
+  ],
 } as const satisfies Readonly<Record<string, readonly RateLimitRule[]>>;
 
 export type RateLimitPolicyName = keyof typeof RATE_LIMIT_POLICIES;

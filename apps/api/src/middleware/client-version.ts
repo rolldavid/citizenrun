@@ -78,9 +78,10 @@ export function isBelowMinimum(value: ClientValue, env: ApiEnv): boolean {
 }
 
 /**
- * L-client-version for `/v1`: a matched operation that is not exempt needs a well-formed
+ * L-client-version for `/v1`: a matched route that is not exempt needs a well-formed
  * `X-OS-Client` (400 `client_header_required`) at or above its platform's minimum (426
- * `upgrade_required`); the parsed value goes on the context.
+ * `upgrade_required`); the parsed value goes on the context. A request that no route's metadata
+ * matches needs none, so an unknown path or method answers 404 (D-854).
  */
 export function clientVersion(deps: Deps, index: RouteMetaIndex): MiddlewareHandler<RouterEnv> {
   return async (c, next) => {

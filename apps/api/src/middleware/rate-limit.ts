@@ -9,6 +9,9 @@ import type { Deps } from '../deps.ts';
 import type { ApiEnv as RouterEnv } from '../router.ts';
 import type { RouteMetaIndex } from './route-meta.ts';
 
+/** The policy of a `/v1` request that no route's metadata matches; every table given to `rateLimitV1` holds it. */
+export const UNMATCHED_V1_POLICY = 'v1.unmatched' satisfies RateLimitPolicyName; // D-854
+
 /** The most keys one replica's memory store holds. */
 export const MEMORY_STORE_MAX_KEYS = 100_000; // D-422
 
@@ -278,8 +281,9 @@ export function checkRateLimitPolicy(
 }
 
 /**
- * The `/v1` limiter over the table it is given (D-801): the matched operation's policy, refused
- * with 429 `rate_limited` and `Retry-After`. An unmatched path passes to the not-found handler.
+ * The `/v1` limiter over the table it is given (D-801): the matched route's policy, or
+ * `v1.unmatched` when no route's metadata matched (D-854), refused with 429 `rate_limited` and
+ * `Retry-After`.
  */
 export function rateLimitV1(
   deps: Deps,
@@ -288,12 +292,8 @@ export function rateLimitV1(
 ): MiddlewareHandler<RouterEnv> {
   return async (c, next) => {
     const meta = index.match(c);
-    if (meta === null) {
-      await next();
-      return;
-    }
     const result = await checkRateLimitPolicyIn(deps, policies, {
-      policy: meta.rateLimit,
+      policy: meta?.rateLimit ?? UNMATCHED_V1_POLICY,
       userId: null,
       addrHash: c.get('addrHash'),
       now: deps.clock.now(),
