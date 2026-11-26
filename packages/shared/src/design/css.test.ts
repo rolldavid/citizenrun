@@ -31,7 +31,8 @@ const DOCUMENT_PAGE_RULE_LINES = [
   'header,main,footer{max-width:688px;margin:0 auto;padding:0 16px}',
   '@media (min-width:380px){header,main,footer{padding:0 24px}}',
   'header{display:flex;align-items:center;min-height:48px;border-bottom:1px solid var(--rule)}',
-  'header a{font:500 16px/22px var(--font-sans);color:var(--text);text-decoration:none}',
+  'header a{font:500 16px/22px var(--font-sans);color:var(--text);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}',
+  'header a:hover,header a:focus-visible{text-decoration-line:underline}',
   'main{padding-top:32px;padding-bottom:48px}',
   'h1{font:500 28px/32px var(--font-sans);letter-spacing:-0.015em;margin:0 0 24px}',
   'h2{font:500 20px/26px var(--font-sans);letter-spacing:-0.01em;margin:32px 0 12px}',
@@ -197,7 +198,7 @@ describe('server CSS from tokens', () => {
   });
 
   it('document page rules equal the contract text', () => {
-    expect(DOCUMENT_PAGE_RULE_LINES.length).toBe(37);
+    expect(DOCUMENT_PAGE_RULE_LINES.length).toBe(38);
     expect(DOCUMENT_PAGE_CSS.startsWith(DOCUMENT_PAGE_HEAD)).toBe(true);
     expect(documentPageRules().split('\n')).toEqual(DOCUMENT_PAGE_RULE_LINES);
     expect(documentPageRules()).toBe(DOCUMENT_PAGE_RULE_LINES.join('\n'));
