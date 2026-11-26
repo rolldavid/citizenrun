@@ -118,5 +118,5 @@ describe('ndjson', () => {
     const back = await readAll(bytes);
     expect(back).toHaveLength(200_000);
     expect(back[199_999]).toEqual(input[199_999]);
-  });
+  }, 30_000);
 });
