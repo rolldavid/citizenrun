@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { issue, ISSUE_IDS } from '@citizenrun/shared';
+import { stackBuckets } from './e2e-stack.ts';
 import { repoRoot } from './lib/repo-root.ts';
 
 const ROOT = repoRoot();
@@ -337,5 +338,20 @@ describe('issue art and data', () => {
       expect(row.colorLight, `${row.id} light`).toBe(tokens[row.id]?.light);
       expect(row.colorDark, `${row.id} dark`).toBe(tokens[row.id]?.dark);
     }
+  });
+});
+
+describe('the pipeline home', () => {
+  const lines = (path: string): string[] => readFileSync(join(ROOT, path), 'utf8').split('\n');
+
+  it("the development worker never reads the pipeline's home", () => {
+    expect(lines('apps/worker/.env.example')).toContain('DATA_BUCKET=dev-data');
+    expect(lines('pipeline/.env.example')).toContain('DATA_BUCKET=data');
+    const init = readFileSync(join(ROOT, 'docker/seaweedfs/init.sh'), 'utf8');
+    const created = /for bucket in ([a-z -]+); do/.exec(init)?.[1]?.split(' ') ?? [];
+    expect(created).toContain('data');
+    expect(created).toContain('dev-data');
+    expect(stackBuckets('seeded').data).toBe('e2e-data');
+    expect(stackBuckets('standIn').data).toBe('data');
   });
 });

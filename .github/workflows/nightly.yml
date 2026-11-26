@@ -223,3 +223,30 @@ jobs:
           name: maestro-tests
           path: ~/.maestro/tests
           retention-days: 3
+
+  # The pipeline's unit and integration tests; the PostGIS service serves its own psql tests.
+  pipeline-tests:
+    if: github.event_name != 'workflow_dispatch' || inputs.only == 'all'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+      seaweedfs:
+        image: chrislusf/seaweedfs:4.54@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15
+        command: server -dir=/data -ip.bind=0.0.0.0 -s3 -s3.port=8333 -volume.max=0 -master.volumeSizeLimitMB=128
+        env: { AWS_ACCESS_KEY_ID: osdev, AWS_SECRET_ACCESS_KEY: osdev-secret-key }
+        ports: ['8333:8333']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+      - run: sudo apt-get install -y --no-install-recommends postgresql-client-17
+      - run: echo /usr/lib/postgresql/17/bin >> "$GITHUB_PATH"
+      - run: pnpm --filter @citizenrun/pipeline run test
+      - run: pnpm --filter @citizenrun/pipeline run test:integration

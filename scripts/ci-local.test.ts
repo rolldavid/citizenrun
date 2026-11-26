@@ -13,6 +13,7 @@ import {
   MIN_FREE_BYTES_FOR_IMAGES,
   NIGHTLY_JOBS,
   NO_LOCAL_FORM,
+  PIPELINE_TESTS_COMMANDS,
   UsageError,
   availableBytes,
   ciRange,
@@ -87,6 +88,7 @@ describe('ci-local', () => {
       'verify',
       'migration-compat',
       'maestro-android',
+      'pipeline-tests',
     ]);
     expect(NIGHTLY_JOBS.every((job) => job.workflow === 'nightly')).toBe(true);
   });
@@ -95,12 +97,23 @@ describe('ci-local', () => {
     const needing = [...CI_JOBS, ...NIGHTLY_JOBS]
       .filter((job) => job.needsPgDump17)
       .map((job) => job.name);
-    expect(needing).toEqual(['integration', 'images', 'verify', 'migration-compat']);
+    expect(needing).toEqual([
+      'integration',
+      'images',
+      'verify',
+      'migration-compat',
+      'pipeline-tests',
+    ]);
   });
 
   it('selection follows the flags', () => {
     expect(names([])).toEqual(CI_JOBS.map((job) => job.name));
-    expect(names(['--nightly'])).toEqual(['verify', 'migration-compat', 'maestro-android']);
+    expect(names(['--nightly'])).toEqual([
+      'verify',
+      'migration-compat',
+      'maestro-android',
+      'pipeline-tests',
+    ]);
     expect(names(['--nightly', '--job', 'verify,migration-compat'])).toEqual([
       'verify',
       'migration-compat',
@@ -116,13 +129,13 @@ describe('ci-local', () => {
     const attempt = (): unknown => selectJobs(parseCiLocalArgs(['--job', 'lint']));
     expect(attempt).toThrow(UsageError);
     expect(attempt).toThrow(
-      'unknown job lint; valid jobs: static, unit, integration, web, images, e2e, audit, secrets, verify, migration-compat, maestro-android',
+      'unknown job lint; valid jobs: static, unit, integration, web, images, e2e, audit, secrets, verify, migration-compat, maestro-android, pipeline-tests',
     );
   });
 
   it('with --nightly only nightly jobs are accepted', () => {
     expect(() => selectJobs(parseCiLocalArgs(['--nightly', '--job', 'unit']))).toThrow(
-      'unknown job unit; valid jobs: verify, migration-compat, maestro-android',
+      'unknown job unit; valid jobs: verify, migration-compat, maestro-android, pipeline-tests',
     );
   });
 
@@ -251,6 +264,31 @@ describe('the nightly local forms', () => {
       'scripts/migration-compat.ts',
       '--base',
       'abc',
+    ]);
+  });
+
+  it('runs the pipeline tests nightly', async () => {
+    expect(PIPELINE_TESTS_COMMANDS).toEqual([
+      ['--filter', '@citizenrun/pipeline', 'run', 'test'],
+      ['--filter', '@citizenrun/pipeline', 'run', 'test:integration'],
+    ]);
+    // The job itself, with a stand-in pnpm on PATH that appends each call's arguments.
+    folder = mkdtempSync(join(tmpdir(), 'ci-local-pipeline-'));
+    const record = join(folder, 'args.txt');
+    const shim = join(folder, 'pnpm');
+    writeFileSync(shim, `#!/bin/sh\necho "$*" >> '${record}'\n`);
+    chmodSync(shim, 0o755);
+    const job = NIGHTLY_JOBS.find((entry) => entry.name === 'pipeline-tests');
+    expect(job?.workflow).toBe('nightly');
+    await job?.run({
+      root: ROOT,
+      base: 'main',
+      updateSnapshots: false,
+      env: { PATH: `${folder}:/usr/bin:/bin`, TZ: 'UTC' },
+    });
+    expect(readFileSync(record, 'utf8').trim().split('\n')).toEqual([
+      '--filter @citizenrun/pipeline run test',
+      '--filter @citizenrun/pipeline run test:integration',
     ]);
   });
 

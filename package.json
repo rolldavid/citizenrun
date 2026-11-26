@@ -34,7 +34,8 @@
     "check:licenses": "tsx scripts/check-licenses.ts",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "check:gen": "tsx scripts/check-gen.ts",
-    "check:db": "pnpm --filter @citizenrun/db run check"
+    "check:db": "pnpm --filter @citizenrun/db run check",
+    "pipeline": "pnpm --filter @citizenrun/pipeline run cli"
   },
   "devDependencies": {
     "typescript": "catalog:",

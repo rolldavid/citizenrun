@@ -1,0 +1,35 @@
+{
+  "name": "@citizenrun/pipeline",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "cli": "tsx --env-file-if-exists=.env cli.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:integration": "vitest run --config vitest.int.config.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "catalog:",
+    "@citizenrun/rules": "workspace:*",
+    "@citizenrun/shared": "workspace:*",
+    "cheerio": "^1.2.0",
+    "csv-parse": "^7.0.3",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.12.1",
+    "mapshaper": "~0.7.101",
+    "playwright": "1.65.1",
+    "sharp": "catalog:",
+    "unpdf": "~2.2.2",
+    "yaml": "^2.9.1",
+    "yauzl": "^3.4.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/yauzl": "^3.4.0",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

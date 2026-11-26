@@ -32,6 +32,8 @@ catalog:
 allowBuilds:
   esbuild: true # installs its platform binary
   '@railway/cli': true # downloads the CLI binary the scripts call
+  better-sqlite3: false # mapshaper's GeoPackage support, which the pipeline does not use
+  msgpackr-extract: false # optional native speed-up; msgpackr falls back to plain JavaScript
 
 # Force one copy across the tree: a second TypeScript, React or React Native breaks lint, hooks and native builds.
 overrides:

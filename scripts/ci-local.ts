@@ -917,6 +917,12 @@ export const CI_JOBS: readonly CiJob[] = [
 // ---------------------------------------------------------------------------------------------
 // The nightly jobs' local forms
 
+/** The pipeline-tests job: the pipeline's unit and integration tests against the compose stack. */
+export const PIPELINE_TESTS_COMMANDS: readonly (readonly string[])[] = [
+  ['--filter', '@citizenrun/pipeline', 'run', 'test'],
+  ['--filter', '@citizenrun/pipeline', 'run', 'test:integration'],
+];
+
 /** The arguments of the migration-compat job: the previous code is `base` (default main). */
 export function migrationCompatArgs(base: string): string[] {
   return ['exec', 'tsx', 'scripts/migration-compat.ts', '--base', base];
@@ -1245,6 +1251,13 @@ export const NIGHTLY_JOBS: readonly CiJob[] = [
     },
   },
   { name: 'maestro-android', workflow: 'nightly', needsPgDump17: false, run: maestroAndroidJob },
+  {
+    // Its block-sum tests call psql, so the PostgreSQL 17 client is checked first.
+    name: 'pipeline-tests',
+    workflow: 'nightly',
+    needsPgDump17: true,
+    run: (ctx) => pnpmSteps(ctx, PIPELINE_TESTS_COMMANDS),
+  },
 ];
 
 // ---------------------------------------------------------------------------------------------
