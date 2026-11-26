@@ -36,7 +36,7 @@ function originOf(stored: string | null): PersonDetail['origin'] {
   return ORIGINS.find((origin) => origin === stored) ?? null;
 }
 
-/** The page's own columns and the follower count (R-158: a follower of the person and of its claimed user counts once). */
+/** The page's own columns and the follower count (a follower of the person and of its claimed user counts once). */
 async function readDetail(db: Db, personId: string): Promise<DetailRow | null> {
   // index: people_pkey, follows_target
   const rows = await db.execute<DetailRow>(

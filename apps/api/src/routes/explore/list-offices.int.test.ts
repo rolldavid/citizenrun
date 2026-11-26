@@ -304,7 +304,7 @@ describe('GET /v1/offices', () => {
     const page = await pageOf(auth);
     expect(idsOf(page)).toEqual(expected);
     expect(page.total).toBeNull();
-    // A user whose location was not covered yet holds no districts either (R-013).
+    // A user whose location was not covered yet holds no districts either.
     const { auth: notCovered } = await viewer([]);
     expect(idsOf(await pageOf(notCovered))).toEqual(expected);
   });

@@ -137,9 +137,9 @@ export type OfficeSummaryRow = {
   issues: { issueId: string; relevance: 1 | 2 | 3 }[];
   /** The office's issue with the highest relevance, ties by issues.sort (PB-06). */
   strongestIssueId: string | null;
-  /** The viewer's issue with the largest weighted relevance (R-159); null for a viewer with none. */
+  /** The viewer's issue with the largest weighted relevance; null for a viewer with none. */
   headlineIssueId: string | null;
-  /** The featured officeholder's person id (R-008), before the person is resolved. */
+  /** The featured officeholder's person id, before the person is resolved. */
   featuredPersonId: string | null;
   featuredHolderSince: string | null;
   /** bool_or of term_limited over the current holders up next. */
@@ -214,7 +214,7 @@ export async function officeSummaryRows(
   }
   const viewer = sql`${viewerId}::uuid`;
   const today = sql`${todayPagoPago}::date`;
-  // A single-seat office: seats = 1 and body_size null or 1 (R-008, L-holders-up-next).
+  // A single-seat office: seats = 1 and body_size null or 1 (L-holders-up-next).
   const singleSeat = sql`(o.seats = 1 and (o.body_size is null or o.body_size = 1))`;
   // The Pago Pago date keeps every deadline still open somewhere; the exact test is
   // pickNextElection's, in the jurisdiction's zone. A runoff is never fileable.

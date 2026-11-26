@@ -139,7 +139,7 @@ export async function listOffices(
       jurisdictionId: query.jurisdiction ?? null,
       state: scope === 'state' ? state : null,
     };
-    // R-012, PB-43: a seat still to be named appears in its district's and jurisdiction's sheets.
+    // PB-43: a seat still to be named appears in its district's and jurisdiction's sheets.
     const keepPlaceholders = set.districtId !== null || set.jurisdictionId !== null;
     if ((await countSetCandidates(db, { set, keepPlaceholders })) > SET_PATH_MAX) {
       throw new ApiError('area_too_large');

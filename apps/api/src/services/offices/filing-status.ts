@@ -30,7 +30,7 @@ export function officeFilingStatus(
   if (input.next !== null) {
     return filingStatusFor(input.next, now);
   }
-  // R-161: an office with an election still to come but nothing left to file for is closed.
+  // An office with an election still to come but nothing left to file for is closed.
   // YYYY-MM-DD strings compare as dates.
   if (
     input.lastElectionDate !== null &&

@@ -40,7 +40,7 @@ export async function resolvePerson(db: Db | Tx, idOrSlug: string): Promise<{ id
   }
   const seen = new Set<string>();
   for (let hops = 0; row !== null && row.mergedInto !== null; hops += 1) {
-    // R-045: at most five hops; a sixth, or a person already visited, does not resolve.
+    // At most five hops; a sixth, or a person already visited, does not resolve.
     seen.add(row.id);
     if (hops === MAX_MERGE_HOPS || seen.has(row.mergedInto)) {
       return null;

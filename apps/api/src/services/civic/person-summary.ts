@@ -43,7 +43,7 @@ async function readPeople(db: Db | Tx, ids: readonly string[]): Promise<PersonDb
 }
 
 // Follows merged_into from `id` through the rows read so far, at most MAX_MERGE_HOPS hops; a cycle
-// or a longer chain cannot resolve (R-045).
+// or a longer chain cannot resolve.
 function walk(id: string, read: ReadonlyMap<string, PersonDbRow | null>): Walk {
   const seen = new Set<string>();
   let current = id;
@@ -141,7 +141,7 @@ export async function personSummaryRows(
   return result;
 }
 
-// The viewer's follows of these people and of the users who claimed them, as `<type>:<id>` (R-158).
+// The viewer's follows of these people and of the users who claimed them, as `<type>:<id>`.
 async function viewerFollows(
   db: Db | Tx,
   viewerId: string | null,

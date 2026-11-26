@@ -78,7 +78,7 @@ describe('resolvePerson', () => {
     expect(await resolvePerson(db, director.slug)).toBeNull();
     const merged = await insertPerson(db, { mergedInto: director.id });
     expect(await resolvePerson(db, merged.id)).toBeNull();
-    // A retired person still resolves (R-018).
+    // A retired person still resolves.
     const retired = await insertPerson(db, { retiredAt: new Date('2027-01-01T00:00:00.000Z') });
     expect(await resolvePerson(db, retired.slug)).toEqual({ id: retired.id });
   });

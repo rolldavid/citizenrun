@@ -70,12 +70,12 @@ export const GEO_QUERY_MAX = 100; // L-geo-constants
 export const GEO_SUGGESTIONS_MAX = 5; // L-geo-constants
 /** The longest label a suggestion carries, in characters. */
 export const GEO_LABEL_MAX = 200; // GeoSuggestion
-export const GEO_SUGGEST_PER_MINUTE = 30; // L-geo-constants, R-140
-export const GEO_SUGGEST_PER_DAY = 150; // L-geo-constants, R-140
+export const GEO_SUGGEST_PER_MINUTE = 30; // L-geo-constants
+export const GEO_SUGGEST_PER_DAY = 150; // L-geo-constants
 /** Past this share of GEO_MONTHLY_CAP, only sessions still in sign-up get address suggestions. */
-export const GEO_SIGNUP_ONLY_FRACTION = 0.8; // L-geo-constants, R-140
+export const GEO_SIGNUP_ONLY_FRACTION = 0.8; // L-geo-constants
 export const GEO_PROVIDER_TIMEOUT_MS = 2_000; // L-geo-constants, CTL-37
-export const LOCATION_UPDATES_PER_DAY = 20; // L-geo-constants, R-140
+export const LOCATION_UPDATES_PER_DAY = 20; // L-geo-constants
 export const CENSUS_TIMEOUT_MS = 5_000; // D-211
 export const CENSUS_RETRIES = 1; // D-211
 export const CENSUS_BREAKER_FAILURES = 5; // D-211
