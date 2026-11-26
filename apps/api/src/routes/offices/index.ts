@@ -3,6 +3,7 @@ import type { Deps } from '../../deps.ts';
 import { registerRoute } from '../../router.ts';
 import type { ApiEnv as RouterEnv, RouteContext } from '../../router.ts';
 import { bookmarkOfficeHandler, bookmarkOfficeRoute } from './bookmark-office.ts';
+import { createFieldReportHandler, createFieldReportRoute } from './create-field-report.ts';
 import { followOfficeHandler, followOfficeRoute } from './follow-office.ts';
 import { getOfficeHandler, getOfficeRoute } from './get-office.ts';
 import {
@@ -24,4 +25,5 @@ export function registerOfficeRoutes(
   registerRoute(router, unfollowOfficeRoute, unfollowOfficeHandler(deps), ctx);
   registerRoute(router, bookmarkOfficeRoute, bookmarkOfficeHandler(deps), ctx);
   registerRoute(router, unbookmarkOfficeRoute, unbookmarkOfficeHandler(deps), ctx);
+  registerRoute(router, createFieldReportRoute, createFieldReportHandler(deps), ctx);
 }

@@ -988,6 +988,74 @@
           "ruleCitation"
         ]
       },
+      "FieldReportCreated": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      },
+      "FieldReportField": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "title",
+          "seats",
+          "body_size",
+          "seats_up_next",
+          "term_years",
+          "term_limit_terms",
+          "partisan",
+          "pay_annual_cents",
+          "pay_kind",
+          "pay_amount_cents",
+          "pay_period",
+          "pay_change_note",
+          "benefits",
+          "hours_per_week",
+          "full_time",
+          "meeting_times",
+          "filing_fee_cents",
+          "signatures_required",
+          "where_to_file",
+          "eligibility",
+          "election_date",
+          "filing_opens",
+          "filing_deadline",
+          "petition_due",
+          null
+        ]
+      },
+      "FieldReportInput": {
+        "type": "object",
+        "properties": {
+          "field": {
+            "$ref": "#/components/schemas/FieldReportField"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048
+          }
+        }
+      },
       "FilingStatus": {
         "type": "string",
         "enum": [
@@ -7028,6 +7096,132 @@
           },
           "429": {
             "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/offices/{id}/field-reports": {
+      "post": {
+        "operationId": "createFieldReport",
+        "tags": [
+          "offices"
+        ],
+        "x-route": {
+          "auth": "onboarded",
+          "rateLimit": "field_report"
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "onboarding_incomplete",
+          "origin_rejected",
+          "account_suspended",
+          "not_found",
+          "office_retired",
+          "account_too_new",
+          "link_invalid",
+          "daily_limit_reached",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldReportInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The report is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FieldReportCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Onboarding is not finished, the request-forgery check failed, or the account is suspended.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No office has that id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The office is retired, the account is under a day old, or the link is not a safe https link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "The daily report limit is reached, or too many requests.",
             "content": {
               "application/json": {
                 "schema": {

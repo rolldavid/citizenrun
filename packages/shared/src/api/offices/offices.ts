@@ -24,6 +24,8 @@ import type {
 import type {
   CandidacyViewPage,
   ErrorEnvelope,
+  FieldReportCreated,
+  FieldReportInput,
   GetOfficeParams,
   ListOfficeCandidatesParams,
   OfficeBookmarkState,
@@ -39,6 +41,35 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+const getHeaders = (
+  ...sources: (RequestInit['headers'] | Record<string, string | undefined>)[]
+) => {
+  const seen = new Set<string>();
+  const layers: [string, string | readonly string[]][][] = [];
+  for (const source of sources.reverse()) {
+    if (!source) continue;
+    const entries =
+      source instanceof Headers
+        ? source.entries()
+        : Symbol.iterator in source
+          ? Array.from(
+              source as Iterable<Iterable<string>>,
+              (entry) => Array.from(entry) as [string, string],
+            )
+          : Object.entries<string | readonly string[] | undefined>(source);
+    const layer: [string, string | readonly string[]][] = [];
+    for (const [name, value] of entries) {
+      if (value !== undefined && !seen.has(name.toLowerCase())) layer.push([name, value]);
+    }
+    for (const [name] of layer) seen.add(name.toLowerCase());
+    layers.push(layer);
+  }
+  return Object.fromEntries(layers.reverse().flat()) as Extract<
+    RequestInit['headers'],
+    Record<string, unknown>
+  >;
+};
 
 const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKey: K } => {
   const result = { queryKey } as T & { queryKey: K };
@@ -677,6 +708,87 @@ export function useListOfficeCandidates<
   return withQueryKey(query, queryOptions.queryKey);
 }
 
+export const getCreateFieldReportUrl = (id: string) => {
+  return `/v1/offices/${id}/field-reports`;
+};
+
+export const createFieldReport = async (
+  id: string,
+  fieldReportInput: FieldReportInput,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<FieldReportCreated> => {
+  return apiFetch<FieldReportCreated>(getCreateFieldReportUrl(id), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(fieldReportInput),
+  });
+};
+
+export const getCreateFieldReportMutationKey = () => ['createFieldReport'] as const;
+
+export const getCreateFieldReportMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFieldReport>>,
+    TError,
+    CreateFieldReportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFieldReport>>,
+  TError,
+  CreateFieldReportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateFieldReportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFieldReport>>,
+    CreateFieldReportMutationVariables
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return createFieldReport(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFieldReportMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFieldReport>>
+>;
+export type CreateFieldReportMutationBody = FieldReportInput;
+export type CreateFieldReportMutationError = ErrorType<ErrorEnvelope>;
+export type CreateFieldReportMutationVariables = { id: string; data: FieldReportInput };
+
+export const useCreateFieldReport = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createFieldReport>>,
+      TError,
+      CreateFieldReportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof createFieldReport>>,
+  TError,
+  CreateFieldReportMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateFieldReportMutationOptions(options), queryClient);
+};
 export const getFollowOfficeUrl = (id: string) => {
   return `/v1/offices/${id}/follow`;
 };
