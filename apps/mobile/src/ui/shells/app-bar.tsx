@@ -56,7 +56,7 @@ const SCREEN_BAR: ViewStyle = {
   paddingHorizontal: space.x1,
   zIndex: z.sticky,
 };
-// Both slots are drawn even when empty, so the title stays centered.
+// Both slots are drawn even when empty, so a title stays centered.
 const SLOT: ViewStyle = { width: size.target, minHeight: size.target };
 const TITLE: ViewStyle = { flex: 1 };
 const INSET_COVER: ViewStyle = {
@@ -108,14 +108,23 @@ function HomeBar({ unreadMessages, onOpenMessages }: HomeBarProps): JSX.Element 
   );
 }
 
-/** The bar of every other screen: back, the title as the screen's heading, one action. It stays at the top. */
+/**
+ * The bar of every other screen: back, the title as the screen's heading, one action. It stays at
+ * the top. What stands in the title's place runs to the gutter at a side with no control: a slot is
+ * kept empty only to hold a title in the middle.
+ */
 function ScreenBar({ title, onBack, backLabel, action, center }: ScreenBarProps): JSX.Element {
   const theme = useTheme();
+  const layout = useBreakpoint();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation('common');
   const titleRef = useRef<TextInstance>(null);
   // A screen reader announces the screen by its heading.
   useFocusOnMount(titleRef);
+  const hasAction = action !== undefined && action !== null;
+  const replaced = center !== undefined && center !== null;
+  // The rest of the gutter beside the bar's own padding.
+  const toGutter: ViewStyle = { width: Math.max(0, layout.gutter - space.x1) };
   return (
     <View
       style={[
@@ -127,7 +136,7 @@ function ScreenBar({ title, onBack, backLabel, action, center }: ScreenBarProps)
         },
       ]}
     >
-      <View style={SLOT}>
+      <View style={replaced && onBack === null ? toGutter : SLOT}>
         {onBack === null ? null : (
           <IconButton
             icon="back"
@@ -145,8 +154,8 @@ function ScreenBar({ title, onBack, backLabel, action, center }: ScreenBarProps)
             </Text>
           ))}
       </View>
-      <View style={SLOT}>
-        {action === undefined || action === null ? null : (
+      <View style={replaced && !hasAction ? toGutter : SLOT}>
+        {!hasAction ? null : (
           <IconButton
             icon={action.icon}
             label={action.label}

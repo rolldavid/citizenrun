@@ -301,6 +301,50 @@ describe('AppBar', () => {
     expect(bar.textContent).toBe('');
   });
 
+  it("what stands in the title's place runs to the gutter at a side with no control", () => {
+    const step = <Text role="body">Step 2 of 4</Text>;
+    for (const [[width, height], least] of [
+      [SMALL, gutter.narrow],
+      [COMPACT, gutter.regular],
+    ] as const) {
+      setViewport(width, height);
+      // The bar's own padding and the last child together make the gutter.
+      const rest = `${String(least - space.x1)}px`;
+      const slot = `${String(size.target)}px`;
+      const widths = (bar: HTMLElement): (string | null)[] =>
+        [...bar.children].map((part) => (part instanceof HTMLElement ? part.style.width : null));
+
+      // Back and no action: the step bar ends at the gutter, as the grid under it does.
+      const back = barOf(
+        draw(<AppBar variant="screen" title={null} onBack={() => undefined} center={step} />),
+      );
+      expect(widths(back), String(least)).toEqual([slot, '', rest]);
+      expect(back.style.paddingRight, String(least)).toBe(`${String(space.x1)}px`);
+      // No back either: it starts at the gutter too.
+      const alone = barOf(
+        draw(<AppBar variant="screen" title={null} onBack={null} center={step} />),
+      );
+      expect(widths(alone), String(least)).toEqual([rest, '', rest]);
+      // An action keeps its slot.
+      const acting = barOf(
+        draw(
+          <AppBar
+            variant="screen"
+            title={null}
+            onBack={null}
+            center={step}
+            action={{ icon: 'more', label: 'More', onPress: () => undefined, testID: 'probe.more' }}
+          />,
+        ),
+      );
+      expect(widths(acting), String(least)).toEqual([rest, '', slot]);
+      expect(acting.children[2]?.contains(screen.getByTestId('probe.more'))).toBe(true);
+      // A title keeps both slots, so it stays in the middle.
+      const titled = barOf(draw(<AppBar variant="screen" title="Settings" onBack={null} />));
+      expect(widths(titled), String(least)).toEqual([slot, '', slot]);
+    }
+  });
+
   it('fills the top inset with its own ground', () => {
     setViewport(...COMPACT);
     const props: readonly AppBarProps[] = [STATES.homeUnread, STATES.screen];
