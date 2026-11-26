@@ -227,10 +227,13 @@ function AppleSignInButton(props: AppleSignInButtonProps): ReactElement {
     };
   }, []);
 
+  // The provider's script draws the button inside; the slot is a named group, since an element with
+  // no role may carry no name.
   return (
     <View
       ref={container}
       testID={testID}
+      role="group"
       aria-label={accessibilityLabel}
       pointerEvents={disabled ? 'none' : 'auto'}
     />
@@ -289,6 +292,7 @@ function GoogleSignInButton(props: GoogleSignInButtonProps): ReactElement {
     <View
       ref={container}
       testID={testID}
+      role="group"
       aria-label={accessibilityLabel}
       pointerEvents={disabled ? 'none' : 'auto'}
     />

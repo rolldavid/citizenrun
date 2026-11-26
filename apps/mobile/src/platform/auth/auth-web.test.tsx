@@ -334,6 +334,29 @@ describe('both buttons', () => {
   });
 });
 
+describe('the provider slots', () => {
+  it('are named groups, since an element with no role may carry no name', async () => {
+    env.appleServicesId = 'svc.example.test';
+    env.googleWebClientId = 'fixture-web.apps.googleusercontent.com';
+    stubProviders();
+    const auth = await load();
+    const { getByTestId } = render(
+      <>
+        <auth.AppleSignInButton {...appleProps()} />
+        <auth.GoogleSignInButton {...googleProps()} />
+      </>,
+    );
+    for (const [testID, label] of [
+      ['auth.fixture-apple', 'fixture-apple-label'],
+      ['auth.fixture-google', 'fixture-google-label'],
+    ] as const) {
+      const node = getByTestId(testID);
+      expect(node.getAttribute('role')).toBe('group');
+      expect(node.getAttribute('aria-label')).toBe(label);
+    }
+  });
+});
+
 describe('clearProviderState', () => {
   it('turns off automatic choice when the script is there, and never rejects', async () => {
     const { disableAutoSelect } = stubProviders();
