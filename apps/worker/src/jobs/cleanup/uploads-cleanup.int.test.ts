@@ -1,6 +1,8 @@
+import { markAccountDeleting } from '@citizenrun/db';
 import {
   captureLogs,
   getTestBucket,
+  getTestDb,
   getTestObject,
   listTestKeys,
   putTestObject,
@@ -109,6 +111,20 @@ describe('J-uploads.cleanup', () => {
     expect(await keysOf(b)).toEqual([b.keys.large, b.keys.small].sort());
     expect(await getTestObject('media', b.upload.key)).not.toBeNull();
     expect((await uploadRow(b.upload.id)).objectDeletedAt).toBeNull();
+  });
+
+  it('deletes the objects of an account being deleted, pending or not', async () => {
+    const clock = new FakeClock();
+    const { a, b } = await twoAvatars(clock);
+    await setAvatarColumns(a.user.id, { avatarKey: a.keys.small, avatarPendingKey: b.keys.small });
+    await getTestDb().transaction((tx) => markAccountDeleting(tx, a.user.id));
+
+    const result = await runJob(uploadsCleanup, payloadOf(b), { clock });
+
+    expect(result.outcome).toBe('completed');
+    expect(await keysOf(b)).toEqual([]);
+    expect(await getTestObject('media', b.upload.key)).toBeNull();
+    expect((await uploadRow(b.upload.id)).objectDeletedAt?.getTime()).toBe(clock.now().getTime());
   });
 
   it('is idempotent', async () => {

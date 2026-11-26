@@ -16,13 +16,20 @@ async function cleanAvatar(
   const { userId, uploadId } = payload;
   const prefix = avatarUploadPrefix(userId, uploadId);
 
-  // A stale job for an avatar that is current, or pending, again deletes nothing.
+  // A stale job for an avatar that is current, or pending, again deletes nothing. An account being
+  // deleted keeps nothing: J-account.delete may already have emptied its prefixes, and a key the
+  // user row still names must not hold objects back until the row goes.
   const [user] = await ctx.db
-    .select({ avatarKey: users.avatarKey, avatarPendingKey: users.avatarPendingKey })
+    .select({
+      status: users.status,
+      avatarKey: users.avatarKey,
+      avatarPendingKey: users.avatarPendingKey,
+    })
     .from(users)
     .where(eq(users.id, userId));
   if (
     user !== undefined &&
+    user.status !== 'deleting' &&
     (user.avatarKey?.startsWith(prefix) === true ||
       user.avatarPendingKey?.startsWith(prefix) === true)
   ) {
