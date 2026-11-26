@@ -51,6 +51,47 @@ describe('source rules', () => {
   });
 });
 
+/** The one file that divides a time difference by the length of a day. */
+const DAY_COUNT_FILE = 'packages/shared/src/time/days-until.ts';
+/** Generated files, which no rule here reads. */
+const GENERATED_PATHS = ['packages/shared/src/brand.ts', 'packages/cards/src/generated/'];
+/** A time difference divided by the length of a day. */
+const DIVIDED_BY_A_DAY =
+  /\/\s*\(?\s*(?:86_?400_?000|864e5|1000\s*\*\s*60\s*\*\s*60\s*\*\s*24|24\s*\*\s*60\s*\*\s*60\s*\*\s*1000|86_?400\s*\*\s*1000|1000\s*\*\s*86_?400)\b/;
+/** A day-count helper of a date library. */
+const DAY_DIFFERENCE_HELPER = /\b(?:differenceInCalendarDays|differenceInDays)\b/;
+
+/** The line numbers (from 1) of `source` that count days other than through daysUntil. */
+function findDayCounts(source: string): number[] {
+  return source
+    .split('\n')
+    .flatMap((line, index) =>
+      DIVIDED_BY_A_DAY.test(line) || DAY_DIFFERENCE_HELPER.test(line) ? [index + 1] : [],
+    );
+}
+
+describe('the only subtraction', () => {
+  it('finds a difference divided by a day and leaves a later instant alone', () => {
+    expect(findDayCounts('const d = (b - a) / 86_400_000;')).toEqual([1]);
+    expect(findDayCounts('const later = now + 30 * 86_400_000;')).toEqual([]);
+    expect(findDayCounts('const d = (b - a) / (24 * 60 * 60 * 1000);')).toEqual([1]);
+    expect(findDayCounts('const x = 1;\nconst d = differenceInCalendarDays(b, a);')).toEqual([2]);
+  });
+
+  it('the only subtraction', () => {
+    const files = sourceFiles().filter(
+      (file) => file !== DAY_COUNT_FILE && !GENERATED_PATHS.some((path) => file.startsWith(path)),
+    );
+    expect(files).toContain('packages/shared/src/time/filing-window.ts');
+    const offenders = files.flatMap((file) =>
+      findDayCounts(readFileSync(join(ROOT, file), 'utf8')).map(
+        (line) => `${file}:${String(line)}`,
+      ),
+    );
+    expect(offenders).toEqual([]);
+  });
+});
+
 /** Every `.ts` and `.tsx` file under `dir` (relative to the root), or none when the folder does not exist. */
 function filesUnder(dir: string): string[] {
   const found: string[] = [];
