@@ -12,6 +12,7 @@ import {
   ERROR_CODES,
   FieldReportInputSchema,
   LEGAL_VERSIONS,
+  ListOfficesQuerySchema,
   SetHandleBodySchema,
   SetLocationBodySchema,
   SignInWithAppleBodySchema,
@@ -106,6 +107,7 @@ const CHECK_HANDLE = '/v1/handles/check';
 const SET_HANDLE = '/v1/me/handle';
 const SUGGEST_PLACES = '/v1/geo/autocomplete';
 const SET_LOCATION = '/v1/me/location';
+const LIST_OFFICES = '/v1/offices';
 // A field report's path: validation answers before the office is read, so any office id serves.
 const FIELD_REPORTS_OF_UNKNOWN = '/v1/offices/00000000-0000-7000-8000-00000000ffff/field-reports';
 // A fixture key, never a real one: Geoapify with the suggestion fake behind it.
@@ -991,6 +993,52 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       return { testApp, response, secrets: [] };
     },
   },
+  listOffices: {
+    path: LIST_OFFICES,
+    transport: { method: 'get' },
+    fields: ['q'],
+    validBody: () => ({ q: 'Fixture office', scope: 'nation' }),
+    isValid: (body) => ListOfficesQuerySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    // The marked name match on the ranked and the set path.
+    success: async () => {
+      const testApp = await createTestApp();
+      const office = await insertOffice(testApp.deps.db);
+      const auth = await unmarkedUser(testApp);
+      const ranked = await sendSignedIn(
+        testApp,
+        LIST_OFFICES,
+        { q: markedQuery(), scope: 'nation' },
+        { method: 'get' },
+        auth,
+      );
+      expect(await ranked.json()).toEqual({ items: [], nextCursor: null, total: null });
+      const response = await sendSignedIn(
+        testApp,
+        LIST_OFFICES,
+        { q: markedQuery(), jurisdiction: office.jurisdictionId },
+        { method: 'get' },
+        auth,
+      );
+      expect(await response.json()).toEqual({ items: [], nextCursor: null, total: 0 });
+      return { testApp, response, secrets: [] };
+    },
+    // A marked name beside a cursor of another sort.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      const auth = await unmarkedUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        LIST_OFFICES,
+        { q: markedQuery(), cursor: otherSortCursor() },
+        { method: 'get' },
+        auth,
+      );
+      await expectEnvelope(response, 'invalid_cursor');
+      return { testApp, response, secrets: [] };
+    },
+  },
   createFieldReport: {
     path: FIELD_REPORTS_OF_UNKNOWN,
     fields: ['message', 'sourceUrl'],
@@ -1039,6 +1087,13 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
     },
   },
 };
+
+/** A cursor of another sort than the office list's default: refused before any statement. */
+function otherSortCursor(): string {
+  return base64Url(
+    JSON.stringify({ v: 1, s: 'pay', k: 1, id: '00000000-0000-7000-8000-00000000ffff', p: false }),
+  );
+}
 
 /** Operations with a string field that a user never types, each with its reason. */
 const NO_USER_TEXT: Readonly<Record<string, string>> = {
@@ -1419,6 +1474,21 @@ describe('the API privacy suite', () => {
       'objects',
     );
     expectNoMarkerIn(events[0]?.text ?? '');
+  });
+
+  it('office list text is not logged', async () => {
+    const testApp = await createTestApp();
+    const auth = await unmarkedUser(testApp);
+    // A valid marked name beside an invalid limit.
+    const invalid = await sendSignedIn(
+      testApp,
+      LIST_OFFICES,
+      { q: markedQuery(), limit: 0 },
+      { method: 'get' },
+      auth,
+    );
+    await expectEnvelope(invalid, 'invalid_request');
+    await expectNothingLeaked(testApp, []);
   });
 
   it('every operation that takes text is listed', async () => {

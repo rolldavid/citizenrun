@@ -5,6 +5,8 @@ import {
   insertDataExport,
   insertDistrict,
   insertOffice,
+  insertOfficeholder,
+  insertPerson,
   insertUser,
   setUserDistricts,
   setUserIssues,
@@ -25,13 +27,17 @@ import type { TestAuth } from '../testing/request.ts';
 
 type CallParameters = { path?: Record<string, string>; query: Record<string, string> };
 
-/** Operations whose parameters the fixtures cannot fill, with the parameters they are called with. */
-function explicitParameters(target: Target): Readonly<Record<string, CallParameters>> {
+/** Operations whose parameters the fixtures cannot fill, with the calls they are made with. */
+function explicitParameters(target: Target): Readonly<Record<string, readonly CallParameters[]>> {
   return {
-    checkHandle: { query: { handle: 'fixture_b' } },
+    checkHandle: [{ query: { handle: 'fixture_b' } }],
     // The office A saved, by its slug and by its id.
-    getOffice: { path: { idOrSlug: target.officeSlug }, query: {} },
-    listOfficeCandidates: { path: { id: target.officeId }, query: {} },
+    getOffice: [{ path: { idOrSlug: target.officeSlug }, query: {} }],
+    listOfficeCandidates: [{ path: { id: target.officeId }, query: {} }],
+    // The default list, and the nation's, which holds the office A saved.
+    listOffices: [{ query: {} }, { query: { scope: 'nation' } }],
+    // The holder of the office A saved.
+    getPerson: [{ path: { idOrSlug: target.personSlug }, query: {} }],
   };
 }
 
@@ -106,6 +112,7 @@ type Target = {
   districtIds: string[];
   officeId: string;
   officeSlug: string;
+  personSlug: string;
 };
 
 /** Target user A, with the marker in every private column of an account. */
@@ -158,7 +165,16 @@ async function insertTarget(testApp: TestApp, issueIds: readonly string[]): Prom
   // The office is public and carries no marker; only the fact that A saved it is private.
   const office = await insertOffice(db);
   await insertBookmark(db, { userId: user.id, officeId: office.id });
-  return { userId: user.id, picks, districtIds, officeId: office.id, officeSlug: office.slug };
+  const holder = await insertPerson(db);
+  await insertOfficeholder(db, { personId: holder.id, officeId: office.id });
+  return {
+    userId: user.id,
+    picks,
+    districtIds,
+    officeId: office.id,
+    officeSlug: office.slug,
+    personSlug: holder.slug,
+  };
 }
 
 /** Second user B, with its own picks and the current consents, freshly signed in by bearer. */
@@ -237,22 +253,34 @@ describe('the private columns', () => {
 
     const called = new Set<string>();
     for (const operation of operations) {
-      const parameters = explicit[operation.operationId];
-      const path = filledPath(operation.path, parameters?.path);
-      const query = parameters?.query ?? {};
-      for (const auth of [null, viewer]) {
-        const response = await testApp.request.get(path, { auth, client: IOS, query });
-        const body = (await response.text()).toLowerCase();
-        if (operation.operationId === 'getOffice') {
-          // INV-06: the office A saved is not saved for anyone else.
-          expect(response.status).toBe(200);
-          expect(body).toContain('"bookmarked":false');
-        }
-        for (const text of forbidden) {
-          expect(
-            body,
-            `${operation.operationId} as ${auth === null ? 'logged out' : 'B'}`,
-          ).not.toContain(text);
+      for (const parameters of explicit[operation.operationId] ?? [{ query: {} }]) {
+        const path = filledPath(operation.path, parameters.path);
+        const { query } = parameters;
+        for (const auth of [null, viewer]) {
+          const response = await testApp.request.get(path, { auth, client: IOS, query });
+          const body = (await response.text()).toLowerCase();
+          if (operation.operationId === 'getOffice') {
+            // INV-06: the office A saved is not saved for anyone else.
+            expect(response.status).toBe(200);
+            expect(body).toContain('"bookmarked":false');
+          }
+          if (operation.operationId === 'listOffices') {
+            // The list needs a session; B's list holds the office A saved, not saved for B.
+            expect(response.status).toBe(auth === null ? 401 : 200);
+            if (auth !== null) {
+              expect(body).toContain(target.officeId);
+              expect(body).toContain('"bookmarked":false');
+            }
+          }
+          if (operation.operationId === 'getPerson') {
+            expect(response.status).toBe(200);
+          }
+          for (const text of forbidden) {
+            expect(
+              body,
+              `${operation.operationId} as ${auth === null ? 'logged out' : 'B'}`,
+            ).not.toContain(text);
+          }
         }
       }
       called.add(operation.operationId);
@@ -264,5 +292,7 @@ describe('the private columns', () => {
     expect(called).toContain('listOfficeTypes');
     expect(called).toContain('getOffice');
     expect(called).toContain('listOfficeCandidates');
+    expect(called).toContain('listOffices');
+    expect(called).toContain('getPerson');
   });
 });

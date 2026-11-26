@@ -1,6 +1,8 @@
 import { ERROR_CODES, newId } from '@citizenrun/shared';
 import { describe, expect, it } from 'vitest';
 import { PUBLIC_ROUTES } from '../config/public-routes.ts';
+import { RATE_LIMIT_POLICIES } from '../config/rate-limits.ts';
+import type { RateLimitRule } from '../config/rate-limits.ts';
 import { buildOpenApiDocument } from '../openapi.ts';
 import { createTestApp } from '../testing/app.ts';
 import type { TestApp } from '../testing/app.ts';
@@ -42,6 +44,48 @@ const ALLOW_WHEN_SUSPENDED = [
 const RECENT_SIGN_IN = ['deleteMe', 'getExportDownload', 'requestExport'];
 // The provider routes verified by signature, which skip the request-forgery check (D-169, D-242).
 const ORIGIN_EXEMPT = ['appleSignInCallback', 'receiveAppleNotification'];
+
+// The level and policy of each civic route: operation id, x-route.auth and x-route.rateLimit.
+const CIVIC_ROUTES: ReadonlyArray<readonly [string, string, string]> = [
+  ['suggestPlaces', 'user', 'geo.suggest'],
+  ['listOfficeTypes', 'optional', 'ref.read'],
+  ['setLocation', 'user', 'me.location'],
+  ['clearLocation', 'user', 'me.location'],
+  ['listOffices', 'user', 'explore_list'],
+  ['getOffice', 'optional', 'civic_read'],
+  ['listOfficeCandidates', 'optional', 'civic_read'],
+  ['followOffice', 'onboarded', 'office_toggle'],
+  ['bookmarkOffice', 'onboarded', 'office_toggle'],
+  ['unfollowOffice', 'user', 'office_toggle'],
+  ['unbookmarkOffice', 'user', 'office_toggle'],
+  ['createFieldReport', 'onboarded', 'field_report'],
+  ['getPerson', 'optional', 'civic_read'],
+];
+
+// The per-address rule each logged-out civic read holds, as the contracts write it.
+const CIVIC_IP_RULE: RateLimitRule = {
+  subject: 'ip',
+  action: 'civic',
+  limit: 240,
+  window: '1m',
+  store: 'memory',
+  when: 'logged_out',
+};
+const REF_READ_IP_RULE: RateLimitRule = {
+  subject: 'ip',
+  action: 'ref_read',
+  limit: 120,
+  window: '1m',
+  store: 'memory',
+};
+// The `when` values under which a rule counts a logged-out request.
+const LOGGED_OUT_WHEN: ReadonlyArray<RateLimitRule['when']> = [undefined, 'logged_out'];
+const EXACT_IP_RULES: Readonly<Record<string, RateLimitRule>> = {
+  getOffice: CIVIC_IP_RULE,
+  listOfficeCandidates: CIVIC_IP_RULE,
+  getPerson: CIVIC_IP_RULE,
+  listOfficeTypes: REF_READ_IP_RULE,
+};
 
 // Every request comes from its own address, so no case nears a per-address limit.
 let nextHost = 1;
@@ -179,11 +223,55 @@ describe('the access matrix', () => {
     expect(testApp.fakes.mailer.sent).toHaveLength(1);
   });
 
-  it('no route is an admin route', () => {
+  it('no route is in the admin area', () => {
     const operations = documentOperations();
     expect(operations.length).toBeGreaterThan(0);
     expect(operations.filter((operation) => operation.route['auth'] === 'admin')).toEqual([]);
     expect(operations.filter((operation) => operation.path.startsWith('/v1/admin'))).toEqual([]);
+  });
+
+  it('civic routes declare their levels and policies', () => {
+    const byId = new Map(
+      documentOperations().map((operation) => [operation.operationId, operation]),
+    );
+    const declared = CIVIC_ROUTES.map(([operationId]) => {
+      const route = byId.get(operationId)?.route;
+      return [operationId, route?.['auth'], route?.['rateLimit']];
+    });
+    expect(declared).toEqual(CIVIC_ROUTES);
+  });
+
+  it('logged-out routes are limited per address', () => {
+    const policies: Readonly<Record<string, readonly RateLimitRule[]>> = RATE_LIMIT_POLICIES;
+    const byKey = new Map(
+      documentOperations().map((operation) => [routeKey(operation), operation]),
+    );
+    const checked: string[] = [];
+    for (const entry of PUBLIC_ROUTES) {
+      const operation = byKey.get(entry);
+      expect(operation, entry).toBeDefined();
+      if (operation === undefined) {
+        continue;
+      }
+      const policy = operation.route['rateLimit'];
+      const label = `${operation.operationId} (${String(policy)})`;
+      expect(typeof policy, label).toBe('string');
+      const rules = typeof policy === 'string' ? policies[policy] : undefined;
+      expect(rules, label).toBeDefined();
+      const perAddress = (rules ?? []).filter(
+        (rule) => rule.subject === 'ip' && LOGGED_OUT_WHEN.includes(rule.when),
+      );
+      expect(
+        perAddress.length,
+        `${label} counts no logged-out request per address`,
+      ).toBeGreaterThan(0);
+      const exact = EXACT_IP_RULES[operation.operationId];
+      if (exact !== undefined) {
+        expect(perAddress, label).toContainEqual(exact);
+      }
+      checked.push(operation.operationId);
+    }
+    expect(checked.sort()).toEqual(expect.arrayContaining(Object.keys(EXACT_IP_RULES).sort()));
   });
 
   it('allowWhenSuspended routes are exactly the listed writes', () => {

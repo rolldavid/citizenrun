@@ -1,8 +1,16 @@
 import { rateLimits } from '@citizenrun/db';
-import { insertUser } from '@citizenrun/db/testing';
+import {
+  insertDistrict,
+  insertJurisdiction,
+  insertOffice,
+  insertOfficeholder,
+  insertPerson,
+  insertUser,
+} from '@citizenrun/db/testing';
 import { newId } from '@citizenrun/shared';
 import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
+import { RATE_LIMIT_POLICIES } from '../config/rate-limits.ts';
 import { signIn } from '../testing/auth.ts';
 import { createTestApp } from '../testing/app.ts';
 import type { TestApp } from '../testing/app.ts';
@@ -133,6 +141,61 @@ describe('rate limits in rate_limits', () => {
     expect(refused.status).toBe(429);
     expect(refused.headers.get('retry-after')).toBe('45');
     expect(await rowCount(testApp)).toBe(0);
+  });
+
+  it('anonymous civic reads share one per-address budget in memory', async () => {
+    const testApp = await createTestApp();
+    const { db } = testApp.deps;
+    const ipRule = RATE_LIMIT_POLICIES.civic_read.find((rule) => rule.subject === 'ip');
+    if (ipRule === undefined) {
+      throw new Error('civic_read has no per-address rule.');
+    }
+    // The memory store allows half the limit on each replica.
+    const perReplica = Math.floor(ipRule.limit / 2);
+    testApp.fakes.clock.set(new Date('2027-03-05T12:00:30.000Z'));
+    const jurisdiction = await insertJurisdiction(db);
+    const district = await insertDistrict(db, { jurisdictionId: jurisdiction.id });
+    const office = await insertOffice(db, {
+      jurisdictionId: jurisdiction.id,
+      districtId: district.id,
+      slug: 'fixture-civic-budget',
+    });
+    const person = await insertPerson(db, { slug: 'fixture-civic-budget-holder' });
+    await insertOfficeholder(db, { personId: person.id, officeId: office.id });
+    const user = await insertUser(db);
+    const auth = await signIn(db, user, 'bearer', {
+      expiresAt: new Date('2027-04-01T00:00:00.000Z'),
+    });
+    const paths = [
+      `/v1/offices/${office.slug}`,
+      `/v1/offices/${office.id}/candidates`,
+      `/v1/people/${person.slug}`,
+    ];
+    const address = '203.0.113.7';
+    for (let n = 0; n < perReplica; n += 1) {
+      const path = paths[n % paths.length] ?? '';
+      const response = await testApp.request.get(path, { ip: address });
+      expect(response.status, `read ${String(n + 1)} of ${path}`).toBe(200);
+    }
+    // The three routes count under one key: the next read of any of them is refused.
+    const refused = await testApp.request.get(`/v1/offices/${office.slug}`, { ip: address });
+    expect(refused.status).toBe(429);
+    expect(await refused.json()).toMatchObject({ error: { code: 'rate_limited' } });
+    expect(refused.headers.get('retry-after')).toBe('30');
+    // The count is per address, and the logged-out rule lives in memory only.
+    const other = await testApp.request.get(`/v1/offices/${office.slug}`, { ip: '203.0.113.8' });
+    expect(other.status).toBe(200);
+    expect(await rowCount(testApp)).toBe(0);
+    // A signed-in request from the same address is counted per user, in rate_limits.
+    const signedIn = await testApp.request.get(`/v1/offices/${office.slug}`, { auth, ip: address });
+    expect(signedIn.status).toBe(200);
+    const rows = await db.select().from(rateLimits);
+    expect(rows.map((row) => [row.key, row.count])).toEqual([[userKey(user.id, 'civic', '1m'), 1]]);
+    expect(rows.filter((row) => row.key.startsWith('ip:'))).toEqual([]);
+    // The next window starts afresh.
+    testApp.fakes.clock.set(new Date('2027-03-05T12:01:00.000Z'));
+    const later = await testApp.request.get(`/v1/offices/${office.slug}`, { ip: address });
+    expect(later.status).toBe(200);
   });
 
   it('a table given to the limiter is counted in rate_limits', async () => {
