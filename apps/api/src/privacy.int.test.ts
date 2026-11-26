@@ -1,17 +1,21 @@
 import { readFile } from 'node:fs/promises';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
+import { users } from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
-import { getTestDb, insertUser } from '@citizenrun/db/testing';
+import { getTestDb, insertConsents, insertUser } from '@citizenrun/db/testing';
 import {
   AppleCallbackFormSchema,
   AppleHandoffBodySchema,
   AppleNotificationBodySchema,
+  CheckHandleQuerySchema,
   CreateClientErrorBodySchema,
   ERROR_CODES,
   LEGAL_VERSIONS,
+  SetHandleBodySchema,
   SignInWithAppleBodySchema,
   SignInWithGoogleBodySchema,
   StartEmailSignInBodySchema,
+  UpdateMeBodySchema,
   VerifyEmailSignInBodySchema,
   brandVariant,
   newId,
@@ -24,9 +28,10 @@ import { describe, expect, it } from 'vitest';
 import { OPENAPI_FILE } from './scripts/gen-openapi.ts';
 import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
+import { signIn } from './testing/auth.ts';
 import { insertIdentity } from './testing/factories.ts';
 import { FIXTURE_APPLE, FakeIdentityProviders } from './testing/fakes/identity.ts';
-import type { TestResponse } from './testing/request.ts';
+import type { TestAuth, TestResponse } from './testing/request.ts';
 
 // TEST-privacy-logscan's API suite. The always-on scan of the harness runs after every case as well.
 
@@ -36,6 +41,8 @@ type Transport = {
   body?: 'json' | 'form';
   /** The X-OS-Client value of a JSON request; null sends none (a provider's server call). */
   client?: string | null;
+  /** A signed-in phone's request by this method (default a logged-out POST); a `get` row's fields travel in the query. */
+  method?: 'get' | 'put' | 'patch';
 };
 
 /** One run's request: the app it went to, the answer, and the secrets the scan looks for besides the marker. */
@@ -51,6 +58,8 @@ type SensitiveInput = {
   validBody: () => Record<string, unknown>;
   /** Whether a body is valid, so the marker goes only into values the schema admits. */
   isValid: (body: unknown) => boolean;
+  /** The validation failures are sent signed in, because the route reads a session before its input. */
+  signedIn?: true;
   successStatus: number;
   /** Success: the fields carry the marker where the schema admits it, or a secret the run made. */
   success: () => Promise<Sent>;
@@ -80,6 +89,9 @@ const APPLE_CALLBACK = '/v1/auth/apple/callback';
 const APPLE_HANDOFF = '/v1/auth/apple/handoff';
 const APPLE_NOTIFICATIONS = '/v1/auth/apple/notifications';
 const GOOGLE = '/v1/auth/google';
+const ME = '/v1/me';
+const CHECK_HANDLE = '/v1/handles/check';
+const SET_HANDLE = '/v1/me/handle';
 
 // Every request comes from its own address, so no case nears a per-replica limit.
 const TEST_NETS = ['203.0.113', '198.51.100'];
@@ -209,6 +221,47 @@ async function post(
     ip: freshIp(),
     body,
   });
+}
+
+/** A signed-in phone's request by `transport.method`: the fields in the query for `get`, else the JSON body. */
+async function sendSignedIn(
+  testApp: TestApp,
+  path: string,
+  fields: Record<string, unknown>,
+  transport: Transport,
+  auth: TestAuth,
+): Promise<TestResponse> {
+  const options = { auth, client: transport.client ?? IOS, ip: freshIp() };
+  if (transport.method === 'get') {
+    const query = Object.fromEntries(
+      Object.entries(fields).map(([name, value]): [string, string] => [name, String(value)]),
+    );
+    return testApp.request.get(path, { ...options, query });
+  }
+  if (transport.method === 'put') {
+    return testApp.request.put(path, { ...options, body: fields });
+  }
+  if (transport.method === 'patch') {
+    return testApp.request.patch(path, { ...options, body: fields });
+  }
+  return testApp.request.post(path, { ...options, body: fields });
+}
+
+/** A user with the four sign-up agreements (so a bio needs no other answer), signed in by bearer. */
+async function signedInUser(testApp: TestApp): Promise<TestAuth> {
+  const user = await insertUser(testApp.deps.db);
+  await insertConsents(testApp.deps.db, user.id);
+  return signIn(testApp.deps.db, user, 'bearer');
+}
+
+/** The lower-cased marker: 20 characters a handle admits, stored as typed. */
+function markedHandle(): string {
+  return marker().toLowerCase();
+}
+
+/** Removes any user an earlier run left holding the marked handle (the rows share one database). */
+async function freeMarkedHandle(testApp: TestApp): Promise<void> {
+  await testApp.deps.db.delete(users).where(eq(users.handle, markedHandle()));
 }
 
 type NonceResult = { nonce: string; nonceHash: string; state: string; expiresAt: string };
@@ -615,10 +668,144 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       return { testApp, response, secrets: [idToken, nonce.nonce, nonce.nonceHash] };
     },
   },
+  updateMe: {
+    path: ME,
+    transport: { method: 'patch' },
+    fields: ['name', 'bio', 'link'],
+    validBody: () => ({
+      name: 'Fixture Name',
+      bio: 'Fixture bio.',
+      link: 'https://example.test/fixture',
+    }),
+    isValid: (body) => UpdateMeBodySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    success: async () => {
+      const testApp = await createTestApp();
+      const auth = await signedInUser(testApp);
+      const link = `https://example.test/${marker()}`;
+      const response = await sendSignedIn(
+        testApp,
+        ME,
+        { name: marker(), bio: marker(), link },
+        { method: 'patch' },
+        auth,
+      );
+      expect(await response.json()).toMatchObject({ name: marker(), bio: marker(), link });
+      return { testApp, response, secrets: [] };
+    },
+    // An upload key that names no upload, beside a marked bio.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        ME,
+        { bio: marker(), avatarUploadKey: `incoming/${newId()}/${marker()}.jpg` },
+        { method: 'patch' },
+        auth,
+      );
+      await expectEnvelope(response, 'upload_invalid');
+      return { testApp, response, secrets: [] };
+    },
+  },
+  checkHandle: {
+    path: CHECK_HANDLE,
+    transport: { method: 'get' },
+    fields: ['handle'],
+    validBody: () => ({ handle: 'fixture_handle' }),
+    isValid: (body) => CheckHandleQuerySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    success: async () => {
+      const testApp = await createTestApp();
+      await freeMarkedHandle(testApp);
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        CHECK_HANDLE,
+        { handle: markedHandle() },
+        { method: 'get' },
+        auth,
+      );
+      expect(await response.json()).toEqual({
+        handle: markedHandle(),
+        available: true,
+        reason: null,
+      });
+      return { testApp, response, secrets: [] };
+    },
+    // Another user holds the handle.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      await freeMarkedHandle(testApp);
+      await insertUser(testApp.deps.db, { handle: markedHandle() });
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        CHECK_HANDLE,
+        { handle: markedHandle() },
+        { method: 'get' },
+        auth,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({
+        handle: markedHandle(),
+        available: false,
+        reason: 'taken',
+      });
+      return { testApp, response, secrets: [] };
+    },
+  },
+  setHandle: {
+    path: SET_HANDLE,
+    transport: { method: 'put' },
+    fields: ['handle'],
+    validBody: () => ({ handle: 'fixture_handle' }),
+    isValid: (body) => SetHandleBodySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    success: async () => {
+      const testApp = await createTestApp();
+      await freeMarkedHandle(testApp);
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        SET_HANDLE,
+        { handle: markedHandle() },
+        { method: 'put' },
+        auth,
+      );
+      expect(await response.json()).toMatchObject({ handle: markedHandle() });
+      return { testApp, response, secrets: [] };
+    },
+    // Another user holds the handle: the unique key refuses it.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      await freeMarkedHandle(testApp);
+      await insertUser(testApp.deps.db, { handle: markedHandle() });
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        SET_HANDLE,
+        { handle: markedHandle() },
+        { method: 'put' },
+        auth,
+      );
+      await expectEnvelope(response, 'handle_taken');
+      return { testApp, response, secrets: [] };
+    },
+  },
 };
 
 /** Operations with a string field that a user never types, each with its reason. */
-const NO_USER_TEXT: Readonly<Record<string, string>> = {};
+const NO_USER_TEXT: Readonly<Record<string, string>> = {
+  setIssues: 'Issue ids from the reference list and starred flags.',
+  skipOnboardingStep: 'One enumerated onboarding step.',
+  recordConsent: 'An enumerated kind and a version compared with a constant.',
+  recordAgeSignal: 'An enumerated age band and source tier.',
+  createUpload: 'Enumerated kind, purpose and content type, and a size.',
+};
 
 function setAt(body: Record<string, unknown>, path: string, value: unknown): void {
   const keys = path.split('.');
@@ -674,7 +861,16 @@ async function expectNothingLeaked(testApp: TestApp, secrets: readonly string[])
   }
 }
 
-async function send(testApp: TestApp, input: SensitiveInput, body: unknown): Promise<TestResponse> {
+async function send(
+  testApp: TestApp,
+  input: SensitiveInput,
+  body: unknown,
+  auth: TestAuth | null = null,
+): Promise<TestResponse> {
+  if (auth !== null) {
+    const fields = body as Record<string, unknown>; // every row's body is an object this file built
+    return sendSignedIn(testApp, input.path, fields, input.transport ?? {}, auth);
+  }
   return post(testApp, input.path, body, input.transport);
 }
 
@@ -703,6 +899,7 @@ async function runSuccess(input: SensitiveInput): Promise<void> {
 /** Validation failure: each field in turn holds an invalid marked value. */
 async function runValidationFailures(input: SensitiveInput): Promise<void> {
   const testApp = await createTestApp();
+  const auth = input.signedIn === true ? await signedInUser(testApp) : null;
   const candidates = [`Bad ${marker()}`, ...OVER_MAXIMUM_LENGTHS.map(markerOfLength)];
   for (const field of input.fields) {
     const body = structuredClone(input.validBody());
@@ -714,7 +911,7 @@ async function runValidationFailures(input: SensitiveInput): Promise<void> {
     });
     expect(invalid, field).toBeDefined();
     setAt(body, field, invalid);
-    const response = await send(testApp, input, body);
+    const response = await send(testApp, input, body, auth);
     if (input.expectInvalid === undefined) {
       await expectEnvelope(response, 'invalid_request');
     } else {
@@ -728,6 +925,20 @@ async function runValidationFailures(input: SensitiveInput): Promise<void> {
 async function runInnerFailure(input: SensitiveInput): Promise<void> {
   const { testApp, secrets } = await input.failInside();
   await expectNothingLeaked(testApp, secrets);
+}
+
+/** Every string value anywhere inside a parsed log line. */
+function stringValues(value: unknown): string[] {
+  if (typeof value === 'string') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(stringValues);
+  }
+  if (isRecord(value)) {
+    return Object.values(value).flatMap(stringValues);
+  }
+  return [];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -823,6 +1034,38 @@ describe('the API privacy suite', () => {
     await expectNothingLeaked(refusing, []);
 
     await runInnerFailure(input);
+  });
+
+  it('sign-in email and code are not logged', async () => {
+    const testApp = await createTestApp();
+    const email = markedEmail('s');
+    const { pendingToken, code } = await startEmail(testApp, email);
+    const response = await post(testApp, VERIFY_EMAIL, {
+      pendingToken,
+      code,
+      signup: signupDetails(),
+    });
+    expect(response.status).toBe(200);
+
+    // The address reached the account, its one intended store.
+    const stored = await getTestDb()
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email));
+    expect(stored).toHaveLength(1);
+
+    expect(testApp.logs.length).toBeGreaterThan(0);
+    for (const line of testApp.logs) {
+      expect(line.raw).not.toContain(email);
+      expect(line.raw).not.toContain(pendingToken);
+      expect(stringValues(line.parsed)).not.toContain(code);
+    }
+    const jobs = await getTestDb().execute<{ text: string }>(
+      sql`select coalesce(string_agg(data::text, ''), '') as text from pgboss.job`,
+      'objects',
+    );
+    expect(jobs[0]?.text ?? '').not.toContain(email);
+    await expectNothingLeaked(testApp, [pendingToken, asJsonString(code)]);
   });
 
   it('every operation that takes text is listed', async () => {
