@@ -6,3 +6,5 @@ export * from './ops.ts';
 export * from './reference.ts';
 export * from './accounts.ts';
 export * from './social.ts';
+export * from './geo.ts';
+export * from './civic.ts';

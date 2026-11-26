@@ -1,0 +1,2222 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "2d5c4080-9c9f-4437-b14c-5d2bace38a97",
+  "prevIds": [
+    "983b8051-ccd7-4c02-afc4-6fe34617869d"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_display"
+      ],
+      "writes": [
+        "s|tbl|public.district_display",
+        "n|tbl|public.district_display",
+        "e|tbl|public.district_display",
+        "n|rel|public.district_display",
+        "n|type|public.district_display",
+        "n|rel|public.district_display_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_fallbacks"
+      ],
+      "writes": [
+        "s|tbl|public.district_fallbacks",
+        "n|tbl|public.district_fallbacks",
+        "e|tbl|public.district_fallbacks",
+        "n|rel|public.district_fallbacks",
+        "n|type|public.district_fallbacks",
+        "n|rel|public.district_fallbacks_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_parts"
+      ],
+      "writes": [
+        "s|tbl|public.district_parts",
+        "n|tbl|public.district_parts",
+        "e|tbl|public.district_parts",
+        "n|rel|public.district_parts",
+        "n|type|public.district_parts",
+        "n|rel|public.district_parts_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "districts"
+      ],
+      "writes": [
+        "s|tbl|public.districts",
+        "n|tbl|public.districts",
+        "e|tbl|public.districts",
+        "n|rel|public.districts",
+        "n|type|public.districts",
+        "n|rel|public.districts_pkey",
+        "n|rel|public.districts_source_key_key",
+        "n|rel|public.districts_tile_id_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "jurisdictions"
+      ],
+      "writes": [
+        "s|tbl|public.jurisdictions",
+        "n|tbl|public.jurisdictions",
+        "e|tbl|public.jurisdictions",
+        "n|rel|public.jurisdictions",
+        "n|type|public.jurisdictions",
+        "n|rel|public.jurisdictions_pkey",
+        "n|rel|public.jurisdictions_source_key_key",
+        "n|rel|public.jurisdictions_census_id_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "zip_centroids"
+      ],
+      "writes": [
+        "s|tbl|public.zip_centroids",
+        "n|tbl|public.zip_centroids",
+        "e|tbl|public.zip_centroids",
+        "n|rel|public.zip_centroids",
+        "n|type|public.zip_centroids",
+        "n|rel|public.zip_centroids_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_display",
+        "district_display_band0"
+      ],
+      "writes": [
+        "s|idx|public.district_display_band0",
+        "n|idx|public.district_display_band0",
+        "e|idx|public.district_display_band0",
+        "n|rel|public.district_display_band0"
+      ],
+      "reads": [
+        "n|tbl|public.district_display",
+        "n|sch|public",
+        "n|col|public.district_display.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_display",
+        "district_display_band1"
+      ],
+      "writes": [
+        "s|idx|public.district_display_band1",
+        "n|idx|public.district_display_band1",
+        "e|idx|public.district_display_band1",
+        "n|rel|public.district_display_band1"
+      ],
+      "reads": [
+        "n|tbl|public.district_display",
+        "n|sch|public",
+        "n|col|public.district_display.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_display",
+        "district_display_band2"
+      ],
+      "writes": [
+        "s|idx|public.district_display_band2",
+        "n|idx|public.district_display_band2",
+        "e|idx|public.district_display_band2",
+        "n|rel|public.district_display_band2"
+      ],
+      "reads": [
+        "n|tbl|public.district_display",
+        "n|sch|public",
+        "n|col|public.district_display.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_display",
+        "district_display_band3"
+      ],
+      "writes": [
+        "s|idx|public.district_display_band3",
+        "n|idx|public.district_display_band3",
+        "e|idx|public.district_display_band3",
+        "n|rel|public.district_display_band3"
+      ],
+      "reads": [
+        "n|tbl|public.district_display",
+        "n|sch|public",
+        "n|col|public.district_display.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_fallbacks",
+        "district_fallbacks_via"
+      ],
+      "writes": [
+        "s|idx|public.district_fallbacks_via",
+        "n|idx|public.district_fallbacks_via",
+        "e|idx|public.district_fallbacks_via",
+        "n|rel|public.district_fallbacks_via"
+      ],
+      "reads": [
+        "n|tbl|public.district_fallbacks",
+        "n|sch|public",
+        "n|col|public.district_fallbacks.via_district_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_parts",
+        "district_parts_geom"
+      ],
+      "writes": [
+        "s|idx|public.district_parts_geom",
+        "n|idx|public.district_parts_geom",
+        "e|idx|public.district_parts_geom",
+        "n|rel|public.district_parts_geom"
+      ],
+      "reads": [
+        "n|tbl|public.district_parts",
+        "n|sch|public",
+        "n|col|public.district_parts.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "district_parts",
+        "district_parts_district"
+      ],
+      "writes": [
+        "s|idx|public.district_parts_district",
+        "n|idx|public.district_parts_district",
+        "e|idx|public.district_parts_district",
+        "n|rel|public.district_parts_district"
+      ],
+      "reads": [
+        "n|tbl|public.district_parts",
+        "n|sch|public",
+        "n|col|public.district_parts.district_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "districts",
+        "districts_geom"
+      ],
+      "writes": [
+        "s|idx|public.districts_geom",
+        "n|idx|public.districts_geom",
+        "e|idx|public.districts_geom",
+        "n|rel|public.districts_geom"
+      ],
+      "reads": [
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.districts.geom"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "districts",
+        "districts_label_point"
+      ],
+      "writes": [
+        "s|idx|public.districts_label_point",
+        "n|idx|public.districts_label_point",
+        "e|idx|public.districts_label_point",
+        "n|rel|public.districts_label_point"
+      ],
+      "reads": [
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.districts.label_point"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "districts",
+        "districts_jurisdiction"
+      ],
+      "writes": [
+        "s|idx|public.districts_jurisdiction",
+        "n|idx|public.districts_jurisdiction",
+        "e|idx|public.districts_jurisdiction",
+        "n|rel|public.districts_jurisdiction"
+      ],
+      "reads": [
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.districts.jurisdiction_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "districts",
+        "districts_level"
+      ],
+      "writes": [
+        "s|idx|public.districts_level",
+        "n|idx|public.districts_level",
+        "e|idx|public.districts_level",
+        "n|rel|public.districts_level"
+      ],
+      "reads": [
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.districts.level"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "jurisdictions",
+        "jurisdictions_state"
+      ],
+      "writes": [
+        "s|idx|public.jurisdictions_state",
+        "n|idx|public.jurisdictions_state",
+        "e|idx|public.jurisdictions_state",
+        "n|rel|public.jurisdictions_state"
+      ],
+      "reads": [
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|col|public.jurisdictions.state",
+        "n|col|public.jurisdictions.kind"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "jurisdictions",
+        "jurisdictions_parent"
+      ],
+      "writes": [
+        "s|idx|public.jurisdictions_parent",
+        "n|idx|public.jurisdictions_parent",
+        "e|idx|public.jurisdictions_parent",
+        "n|rel|public.jurisdictions_parent"
+      ],
+      "reads": [
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|col|public.jurisdictions.parent_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "jurisdictions",
+        "jurisdictions_name_trgm"
+      ],
+      "writes": [
+        "s|idx|public.jurisdictions_name_trgm",
+        "n|idx|public.jurisdictions_name_trgm",
+        "e|idx|public.jurisdictions_name_trgm",
+        "n|rel|public.jurisdictions_name_trgm"
+      ],
+      "reads": [
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|col|public.jurisdictions.name"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_display"
+      ],
+      "writes": [
+        "s|fk|public.district_display.district_display_district_id_fkey",
+        "n|fk|public.district_display.district_display_district_id_fkey",
+        "e|fk|public.district_display.district_display_district_id_fkey",
+        "n|con|public.district_display.district_display_district_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.district_display",
+        "n|sch|public",
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.district_display.district_id",
+        "n|col|public.districts.id",
+        "e|uniqueness|public.districts.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_fallbacks"
+      ],
+      "writes": [
+        "s|fk|public.district_fallbacks.district_fallbacks_district_id_fkey",
+        "n|fk|public.district_fallbacks.district_fallbacks_district_id_fkey",
+        "e|fk|public.district_fallbacks.district_fallbacks_district_id_fkey",
+        "n|con|public.district_fallbacks.district_fallbacks_district_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.district_fallbacks",
+        "n|sch|public",
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.district_fallbacks.district_id",
+        "n|col|public.districts.id",
+        "e|uniqueness|public.districts.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_fallbacks"
+      ],
+      "writes": [
+        "s|fk|public.district_fallbacks.district_fallbacks_via_district_id_fkey",
+        "n|fk|public.district_fallbacks.district_fallbacks_via_district_id_fkey",
+        "e|fk|public.district_fallbacks.district_fallbacks_via_district_id_fkey",
+        "n|con|public.district_fallbacks.district_fallbacks_via_district_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.district_fallbacks",
+        "n|sch|public",
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.district_fallbacks.via_district_id",
+        "n|col|public.districts.id",
+        "e|uniqueness|public.districts.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "district_parts"
+      ],
+      "writes": [
+        "s|fk|public.district_parts.district_parts_district_id_fkey",
+        "n|fk|public.district_parts.district_parts_district_id_fkey",
+        "e|fk|public.district_parts.district_parts_district_id_fkey",
+        "n|con|public.district_parts.district_parts_district_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.district_parts",
+        "n|sch|public",
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|col|public.district_parts.district_id",
+        "n|col|public.districts.id",
+        "e|uniqueness|public.districts.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "districts"
+      ],
+      "writes": [
+        "s|fk|public.districts.districts_jurisdiction_id_fkey",
+        "n|fk|public.districts.districts_jurisdiction_id_fkey",
+        "e|fk|public.districts.districts_jurisdiction_id_fkey",
+        "n|con|public.districts.districts_jurisdiction_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.districts",
+        "n|sch|public",
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|col|public.districts.jurisdiction_id",
+        "n|col|public.jurisdictions.id",
+        "e|uniqueness|public.jurisdictions.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "jurisdictions"
+      ],
+      "writes": [
+        "s|fk|public.jurisdictions.jurisdictions_parent_id_fkey",
+        "n|fk|public.jurisdictions.jurisdictions_parent_id_fkey",
+        "e|fk|public.jurisdictions.jurisdictions_parent_id_fkey",
+        "n|con|public.jurisdictions.jurisdictions_parent_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|tbl|public.jurisdictions",
+        "n|sch|public",
+        "n|col|public.jurisdictions.parent_id",
+        "n|col|public.jurisdictions.id",
+        "e|uniqueness|public.jurisdictions.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "district_display",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "district_fallbacks",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "district_parts",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "districts",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "jurisdictions",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "zip_centroids",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "zoom_band",
+        "type": "smallint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "level",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "geom",
+        "type": "geometry(MultiPolygon,3857)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "via_district_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "district_parts_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "9223372036854775807",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "level",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "geom",
+        "type": "geometry(Polygon,4326)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "source_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "tile_id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "districts_tile_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "9007199254740991",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "jurisdiction_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "level",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "geom",
+        "type": "geometry(MultiPolygon,4326)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "geom_hash",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "outline_svg",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "outline_bbox",
+        "type": "double precision",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 1,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "label_point",
+        "type": "geometry(Point,4326)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "geometry_quality",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "population",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "population_18",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "lean",
+        "type": "numeric",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "lean_basis",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "field_meta",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "retired_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "source_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "kind",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "state",
+        "type": "char(2)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "census_id",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "parent_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "population",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "website",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "timezone",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "budget_cents",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "budget_year",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "census_active",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "label_point",
+        "type": "geometry(Point,4326)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "field_meta",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "retired_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "zip",
+        "type": "char(5)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "state",
+        "type": "char(2)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "point",
+        "type": "geometry(Point,4326)",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_band0",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"zoom_band\" = 0",
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_band1",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"zoom_band\" = 1",
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_band2",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"zoom_band\" = 2",
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_band3",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"zoom_band\" = 3",
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_fallbacks_via",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "via_district_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_parts_geom",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_parts_district",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "district_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_geom",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "geom",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_label_point",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "label_point",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gist",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_jurisdiction",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "jurisdiction_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_level",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "level",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_state",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "state",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "kind",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_parent",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "parent_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"parent_id\" is not null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_name_trgm",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "name",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_district_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "district_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "districts",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_fallbacks_district_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "district_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "districts",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_fallbacks_via_district_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "via_district_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "districts",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_parts_district_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "district_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "districts",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_jurisdiction_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "jurisdiction_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "jurisdictions",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_parent_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "parent_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "jurisdictions",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_pkey",
+        "columns": [
+          "district_id",
+          "zoom_band"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_fallbacks_pkey",
+        "columns": [
+          "district_id",
+          "via_district_id"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_parts_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "zip_centroids_pkey",
+        "columns": [
+          "zip"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_source_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "source_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_tile_id_key",
+        "nameExplicit": true,
+        "columns": [
+          "tile_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_source_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "source_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_census_id_key",
+        "nameExplicit": true,
+        "columns": [
+          "census_id"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_zoom_band_check",
+        "value": "\"zoom_band\" between 0 and 3",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_display",
+        "name": "district_display_level_check",
+        "value": "\"level\" in ('local', 'county', 'state', 'federal')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_fallbacks",
+        "name": "district_fallbacks_distinct_check",
+        "value": "\"district_id\" <> \"via_district_id\"",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "district_parts",
+        "name": "district_parts_level_check",
+        "value": "\"level\" in ('local', 'county', 'state', 'federal', 'special')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_level_check",
+        "value": "\"level\" in ('local', 'county', 'state', 'federal', 'special')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_geometry_quality_check",
+        "value": "\"geometry_quality\" in ('exact', 'parent_fallback', 'county_approx')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_lean_check",
+        "value": "\"lean\" between -100 and 100",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_lean_basis_check",
+        "value": "\"lean_basis\" in ('precinct', 'county', 'precinct_2020_county_swing')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_outline_svg_check",
+        "value": "\"outline_svg\" ~ '^[MLHVZmlhvz0-9 ,.-]+$' and char_length(\"outline_svg\") <= 20000",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "districts",
+        "name": "districts_outline_bbox_check",
+        "value": "array_length(\"outline_bbox\", 1) = 4",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_kind_check",
+        "value": "\"kind\" in ('state', 'county', 'city', 'township', 'school_district', 'special_district', 'coop', 'party')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_state_check",
+        "value": "\"state\" ~ '^[A-Z]{2}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "jurisdictions",
+        "name": "jurisdictions_website_check",
+        "value": "\"website\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "zip_centroids_zip_check",
+        "value": "\"zip\" ~ '^[0-9]{5}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "zip_centroids",
+        "name": "zip_centroids_state_check",
+        "value": "\"state\" ~ '^[A-Z]{2}$'",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
