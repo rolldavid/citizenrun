@@ -16,3 +16,4 @@ export * from './jobs.ts';
 export * from './constants/index.ts';
 export * from './legal/index.ts';
 export * from './events/index.ts';
+export * from './bundle/index.ts';
