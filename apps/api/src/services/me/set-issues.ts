@@ -1,4 +1,4 @@
-import { issues, userIssues } from '@citizenrun/db';
+import { issues, userIssues, users } from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
 import { ApiError } from '@citizenrun/shared';
 import type { FieldCode, SetIssuesBody } from '@citizenrun/shared';
@@ -9,7 +9,8 @@ import { advanceOnboarding } from './onboarding.ts';
 /**
  * E-ME-09: replaces the user's issue picks with `issues` in one transaction and advances onboarding
  * from `issues`. An id that is not an issue answers `unknown_issue` with its index. Issue picks are
- * private: never logged, never in a job payload (INV-02).
+ * private: never logged, never in a job payload (INV-02). The user's row is locked first, so two
+ * requests at once replace the set one after the other instead of both inserting into it.
  */
 export async function setIssues(
   db: Db,
@@ -30,6 +31,8 @@ export async function setIssues(
   }
 
   await db.transaction(async (tx) => {
+    // index: users_pkey
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, input.userId)).for('update');
     await tx.delete(userIssues).where(eq(userIssues.userId, input.userId));
     await tx.insert(userIssues).values(
       input.issues.map((pick) => ({

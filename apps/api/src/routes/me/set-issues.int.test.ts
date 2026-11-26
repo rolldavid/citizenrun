@@ -199,6 +199,24 @@ describe('PUT /v1/me/issues', () => {
     expect(second.onboardingStep).toBe('location');
   });
 
+  it('repeat is safe when the requests arrive together', async () => {
+    const { user, auth } = await atIssuesStep();
+    await setUserIssues(testApp.deps.db, user.id, picks(5, 2));
+    // Each round replaces a stored set with two identical requests at once.
+    for (const count of [3, 4, 5]) {
+      const responses = await Promise.all([
+        putIssues({ issues: picks(count, 1) }, { auth }),
+        putIssues({ issues: picks(count, 1) }, { auth }),
+      ]);
+      expect(responses.map((response) => response.status)).toEqual([200, 200]);
+      for (const response of responses) {
+        expect((await expectMe(response)).issues).toEqual(picks(count, 1));
+      }
+      expect(await storedPicks(user.id)).toEqual(picks(count, 1));
+    }
+    expect(await stepOf(user.id)).toBe('location');
+  });
+
   it('rejects invalid input', async () => {
     const { auth } = await atIssuesStep();
     const missing = await expectEnvelope(await putIssues({}, { auth }), 'invalid_request');
