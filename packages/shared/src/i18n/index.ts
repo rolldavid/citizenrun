@@ -2,6 +2,7 @@ import { createInstance } from 'i18next';
 import type { i18n } from 'i18next';
 import { BRAND } from '../brand.ts';
 import { auth } from './en/auth.ts';
+import { cards } from './en/cards.ts';
 import { common } from './en/common.ts';
 import { errors } from './en/errors.ts';
 import { feed } from './en/feed.ts';
@@ -26,6 +27,7 @@ export const RESOURCES = {
     settings,
     profile,
     feed,
+    cards,
   },
 } as const;
 
@@ -40,6 +42,7 @@ export const NAMESPACES = [
   'settings',
   'profile',
   'feed',
+  'cards',
 ] as const;
 
 export type Namespace = (typeof NAMESPACES)[number];
