@@ -1,0 +1,16 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "STATEFP": "ZZ", "GEOID": "99999", "NAMELSAD": "Fixture Two Squares" },
+      "geometry": {
+        "type": "MultiPolygon",
+        "coordinates": [
+          [[[0, 0], [1, 0], [1, 1], [0, 1], [0, 0]]],
+          [[[2, 2], [3, 2], [3, 3], [2, 3], [2, 2]]]
+        ]
+      }
+    }
+  ]
+}

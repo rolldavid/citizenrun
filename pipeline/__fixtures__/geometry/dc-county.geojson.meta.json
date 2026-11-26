@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/COUNTY/tl_2026_us_county.zip",
+  "fetchedAt": "2026-11-26T19:07:50.467Z",
+  "sha256": "4c62ce68021dc6355a78e474a3b5e195d8860ff7440694c42456a8fa7f6bd7e9",
+  "contentType": "application/geo+json",
+  "originalSha256": "b527c9ba7aeb8f17ef118f026eae5e5a938aa1d00b873bc32342d0dce59321c0",
+  "transformations": [
+    "Cut to the one feature whose GEOID is 11001 with mapshaper 0.7.101 -filter.",
+    "Converted from the shapefile to GeoJSON with mapshaper -o format=geojson; attributes and coordinates kept as published."
+  ]
+}

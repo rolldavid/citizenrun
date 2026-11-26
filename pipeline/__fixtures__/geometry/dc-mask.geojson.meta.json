@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip",
+  "fetchedAt": "2026-11-26T19:07:55.109Z",
+  "sha256": "0df85aba3ac75dc56120ed1cd5a5c43185d97ffc62c72ae6263d5876405a7313",
+  "contentType": "application/geo+json",
+  "originalSha256": "9cbfe171dad1555e11770c981d8f4db9e687a65c86f5bdae684eeb487e2e9b80",
+  "transformations": [
+    "Cut to the one feature whose STATEFP is 11 with mapshaper 0.7.101 -filter.",
+    "Converted from the shapefile to GeoJSON with mapshaper -o format=geojson; attributes and coordinates kept as published."
+  ]
+}
