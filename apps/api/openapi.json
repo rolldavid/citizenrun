@@ -17,6 +17,23 @@
       }
     },
     "schemas": {
+      "AccountDeletionView": {
+        "type": "object",
+        "properties": {
+          "deletionRequestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "completesBy": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "deletionRequestedAt",
+          "completesBy"
+        ]
+      },
       "AgeRecord": {
         "type": [
           "object",
@@ -145,6 +162,15 @@
           "column"
         ]
       },
+      "ConsentKind": {
+        "type": "string",
+        "enum": [
+          "terms",
+          "content_policy",
+          "privacy_policy",
+          "ai_screening"
+        ]
+      },
       "ConsentState": {
         "type": "object",
         "properties": {
@@ -256,6 +282,78 @@
           "platform",
           "frames",
           "requestId"
+        ]
+      },
+      "DataExportStatus": {
+        "type": "object",
+        "properties": {
+          "export": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DataExportView"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "nextRequestAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "export",
+          "nextRequestAt"
+        ]
+      },
+      "DataExportView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "ready",
+              "failed",
+              "expired"
+            ]
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "readyAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "requestedAt",
+          "readyAt",
+          "expiresAt"
         ]
       },
       "DocumentConsent": {
@@ -384,6 +482,22 @@
         },
         "required": [
           "error"
+        ]
+      },
+      "ExportDownload": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "url",
+          "expiresAt"
         ]
       },
       "HandleCheck": {
@@ -755,6 +869,55 @@
         ]
       },
       "ReceiveAppleNotificationResponse": {
+        "type": "object",
+        "properties": {}
+      },
+      "RecordAgeSignalBody": {
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "string",
+            "enum": [
+              "adult",
+              "under_18",
+              "under_13"
+            ]
+          },
+          "sourceTier": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "declared"
+            ]
+          }
+        },
+        "required": [
+          "result",
+          "sourceTier"
+        ]
+      },
+      "RecordConsentBody": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/ConsentKind"
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32
+          },
+          "granted": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "version",
+          "granted"
+        ]
+      },
+      "RequestExportBody": {
         "type": "object",
         "properties": {}
       },
@@ -2488,6 +2651,487 @@
           },
           "422": {
             "description": "The upload cannot be used, or the bio needs an AI-screening answer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMe",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.delete",
+          "recentSignIn": "15m",
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "unauthenticated",
+          "origin_rejected",
+          "recent_sign_in_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "The deletion is under way; on the web the session cookie is cleared.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the sign-in is not recent enough.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/age": {
+      "post": {
+        "operationId": "recordAgeSignal",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.write",
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordAgeSignalBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An adult signal: the account with its new age record.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "A minor signal: the account is suspended and its deletion is under way.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid, or it came from a browser.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/consents": {
+      "post": {
+        "operationId": "recordConsent",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.write",
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "consent_version_outdated",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordConsentBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The agreements and the AI-screening answer after the change.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentState"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The version is not the current one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/export": {
+      "post": {
+        "operationId": "requestExport",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.export",
+          "recentSignIn": "15m",
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "unauthenticated",
+          "origin_rejected",
+          "recent_sign_in_required",
+          "daily_limit_reached",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestExportBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "The export is queued.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExportView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed, or the sign-in is not recent enough.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "An export was requested in the last 24 hours, or too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getExport",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.read"
+        },
+        "x-errors": [
+          "unauthenticated",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The newest export request, if any.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataExportStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/export/download": {
+      "get": {
+        "operationId": "getExportDownload",
+        "tags": [
+          "me"
+        ],
+        "x-route": {
+          "auth": "user",
+          "rateLimit": "me.export",
+          "recentSignIn": "15m"
+        },
+        "x-errors": [
+          "unauthenticated",
+          "recent_sign_in_required",
+          "not_found",
+          "export_not_ready",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A short-lived link to the export file.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExportDownload"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No valid session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The sign-in is not recent enough.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No export, or the newest one failed or expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The newest export is not ready yet.",
             "content": {
               "application/json": {
                 "schema": {

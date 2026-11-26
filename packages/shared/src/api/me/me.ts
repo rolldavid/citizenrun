@@ -18,10 +18,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AccountDeletionView,
   CheckHandleParams,
+  ConsentState,
+  DataExportStatus,
+  DataExportView,
   ErrorEnvelope,
+  ExportDownload,
   HandleCheck,
   Me,
+  RecordAgeSignalBody,
+  RecordConsentBody,
+  RequestExportBody,
   SetHandleBody,
   SetIssuesBody,
   SkipOnboardingStepBody,
@@ -389,6 +397,505 @@ export const useUpdateMe = <TError = ErrorType<ErrorEnvelope>, TContext = unknow
 > => {
   return useMutation(getUpdateMeMutationOptions(options), queryClient);
 };
+export const getDeleteMeUrl = () => {
+  return `/v1/me`;
+};
+
+export const deleteMe = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<AccountDeletionView> => {
+  return apiFetch<AccountDeletionView>(getDeleteMeUrl(), {
+    ...options,
+    method: 'DELETE',
+  });
+};
+
+export const getDeleteMeMutationKey = () => ['deleteMe'] as const;
+
+export const getDeleteMeMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteMe>>, TError, void, TContext>;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<Awaited<ReturnType<typeof deleteMe>>, TError, void, TContext> => {
+  const mutationKey = getDeleteMeMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteMe>>, void> = () => {
+    return deleteMe(requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteMeMutationResult = NonNullable<Awaited<ReturnType<typeof deleteMe>>>;
+
+export type DeleteMeMutationError = ErrorType<ErrorEnvelope>;
+
+export const useDeleteMe = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<Awaited<ReturnType<typeof deleteMe>>, TError, void, TContext>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<Awaited<ReturnType<typeof deleteMe>>, TError, void, TContext> => {
+  return useMutation(getDeleteMeMutationOptions(options), queryClient);
+};
+export const getRecordAgeSignalUrl = () => {
+  return `/v1/me/age`;
+};
+
+export const recordAgeSignal = async (
+  recordAgeSignalBody: RecordAgeSignalBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<Me | AccountDeletionView> => {
+  return apiFetch<Me | AccountDeletionView>(getRecordAgeSignalUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(recordAgeSignalBody),
+  });
+};
+
+export const getRecordAgeSignalMutationKey = () => ['recordAgeSignal'] as const;
+
+export const getRecordAgeSignalMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordAgeSignal>>,
+    TError,
+    RecordAgeSignalMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordAgeSignal>>,
+  TError,
+  RecordAgeSignalMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRecordAgeSignalMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordAgeSignal>>,
+    RecordAgeSignalMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordAgeSignal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordAgeSignalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof recordAgeSignal>>
+>;
+export type RecordAgeSignalMutationBody = RecordAgeSignalBody;
+export type RecordAgeSignalMutationError = ErrorType<ErrorEnvelope>;
+export type RecordAgeSignalMutationVariables = { data: RecordAgeSignalBody };
+
+export const useRecordAgeSignal = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof recordAgeSignal>>,
+      TError,
+      RecordAgeSignalMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof recordAgeSignal>>,
+  TError,
+  RecordAgeSignalMutationVariables,
+  TContext
+> => {
+  return useMutation(getRecordAgeSignalMutationOptions(options), queryClient);
+};
+export const getRecordConsentUrl = () => {
+  return `/v1/me/consents`;
+};
+
+export const recordConsent = async (
+  recordConsentBody: RecordConsentBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<ConsentState> => {
+  return apiFetch<ConsentState>(getRecordConsentUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(recordConsentBody),
+  });
+};
+
+export const getRecordConsentMutationKey = () => ['recordConsent'] as const;
+
+export const getRecordConsentMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof recordConsent>>,
+    TError,
+    RecordConsentMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof recordConsent>>,
+  TError,
+  RecordConsentMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRecordConsentMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof recordConsent>>,
+    RecordConsentMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return recordConsent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RecordConsentMutationResult = NonNullable<Awaited<ReturnType<typeof recordConsent>>>;
+export type RecordConsentMutationBody = RecordConsentBody;
+export type RecordConsentMutationError = ErrorType<ErrorEnvelope>;
+export type RecordConsentMutationVariables = { data: RecordConsentBody };
+
+export const useRecordConsent = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof recordConsent>>,
+      TError,
+      RecordConsentMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof recordConsent>>,
+  TError,
+  RecordConsentMutationVariables,
+  TContext
+> => {
+  return useMutation(getRecordConsentMutationOptions(options), queryClient);
+};
+export const getRequestExportUrl = () => {
+  return `/v1/me/export`;
+};
+
+export const requestExport = async (
+  requestExportBody: RequestExportBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<DataExportView> => {
+  return apiFetch<DataExportView>(getRequestExportUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(requestExportBody),
+  });
+};
+
+export const getRequestExportMutationKey = () => ['requestExport'] as const;
+
+export const getRequestExportMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof requestExport>>,
+    TError,
+    RequestExportMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof requestExport>>,
+  TError,
+  RequestExportMutationVariables,
+  TContext
+> => {
+  const mutationKey = getRequestExportMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof requestExport>>,
+    RequestExportMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return requestExport(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RequestExportMutationResult = NonNullable<Awaited<ReturnType<typeof requestExport>>>;
+export type RequestExportMutationBody = RequestExportBody;
+export type RequestExportMutationError = ErrorType<ErrorEnvelope>;
+export type RequestExportMutationVariables = { data: RequestExportBody };
+
+export const useRequestExport = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof requestExport>>,
+      TError,
+      RequestExportMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof requestExport>>,
+  TError,
+  RequestExportMutationVariables,
+  TContext
+> => {
+  return useMutation(getRequestExportMutationOptions(options), queryClient);
+};
+export const getGetExportUrl = () => {
+  return `/v1/me/export`;
+};
+
+export const getExport = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<DataExportStatus> => {
+  return apiFetch<DataExportStatus>(getGetExportUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetExportQueryKey = () => {
+  return [`/v1/me/export`] as const;
+};
+
+export const getGetExportQueryOptions = <
+  TData = Awaited<ReturnType<typeof getExport>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExport>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetExportQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getExport>>> = ({ signal }) =>
+    getExport({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getExport>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetExportQueryResult = NonNullable<Awaited<ReturnType<typeof getExport>>>;
+export type GetExportQueryError = ErrorType<ErrorEnvelope>;
+
+export function useGetExport<
+  TData = Awaited<ReturnType<typeof getExport>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExport>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getExport>>,
+          TError,
+          Awaited<ReturnType<typeof getExport>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExport<
+  TData = Awaited<ReturnType<typeof getExport>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExport>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getExport>>,
+          TError,
+          Awaited<ReturnType<typeof getExport>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExport<
+  TData = Awaited<ReturnType<typeof getExport>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExport>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExport<
+  TData = Awaited<ReturnType<typeof getExport>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExport>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetExportQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+export const getGetExportDownloadUrl = () => {
+  return `/v1/me/export/download`;
+};
+
+export const getExportDownload = async (
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<ExportDownload> => {
+  return apiFetch<ExportDownload>(getGetExportDownloadUrl(), {
+    ...options,
+    method: 'GET',
+  });
+};
+
+export const getGetExportDownloadQueryKey = () => {
+  return [`/v1/me/export/download`] as const;
+};
+
+export const getGetExportDownloadQueryOptions = <
+  TData = Awaited<ReturnType<typeof getExportDownload>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(options?: {
+  query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExportDownload>>, TError, TData>>;
+  request?: SecondParameter<typeof apiFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetExportDownloadQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getExportDownload>>> = ({ signal }) =>
+    getExportDownload({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getExportDownload>>,
+    TError,
+    TData
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
+};
+
+export type GetExportDownloadQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getExportDownload>>
+>;
+export type GetExportDownloadQueryError = ErrorType<ErrorEnvelope>;
+
+export function useGetExportDownload<
+  TData = Awaited<ReturnType<typeof getExportDownload>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options: {
+    query: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExportDownload>>, TError, TData>> &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getExportDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getExportDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExportDownload<
+  TData = Awaited<ReturnType<typeof getExportDownload>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExportDownload>>, TError, TData>> &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getExportDownload>>,
+          TError,
+          Awaited<ReturnType<typeof getExportDownload>>
+        >,
+        'initialData'
+      >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExportDownload<
+  TData = Awaited<ReturnType<typeof getExportDownload>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExportDownload>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+export function useGetExportDownload<
+  TData = Awaited<ReturnType<typeof getExportDownload>>,
+  TError = ErrorType<ErrorEnvelope>,
+>(
+  options?: {
+    query?: Partial<UseQueryOptions<Awaited<ReturnType<typeof getExportDownload>>, TError, TData>>;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+  const queryOptions = getGetExportDownloadQueryOptions(options);
+
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData, TError>;
+  };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
 export const getSetHandleUrl = () => {
   return `/v1/me/handle`;
 };
