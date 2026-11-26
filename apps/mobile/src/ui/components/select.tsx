@@ -205,7 +205,8 @@ function Control({
             }
           >
             <View style={WORDS}>
-              <Text role="body" tone={tone} numberOfLines={1}>
+              {/* A long label takes a second line and the frame grows: what was chosen is never cut. */}
+              <Text role="body" tone={tone} numberOfLines={2}>
                 {chosen === undefined ? placeholder : chosen.label}
               </Text>
             </View>

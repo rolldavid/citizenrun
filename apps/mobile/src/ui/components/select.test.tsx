@@ -465,6 +465,18 @@ describe('Select', () => {
     expect(ringed(control)).toEqual([]);
   });
 
+  it('a long chosen label takes a second line and is not cut at one', () => {
+    const long = 'Northern Mariana Islands and the other territories';
+    const control = draw({
+      value: 'long',
+      options: [...SORTS, { value: 'long', label: long }],
+    });
+    const words = within(control).getByText(long);
+    expect(words.getAttribute('style')).toContain('line-clamp: 2');
+    // One line cut with an ellipsis is what a single-line text is given.
+    expect(words.className).not.toContain('whiteSpace');
+  });
+
   it('placeholder and no choice', () => {
     const onChange = vi.fn();
     for (const width of [EXPANDED, MEDIUM, COMPACT]) {
