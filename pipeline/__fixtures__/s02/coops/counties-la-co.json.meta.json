@@ -1,0 +1,11 @@
+{
+  "url": "https://www2.census.gov/geo/tiger/TIGER2026/COUNTY/tl_2026_us_county.zip",
+  "fetchedAt": "2026-11-26T19:58:55.000Z",
+  "sha256": "1a051ae6549129f49e8a0424c79e543cbe17a805fcdbaf3d18241066f7ea3655",
+  "contentType": "application/json",
+  "originalSha256": "b527c9ba7aeb8f17ef118f026eae5e5a938aa1d00b873bc32342d0dce59321c0",
+  "transformations": [
+    "The GEOID, STATEFP and NAME columns of tl_2026_us_county.dbf, read with mapshaper",
+    "Kept the rows of STATEFP 22 (Louisiana) and 08 (Colorado), sorted by GEOID, written as JSON"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "url": "https://www.eia.gov/electricity/data/eia861/zip/f8612025.zip",
+  "fetchedAt": "2026-11-26T22:09:56.000Z",
+  "sha256": "168838a69e9094c05c9598fdda412e62091b50ea3b1d22041c0d5b33682aeea8",
+  "contentType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "originalSha256": "f59f6c732bf685fe0a1591b32227f5ce572dc0dfd26bb5caaeed128ac4e3a396",
+  "transformations": [
+    "Rows of Utility Numbers 5086 and 5862 copied cell for cell from f8612025.zip, with the header rows above them",
+    "Sheet Utility_Data_2025: sheet States of Utility_Data_2025.xlsx, rows 1-2 and the two utilities",
+    "Sheet Service_Territory_2025: sheet Counties_States of Service_Territory_2025.xlsx, row 1 and their rows",
+    "Sheet Sales_Ult_Cust_2025: sheet States of Sales_Ult_Cust_2025.xlsx, rows 1-3 and their rows",
+    "Neither utility is in Short_Form_2025.xlsx; no other sheet or row is kept"
+  ]
+}

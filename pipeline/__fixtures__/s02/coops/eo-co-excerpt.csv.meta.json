@@ -1,0 +1,11 @@
+{
+  "url": "https://www.irs.gov/pub/irs-soi/eo_co.csv",
+  "fetchedAt": "2026-11-26T22:09:56.000Z",
+  "sha256": "a6e23ab064ed003bba1397a30ef83e201d7feaa1f8515a01e3fafab5b4dfb8d0",
+  "contentType": "text/csv",
+  "originalSha256": "3eba46611cc074045b4bbb732d8990db6a21671cc35061144d0ad6bd2ed69421",
+  "transformations": [
+    "Kept the columns EIN, NAME, CITY, STATE and SUBSECTION; every other column is dropped",
+    "Kept the header and the SUBSECTION 12 rows of EINs 846035888, 840185658, 840219342 and 840226805"
+  ]
+}

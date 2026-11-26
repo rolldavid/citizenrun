@@ -1,0 +1,11 @@
+{
+  "url": "https://apps.irs.gov/pub/epostcard/990/xml/2026/index_2026.csv",
+  "fetchedAt": "2026-11-26T22:09:59.000Z",
+  "sha256": "a4130823f219a9bdb222c83420f524d6478e585a0612a0497b27f4fa2936a160",
+  "contentType": "text/csv",
+  "originalSha256": "230455b11cd96958313f1c2dcf7d4389baef94f69365a7e637fe25d4d55f39d3",
+  "transformations": [
+    "Kept the header line and the line of OBJECT_ID 202640159349301609, as written",
+    "CRLF line endings written as LF"
+  ]
+}

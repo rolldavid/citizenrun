@@ -1,0 +1,15 @@
+{
+  "url": "https://apps.irs.gov/pub/epostcard/990/xml/2026/2026_TEOS_XML_01A.zip#202640159349301609_public.xml",
+  "fetchedAt": "2026-11-26T22:18:03.304Z",
+  "sha256": "8e04baa177a47f693fb973947de32287cd668408212f1f49824fa3b637cf5bd7",
+  "contentType": "application/xml",
+  "originalSha256": "5fb73bf4153ce9dc61f53ba57ad4db92decce01db876768244d76e3d5a8da204",
+  "transformations": [
+    "Extracted unchanged from 2026_TEOS_XML_01A.zip, then contact details overwritten:",
+    "every PhoneNum is 0000000000",
+    "every AddressLine1Txt and AddressLine2Txt is \"Fixture address line\"",
+    "PreparerPersonNm, PTIN, PrincipalOfficerNm and the BusinessOfficerGrp PersonNm are fixture values",
+    "the preparer firm name is \"Fixture Preparer Firm\"; every other element is as filed",
+    "CRLF line endings written as LF"
+  ]
+}

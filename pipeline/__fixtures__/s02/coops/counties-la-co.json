@@ -1,0 +1,642 @@
+[
+  {
+    "GEOID": "08001",
+    "STATEFP": "08",
+    "NAME": "Adams"
+  },
+  {
+    "GEOID": "08003",
+    "STATEFP": "08",
+    "NAME": "Alamosa"
+  },
+  {
+    "GEOID": "08005",
+    "STATEFP": "08",
+    "NAME": "Arapahoe"
+  },
+  {
+    "GEOID": "08007",
+    "STATEFP": "08",
+    "NAME": "Archuleta"
+  },
+  {
+    "GEOID": "08009",
+    "STATEFP": "08",
+    "NAME": "Baca"
+  },
+  {
+    "GEOID": "08011",
+    "STATEFP": "08",
+    "NAME": "Bent"
+  },
+  {
+    "GEOID": "08013",
+    "STATEFP": "08",
+    "NAME": "Boulder"
+  },
+  {
+    "GEOID": "08014",
+    "STATEFP": "08",
+    "NAME": "Broomfield"
+  },
+  {
+    "GEOID": "08015",
+    "STATEFP": "08",
+    "NAME": "Chaffee"
+  },
+  {
+    "GEOID": "08017",
+    "STATEFP": "08",
+    "NAME": "Cheyenne"
+  },
+  {
+    "GEOID": "08019",
+    "STATEFP": "08",
+    "NAME": "Clear Creek"
+  },
+  {
+    "GEOID": "08021",
+    "STATEFP": "08",
+    "NAME": "Conejos"
+  },
+  {
+    "GEOID": "08023",
+    "STATEFP": "08",
+    "NAME": "Costilla"
+  },
+  {
+    "GEOID": "08025",
+    "STATEFP": "08",
+    "NAME": "Crowley"
+  },
+  {
+    "GEOID": "08027",
+    "STATEFP": "08",
+    "NAME": "Custer"
+  },
+  {
+    "GEOID": "08029",
+    "STATEFP": "08",
+    "NAME": "Delta"
+  },
+  {
+    "GEOID": "08031",
+    "STATEFP": "08",
+    "NAME": "Denver"
+  },
+  {
+    "GEOID": "08033",
+    "STATEFP": "08",
+    "NAME": "Dolores"
+  },
+  {
+    "GEOID": "08035",
+    "STATEFP": "08",
+    "NAME": "Douglas"
+  },
+  {
+    "GEOID": "08037",
+    "STATEFP": "08",
+    "NAME": "Eagle"
+  },
+  {
+    "GEOID": "08039",
+    "STATEFP": "08",
+    "NAME": "Elbert"
+  },
+  {
+    "GEOID": "08041",
+    "STATEFP": "08",
+    "NAME": "El Paso"
+  },
+  {
+    "GEOID": "08043",
+    "STATEFP": "08",
+    "NAME": "Fremont"
+  },
+  {
+    "GEOID": "08045",
+    "STATEFP": "08",
+    "NAME": "Garfield"
+  },
+  {
+    "GEOID": "08047",
+    "STATEFP": "08",
+    "NAME": "Gilpin"
+  },
+  {
+    "GEOID": "08049",
+    "STATEFP": "08",
+    "NAME": "Grand"
+  },
+  {
+    "GEOID": "08051",
+    "STATEFP": "08",
+    "NAME": "Gunnison"
+  },
+  {
+    "GEOID": "08053",
+    "STATEFP": "08",
+    "NAME": "Hinsdale"
+  },
+  {
+    "GEOID": "08055",
+    "STATEFP": "08",
+    "NAME": "Huerfano"
+  },
+  {
+    "GEOID": "08057",
+    "STATEFP": "08",
+    "NAME": "Jackson"
+  },
+  {
+    "GEOID": "08059",
+    "STATEFP": "08",
+    "NAME": "Jefferson"
+  },
+  {
+    "GEOID": "08061",
+    "STATEFP": "08",
+    "NAME": "Kiowa"
+  },
+  {
+    "GEOID": "08063",
+    "STATEFP": "08",
+    "NAME": "Kit Carson"
+  },
+  {
+    "GEOID": "08065",
+    "STATEFP": "08",
+    "NAME": "Lake"
+  },
+  {
+    "GEOID": "08067",
+    "STATEFP": "08",
+    "NAME": "La Plata"
+  },
+  {
+    "GEOID": "08069",
+    "STATEFP": "08",
+    "NAME": "Larimer"
+  },
+  {
+    "GEOID": "08071",
+    "STATEFP": "08",
+    "NAME": "Las Animas"
+  },
+  {
+    "GEOID": "08073",
+    "STATEFP": "08",
+    "NAME": "Lincoln"
+  },
+  {
+    "GEOID": "08075",
+    "STATEFP": "08",
+    "NAME": "Logan"
+  },
+  {
+    "GEOID": "08077",
+    "STATEFP": "08",
+    "NAME": "Mesa"
+  },
+  {
+    "GEOID": "08079",
+    "STATEFP": "08",
+    "NAME": "Mineral"
+  },
+  {
+    "GEOID": "08081",
+    "STATEFP": "08",
+    "NAME": "Moffat"
+  },
+  {
+    "GEOID": "08083",
+    "STATEFP": "08",
+    "NAME": "Montezuma"
+  },
+  {
+    "GEOID": "08085",
+    "STATEFP": "08",
+    "NAME": "Montrose"
+  },
+  {
+    "GEOID": "08087",
+    "STATEFP": "08",
+    "NAME": "Morgan"
+  },
+  {
+    "GEOID": "08089",
+    "STATEFP": "08",
+    "NAME": "Otero"
+  },
+  {
+    "GEOID": "08091",
+    "STATEFP": "08",
+    "NAME": "Ouray"
+  },
+  {
+    "GEOID": "08093",
+    "STATEFP": "08",
+    "NAME": "Park"
+  },
+  {
+    "GEOID": "08095",
+    "STATEFP": "08",
+    "NAME": "Phillips"
+  },
+  {
+    "GEOID": "08097",
+    "STATEFP": "08",
+    "NAME": "Pitkin"
+  },
+  {
+    "GEOID": "08099",
+    "STATEFP": "08",
+    "NAME": "Prowers"
+  },
+  {
+    "GEOID": "08101",
+    "STATEFP": "08",
+    "NAME": "Pueblo"
+  },
+  {
+    "GEOID": "08103",
+    "STATEFP": "08",
+    "NAME": "Rio Blanco"
+  },
+  {
+    "GEOID": "08105",
+    "STATEFP": "08",
+    "NAME": "Rio Grande"
+  },
+  {
+    "GEOID": "08107",
+    "STATEFP": "08",
+    "NAME": "Routt"
+  },
+  {
+    "GEOID": "08109",
+    "STATEFP": "08",
+    "NAME": "Saguache"
+  },
+  {
+    "GEOID": "08111",
+    "STATEFP": "08",
+    "NAME": "San Juan"
+  },
+  {
+    "GEOID": "08113",
+    "STATEFP": "08",
+    "NAME": "San Miguel"
+  },
+  {
+    "GEOID": "08115",
+    "STATEFP": "08",
+    "NAME": "Sedgwick"
+  },
+  {
+    "GEOID": "08117",
+    "STATEFP": "08",
+    "NAME": "Summit"
+  },
+  {
+    "GEOID": "08119",
+    "STATEFP": "08",
+    "NAME": "Teller"
+  },
+  {
+    "GEOID": "08121",
+    "STATEFP": "08",
+    "NAME": "Washington"
+  },
+  {
+    "GEOID": "08123",
+    "STATEFP": "08",
+    "NAME": "Weld"
+  },
+  {
+    "GEOID": "08125",
+    "STATEFP": "08",
+    "NAME": "Yuma"
+  },
+  {
+    "GEOID": "22001",
+    "STATEFP": "22",
+    "NAME": "Acadia"
+  },
+  {
+    "GEOID": "22003",
+    "STATEFP": "22",
+    "NAME": "Allen"
+  },
+  {
+    "GEOID": "22005",
+    "STATEFP": "22",
+    "NAME": "Ascension"
+  },
+  {
+    "GEOID": "22007",
+    "STATEFP": "22",
+    "NAME": "Assumption"
+  },
+  {
+    "GEOID": "22009",
+    "STATEFP": "22",
+    "NAME": "Avoyelles"
+  },
+  {
+    "GEOID": "22011",
+    "STATEFP": "22",
+    "NAME": "Beauregard"
+  },
+  {
+    "GEOID": "22013",
+    "STATEFP": "22",
+    "NAME": "Bienville"
+  },
+  {
+    "GEOID": "22015",
+    "STATEFP": "22",
+    "NAME": "Bossier"
+  },
+  {
+    "GEOID": "22017",
+    "STATEFP": "22",
+    "NAME": "Caddo"
+  },
+  {
+    "GEOID": "22019",
+    "STATEFP": "22",
+    "NAME": "Calcasieu"
+  },
+  {
+    "GEOID": "22021",
+    "STATEFP": "22",
+    "NAME": "Caldwell"
+  },
+  {
+    "GEOID": "22023",
+    "STATEFP": "22",
+    "NAME": "Cameron"
+  },
+  {
+    "GEOID": "22025",
+    "STATEFP": "22",
+    "NAME": "Catahoula"
+  },
+  {
+    "GEOID": "22027",
+    "STATEFP": "22",
+    "NAME": "Claiborne"
+  },
+  {
+    "GEOID": "22029",
+    "STATEFP": "22",
+    "NAME": "Concordia"
+  },
+  {
+    "GEOID": "22031",
+    "STATEFP": "22",
+    "NAME": "De Soto"
+  },
+  {
+    "GEOID": "22033",
+    "STATEFP": "22",
+    "NAME": "East Baton Rouge"
+  },
+  {
+    "GEOID": "22035",
+    "STATEFP": "22",
+    "NAME": "East Carroll"
+  },
+  {
+    "GEOID": "22037",
+    "STATEFP": "22",
+    "NAME": "East Feliciana"
+  },
+  {
+    "GEOID": "22039",
+    "STATEFP": "22",
+    "NAME": "Evangeline"
+  },
+  {
+    "GEOID": "22041",
+    "STATEFP": "22",
+    "NAME": "Franklin"
+  },
+  {
+    "GEOID": "22043",
+    "STATEFP": "22",
+    "NAME": "Grant"
+  },
+  {
+    "GEOID": "22045",
+    "STATEFP": "22",
+    "NAME": "Iberia"
+  },
+  {
+    "GEOID": "22047",
+    "STATEFP": "22",
+    "NAME": "Iberville"
+  },
+  {
+    "GEOID": "22049",
+    "STATEFP": "22",
+    "NAME": "Jackson"
+  },
+  {
+    "GEOID": "22051",
+    "STATEFP": "22",
+    "NAME": "Jefferson"
+  },
+  {
+    "GEOID": "22053",
+    "STATEFP": "22",
+    "NAME": "Jefferson Davis"
+  },
+  {
+    "GEOID": "22055",
+    "STATEFP": "22",
+    "NAME": "Lafayette"
+  },
+  {
+    "GEOID": "22057",
+    "STATEFP": "22",
+    "NAME": "Lafourche"
+  },
+  {
+    "GEOID": "22059",
+    "STATEFP": "22",
+    "NAME": "LaSalle"
+  },
+  {
+    "GEOID": "22061",
+    "STATEFP": "22",
+    "NAME": "Lincoln"
+  },
+  {
+    "GEOID": "22063",
+    "STATEFP": "22",
+    "NAME": "Livingston"
+  },
+  {
+    "GEOID": "22065",
+    "STATEFP": "22",
+    "NAME": "Madison"
+  },
+  {
+    "GEOID": "22067",
+    "STATEFP": "22",
+    "NAME": "Morehouse"
+  },
+  {
+    "GEOID": "22069",
+    "STATEFP": "22",
+    "NAME": "Natchitoches"
+  },
+  {
+    "GEOID": "22071",
+    "STATEFP": "22",
+    "NAME": "Orleans"
+  },
+  {
+    "GEOID": "22073",
+    "STATEFP": "22",
+    "NAME": "Ouachita"
+  },
+  {
+    "GEOID": "22075",
+    "STATEFP": "22",
+    "NAME": "Plaquemines"
+  },
+  {
+    "GEOID": "22077",
+    "STATEFP": "22",
+    "NAME": "Pointe Coupee"
+  },
+  {
+    "GEOID": "22079",
+    "STATEFP": "22",
+    "NAME": "Rapides"
+  },
+  {
+    "GEOID": "22081",
+    "STATEFP": "22",
+    "NAME": "Red River"
+  },
+  {
+    "GEOID": "22083",
+    "STATEFP": "22",
+    "NAME": "Richland"
+  },
+  {
+    "GEOID": "22085",
+    "STATEFP": "22",
+    "NAME": "Sabine"
+  },
+  {
+    "GEOID": "22087",
+    "STATEFP": "22",
+    "NAME": "St. Bernard"
+  },
+  {
+    "GEOID": "22089",
+    "STATEFP": "22",
+    "NAME": "St. Charles"
+  },
+  {
+    "GEOID": "22091",
+    "STATEFP": "22",
+    "NAME": "St. Helena"
+  },
+  {
+    "GEOID": "22093",
+    "STATEFP": "22",
+    "NAME": "St. James"
+  },
+  {
+    "GEOID": "22095",
+    "STATEFP": "22",
+    "NAME": "St. John the Baptist"
+  },
+  {
+    "GEOID": "22097",
+    "STATEFP": "22",
+    "NAME": "St. Landry"
+  },
+  {
+    "GEOID": "22099",
+    "STATEFP": "22",
+    "NAME": "St. Martin"
+  },
+  {
+    "GEOID": "22101",
+    "STATEFP": "22",
+    "NAME": "St. Mary"
+  },
+  {
+    "GEOID": "22103",
+    "STATEFP": "22",
+    "NAME": "St. Tammany"
+  },
+  {
+    "GEOID": "22105",
+    "STATEFP": "22",
+    "NAME": "Tangipahoa"
+  },
+  {
+    "GEOID": "22107",
+    "STATEFP": "22",
+    "NAME": "Tensas"
+  },
+  {
+    "GEOID": "22109",
+    "STATEFP": "22",
+    "NAME": "Terrebonne"
+  },
+  {
+    "GEOID": "22111",
+    "STATEFP": "22",
+    "NAME": "Union"
+  },
+  {
+    "GEOID": "22113",
+    "STATEFP": "22",
+    "NAME": "Vermilion"
+  },
+  {
+    "GEOID": "22115",
+    "STATEFP": "22",
+    "NAME": "Vernon"
+  },
+  {
+    "GEOID": "22117",
+    "STATEFP": "22",
+    "NAME": "Washington"
+  },
+  {
+    "GEOID": "22119",
+    "STATEFP": "22",
+    "NAME": "Webster"
+  },
+  {
+    "GEOID": "22121",
+    "STATEFP": "22",
+    "NAME": "West Baton Rouge"
+  },
+  {
+    "GEOID": "22123",
+    "STATEFP": "22",
+    "NAME": "West Carroll"
+  },
+  {
+    "GEOID": "22125",
+    "STATEFP": "22",
+    "NAME": "West Feliciana"
+  },
+  {
+    "GEOID": "22127",
+    "STATEFP": "22",
+    "NAME": "Winn"
+  }
+]
