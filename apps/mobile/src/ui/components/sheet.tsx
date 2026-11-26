@@ -47,10 +47,20 @@ const SCRIM: ViewStyle = {
   flexDirection: 'row',
   overflow: 'hidden',
 };
+// The frame is one flat fill to its edges. A border on the box that also holds the fill makes
+// Android draw the fill short of the sides that have none, which shows the scrim down both edges.
 const FRAME: ViewStyle = {
   zIndex: z.overlay,
-  borderTopWidth: rule.hairline,
+  paddingTop: rule.hairline,
   borderRadius: radius.none,
+};
+// The rule on the frame's top edge, the width of the frame, in the room the frame keeps for it.
+const TOP_RULE: ViewStyle = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  left: 0,
+  height: rule.hairline,
 };
 const GRABBER_ROW: ViewStyle = {
   alignItems: 'center',
@@ -165,7 +175,6 @@ function CompactSheet({
             heightOf(detent),
             {
               backgroundColor: theme.color.surface,
-              borderTopColor: theme.color.rule,
               paddingLeft: layout.gutter + insets.left,
               paddingRight: layout.gutter + insets.right,
               paddingBottom: space.x6 + insets.bottom,
@@ -173,6 +182,7 @@ function CompactSheet({
             rise,
           ]}
         >
+          <View style={[TOP_RULE, { backgroundColor: theme.color.rule }]} />
           {/* Centered on the frame, which is as wide as the window, not on the safe area. */}
           <View style={[GRABBER_ROW, { marginLeft: -insets.left, marginRight: -insets.right }]}>
             {dismissible ? (

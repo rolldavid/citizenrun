@@ -109,7 +109,35 @@ function barOf(frame: HTMLElement): HTMLElement {
   return bar;
 }
 
+/** The rule on a phone sheet's top edge: the first thing in its frame, out of the frame's flow. */
+function topRuleOf(frame: HTMLElement): HTMLElement {
+  const line = frame.firstElementChild;
+  if (!(line instanceof HTMLElement)) {
+    throw new Error('the frame holds nothing');
+  }
+  expect(line.style.position).toBe('absolute');
+  expect(line.style.top).toBe('0px');
+  return line;
+}
+
 describe('Sheet', () => {
+  it('a phone sheet is one flat fill with no border, and its top rule is a line of its own', () => {
+    setViewport(...COMPACT);
+    const frame = draw(STATES.open, { theme: 'light' });
+    // A border on the filled box leaves the fill short of the other edges on Android.
+    expect(frame.style.borderTopWidth).toBe('');
+    expect(frame.style.borderWidth).toBe('');
+    expect(frame.style.backgroundColor).toBe(written(color.light.surface));
+    // The frame keeps the rule's room, so nothing under it moves.
+    expect(frame.style.paddingTop).toBe(`${String(rule.hairline)}px`);
+    const line = topRuleOf(frame);
+    expect(line.style.left).toBe('0px');
+    expect(line.style.right).toBe('0px');
+    expect(line.style.height).toBe(`${String(rule.hairline)}px`);
+    expect(line.style.backgroundColor).toBe(written(color.light.rule));
+    expect(line.textContent).toBe('');
+  });
+
   it('renders every state', () => {
     const errors = vi.spyOn(console, 'error');
     const warnings = vi.spyOn(console, 'warn');
@@ -120,8 +148,9 @@ describe('Sheet', () => {
         const frame = draw(STATES[state], { theme });
         const name = `${state} ${theme} compact`;
         expect(frame.style.backgroundColor, name).toBe(written(color[theme].surface));
-        expect(frame.style.borderTopWidth, name).toBe(`${String(rule.hairline)}px`);
-        expect(frame.style.borderTopColor, name).toBe(written(color[theme].rule));
+        const line = topRuleOf(frame);
+        expect(line.style.height, name).toBe(`${String(rule.hairline)}px`);
+        expect(line.style.backgroundColor, name).toBe(written(color[theme].rule));
         expect(frame.style.borderRadius, name).toBe('0px');
         expect(frame.style.boxShadow, name).toBe('');
         expect(frame.style.paddingLeft, name).toBe(`${String(gutter.regular)}px`);
@@ -295,7 +324,9 @@ describe('Sheet', () => {
     expect(frame.style.marginRight).toBe('');
     expect(frame.style.maxHeight).toBe('100%');
     // The rule on its top edge is the frame's own, so it runs the width of the sheet.
-    expect(frame.style.borderTopWidth).toBe(`${String(rule.hairline)}px`);
+    const line = topRuleOf(frame);
+    expect(line.style.left).toBe('0px');
+    expect(line.style.right).toBe('0px');
     // The content keeps clear of the side inset and of the home indicator.
     expect(frame.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
     expect(frame.style.paddingRight).toBe(`${String(gutter.regular + 84)}px`);
