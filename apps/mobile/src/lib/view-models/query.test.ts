@@ -1,11 +1,19 @@
 import { ApiError, apiFetch } from '@citizenrun/shared';
+import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Mock } from 'vitest';
 
 import { apiError, configureTestApiClient, installApiStub, json } from '@/test/api-stub';
 import { queryClientFake } from '@/test/platform/query-client';
 
-import { attempt, failureCode, readApiFailure, subscribeAppFocus, viewStateOf } from './query';
+import {
+  attempt,
+  failureCode,
+  querySource,
+  readApiFailure,
+  subscribeAppFocus,
+  viewStateOf,
+} from './query';
 import type { QuerySource } from './query';
 
 afterEach(() => {
@@ -179,6 +187,59 @@ describe('viewStateOf', () => {
     state.onRetry();
     expect(first.refetch).toHaveBeenCalledTimes(1);
     expect(second.refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('querySource', () => {
+  it('keeps cached data ready when a background refetch fails', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    let fail = false;
+    const observer = new QueryObserver(client, {
+      queryKey: ['query-source-test'],
+      queryFn: () => (fail ? Promise.reject(new ApiError('internal')) : Promise.resolve('cached')),
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    try {
+      await observer.refetch();
+      const data = (): string => 'data';
+      expect(viewStateOf([querySource(observer.getCurrentResult())], data, true)).toMatchObject({
+        status: 'ready',
+      });
+
+      fail = true;
+      await observer.refetch();
+      const failed = observer.getCurrentResult();
+      // TanStack v5 reports the failed refetch as an error while it keeps the data.
+      expect(failed.status).toBe('error');
+      expect(failed.data).toBe('cached');
+      expect(viewStateOf([querySource(failed)], data, true)).toEqual({
+        status: 'ready',
+        data: 'data',
+        refreshing: false,
+        stale: false,
+      });
+    } finally {
+      unsubscribe();
+      client.clear();
+    }
+  });
+
+  it('answers the error state when the first load fails', async () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const observer = new QueryObserver(client, {
+      queryKey: ['query-source-test-first'],
+      queryFn: () => Promise.reject(new ApiError('internal')),
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    try {
+      await observer.refetch();
+      expect(
+        viewStateOf([querySource(observer.getCurrentResult())], () => 'data', true),
+      ).toMatchObject({ status: 'error', code: 'internal' });
+    } finally {
+      unsubscribe();
+      client.clear();
+    }
   });
 });
 

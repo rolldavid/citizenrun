@@ -5,7 +5,7 @@ import {
   useGetExport,
 } from '@citizenrun/shared/api';
 
-import { attempt } from '@/lib/view-models/query';
+import { attempt, querySource } from '@/lib/view-models/query';
 import type { Outcome, QuerySource } from '@/lib/view-models/query';
 
 export const EXPORT_POLL_MS = 10_000; // SCR-settings-export
@@ -28,12 +28,7 @@ export function useExportStatus(): {
   const refetch = query.refetch;
   return {
     status,
-    source: {
-      status: query.status,
-      fetchStatus: query.fetchStatus,
-      error: query.error,
-      refetch,
-    },
+    source: querySource(query),
     refetch: () => {
       void refetch();
     },

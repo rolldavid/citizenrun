@@ -61,6 +61,29 @@ export type QuerySource = {
   refetch: () => unknown;
 };
 
+/** The fields of a TanStack query result that querySource reads. */
+export type QueryResultLike = {
+  data: unknown;
+  status: QuerySource['status'];
+  fetchStatus: QuerySource['fetchStatus'];
+  error: unknown;
+  refetch: () => unknown;
+};
+
+/**
+ * A query's source for viewStateOf. A query that holds data counts as loaded: after a failed background
+ * refetch TanStack v5 reports status 'error' while it keeps the cached data, and that data stays on
+ * screen (00 section 8.4: `error` is the state with no data to show).
+ */
+export function querySource(query: QueryResultLike): QuerySource {
+  return {
+    status: query.data === undefined ? query.status : 'success',
+    fetchStatus: query.fetchStatus,
+    error: query.error,
+    refetch: query.refetch,
+  };
+}
+
 function refetchAll(sources: readonly QuerySource[]): void {
   for (const source of sources) {
     void source.refetch();

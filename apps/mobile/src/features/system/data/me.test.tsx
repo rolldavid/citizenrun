@@ -5,7 +5,8 @@ import { resetNavigationState } from '@/lib/navigation';
 import { resetSessionPresence, setSessionPresence } from '@/lib/session-state';
 import { fixtureMe } from '@/lib/view-models/__fixtures__/common';
 import { queryClient } from '@/platform/query-client';
-import { configureTestApiClient, installApiStub, json } from '@/test/api-stub';
+import { viewStateOf } from '@/lib/view-models/query';
+import { apiError, configureTestApiClient, installApiStub, json } from '@/test/api-stub';
 import type { ApiStub } from '@/test/api-stub';
 import { renderHookWithClient } from '@/test/render-hook';
 import { resetRouterMock } from '@/test/router-mock';
@@ -55,6 +56,33 @@ describe('useMe', () => {
       ['GET', '/v1/me'],
     ]);
     expect(result.current.source.status).toBe('success');
+  });
+
+  it('stays ready on the cached Me when a background refetch fails', async () => {
+    setBoot('ready');
+    const { result } = renderHookWithClient(() => useMe());
+    await waitFor(() => {
+      expect(result.current.me?.handle).toBe('test_fixture');
+    });
+    expect(viewStateOf([result.current.source], () => 'data', true)).toMatchObject({
+      status: 'ready',
+    });
+
+    stub.use([{ method: 'GET', path: '/v1/me', reply: apiError(500, 'internal') }]);
+    await act(async () => {
+      await result.current.source.refetch();
+    });
+    await waitFor(() => {
+      expect(result.current.source.fetchStatus).toBe('idle');
+    });
+    expect(stub.requests).toHaveLength(2);
+    expect(result.current.me?.handle).toBe('test_fixture');
+    expect(viewStateOf([result.current.source], () => 'data', true)).toEqual({
+      status: 'ready',
+      data: 'data',
+      refreshing: false,
+      stale: false,
+    });
   });
 
   it('does not ask without a session', async () => {
