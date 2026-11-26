@@ -1,0 +1,573 @@
+# Every dataset, adapter, photo source and host the pipeline reads, with its terms and robots check.
+
+# --- datasets ---
+
+- id: census-gus
+  kind: dataset
+  name: Government Units Listing 2026
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The Census Bureau's public-use statement asks users to cite the Census Bureau as the source of the original data. robots.txt of www2.census.gov allows the file.
+
+- id: tiger
+  kind: dataset
+  name: TIGER/Line Shapefiles 2026
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/geo/tiger/TIGER2026/
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Layer files are chosen by listing each layer directory. robots.txt of www2.census.gov allows the directory.
+
+- id: cb-state
+  kind: dataset
+  name: Cartographic Boundary File, States, 1:500,000, 2025
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The 2025 cartographic boundary directory lists cb_2025_us_state_500k.zip (opened 2026-11-26).
+
+- id: school-finance
+  kind: dataset
+  name: Annual Survey of School System Finances, 2024, unit file elsec24t.xlsx
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/programs-surveys/school-finances/tables/2024/secondary-education-finance/elsec24t.xlsx
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of www2.census.gov allows the file.
+
+- id: acs5
+  kind: dataset
+  name: American Community Survey 5-year table-based Summary File, 2020-2024
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Table B01001 is the one file of the directory whose name ends in b01001.dat. robots.txt of www2.census.gov allows the directory.
+
+- id: pl94171
+  kind: dataset
+  name: 2020 Census Redistricting Data (P.L. 94-171) Summary File
+  publisher: U.S. Census Bureau
+  url: https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File--PL_94-171/
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. Census Bureau
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Opened 2026-11-26. The directory holds one folder per state, DC, Puerto Rico and National. A request for the path as written above was answered with a "Request Rejected" page; the same path with the two hyphens written as %2D%2D returned the directory listing.
+
+- id: openstates
+  kind: dataset
+  name: Open States legislator CSV files
+  publisher: Open States (Plural Policy)
+  url: https://open.pluralpolicy.com/data/
+  terms_url: https://open.pluralpolicy.com/tos/
+  terms_read_on: 2026-11-26
+  basis: Open States states its bulk data is provided under a public domain dedication and makes no copyright claim over the data it publishes; no attribution is required.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The CSV files are served from data.openstates.org, whose robots.txt answered 403 (no rules). The terms ask that no affiliation or endorsement be implied.
+  hosts: [open.pluralpolicy.com, data.openstates.org]
+
+- id: congress-legislators
+  kind: dataset
+  name: congress-legislators, legislators-current.csv
+  publisher: The unitedstates project
+  url: https://unitedstates.github.io/congress-legislators/legislators-current.csv
+  terms_url: https://github.com/unitedstates/congress-legislators
+  terms_read_on: 2026-11-26
+  basis: The repository is published under CC0-1.0.
+  licence_spdx: CC0-1.0
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: unitedstates.github.io has no robots.txt (404).
+
+- id: eia861
+  kind: dataset
+  name: Form EIA-861 detailed data files, 2025
+  publisher: U.S. Energy Information Administration
+  url: https://www.eia.gov/electricity/data/eia861/zip/f8612025.zip
+  terms_url: https://www.eia.gov/about/copyrights_reuse.php
+  terms_read_on: 2026-11-26
+  basis: U.S. government publications are in the public domain; EIA states its data may be used and distributed.
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: 'Source: U.S. Energy Information Administration'
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: EIA asks for an acknowledgment that names EIA and the publication date. robots.txt of www.eia.gov allows the file.
+
+- id: irs-eobmf
+  kind: dataset
+  name: Exempt Organizations Business Master File Extract
+  publisher: Internal Revenue Service
+  url: https://www.irs.gov/charities-non-profits/exempt-organizations-business-master-file-extract-eo-bmf
+  terms_url: https://www.irs.gov/privacy-disclosure/irs-privacy-policy
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The per-state files are at https://www.irs.gov/pub/irs-soi/; robots.txt of www.irs.gov allows them. The IRS site states no reuse terms for these files.
+
+- id: irs990
+  kind: dataset
+  name: Form 990 series e-file XML downloads
+  publisher: Internal Revenue Service
+  url: https://apps.irs.gov/pub/epostcard/990/xml/
+  terms_url: https://www.irs.gov/privacy-disclosure/irs-privacy-policy
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: apps.irs.gov has no robots.txt (404). The IRS site states no reuse terms for these files.
+
+- id: openstates-people
+  kind: dataset
+  name: openstates/people repository
+  publisher: Open States (Plural Policy)
+  url: https://github.com/openstates/people
+  terms_url: https://github.com/openstates/people
+  terms_read_on: 2026-11-26
+  basis: The repository is published under CC0-1.0.
+  licence_spdx: CC0-1.0
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of github.com disallows /openstates/people/archive/refs/heads/main.tar.gz for every user agent it does not name; codeload.github.com and api.github.com have no robots.txt (404).
+  hosts: [github.com, codeload.github.com, api.github.com]
+
+- id: wikidata
+  kind: dataset
+  name: Wikidata Query Service
+  publisher: Wikimedia Foundation
+  url: https://query.wikidata.org/sparql
+  terms_url: https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use
+  terms_read_on: 2026-11-26
+  basis: Wikidata's structured data is released under Creative Commons Zero (Wikidata:Licensing); use of the APIs is bound by the Terms of Use, the User-Agent Policy and the Robot Policy.
+  licence_spdx: CC0-1.0
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of query.wikidata.org disallows /sparql and /bigdata for every user agent.
+
+- id: nicknames
+  kind: dataset
+  name: carltonnorthern/nicknames, names.csv
+  publisher: Carlton Northern
+  url: https://github.com/carltonnorthern/nicknames
+  terms_url: https://github.com/carltonnorthern/nicknames
+  terms_read_on: 2026-11-26
+  basis: The repository is published under the Apache License 2.0.
+  licence_spdx: Apache-2.0
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: raw.githubusercontent.com has no robots.txt (404).
+  hosts: [github.com, raw.githubusercontent.com]
+
+- id: ecfr-time-zones
+  kind: dataset
+  name: 49 CFR Part 71, Standard Time Zone Boundaries
+  publisher: Office of the Federal Register and U.S. Government Publishing Office
+  url: https://www.govinfo.gov/content/pkg/CFR-2025-title49-vol1/xml/CFR-2025-title49-vol1-part71.xml
+  terms_url: https://www.govinfo.gov/about/policies
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105).
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Read from the annual edition of Title 49, volume 1, revised as of 2025-10-01, on GovInfo. On 2026-11-26 www.ecfr.gov sent the same part to unblock.federalregister.gov, whose robots.txt disallows it.
+  hosts: [www.govinfo.gov]
+
+# --- photo sources ---
+
+- id: congress-portraits
+  kind: photo_source
+  name: Public domain photos of Members of the United States Congress
+  publisher: The unitedstates project
+  url: https://unitedstates.github.io/images/congress/
+  terms_url: https://github.com/unitedstates/images
+  terms_read_on: 2026-11-26
+  basis: The repository describes its images as public domain photos and is published under CC0-1.0.
+  licence_spdx: CC0-1.0
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: unitedstates.github.io has no robots.txt (404).
+
+- id: congress-gov-api
+  kind: photo_source
+  name: Congress.gov API
+  publisher: Library of Congress
+  url: https://api.congress.gov/
+  terms_url: https://www.loc.gov/legal/
+  terms_read_on: 2026-11-26
+  basis: U.S. federal government work, not subject to copyright (17 U.S.C. 105); the Library states that it generally does not own the rights to items in its collections, so each image is taken only with its own attribution.
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of api.congress.gov answered 403 (no rules). The API needs a key.
+
+- id: wikipedia
+  kind: photo_source
+  name: English Wikipedia API
+  publisher: Wikimedia Foundation
+  url: https://en.wikipedia.org/w/api.php
+  terms_url: https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use
+  terms_read_on: 2026-11-26
+  basis: Only page metadata is read (the page image's file name); use of the APIs is bound by the Terms of Use, the User-Agent Policy and the Robot Policy.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of en.wikipedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?.
+
+- id: wikimedia-commons
+  kind: photo_source
+  name: Wikimedia Commons API
+  publisher: Wikimedia Foundation
+  url: https://commons.wikimedia.org/w/api.php
+  terms_url: https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use
+  terms_read_on: 2026-11-26
+  basis: Each file carries its own licence, read from its metadata; use of the APIs is bound by the Terms of Use, the User-Agent Policy and the Robot Policy.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of commons.wikimedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?.
+
+# --- adapters: the candidate lists the snapshot archiver reads ---
+
+- id: nc-sbe
+  kind: adapter
+  name: North Carolina candidate lists
+  publisher: North Carolina State Board of Elections
+  url: https://www.ncsbe.gov/results-data/candidate-lists
+  terms_url: https://www.nc.gov/disclaimer-terms-use
+  terms_read_on: 2026-11-26
+  basis: Candidate lists published by the State Board of Elections; the State's website terms permit copying non-image information for non-commercial use, unaltered and with the source cited.
+  licence_spdx: null
+  attribution: North Carolina State Board of Elections
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The terms are the State of North Carolina's, linked from the ncsbe.gov footer. robots.txt of www.ncsbe.gov allows the candidate-lists page.
+
+- id: wa-sos
+  kind: adapter
+  name: Washington candidate list (VoteWA)
+  publisher: Washington Secretary of State
+  url: https://voter.votewa.gov/CandidateList.aspx
+  terms_url: https://www.sos.wa.gov/web-sites-privacy-policy
+  terms_read_on: 2026-11-26
+  basis: Records of the Secretary of State, available for public inspection and copying under the Public Records Act (RCW 42.56.070), as the office's privacy policy states; no other terms of use are stated.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: voter.votewa.gov has no robots.txt (404); its root redirects to a sign-in portal, and CandidateList.aspx is a public page.
+
+- id: la-sos
+  kind: adapter
+  name: Louisiana Candidate Inquiry
+  publisher: Louisiana Secretary of State
+  url: https://voterportal.sos.la.gov/candidateinquiry
+  terms_url: https://voterportal.sos.la.gov/Disclaimer
+  terms_read_on: 2026-11-26
+  basis: Candidate information published by the Secretary of State; the portal's disclaimer states no reuse terms.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of voterportal.sos.la.gov disallows /CandidateInquiry/Parish/, /CandidateInquiry/Statewide/ and /candidateinquiryhttps*, and allows /candidateinquiry.
+
+- id: va-elections
+  kind: adapter
+  name: Virginia candidate lists
+  publisher: Virginia Department of Elections
+  url: https://www.elections.virginia.gov/
+  terms_url: https://www.elections.virginia.gov/about-us/policies-and-guidelines/
+  terms_read_on: 2026-11-26
+  basis: Candidate lists published by the Department of Elections; the site's policies page states no reuse terms, and its footer reads "All rights reserved".
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of www.elections.virginia.gov disallows *.json, *.csv, *.xls and *.xlsx, and allows /casting-a-ballot/candidate-list/.
+
+- id: tx-sos
+  kind: adapter
+  name: Texas candidate information
+  publisher: Texas Secretary of State
+  url: https://www.sos.texas.gov/
+  terms_url: https://www.sos.texas.gov/disclaimer.shtml
+  terms_read_on: 2026-11-26
+  basis: Candidate information published by the Secretary of State; the site disclaimer governs use of the site and states no reuse restriction.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The candidate-information page links to an application at goelect.txelections.civixapps.com, whose robots.txt allows /ivis-cbp-ui/candidate-information.
+
+- id: tx-2027-05-01
+  kind: adapter
+  name: Texas candidate information, filing window for the May 1, 2027 election
+  publisher: Texas Secretary of State
+  url: https://www.sos.texas.gov/
+  terms_url: https://www.sos.texas.gov/disclaimer.shtml
+  terms_read_on: 2026-11-26
+  basis: Candidate information published by the Secretary of State; the site disclaimer governs use of the site and states no reuse restriction.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The same application as tx-sos, archived during the filing window only.
+
+- id: pa-dos
+  kind: adapter
+  name: Pennsylvania candidate database
+  publisher: Pennsylvania Department of State
+  url: https://www.pavoterservices.pa.gov/
+  terms_url: https://www.pa.gov/privacy-policy
+  terms_read_on: 2026-11-26
+  basis: Candidate information published by the Department of State; the Commonwealth's privacy and disclaimer page states no reuse terms.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: www.pavoterservices.pa.gov has no robots.txt (404). On 2026-11-26 its ElectionInfo page answered with an Incapsula block page (status 200) instead of the search.
+
+- id: ky-sos
+  kind: adapter
+  name: Kentucky county candidate filings
+  publisher: Kentucky Secretary of State
+  url: https://www.sos.ky.gov/
+  terms_url: https://www.kentucky.gov/policies/Pages/disclaimer.aspx
+  terms_read_on: 2026-11-26
+  basis: Candidate filings published by the Secretary of State; the Commonwealth's disclaimer states no reuse terms.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: www.sos.ky.gov and web.sos.ky.gov have no robots.txt (404); the county filings page at web.sos.ky.gov loaded on 2026-11-26.
+
+- id: ga-sos
+  kind: adapter
+  name: Georgia qualified candidates
+  publisher: Georgia Secretary of State
+  url: https://sos.ga.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: Candidate qualifying information published by the Secretary of State; its terms are read when the host can be reached.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Host challenged the check on 2026-11-26. robots.txt answered with a challenge page (403); the host challenges automated requests, so its terms were not read.
+
+- id: oh-sos
+  kind: adapter
+  name: Ohio candidate lists
+  publisher: Ohio Secretary of State
+  url: https://www.ohiosos.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: Candidate information published by the Secretary of State; its terms are read when the host can be reached.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Host challenged the check on 2026-11-26. robots.txt answered 403 and the home page a challenge page (403); the host challenges automated requests, so its terms were not read.
+
+- id: wi-elections
+  kind: adapter
+  name: Wisconsin candidate tracking
+  publisher: Wisconsin Elections Commission
+  url: https://elections.wi.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: Candidate information published by the Elections Commission; its terms are read when the host can be reached.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: Host challenged the check on 2026-11-26. robots.txt was readable, and the home page answered with a challenge page (403); the host challenges automated requests, so its terms were not read.
+
+# --- crawl hosts ---
+
+- id: unit-websites
+  kind: crawl_host
+  name: Government unit websites
+  publisher: Each government unit
+  url: https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip
+  terms_url: null
+  terms_read_on: null
+  basis: Public pages of government units, found through the Census Government Units Listing.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: Each unit's own site is checked against its robots.txt at each request.
+
+- id: arcgis-catalog
+  kind: crawl_host
+  name: ArcGIS Online search API
+  publisher: Esri
+  url: https://www.arcgis.com/sharing/rest/search
+  terms_url: null
+  terms_read_on: null
+  basis: A public catalog search; each layer found is registered only with its own licence.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: robots.txt of www.arcgis.com has an empty group for every user agent. Esri's terms page renders its text with scripts and was not read.
+
+- id: socrata-catalog
+  kind: crawl_host
+  name: Socrata Discovery API
+  publisher: Tyler Technologies
+  url: https://api.us.socrata.com/api/catalog/v1
+  terms_url: null
+  terms_read_on: null
+  basis: A public catalog search; each layer found is registered only with its own licence.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: api.us.socrata.com has no robots.txt (404). No terms page was found (www.tylertech.com/terms-of-use answered 404).
+
+# --- never fetched ---
+
+- id: ballotpedia
+  kind: crawl_host
+  name: Ballotpedia
+  publisher: Lucy Burns Institute
+  url: https://ballotpedia.org/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: terms forbid reuse.'
+  hosts: [ballotpedia.org, www.ballotpedia.org]
+  forbidden: true
+
+- id: ballotready
+  kind: crawl_host
+  name: BallotReady
+  publisher: BallotReady
+  url: https://www.ballotready.org/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: terms forbid reuse.'
+  hosts: [ballotready.org, www.ballotready.org]
+  forbidden: true
+
+- id: cicero
+  kind: crawl_host
+  name: Cicero
+  publisher: Cicero (Azavea)
+  url: https://www.cicerodata.com/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: terms forbid reuse.'
+  hosts: [cicerodata.com, www.cicerodata.com]
+  forbidden: true
+
+- id: ncsl
+  kind: crawl_host
+  name: National Conference of State Legislatures
+  publisher: National Conference of State Legislatures
+  url: https://www.ncsl.org/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: terms forbid reuse.'
+  hosts: [ncsl.org, www.ncsl.org]
+  forbidden: true
+
+- id: csg
+  kind: crawl_host
+  name: The Council of State Governments
+  publisher: The Council of State Governments
+  url: https://www.csg.org/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: terms forbid reuse.'
+  hosts: [csg.org, www.csg.org]
+  forbidden: true
+
+- id: il-sbe
+  kind: crawl_host
+  name: Illinois State Board of Elections
+  publisher: Illinois State Board of Elections
+  url: https://www.elections.il.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: Never fetched.
+  licence_spdx: null
+  attribution: null
+  robots_checked_on: null
+  ci_status: unknown
+  notes: 'Not fetched: robots.txt disallows every path.'
+  hosts: [elections.il.gov, www.elections.il.gov]
+  forbidden: true

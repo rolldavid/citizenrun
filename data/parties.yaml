@@ -1,0 +1,8 @@
+# Party labels: the aliases of each party key, and the labels that mean no party.
+aliases:
+  democratic: [dem, democrat, democratic]
+  republican: [rep, gop, republican]
+  libertarian: [lib, libertarian]
+  green: [gre, grn, green]
+  independent: [ind, independent, una, unaffiliated, no party preference, npp, nonaffiliated]
+nonpartisan: [nonpartisan, non-partisan, np]

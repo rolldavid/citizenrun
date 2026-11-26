@@ -1,0 +1,91 @@
+# Raw candidate lists the snapshot archiver saves each day; a value in <...> is still to be recorded.
+- source: nc-sbe
+  state: NC
+  always: true
+  recipe:
+    kind: discover_get
+    page: https://www.ncsbe.gov/results-data/candidate-lists
+    link_pattern: 'Candidate_Listing_\d{4}\.csv$'
+
+- source: wa-sos
+  state: WA
+  always: true
+  recipe:
+    kind: playwright_export
+    url: https://voter.votewa.gov/CandidateList.aspx?e={election_id}
+    election_ids_from: https://voter.votewa.gov/CandidateList.aspx
+    export_button_text: Export to CSV
+
+- source: la-sos
+  state: LA
+  always: true
+  recipe:
+    kind: playwright_export
+    url: https://voterportal.sos.la.gov/candidateinquiry
+    export_button_text: Export to CSV
+
+- source: va-elections
+  state: VA
+  always: true
+  recipe:
+    kind: get
+    url: '<the all-offices candidate list page under https://www.elections.virginia.gov/casting-a-ballot/candidate-list/, recorded at build>'
+
+- source: tx-sos
+  state: TX
+  always: true
+  recipe:
+    kind: playwright_export
+    url: '<the candidate-information app linked from https://www.sos.texas.gov/elections/candidates/index.shtml, recorded at build>'
+    export_button_text: '<recorded at build>'
+
+- source: tx-2027-05-01
+  state: TX
+  always: false
+  windows: [{ from: 2027-01-13, to: 2027-02-12 }]
+  recipe:
+    kind: playwright_export
+    url: '<the candidate-information app linked from https://www.sos.texas.gov/elections/candidates/index.shtml, recorded at build>'
+    export_button_text: '<recorded at build>'
+
+- source: pa-dos
+  state: PA
+  always: false
+  windows: [{ from: 2027-02-16, to: 2027-03-09 }]
+  recipe:
+    kind: playwright_export
+    url: '<the candidate search under https://www.pavoterservices.pa.gov/ElectionInfo, recorded at build>'
+    export_button_text: '<recorded at build>'
+
+- source: ky-sos
+  state: KY
+  always: false
+  windows: [{ from: 2026-11-26, to: 2027-01-08 }]
+  recipe:
+    kind: playwright_export
+    url: '<the county filings list linked from https://web.sos.ky.gov/CandidateFilings/countyfilings.aspx, recorded at build>'
+    export_button_text: '<recorded at build>'
+
+- source: ga-sos
+  state: GA
+  always: true
+  blocked: true
+  recipe:
+    kind: get
+    url: '<recorded at build>'
+
+- source: oh-sos
+  state: OH
+  always: true
+  blocked: true
+  recipe:
+    kind: get
+    url: '<recorded at build>'
+
+- source: wi-elections
+  state: WI
+  always: true
+  blocked: true
+  recipe:
+    kind: get
+    url: '<recorded at build>'

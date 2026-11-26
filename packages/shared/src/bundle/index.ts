@@ -7,3 +7,5 @@ export * from './index-files.ts';
 export * from './field-report-export.ts';
 export * from './personal-data.ts';
 export * from './fits-day-job.ts';
+export * from './sha256.ts';
+export * from './slug.ts';

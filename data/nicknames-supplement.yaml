@@ -1,0 +1,7 @@
+# Given-name pairs missing from the nickname dataset: canonical name, alias and why.
+- canonical: jose
+  alias: pepe
+  note: Spanish hypocorism
+- canonical: francisco
+  alias: paco
+  note: Spanish hypocorism
