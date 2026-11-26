@@ -11,6 +11,7 @@ import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signIn } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
+import { withWritesHeld } from '../../testing/held-writes.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { queuedJobs } from '../../testing/jobs.ts';
 import type { TestAuth, TestRequestOptions, TestResponse } from '../../testing/request.ts';
@@ -210,6 +211,20 @@ describe('POST /v1/me/export', () => {
     expect(retryAfter).toBe(expected);
     expect(retryAfter).toBeGreaterThanOrEqual(86_000);
     expect(retryAfter).toBeLessThanOrEqual(86_520);
+    expect(await exportsOf(user.id)).toHaveLength(1);
+    expect(await exportJobs()).toHaveLength(1);
+  });
+
+  it('requests sent at once queue one export', async () => {
+    const { user, auth } = await member();
+    const answers = await withWritesHeld('data_exports', 2, () => [
+      requestExport({ auth }),
+      requestExport({ auth }),
+    ]);
+    expect(answers.map((response) => response.status).sort()).toEqual([202, 429]);
+    for (const response of answers.filter((answer) => answer.status === 429)) {
+      await expectEnvelope(response, 'daily_limit_reached');
+    }
     expect(await exportsOf(user.id)).toHaveLength(1);
     expect(await exportJobs()).toHaveLength(1);
   });

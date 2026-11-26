@@ -1,5 +1,5 @@
 import type { S3Client } from '@aws-sdk/client-s3';
-import { dataExports } from '@citizenrun/db';
+import { dataExports, users } from '@citizenrun/db';
 import type { DataExportRow, Db, Tx } from '@citizenrun/db';
 import { ApiError, EXPORT_LINK_TTL_S, EXPORTS_PER_DAY, newId, uuidFloor } from '@citizenrun/shared';
 import type { DataExportStatus, DataExportView, ExportDownload } from '@citizenrun/shared';
@@ -53,7 +53,8 @@ async function newestExport(db: Db | Tx, userId: string): Promise<DataExportRow 
 /**
  * E-ME-04: queues one export and enqueues account.export with its id, in one transaction. A second
  * request within 24 hours answers 429 `daily_limit_reached`, with `Retry-After` the seconds until
- * the oldest counted request is 24 hours old (at least 1).
+ * the oldest counted request is 24 hours old (at least 1). The count and the insert run with the
+ * user's row locked, so requests sent at once are counted one after another.
  */
 export async function requestExport(
   deps: Deps,
@@ -61,28 +62,29 @@ export async function requestExport(
 ): Promise<DataExportView> {
   const { db } = deps;
   const { userId, now } = input;
-  // index: data_exports_user
-  const [counted] = await db
-    .select({
-      n: sql<number>`count(*)::int`,
-      oldest: sql<Date | null>`min(${dataExports.createdAt})`.mapWith(dataExports.createdAt),
-    })
-    .from(dataExports)
-    .where(
-      and(
-        eq(dataExports.userId, userId),
-        gte(dataExports.id, uuidFloor(new Date(now.getTime() - DAY_MS))),
-      ),
-    );
-  if (counted !== undefined && counted.n >= EXPORTS_PER_DAY && counted.oldest !== null) {
-    const waitMs = counted.oldest.getTime() + DAY_MS - now.getTime();
-    throw new ApiError('daily_limit_reached', {
-      retryAfterSeconds: Math.max(1, Math.ceil(waitMs / SECOND_MS)),
-    });
-  }
-
   const enqueue = enqueueOf(deps);
   const row = await db.transaction(async (tx) => {
+    // index: users_pkey
+    await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for('no key update');
+    // index: data_exports_user
+    const [counted] = await tx
+      .select({
+        n: sql<number>`count(*)::int`,
+        oldest: sql<Date | null>`min(${dataExports.createdAt})`.mapWith(dataExports.createdAt),
+      })
+      .from(dataExports)
+      .where(
+        and(
+          eq(dataExports.userId, userId),
+          gte(dataExports.id, uuidFloor(new Date(now.getTime() - DAY_MS))),
+        ),
+      );
+    if (counted !== undefined && counted.n >= EXPORTS_PER_DAY && counted.oldest !== null) {
+      const waitMs = counted.oldest.getTime() + DAY_MS - now.getTime();
+      throw new ApiError('daily_limit_reached', {
+        retryAfterSeconds: Math.max(1, Math.ceil(waitMs / SECOND_MS)),
+      });
+    }
     const [inserted] = await tx
       .insert(dataExports)
       .values({ id: newId(), userId, status: 'queued' })

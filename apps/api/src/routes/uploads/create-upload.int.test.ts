@@ -14,6 +14,7 @@ import { eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signIn } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
+import { withWritesHeld } from '../../testing/held-writes.ts';
 import type { TestApp } from '../../testing/app.ts';
 import type { TestRequestOptions, TestResponse } from '../../testing/request.ts';
 
@@ -208,6 +209,20 @@ describe('POST /v1/uploads', () => {
     const response = await createUpload(AVATAR_JPEG, { auth });
     await expectEnvelope(response, 'daily_limit_reached');
     expect(response.headers.get('retry-after')).toBe('10');
+    expect(await uploadsOf(user.id)).toHaveLength(AVATAR_PER_DAY);
+  });
+
+  it('tickets asked for at once never pass the daily limit', async () => {
+    const { user, auth } = await member();
+    await avatarRows(user.id, ago(HOUR_MS), AVATAR_PER_DAY - 1);
+    const answers = await withWritesHeld('uploads', 2, () => [
+      createUpload(AVATAR_JPEG, { auth }),
+      createUpload(AVATAR_JPEG, { auth }),
+    ]);
+    expect(answers.map((response) => response.status).sort()).toEqual([201, 429]);
+    for (const response of answers.filter((answer) => answer.status === 429)) {
+      await expectEnvelope(response, 'daily_limit_reached');
+    }
     expect(await uploadsOf(user.id)).toHaveLength(AVATAR_PER_DAY);
   });
 
