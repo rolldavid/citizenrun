@@ -67,7 +67,7 @@ export const bundleRevert: JobDefinition<'bundle.revert'> = {
       await deferForCivicLock(ctx, 'bundle.revert', payload);
       return;
     }
-    // Every office's issues are rebuilt from the restored powers; score.offices joins in milestone 3.
+    // Every office's issues are rebuilt from the restored powers; score.offices joins later.
     await ctx.enqueue('score.issues', { scope: 'all' });
     ctx.log.info('bundle.reverted', { bundleId: row.id, count: locked.value });
   },

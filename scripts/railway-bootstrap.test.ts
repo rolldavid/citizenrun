@@ -2630,7 +2630,7 @@ describe('sign-in, review and rotation values', { timeout: 30_000 }, () => {
   });
 });
 
-describe('milestone 2 values', { timeout: 30_000 }, () => {
+describe('data bucket and FEC key values', { timeout: 30_000 }, () => {
   const ghCalls = (
     calls: readonly FakeCall[],
     kind: 'variable' | 'secret',
