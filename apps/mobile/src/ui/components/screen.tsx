@@ -16,7 +16,7 @@ import { RightColumn } from '@/ui/shells/right-column';
 import { SideInsetsProvider, useBreakpoint } from '@/ui/shells/use-breakpoint';
 import type { Layout } from '@/ui/shells/use-breakpoint';
 import { useTheme } from '@/ui/theme';
-import { gutter, size, space } from '@/ui/tokens';
+import { gutter, size, space, z } from '@/ui/tokens';
 
 import { Notice } from './notice';
 
@@ -53,6 +53,8 @@ type Frame = {
 };
 
 const FILL: ViewStyle = { flex: 1 };
+// The app bar's ground runs the width of the slot; the bar itself is as wide as the content.
+const BAR_GROUND: ViewStyle = { zIndex: z.sticky };
 const GROW: ViewStyle = { flexGrow: 1 };
 const ROW: ViewStyle = { flex: 1, flexDirection: 'row' };
 const OFFLINE: ViewStyle = { paddingVertical: space.x3 };
@@ -136,6 +138,19 @@ function frameFor(
 }
 
 /**
+ * The box of a screen's app bar at medium and expanded: as wide as the content under it and in
+ * the same place. Null where the bar runs the width of the slot: at compact, and for a width whose
+ * content does too.
+ */
+function barBoxFor(frame: Frame, layout: Layout): ViewStyle | null {
+  const { width, maxWidth, alignSelf } = frame.box;
+  if (layout.breakpoint === 'compact' || alignSelf === undefined) {
+    return null;
+  }
+  return { width: width ?? '100%', maxWidth: maxWidth ?? '100%', alignSelf };
+}
+
+/**
  * C-Screen: the frame of one screen inside the shell's content slot. From the top: the app bar, or
  * the top inset alone where the screen has no bar, the shell's banner, the offline line, the
  * children at the width asked for, and a footer that the keyboard pushes up. At expanded the right
@@ -182,7 +197,19 @@ export function Screen({
   const frame = frameFor(width, layout, insets, showsAside);
 
   // A screen with no bar keeps the top inset clear in the bar's place.
-  const bar = appBar === undefined || appBar === null ? <AppBarInset /> : <AppBar {...appBar} />;
+  const barBox = appBar?.variant === 'screen' ? barBoxFor(frame, layout) : null;
+  const bar =
+    appBar === undefined || appBar === null ? (
+      <AppBarInset />
+    ) : barBox === null ? (
+      <AppBar {...appBar} />
+    ) : (
+      <View style={[BAR_GROUND, { backgroundColor: theme.color.bg }]}>
+        <View style={barBox}>
+          <AppBar {...appBar} />
+        </View>
+      </View>
+    );
   // The bar of Home scrolls away with the page; every other bar stays.
   const barScrolls = appBar?.variant === 'home' && scroll;
 

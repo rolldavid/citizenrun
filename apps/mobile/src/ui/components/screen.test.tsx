@@ -389,6 +389,59 @@ describe('Screen', () => {
     ).toBe(true);
   });
 
+  it('sets a screen bar as wide as the content under it from medium up', () => {
+    /** The box round the bar's title, and the ground round that box; null where the bar has none. */
+    const barBoxOf = (
+      width: Width | undefined,
+      viewport: readonly [number, number],
+    ): { box: HTMLElement; ground: HTMLElement } | null => {
+      const content = boxAt(width, viewport, {
+        appBar: { variant: 'screen', title: 'Settings', onBack: () => undefined },
+      });
+      const bar = screen.getByRole('heading', { level: 1 }).parentElement?.parentElement;
+      const box = bar?.parentElement;
+      const ground = box?.parentElement;
+      if (!bar || !box || !ground) {
+        throw new Error('the screen draws no bar');
+      }
+      // Where the bar has no box of its own it stands in the screen itself.
+      if (box.getAttribute('data-testid') === 'probe.screen') {
+        return null;
+      }
+      // The bar's box and the content's are as wide and in the same place.
+      expect(box.style.maxWidth, String(width)).toBe(content.style.maxWidth);
+      expect(box.style.alignSelf, String(width)).toBe(content.style.alignSelf);
+      return { box, ground };
+    };
+
+    for (const viewport of [MEDIUM, EXPANDED]) {
+      for (const [width, max] of [
+        [undefined, size.feedColumn],
+        ['column', size.feedColumn],
+        ['longForm', size.longForm],
+        ['profile', size.profileColumn],
+      ] as const) {
+        const found = barBoxOf(width, viewport);
+        expect(found?.box.style.maxWidth, String(width)).toBe(`${String(max)}px`);
+        expect(found?.box.style.width, String(width)).toBe('100%');
+        expect(found?.box.style.alignSelf, String(width)).toBe('center');
+        // The bar's ground still runs the width of the slot, over what scrolls under it.
+        expect(found?.ground.style.backgroundColor, String(width)).toBe(written(color.light.bg));
+        expect(found?.ground.style.maxWidth, String(width)).toBe('');
+        expect(found?.ground.parentElement?.getAttribute('data-testid')).toBe('probe.screen');
+      }
+      // A page stands at the left, and its bar with it.
+      expect(barBoxOf('page', viewport)?.box.style.alignSelf).toBe('flex-start');
+      // Content that runs the width of the slot has a bar that does too.
+      expect(barBoxOf('full', viewport)).toBeNull();
+    }
+    // On a phone the bar runs from edge to edge.
+    for (const viewport of [NARROW, COMPACT]) {
+      expect(barBoxOf('column', viewport)).toBeNull();
+      expect(barBoxOf('longForm', viewport)).toBeNull();
+    }
+  });
+
   it('covers the top inset while the bar of Home scrolls', () => {
     setViewport(...COMPACT);
     const insets = { top: 47, right: 0, bottom: 34, left: 0 };
