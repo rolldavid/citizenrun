@@ -10,7 +10,6 @@ import {
   welcomeFixtures,
 } from '@/features/auth';
 import { HomeScreenView, homeFixtures } from '@/features/feed';
-import { HelloScreenView, helloFixtures } from '@/features/hello';
 import {
   OnboardingHandleScreenView,
   OnboardingIssuesScreenView,
@@ -117,7 +116,6 @@ const SETTINGS_SHELL: ScreenShell = { mode: 'app', active: 'profile' };
 
 /** Screen id to its view and named fixtures. Each screen adds its row with its view. */
 export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
-  hello: defineScreen(HelloScreenView, helloFixtures, { mode: 'app', active: 'home' }),
   home: defineScreen(HomeScreenView, homeFixtures, { mode: 'app', active: 'home' }),
   'root-layout': defineScreen(RootLayoutView, rootFixtures, { mode: 'own' }),
   'not-found': defineStaticScreen(NotFoundScreenView, Object.keys(notFoundFixtures)),

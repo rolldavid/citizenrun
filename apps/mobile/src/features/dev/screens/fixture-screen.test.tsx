@@ -4,10 +4,31 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { SCREEN_FIXTURES, defineScreen, defineStaticScreen } from '@/features/dev/screen-fixtures';
 import type { ScreenRegistryEntry } from '@/features/dev/screen-fixtures';
-import { helloFixtures } from '@/features/hello';
+import { reauthFixtures, signInFixtures, welcomeFixtures } from '@/features/auth';
+import { homeFixtures } from '@/features/feed';
 import {
+  handleFixtures,
+  issuesFixtures,
+  locationFixtures,
+  photoFixtures,
+} from '@/features/onboarding';
+import {
+  settingsAboutFixtures,
+  settingsAccountFixtures,
+  settingsAppearanceFixtures,
+  settingsDeleteAccountFixtures,
+  settingsExportFixtures,
+  settingsFixtures,
+  settingsIssuesFixtures,
+  settingsPrivacyFixtures,
+  settingsProfileFixtures,
+} from '@/features/settings';
+import {
+  adultsOnlyFixtures,
+  agreementsFixtures,
   notFoundFixtures,
   rootFixtures,
+  stateUnavailableFixtures,
   systemErrorFixtures,
   systemUpdateFixtures,
 } from '@/features/system';
@@ -82,9 +103,9 @@ afterEach(() => {
 
 describe('FixtureScreen', () => {
   it('shows not found for a pair the default registry does not hold', () => {
-    renderWithProviders(<FixtureScreen screen="hello" fixture="nope" />);
+    renderWithProviders(<FixtureScreen screen="home" fixture="nope" />);
     expect(notFound()).not.toBeNull();
-    expect(screen.queryByTestId('hello.screen')).toBeNull();
+    expect(screen.queryByTestId('feed.home')).toBeNull();
   });
 
   it('renders a known pair through defineScreen with that fixture', () => {
@@ -206,15 +227,15 @@ describe('FixtureView', () => {
     }
   });
 
-  it('draws a hello fixture of the default registry inside the shell, with Home active', () => {
+  it('draws a Home fixture of the default registry inside the shell, with Home active', () => {
     setViewport(...EXPANDED);
-    renderWithProviders(<FixtureView screen="hello" fixture="helloReady" />);
-    expect(screen.getByTestId('hello.title')).toBeTruthy();
+    renderWithProviders(<FixtureView screen="home" fixture="homePlaceholder" />);
+    expect(screen.getByTestId('feed.home')).toBeTruthy();
     expect(screen.getByTestId('shell.rail-home').getAttribute('aria-current')).toBe('page');
     cleanup();
     setViewport(...COMPACT);
-    renderWithProviders(<FixtureView screen="hello" fixture="helloReady" />);
-    expect(screen.getByTestId('hello.title')).toBeTruthy();
+    renderWithProviders(<FixtureView screen="home" fixture="homePlaceholder" />);
+    expect(screen.getByTestId('feed.home')).toBeTruthy();
     expect(screen.queryByTestId('shell.rail')).toBeNull();
   });
 
@@ -236,7 +257,7 @@ describe('FixtureView', () => {
     renderWithProviders(<FixtureView screen="root-layout" fixture="rootSignedOut" />);
     expect(screen.getAllByTestId('shell.rail')).toHaveLength(1);
     expect(screen.getAllByRole('main')).toHaveLength(1);
-    expect(screen.getByTestId('hello.screen')).toBeTruthy();
+    expect(screen.getByTestId('feed.home')).toBeTruthy();
   });
 });
 
@@ -246,11 +267,30 @@ describe('the registry', () => {
       Object.entries(SCREEN_FIXTURES).map(([id, entry]) => [id, [...entry.fixtures].sort()]),
     );
     expect(listed).toEqual({
-      hello: Object.keys(helloFixtures).sort(),
+      home: Object.keys(homeFixtures).sort(),
       'root-layout': Object.keys(rootFixtures).sort(),
       'not-found': Object.keys(notFoundFixtures).sort(),
       'system-update': Object.keys(systemUpdateFixtures).sort(),
       'system-error': Object.keys(systemErrorFixtures).sort(),
+      'system-adults-only': Object.keys(adultsOnlyFixtures).sort(),
+      'system-agreements': Object.keys(agreementsFixtures).sort(),
+      'system-unavailable-in-state': Object.keys(stateUnavailableFixtures).sort(),
+      welcome: Object.keys(welcomeFixtures).sort(),
+      'sign-in': Object.keys(signInFixtures).sort(),
+      'sign-in-reauth': Object.keys(reauthFixtures).sort(),
+      'onboarding-photo': Object.keys(photoFixtures).sort(),
+      'onboarding-handle': Object.keys(handleFixtures).sort(),
+      'onboarding-issues': Object.keys(issuesFixtures).sort(),
+      'onboarding-location': Object.keys(locationFixtures).sort(),
+      settings: Object.keys(settingsFixtures).sort(),
+      'settings-profile': Object.keys(settingsProfileFixtures).sort(),
+      'settings-issues': Object.keys(settingsIssuesFixtures).sort(),
+      'settings-account': Object.keys(settingsAccountFixtures).sort(),
+      'settings-appearance': Object.keys(settingsAppearanceFixtures).sort(),
+      'settings-privacy': Object.keys(settingsPrivacyFixtures).sort(),
+      'settings-export': Object.keys(settingsExportFixtures).sort(),
+      'settings-delete-account': Object.keys(settingsDeleteAccountFixtures).sort(),
+      'settings-about': Object.keys(settingsAboutFixtures).sort(),
     });
     for (const entry of Object.values(SCREEN_FIXTURES)) {
       expect(entry.fixtures.length).toBeGreaterThan(0);
@@ -261,7 +301,9 @@ describe('the registry', () => {
   });
 
   it('names the shell of each screen', () => {
-    expect(SCREEN_FIXTURES.hello?.shell).toEqual({ mode: 'app', active: 'home' });
+    expect(SCREEN_FIXTURES.home?.shell).toEqual({ mode: 'app', active: 'home' });
+    expect(SCREEN_FIXTURES.settings?.shell).toEqual({ mode: 'app', active: 'profile' });
+    expect(SCREEN_FIXTURES.welcome?.shell).toEqual({ mode: 'bare' });
     expect(SCREEN_FIXTURES['root-layout']?.shell).toEqual({ mode: 'own' });
     expect(SCREEN_FIXTURES['not-found']?.shell).toBeUndefined();
     expect(SCREEN_FIXTURES['system-update']?.shell).toBeUndefined();

@@ -8,7 +8,6 @@ import { feed } from './en/feed.ts';
 import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
 import { system } from './en/system.ts';
-import { hello } from './en/hello.ts';
 import { onboarding } from './en/onboarding.ts';
 import { profile } from './en/profile.ts';
 import { settings } from './en/settings.ts';
@@ -23,7 +22,6 @@ export const RESOURCES = {
     native,
     notifications,
     system,
-    hello,
     auth,
     onboarding,
     settings,
@@ -38,7 +36,6 @@ export const NAMESPACES = [
   'native',
   'notifications',
   'system',
-  'hello',
   'auth',
   'onboarding',
   'settings',
