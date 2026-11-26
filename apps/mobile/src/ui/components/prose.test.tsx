@@ -8,6 +8,7 @@ import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import { color } from '@/ui/tokens';
 
+import { Link } from './link';
 import { InteractionPreview } from './pressable';
 import { Prose } from './prose';
 import type { ProseProps } from './prose';
@@ -187,6 +188,43 @@ describe('Prose', () => {
       'The earlier date is shown, and both sources are listed. The steps are set out in the filing rules.',
     );
     expect(page.contains(link)).toBe(true);
+  });
+
+  it('a paragraph that is one link stands as a link of its own, outside any text', () => {
+    const page = draw({
+      blocks: [
+        { kind: 'paragraph', text: 'Deleting cannot be undone.' },
+        {
+          kind: 'paragraph',
+          text: (
+            <Link href="/settings/export" testID="probe.prose-export">
+              Export your data first
+            </Link>
+          ),
+        },
+      ],
+    });
+    const link = screen.getByTestId('probe.prose-export');
+    expect(screen.getByRole('link', { name: 'Export your data first' })).toBe(link);
+    expect(link.tagName).toBe('A');
+    expect(link.getAttribute('href')).toBe('/settings/export');
+    expect(page.contains(link)).toBe(true);
+    // No text holds it: it is a box with its own test id, which a phone can find and press. Inside
+    // a text it would be words of that text.
+    expect(link.closest('[dir="auto"]')).toBeNull();
+    expect(link.style.textDecorationLine).toBe('');
+    // Its words take the paragraph's type, and it keeps its paragraph's place in the column.
+    const words = within(link).getByText('Export your data first');
+    const plain = screen.getByText('Deleting cannot be undone.');
+    expect(words.style.fontSize).toBe(plain.style.fontSize);
+    expect(words.style.lineHeight).toBe(plain.style.lineHeight);
+    expect(words.style.fontFamily).toBe(plain.style.fontFamily);
+    expect(link.parentElement?.parentElement?.style.marginBottom).toBe('12px');
+    expect(plain.parentElement?.style.marginBottom).toBe('12px');
+
+    // A link with words around it stays in its sentence.
+    draw(STATES.aboutPage);
+    expect(screen.getByRole('link', { name: LINK_WORDS }).closest('[dir="auto"]')).not.toBeNull();
   });
 
   it('the space around a title, a heading and a paragraph', () => {

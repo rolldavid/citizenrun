@@ -1,4 +1,5 @@
 import { assertNever, typeRoles } from '@citizenrun/shared';
+import { isValidElement } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
@@ -6,6 +7,7 @@ import type { ViewStyle } from 'react-native';
 import { useTheme } from '@/ui/theme';
 import { radius, size, space } from '@/ui/tokens';
 
+import { Link } from './link';
 import { Text } from './text';
 
 export type ProseBlock =
@@ -78,6 +80,15 @@ function ProseList({
 }
 
 /**
+ * A paragraph that is one link and nothing else. Such a link stands on its line as a control of
+ * its own, outside any text: inside a text a phone draws a link as part of the words, where it can
+ * carry no test id and no name of its own.
+ */
+function isLoneLink(text: ReactNode): boolean {
+  return isValidElement(text) && text.type === Link;
+}
+
+/**
  * C-Prose: long-form text inside the app, in one column no wider than a line reads well. A title,
  * section headings, paragraphs and lists, left-aligned and selectable, with nothing drawn and no
  * color. A link is the caller's inline C-Link inside a block's text.
@@ -106,9 +117,13 @@ export function Prose({ blocks, testID }: ProseProps): JSX.Element {
           case 'paragraph':
             return (
               <View key={index} style={AFTER_TEXT}>
-                <Text role="body" selectable={true}>
-                  {block.text}
-                </Text>
+                {isLoneLink(block.text) ? (
+                  block.text
+                ) : (
+                  <Text role="body" selectable={true}>
+                    {block.text}
+                  </Text>
+                )}
               </View>
             );
           case 'list':
