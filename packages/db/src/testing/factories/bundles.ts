@@ -11,7 +11,7 @@ import { nextSequence } from '../sequence.ts';
 import { SECOND_MS, defaultFactoryContext, shiftMs } from './context.ts';
 import type { FactoryContext } from './context.ts';
 
-// The bundle factories (TEST-harness-factories, milestone 2).
+// The bundle factories (TEST-harness-factories).
 
 const pad = (value: number): string => String(value).padStart(2, '0');
 

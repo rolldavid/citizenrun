@@ -14,7 +14,7 @@ import type {
 import { insertDisplayBandFullSql, insertDistrictPartsSql } from '../../sql/district-geometry.ts';
 import { nextDistrictOrdinal, nextSequence } from '../sequence.ts';
 
-// The geography factories (TEST-harness-factories, milestone 2). Geometry is written through SQL
+// The geography factories (TEST-harness-factories). Geometry is written through SQL
 // and never returned to the test (00 section 5.6): the returned rows leave out `geom`,
 // `label_point` and `point`.
 

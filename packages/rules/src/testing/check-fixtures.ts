@@ -1,5 +1,5 @@
 // The deadline-rules suite every state test file runs (TEST-deadline-rules; PIPE-rules-fixtures
-// rules 1 to 3 and 5; D-330, R-016, R-099). Test code only: it imports vitest.
+// rules 1 to 3 and 5; D-330). Test code only: it imports vitest.
 import { eachZone } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { isBusinessDay, roll, toDayNumber } from '../dates.ts';
@@ -386,7 +386,7 @@ export function checkThreeYearsAndRoll(input: StateSuiteInput): readonly SuitePr
   return problems;
 }
 
-/** [`the published 2024 and 2026 calendars are present`] Fixtures hold a contest or case dated in each cycle (R-099). */
+/** [`the published 2024 and 2026 calendars are present`] Fixtures hold a contest or case dated in each cycle. */
 export function checkCyclesPresent(input: StateSuiteInput): readonly SuiteProblem[] {
   const years = new Set<number>();
   for (const fixture of input.fixtures) {
@@ -452,7 +452,7 @@ export function checkOfficialSource(input: StateSuiteInput): readonly SuiteProbl
   return problems;
 }
 
-/** [`a party-primary and an independent filer per partisan office type`] Both filers for every type the state passes (R-016). */
+/** [`a party-primary and an independent filer per partisan office type`] Both filers for every type the state passes. */
 export function checkPartyAndIndependent(input: StateSuiteInput): readonly SuiteProblem[] {
   const problems: SuiteProblem[] = [];
   const cases = input.fixtures.flatMap((fixture) => fixture.cases);

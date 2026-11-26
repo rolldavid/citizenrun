@@ -24,7 +24,7 @@ import type { FactoryContext } from './context.ts';
 import { insertDistrict } from './geo.ts';
 
 // The factories of the tables through which a user touches civic data, and of the audit log
-// (TEST-harness-factories, milestone 2). A user's districts are ids only: no point or address is
+// (TEST-harness-factories). A user's districts are ids only: no point or address is
 // ever stored.
 
 /** A user-data row's id: `idAt(createdAt)` when the time is given, otherwise a new id. */

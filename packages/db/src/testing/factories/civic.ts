@@ -30,7 +30,7 @@ import { DAY_MS, defaultFactoryContext, shiftMs } from './context.ts';
 import type { FactoryContext } from './context.ts';
 import { fixtureSourceKey, insertDistrict, insertJurisdiction } from './geo.ts';
 
-// The office and election factories (TEST-harness-factories, milestone 2). Every fact stays null
+// The office and election factories (TEST-harness-factories). Every fact stays null
 // unless the test sets it (00 section 4.5).
 
 /** The UTC calendar date `days` days after `at`, as `YYYY-MM-DD`. */
