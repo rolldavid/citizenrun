@@ -82,6 +82,7 @@ jobs:
       # lockfile's CLI: no third-party action holds the token. Without --confirm-destructive the
       # CLI refuses a plan that deletes or replaces.
       - name: Download the reviewed plan
+        id: reviewed
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -89,8 +90,10 @@ jobs:
           head_sha="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/pulls" \
             --jq '[.[] | select(.merged_at != null)] | first | .head.sha // empty')"
           if [ -z "$head_sha" ]; then
-            echo "no merged pull request holds $GITHUB_SHA, so there is no reviewed plan to apply" >&2
-            exit 1
+            # A commit fast-forwarded onto main has no reviewed plan; the change is applied by dispatch.
+            echo "::notice::no merged pull request holds $GITHUB_SHA; apply this change with the dispatch form"
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           artifact_id="$(gh api "repos/$GITHUB_REPOSITORY/actions/artifacts?name=railway-plan-staging&per_page=100" \
             --jq "[.artifacts[] | select(.workflow_run.head_sha == \"$head_sha\" and .expired == false)] | sort_by(.created_at) | last | .id // empty")"
@@ -100,7 +103,9 @@ jobs:
           fi
           gh api "repos/$GITHUB_REPOSITORY/actions/artifacts/$artifact_id/zip" > "$RUNNER_TEMP/railway-plan.zip"
           unzip -o "$RUNNER_TEMP/railway-plan.zip" railway-plan.json
+          echo "found=true" >> "$GITHUB_OUTPUT"
       - name: Apply the reviewed plan
+        if: steps.reviewed.outputs.found == 'true'
         env:
           RAILWAY_TOKEN: '${{ secrets.RAILWAY_TOKEN_STAGING }}'
         run: pnpm exec railway config apply --plan railway-plan.json --yes

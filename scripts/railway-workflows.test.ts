@@ -59,6 +59,10 @@ describe('railway-config workflow', () => {
       /^\$\{\{\s*secrets\.RAILWAY_TOKEN_STAGING\s*\}\}$/,
     );
     expect(String(steps[download]?.run)).toContain('railway-plan-staging');
+    // A commit with no merged pull request skips the apply instead of failing the push.
+    expect(steps[download]?.id).toBe('reviewed');
+    expect(String(steps[download]?.run)).toContain('found=false');
+    expect(String(steps[apply]?.if)).toBe("steps.reviewed.outputs.found == 'true'");
     // A step that is given a secret runs a command of this repository, never an action.
     for (const step of allSteps()) {
       if (JSON.stringify({ with: step.with, env: step.env }).includes('secrets.')) {
