@@ -351,6 +351,149 @@ describe('buildKnownBodies', () => {
     expect(out.counts.holders_exceed_seats).toBe(1);
   });
 
+  it('a together chamber gets one office with the cited seat count and every holder', async () => {
+    const template = await zzTemplateOutput();
+    const [senate, house] = template.template.legislature;
+    if (senate === undefined || house?.seats_per_district == null) return;
+    const together = {
+      ...template,
+      template: {
+        ...template.template,
+        legislature: [
+          senate,
+          {
+            ...house,
+            title: 'State Representative, District {label}',
+            seats_per_district: { ...house.seats_per_district, arrangement: 'together' as const },
+          },
+        ],
+      },
+    };
+    const out = buildKnownBodies(
+      await knownInput({
+        districts: zzDistricts(),
+        template: together,
+        rules: ZZ_RULES,
+        openStates: [fixtureLegislator('h1', 'lower', '2'), fixtureLegislator('h2', 'lower', '2')],
+      }),
+    );
+    const offices = officeOn(out, 'tiger:sldl:99002');
+    expect(offices.map((o) => [o.title, o.seats, o.seats_up_next])).toEqual([
+      ['State Representative, District 2', 2, 2],
+    ]);
+    expect(out.officeholders.filter((h) => h.office_key === offices[0]?.slug)).toHaveLength(2);
+    expect(out.counts.holder_position_unknown).toBe(0);
+    expect(out.officeRefs.find((r) => r.slug === offices[0]?.slug)).toMatchObject({
+      identity: 'state:ZZ|state-house|tiger:sldl:99002',
+      template_seats: 2,
+      stagger: [{ group: 'A', seats: 2, every: 2, first: 2026 }],
+    });
+  });
+
+  it('a lettered label matches only an explicit district list', async () => {
+    const template = await zzTemplateOutput();
+    const [senate, house] = template.template.legislature;
+    if (senate === undefined || house === undefined) return;
+    const listed = {
+      ...template,
+      template: {
+        ...template.template,
+        legislature: [
+          {
+            ...senate,
+            district_groups: [
+              { group: 'A' as const, districts: 'odd' as const, every: 4, first: 2026 },
+              { group: 'B' as const, districts: ['2B'], every: 4, first: 2028 },
+            ],
+          },
+          house,
+        ],
+      },
+    };
+    const out = buildKnownBodies(
+      await knownInput({
+        districts: [
+          district('ZZ', 'tiger:sldu:9902A', 'State Senate District 2A'),
+          district('ZZ', 'tiger:sldu:9902B', 'State Senate District 2B'),
+          district('ZZ', 'tiger:sldu:99003', 'State Senate District 3'),
+        ],
+        template: listed,
+        rules: ZZ_RULES,
+      }),
+    );
+    const groupOf = (key: string) =>
+      out.officeRefs.find((r) => r.district_key === key)?.stagger_group ?? null;
+    expect(groupOf('tiger:sldu:9902A')).toBeNull();
+    expect(groupOf('tiger:sldu:9902B')).toBe('B');
+    expect(groupOf('tiger:sldu:99003')).toBe('A');
+    expect(out.counts.district_group_unmatched).toBe(1);
+    expect(out.officeRefs.find((r) => r.district_key === 'tiger:sldu:9902A')?.stagger).toEqual([]);
+  });
+
+  it('template powers replace the national defaults', async () => {
+    const template = await zzTemplateOutput();
+    const [senate, house] = template.template.legislature;
+    if (senate === undefined || house === undefined) return;
+    const withPowers = {
+      ...template,
+      grounded: {
+        ...template.grounded,
+        'legislature.0.powers.0': template.grounded['legislature.0.term_years'] ?? UNGROUNDED,
+      },
+      template: {
+        ...template.template,
+        legislature: [
+          {
+            ...senate,
+            powers: [
+              {
+                power: 'state-legislation',
+                relevance: 3,
+                source_url: 'https://example.test/zz/code',
+                quote: 'Fixture text: the senate passes the laws of the state.',
+                citation: 'ZZ Fixture Code 31',
+              },
+            ],
+          },
+          house,
+        ],
+      },
+    };
+    const out = buildKnownBodies(
+      await knownInput({ districts: zzDistricts(), template: withPowers, rules: ZZ_RULES }),
+    );
+    const [office] = officeOn(out, 'tiger:sldu:99001');
+    expect(out.officePowers.filter((p) => p.office_key === office?.slug)).toEqual([
+      {
+        source_key: `${office?.slug ?? ''}|state-legislation`,
+        office_key: office?.slug,
+        power_id: 'state-legislation',
+        relevance: 3,
+        quote: 'Fixture text: the senate passes the laws of the state.',
+        source_url: 'https://example.test/zz/code',
+        confidence: 'medium',
+        checked_at: GROUNDED.checked_at,
+      },
+    ]);
+  });
+
+  it('a registered identity keeps its slug', async () => {
+    const out = buildKnownBodies(
+      await knownInput({
+        districts: zzDistricts(),
+        assignSlugs: (requests) =>
+          new Map(
+            requests.map((r) => [
+              r.identity,
+              r.identity === 'state:ZZ|state-senate|tiger:sldu:99001' ? 'zz-earlier-slug' : r.base,
+            ]),
+          ),
+      }),
+    );
+    expect(officeOn(out, 'tiger:sldu:99001')[0]?.slug).toBe('zz-earlier-slug');
+    expect(out.officeRefs.some((r) => r.slug === 'zz-earlier-slug')).toBe(true);
+  });
+
   it('no output row holds an address, phone or email', async () => {
     const { input } = await coloradoInput();
     const out = buildKnownBodies(input);

@@ -557,10 +557,7 @@ export function buildKnownBodies(input: KnownInput): KnownOutput {
         : `tiger:cd:${stateFips}${String(member.district).padStart(2, '0')}`;
     if (districtKey === null || !houseKeys.has(districtKey)) {
       // An at-large seat or a delegate maps to the state's one feature, whatever its code.
-      districtKey =
-        member.district !== null && houseDistricts.length === 1
-          ? (houseDistricts[0]?.source_key ?? null)
-          : null;
+      districtKey = houseDistricts.length === 1 ? (houseDistricts[0]?.source_key ?? null) : null;
     }
     if (districtKey === null) {
       counts.member_unmapped += 1;
