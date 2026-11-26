@@ -15,6 +15,7 @@ import {
   SignInWithAppleBodySchema,
   SignInWithGoogleBodySchema,
   StartEmailSignInBodySchema,
+  SuggestPlacesBodySchema,
   UpdateMeBodySchema,
   VerifyEmailSignInBodySchema,
   brandVariant,
@@ -30,7 +31,9 @@ import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
 import { signIn } from './testing/auth.ts';
 import { insertIdentity } from './testing/factories.ts';
+import { fakeAddressSuggestions } from './testing/fakes/geocoder.ts';
 import { FIXTURE_APPLE, FakeIdentityProviders } from './testing/fakes/identity.ts';
+import { findTextInTables } from './testing/find-in-tables.ts';
 import type { TestAuth, TestResponse } from './testing/request.ts';
 
 // TEST-privacy-logscan's API suite. The always-on scan of the harness runs after every case as well.
@@ -92,6 +95,10 @@ const GOOGLE = '/v1/auth/google';
 const ME = '/v1/me';
 const CHECK_HANDLE = '/v1/handles/check';
 const SET_HANDLE = '/v1/me/handle';
+const SUGGEST_PLACES = '/v1/geo/autocomplete';
+// A fixture key, never a real one: Geoapify with the suggestion fake behind it.
+const FIXTURE_GEO_KEY = 'fixture-geo-key';
+const GEOAPIFY_ENV = { GEO_PROVIDER: 'geoapify', GEO_API_KEY: FIXTURE_GEO_KEY } as const;
 
 // Every request comes from its own address, so no case nears a per-replica limit.
 const TEST_NETS = ['203.0.113', '198.51.100'];
@@ -339,6 +346,26 @@ async function appleHandoffCode(
 
 function base64Url(text: string): string {
   return Buffer.from(text, 'utf8').toString('base64url');
+}
+
+/** The typed text of an address or place query, with the marker in it. */
+function markedQuery(): string {
+  return `Fixture ${marker()}`;
+}
+
+/** A test app on Geoapify whose suggestion fake answers the marked query with one suggestion. */
+async function geoapifyApp(): Promise<TestApp> {
+  const testApp = await createTestApp({ env: GEOAPIFY_ENV });
+  fakeAddressSuggestions(testApp.fakes.outbound, {
+    [markedQuery()]: [{ formatted: `1 Fixture Way ${marker()}`, lat: 30.1, lon: -39.9 }],
+  });
+  return testApp;
+}
+
+/** A user whose email holds no marker, signed in by bearer, so a table scan for it means something. */
+async function unmarkedUser(testApp: TestApp): Promise<TestAuth> {
+  const user = await insertUser(testApp.deps.db, { email: 'fixture.places@example.test' });
+  return signIn(testApp.deps.db, user, 'bearer');
 }
 
 /** Every operation with a string field in its body or query that gets the marker. */
@@ -796,6 +823,63 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       return { testApp, response, secrets: [] };
     },
   },
+  suggestPlaces: {
+    path: SUGGEST_PLACES,
+    fields: ['q'],
+    validBody: () => ({ q: 'Fixture City', kind: 'place' }),
+    isValid: (body) => SuggestPlacesBodySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    // The marked text as a place query, then as an address query sent to the provider.
+    success: async () => {
+      const testApp = await geoapifyApp();
+      const auth = await signedInUser(testApp);
+      const place = await sendSignedIn(
+        testApp,
+        SUGGEST_PLACES,
+        { q: markedQuery(), kind: 'place' },
+        {},
+        auth,
+      );
+      expect(place.status).toBe(200);
+      const response = await sendSignedIn(
+        testApp,
+        SUGGEST_PLACES,
+        { q: markedQuery(), kind: 'address' },
+        {},
+        auth,
+      );
+      expect(await response.json()).toMatchObject({ attribution: 'geoapify' });
+      expect(testApp.fakes.outbound.calls).toHaveLength(1);
+      return { testApp, response, secrets: [FIXTURE_GEO_KEY] };
+    },
+    // The provider answers 5xx with the marker in its body.
+    failInside: async () => {
+      const testApp = await createTestApp({ env: GEOAPIFY_ENV });
+      testApp.fakes.outbound.on(
+        'api.geoapify.com',
+        'GET',
+        /^\/v1\/geocode\/autocomplete\?/,
+        () => ({
+          status: 503,
+          body: `Unavailable ${marker()}`,
+        }),
+      );
+      const auth = await signedInUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        SUGGEST_PLACES,
+        { q: markedQuery(), kind: 'address' },
+        {},
+        auth,
+      );
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ items: [], nextCursor: null, attribution: null });
+      const failed = testApp.logs.filter((line) => line.parsed['event'] === 'geo.provider_failed');
+      expect(failed).toHaveLength(1);
+      return { testApp, response, secrets: [FIXTURE_GEO_KEY] };
+    },
+  },
 };
 
 /** Operations with a string field that a user never types, each with its reason. */
@@ -1066,6 +1150,41 @@ describe('the API privacy suite', () => {
     );
     expect(jobs[0]?.text ?? '').not.toContain(email);
     await expectNothingLeaked(testApp, [pendingToken, asJsonString(code)]);
+  });
+
+  it('typed address and coordinates are dropped', async () => {
+    // Address suggestions: the marked text through both kinds, and beside an invalid kind.
+    const testApp = await geoapifyApp();
+    const auth = await unmarkedUser(testApp);
+    for (const kind of ['place', 'address'] as const) {
+      const response = await sendSignedIn(
+        testApp,
+        SUGGEST_PLACES,
+        { q: markedQuery(), kind },
+        {},
+        auth,
+      );
+      expect(response.status).toBe(200);
+    }
+    const refused = await sendSignedIn(
+      testApp,
+      SUGGEST_PLACES,
+      { q: markedQuery(), kind: 'street' },
+      {},
+      auth,
+    );
+    await expectEnvelope(refused, 'invalid_request');
+    // The text reached the provider, its one intended recipient, and nothing else kept it.
+    expect(testApp.fakes.outbound.calls).toHaveLength(1);
+    await expectNothingLeaked(testApp, [FIXTURE_GEO_KEY]);
+    const jobs = await getTestDb().execute<{ n: number }>(
+      sql`select count(*)::int as n from pgboss.job`,
+      'objects',
+    );
+    expect(jobs[0]?.n).toBe(0);
+    for (const form of markedForms()) {
+      expect(await findTextInTables(getTestDb(), form), form).toEqual([]);
+    }
   });
 
   it('every operation that takes text is listed', async () => {

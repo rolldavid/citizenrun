@@ -237,5 +237,6 @@ describe('the private columns', () => {
     expect(called).toContain('getMe');
     expect(called).toContain('getExport');
     expect(called).toContain('listIssues');
+    expect(called).toContain('listOfficeTypes');
   });
 });
