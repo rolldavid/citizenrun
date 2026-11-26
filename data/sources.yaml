@@ -109,7 +109,7 @@
   terms_read_on: 2026-11-26
   basis: Open States states its bulk data is provided under a public domain dedication and makes no copyright claim over the data it publishes; no attribution is required.
   licence_spdx: null
-  attribution: null
+  attribution: Open States
   robots_checked_on: 2026-11-26
   ci_status: unknown
   notes: The CSV files are served from data.openstates.org, whose robots.txt answered 403 (no rules). The terms ask that no affiliation or endorsement be implied.
@@ -124,10 +124,10 @@
   terms_read_on: 2026-11-26
   basis: The repository is published under CC0-1.0.
   licence_spdx: CC0-1.0
-  attribution: null
+  attribution: The unitedstates project, congress-legislators
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: unitedstates.github.io has no robots.txt (404).
+  notes: unitedstates.github.io has no robots.txt (404). No attribution is required; the project is credited as a courtesy.
 
 - id: eia861
   kind: dataset
@@ -138,7 +138,7 @@
   terms_read_on: 2026-11-26
   basis: U.S. government publications are in the public domain; EIA states its data may be used and distributed.
   licence_spdx: LicenseRef-PD-USGov
-  attribution: 'Source: U.S. Energy Information Administration'
+  attribution: U.S. Energy Information Administration
   robots_checked_on: 2026-11-26
   ci_status: unknown
   notes: EIA asks for an acknowledgment that names EIA and the publication date. robots.txt of www.eia.gov allows the file.
@@ -204,7 +204,7 @@
   kind: dataset
   name: carltonnorthern/nicknames, names.csv
   publisher: Carlton Northern
-  url: https://github.com/carltonnorthern/nicknames
+  url: https://raw.githubusercontent.com/carltonnorthern/nicknames/ed160b3af2d17e1af8ebd570f10a10e4dade4ff4/names.csv
   terms_url: https://github.com/carltonnorthern/nicknames
   terms_read_on: 2026-11-26
   basis: The repository is published under the Apache License 2.0.
@@ -212,7 +212,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: raw.githubusercontent.com has no robots.txt (404).
+  notes: raw.githubusercontent.com has no robots.txt (404). The URL is pinned to ed160b3af2d17e1af8ebd570f10a10e4dade4ff4, the head of the default branch master on 2026-11-26.
   hosts: [github.com, raw.githubusercontent.com]
 
 - id: ecfr-time-zones
@@ -241,10 +241,10 @@
   terms_read_on: 2026-11-26
   basis: The repository describes its images as public domain photos and is published under CC0-1.0.
   licence_spdx: CC0-1.0
-  attribution: null
+  attribution: The unitedstates project, images
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: unitedstates.github.io has no robots.txt (404).
+  notes: unitedstates.github.io has no robots.txt (404). No attribution is required; the project is credited as a courtesy.
 
 - id: congress-gov-api
   kind: photo_source
@@ -487,6 +487,20 @@
   robots_checked_on: 2026-11-26
   ci_status: unknown
   notes: api.us.socrata.com has no robots.txt (404). No terms page was found (www.tylertech.com/terms-of-use answered 404).
+
+- id: national-archives
+  kind: crawl_host
+  name: America's Founding Documents
+  publisher: U.S. National Archives and Records Administration
+  url: https://www.archives.gov/founding-docs/
+  terms_url: https://www.archives.gov/global-pages/privacy.html
+  terms_read_on: 2026-11-26
+  basis: Transcripts of the Constitution published by the National Archives; its copyright notice states that materials produced by Federal agencies are generally in the public domain and may be reproduced without permission.
+  licence_spdx: LicenseRef-PD-USGov
+  attribution: U.S. National Archives and Records Administration
+  robots_checked_on: 2026-11-26
+  ci_status: unknown
+  notes: The quotes of the House and Senate terms come from the transcripts of the Constitution and of amendments 11 to 27 under /founding-docs/. robots.txt of www.archives.gov allows /founding-docs/ and asks for a crawl delay of 10 seconds.
 
 # --- never fetched ---
 

@@ -15,6 +15,7 @@ export * from './design/index.ts';
 export * from './jobs.ts';
 export * from './constants/index.ts';
 export * from './legal/index.ts';
+export { SOURCE_CREDITS } from './legal/source-credits.ts';
 export * from './events/index.ts';
 export * from './bundle/index.ts';
 export * from './num/index.ts';

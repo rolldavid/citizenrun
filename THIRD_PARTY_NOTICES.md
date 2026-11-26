@@ -19,3 +19,10 @@ The font files in `packages/cards/assets/fonts/` are instanced and subset copies
 - Source: https://github.com/Omnibus-Type/Chivo
 - Licence: SIL Open Font License 1.1, text in `packages/cards/assets/fonts/OFL-ChivoMono.txt`
 - Files: `ChivoMono-Medium.ttf` and its `.woff2` copy
+
+## Data
+
+### Nickname data
+
+- carltonnorthern/nicknames, names.csv, Apache License 2.0; read by the data pipeline at a pinned commit to build the given-name alias list
+- Source: https://github.com/carltonnorthern/nicknames
