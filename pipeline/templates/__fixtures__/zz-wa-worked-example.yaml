@@ -1,0 +1,170 @@
+schema_version: 1
+state: WA
+name: Washington
+rules_module: wa
+county_pay: <<placeholder: statute, local or mixed, from RCW title 36>>
+calendar_pages:
+  - url: https://www.sos.wa.gov/elections/calendar
+    scope: state
+    notes: Candidate filing week, withdrawal deadline, primary, general and certification dates
+parties_with_primaries: []
+
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes: [1]
+    school_levels: null
+    elected:
+      value: true
+      source_url: <<placeholder: RCW URL that establishes elected county commissioners>>
+      quote: <<placeholder: exact sentence>>
+      citation: <<placeholder: RCW section>>
+    offices:
+      - key: county-commissioner
+        office_type: county-commission
+        applies_to: null
+        title: "{jurisdiction} Commissioner, {label}"
+        seats:
+          arrangement: by_district
+          count: null
+          district_count: { value: <<placeholder: number>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+          label_pattern: "District {n}"
+        body_size: null
+        stagger: []
+        term_years: { value: <<placeholder: years>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan: { value: <<placeholder: true or false>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats: { arrangement: at_large, count: { value: 1, source_url: <<placeholder: constitution URL>>, quote: <<placeholder>>, citation: <<placeholder>> }, district_count: null, label_pattern: null }
+    body_size: null
+    stagger: []
+    term_years: { value: <<placeholder>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    term_limit_terms: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    partisan: { value: <<placeholder>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    powers: []
+    pay: <<placeholder: statutory salary with its source, or null>>
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+
+legislature:
+  - office_type: state-senate
+    title: "State Senator, District {label}"
+    seats_per_district: null
+    district_groups: [{ group: A, districts: <<placeholder: odd, even or all, from the statute>>, every: <<placeholder: years>>, first: <<placeholder: year>> }]
+    term_years: { value: <<placeholder>>, source_url: <<placeholder: constitution or RCW URL>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    term_limit_terms: null
+    partisan: { value: <<placeholder>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    pay: <<placeholder: salary under the state's salary-setting law, with its source, or null>>
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: "State Representative, District {label}, {position}"
+    seats_per_district: { count: { value: <<placeholder: number>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }, arrangement: <<placeholder: together or positions>>, position_label_pattern: <<placeholder: e.g. the statute's position naming, or null>> }
+    district_groups: [{ group: A, districts: all, every: <<placeholder: years>>, first: <<placeholder: year>> }]
+    term_years: { value: <<placeholder>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    term_limit_terms: null
+    partisan: { value: <<placeholder>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    pay: <<placeholder>>
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    powers: []
+    eligibility: []
+    job_restrictions: []
+
+federal:
+  us_house:  { partisan: <<placeholder: cited flag>>, schedule: wa_state_general, track_set: wa_filing_week }
+  us_senate: { partisan: <<placeholder: cited flag>>, schedule: wa_state_general, track_set: wa_filing_week }
+
+county_sets: []
+
+special_districts:
+  - key: public-utility-district
+    enabling_statute: { value: <<placeholder: RCW chapter>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+    elected: { value: true, source_url: <<placeholder: RCW URL>>, quote: <<placeholder: sentence saying PUD commissioners are elected>>, citation: <<placeholder>> }
+    classifier:
+      function_names: ["92 - Electric power utility"]
+      name_patterns: ['\bpublic utility district\b']
+    offices:
+      - key: pud-commissioner
+        office_type: public-power-board
+        applies_to: null
+        title: "{jurisdiction} Commissioner, {label}"
+        seats: { arrangement: by_district, count: null, district_count: <<placeholder: cited count>>, label_pattern: "District {n}" }
+        body_size: null
+        stagger: []
+        term_years: <<placeholder: cited term>>
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan: <<placeholder: cited flag>>
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+
+party_committee:
+  selection:
+    value: primary_ballot
+    source_url: <<placeholder: RCW URL for precinct committee officers>>
+    quote: <<placeholder: exact sentence>>
+    citation: <<placeholder: RCW section>>
+  unit: precinct
+  seats_rule: { value: <<placeholder: seats per precinct per party>>, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+  term_years: null
+  parties: [democratic, republican]
+  offices:
+    - key: precinct-committee-officer
+      office_type: party-precinct-committee
+      applies_to: null
+      title: "{jurisdiction} Precinct Committee Officer"
+      seats: { arrangement: at_large, count: <<placeholder: cited count>>, district_count: null, label_pattern: null }
+      body_size: null
+      stagger: []
+      term_years: null
+      term_limit_terms: null
+      schedule: wa_state_primary
+      track_set: wa_filing_week
+      partisan: { value: true, source_url: <<placeholder>>, quote: <<placeholder>>, citation: <<placeholder>> }
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+
+eligibility_common: []
+notes: null

@@ -1,0 +1,484 @@
+schema_version: 1
+state: ZZ
+name: Fixture State
+rules_module: zz
+county_pay: statute
+calendar_pages:
+  - url: https://example.test/zz/calendar
+    scope: state
+    notes: Fixture election calendar
+parties_with_primaries: [democratic, republican]
+
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes: [1]
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: each county is governed by a board of commissioners elected by its voters.'
+      citation: ZZ Fixture Code 1
+    offices:
+      - key: county-commissioner
+        office_type: county-commission
+        applies_to: null
+        title: '{jurisdiction} Board of Commissioners'
+        seats:
+          arrangement: at_large
+          count:
+            value: 5
+            source_url: https://example.test/zz/code
+            quote: 'Fixture text: the board of commissioners has five members elected at large.'
+            citation: ZZ Fixture Code 2
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 5
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: the board of commissioners has five members elected at large.'
+          citation: ZZ Fixture Code 2
+        stagger:
+          - { group: A, seats: 3, every: 4, first: 2026 }
+          - { group: B, seats: 2, every: 4, first: 2028 }
+        term_years:
+          value: 4
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: commissioners serve staggered terms of four years.'
+          citation: ZZ Fixture Code 3
+        term_limit_terms: null
+        schedule: zz_county_general
+        track_set: zz_partisan
+        partisan:
+          value: true
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: county officers are nominated by party primaries.'
+          citation: ZZ Fixture Code 4
+        powers:
+          - power: zoning-land-use
+            relevance: 3
+            source_url: https://example.test/zz/code
+            quote: 'Fixture text: the board of commissioners adopts the county zoning ordinance.'
+            citation: ZZ Fixture Code 5
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: sheriff
+        office_type: sheriff
+        applies_to: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://example.test/zz/code
+            quote: 'Fixture text: each county elects one sheriff.'
+            citation: ZZ Fixture Code 6
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: the sheriff serves a term of four years.'
+          citation: ZZ Fixture Code 6
+        term_limit_terms: null
+        schedule: zz_county_general
+        track_set: zz_partisan
+        partisan:
+          value: true
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: county officers are nominated by party primaries.'
+          citation: ZZ Fixture Code 4
+        powers: []
+        pay:
+          kind: salary
+          amount_cents: 8000000
+          period: year
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: the sheriff receives an annual salary of 80,000 dollars.'
+          citation: ZZ Fixture Code 7
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: city
+    kind: city
+    unit_type_codes: [2]
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: each city is governed by a council elected by its voters.'
+      citation: ZZ Fixture Code 8
+    offices:
+      - key: city-council
+        office_type: city-council
+        applies_to: null
+        title: '{jurisdiction} City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: https://example.test/zz/code
+            quote: 'Fixture text: the council has three members, one elected from each of three districts.'
+            citation: ZZ Fixture Code 9
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: council members serve terms of four years.'
+          citation: ZZ Fixture Code 9
+        term_limit_terms: null
+        schedule: zz_local_odd
+        track_set: zz_nonpartisan
+        partisan:
+          value: false
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: city elections are nonpartisan and held in odd-numbered years.'
+          citation: ZZ Fixture Code 10
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: township
+    kind: township
+    unit_type_codes: [3]
+    school_levels: null
+    elected:
+      value: false
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: township trustees are appointed by the county board of commissioners.'
+      citation: ZZ Fixture Code 11
+    offices: []
+
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://example.test/zz/code
+        quote: 'Fixture text: the executive power is vested in a governor elected by the voters of the state.'
+        citation: ZZ Fixture Code 12
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: the governor and the treasurer serve terms of four years.'
+      citation: ZZ Fixture Code 12
+    term_limit_terms: null
+    schedule: zz_state_general
+    track_set: zz_partisan
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: state executive officers are nominated by party primaries.'
+      citation: ZZ Fixture Code 13
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: treasurer
+    office_type: state-treasurer
+    applies_to: null
+    title: State Treasurer
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://example.test/zz/code
+        quote: 'Fixture text: the voters of the state elect one treasurer.'
+        citation: ZZ Fixture Code 14
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: the governor and the treasurer serve terms of four years.'
+      citation: ZZ Fixture Code 12
+    term_limit_terms: null
+    schedule: zz_state_general
+    track_set: zz_partisan
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: state executive officers are nominated by party primaries.'
+      citation: ZZ Fixture Code 13
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q4115189
+    roster_url: null
+  - key: trial-judge-east
+    office_type: trial-judge
+    applies_to: null
+    title: Trial Judge, Fixture East Counties
+    seats:
+      arrangement: at_large
+      count:
+        value: 2
+        source_url: https://example.test/zz/code
+        quote: 'Fixture text: the east judicial district elects two trial judges.'
+        citation: ZZ Fixture Code 15
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 6
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: trial judges serve terms of six years.'
+      citation: ZZ Fixture Code 15
+    term_limit_terms: null
+    schedule: zz_state_general
+    track_set: zz_nonpartisan
+    partisan:
+      value: false
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: judges are elected on a nonpartisan ballot.'
+      citation: ZZ Fixture Code 16
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: { county_union: east }
+    wikidata_position: Q4115189
+    roster_url: null
+
+legislature:
+  - office_type: state-senate
+    title: 'State Senator, District {label}'
+    seats_per_district: null
+    district_groups:
+      - { group: A, districts: odd, every: 4, first: 2026 }
+      - { group: B, districts: even, every: 4, first: 2028 }
+    term_years:
+      value: 4
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: senators serve terms of four years, half of them elected every two years.'
+      citation: ZZ Fixture Code 17
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: members of the legislature are nominated by party primaries.'
+      citation: ZZ Fixture Code 18
+    pay: null
+    schedule: zz_state_general
+    track_set: zz_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: 'State Representative, District {label}, {position}'
+    seats_per_district:
+      count:
+        value: 2
+        source_url: https://example.test/zz/code
+        quote: 'Fixture text: each house district elects two representatives, in positions one and two.'
+        citation: ZZ Fixture Code 19
+      arrangement: positions
+      position_label_pattern: 'Position {n}'
+    district_groups:
+      - { group: A, districts: all, every: 2, first: 2026 }
+    term_years:
+      value: 2
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: representatives serve terms of two years.'
+      citation: ZZ Fixture Code 19
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: members of the legislature are nominated by party primaries.'
+      citation: ZZ Fixture Code 18
+    pay: null
+    schedule: zz_state_general
+    track_set: zz_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: candidates for Congress are nominated by party primaries.'
+      citation: ZZ Fixture Code 20
+    schedule: zz_state_general
+    track_set: zz_partisan
+  us_senate:
+    partisan:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: candidates for Congress are nominated by party primaries.'
+      citation: ZZ Fixture Code 20
+    schedule: zz_state_general
+    track_set: zz_partisan
+
+county_sets:
+  - id: east
+    name: Fixture East Counties
+    counties: ['99001', '99003']
+    source_url: https://example.test/zz/code
+    quote: 'Fixture text: the east judicial district consists of Fixture One County and Fixture Three County.'
+    citation: ZZ Fixture Code 15
+
+special_districts:
+  - key: fire-district
+    enabling_statute:
+      value: ZZ Fixture Code chapter 21
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: fire protection districts may be formed under this chapter.'
+      citation: ZZ Fixture Code 21
+    elected:
+      value: true
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: each fire protection district is governed by a board of three commissioners elected by its voters.'
+      citation: ZZ Fixture Code 21
+    classifier:
+      function_names: ['24 - Fire protection']
+      name_patterns: []
+    offices:
+      - key: fire-board
+        office_type: fire-district-board
+        applies_to: null
+        title: '{jurisdiction} Board of Fire Commissioners'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://example.test/zz/code
+            quote: 'Fixture text: each fire protection district is governed by a board of three commissioners elected by its voters.'
+            citation: ZZ Fixture Code 21
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: fire commissioners serve terms of four years.'
+          citation: ZZ Fixture Code 21
+        term_limit_terms: null
+        schedule: zz_local_odd
+        track_set: zz_nonpartisan
+        partisan:
+          value: false
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: district elections are nonpartisan.'
+          citation: ZZ Fixture Code 22
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: water-district
+    enabling_statute:
+      value: ZZ Fixture Code chapter 23
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: water supply districts may be formed under this chapter.'
+      citation: ZZ Fixture Code 23
+    elected:
+      value: false
+      source_url: https://example.test/zz/code
+      quote: 'Fixture text: the directors of a water supply district are elected by the landowners of the district.'
+      citation: ZZ Fixture Code 23
+    classifier:
+      function_names: ['91 - Water supply utility']
+      name_patterns: ['\bwater\b']
+    offices: []
+
+party_committee:
+  selection:
+    value: primary_ballot
+    source_url: https://example.test/zz/code
+    quote: 'Fixture text: precinct committee members are elected on the primary ballot of their party.'
+    citation: ZZ Fixture Code 24
+  unit: precinct
+  seats_rule:
+    value: one per precinct per party
+    source_url: https://example.test/zz/code
+    quote: 'Fixture text: each party elects one precinct committee member in each precinct.'
+    citation: ZZ Fixture Code 24
+  term_years: null
+  parties: [democratic, republican]
+  offices:
+    - key: precinct-committee
+      office_type: party-precinct-committee
+      applies_to: null
+      title: '{jurisdiction} Precinct Committee Member'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: https://example.test/zz/code
+          quote: 'Fixture text: each party elects one precinct committee member in each precinct.'
+          citation: ZZ Fixture Code 24
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years: null
+      term_limit_terms: null
+      schedule: zz_state_primary
+      track_set: zz_party
+      partisan:
+        value: true
+        source_url: https://example.test/zz/code
+        quote: 'Fixture text: precinct committee members are elected on the primary ballot of their party.'
+        citation: ZZ Fixture Code 24
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+
+eligibility_common: []
+notes: null
