@@ -171,7 +171,7 @@ function documentPageRules(): string[] {
   return [
     '*,*::before,*::after{box-sizing:border-box}',
     'html{-webkit-text-size-adjust:100%}',
-    `body{margin:0;background:var(--bg);color:var(--text);font:${body}}`,
+    `body{margin:0;background:var(--bg);color:var(--text);font:${body};overflow-wrap:anywhere}`,
     `header,main,footer{max-width:${px(size.longForm + 2 * gutter.regular)};margin:0 auto;padding:0 ${px(gutter.narrow)}}`,
     `@media (min-width:${px(gutter.narrowBelow)}){header,main,footer{padding:0 ${px(gutter.regular)}}}`,
     `header{display:flex;align-items:center;min-height:${px(size.appBar)};border-bottom:${hairline} solid var(--rule)}`,

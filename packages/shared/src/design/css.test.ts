@@ -27,7 +27,7 @@ const TOKENS_CSS_LINES = [
 const DOCUMENT_PAGE_RULE_LINES = [
   '*,*::before,*::after{box-sizing:border-box}',
   'html{-webkit-text-size-adjust:100%}',
-  'body{margin:0;background:var(--bg);color:var(--text);font:400 16px/22px var(--font-sans)}',
+  'body{margin:0;background:var(--bg);color:var(--text);font:400 16px/22px var(--font-sans);overflow-wrap:anywhere}',
   'header,main,footer{max-width:688px;margin:0 auto;padding:0 16px}',
   '@media (min-width:380px){header,main,footer{padding:0 24px}}',
   'header{display:flex;align-items:center;min-height:48px;border-bottom:1px solid var(--rule)}',
