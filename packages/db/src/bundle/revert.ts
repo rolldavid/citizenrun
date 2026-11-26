@@ -45,7 +45,7 @@ function overrideKeeps(table: LoaderTable, name: string): SQL | null {
 /**
  * Restores the columns `before` holds, and no others (`retire`: retired_at only). A column the
  * row's `overrides` now names keeps its live value, so an admin's or an owner's edit made after the
- * load survives the revert (T-bundle_changes, R-051).
+ * load survives the revert (T-bundle_changes).
  */
 function undoUpdate(run: Run, now: SQL): SQL {
   const names = run.op === 'retire' ? ['retired_at'] : loaderColumnNames(run.table);

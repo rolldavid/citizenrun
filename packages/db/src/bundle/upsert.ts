@@ -430,14 +430,14 @@ async function personTargetsStep(tx: Tx, bound: Bound): Promise<void> {
   }
 }
 
-/** The offices column an `overrides` entry keeps from a load and from a revert (R-051); null: never kept. */
+/** The offices column an `overrides` entry keeps from a load and from a revert; null: never kept. */
 export function officesKept(name: string): SQL | null {
   return name === 'source_key' || name === 'changed_at' || name === 'retired_at'
     ? null
     : overrideKept(name);
 }
 
-/** The people column an `overrides` entry keeps from a load and from a revert (R-051); null: never kept. */
+/** The people column an `overrides` entry keeps from a load and from a revert; null: never kept. */
 export function peopleKept(name: string): SQL | null {
   if (name === 'source_key' || name === 'retired_at') {
     return null;
