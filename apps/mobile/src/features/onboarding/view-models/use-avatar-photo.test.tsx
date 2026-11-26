@@ -262,6 +262,24 @@ describe('useAvatarPhoto', () => {
     expect(sends()).toBe(2);
   });
 
+  it('shows the upload again on a retry after a refused attach, and is ready once attached', async () => {
+    const hook = await readyHook();
+    expect(await uploadNow(hook)).toEqual({ ok: true, key: ticketNumber(0).key });
+    act(() => {
+      hook.result.current.fail('upload_failed');
+    });
+    expect(hook.result.current.photo.status).toBe('failed');
+
+    expect(await uploadNow(hook)).toEqual({ ok: true, key: ticketNumber(0).key });
+    expect(hook.result.current.photo.status).toBe('uploading');
+
+    act(() => {
+      hook.result.current.attached();
+    });
+    expect(hook.result.current.photo.status).toBe('ready');
+    expect(sends()).toBe(1);
+  });
+
   it('maps a refused ticket', async () => {
     stub.use([
       { method: 'POST', path: '/v1/uploads', reply: apiError(429, 'daily_limit_reached') },

@@ -183,7 +183,16 @@ export function useAvatarPhoto(): AvatarPhoto {
   const send = async (): Promise<UploadAnswer> => {
     const file = prepared.current;
     if (file === null) return NOT_SENT;
-    if (sentKey.current !== null) return { ok: true, key: sentKey.current };
+    if (sentKey.current !== null) {
+      // Sent already, not yet attached: a retry of the attach shows the finished upload again
+      setPhoto({
+        status: 'uploading',
+        previewUri: file.previewUri,
+        sentBytes: file.size,
+        totalBytes: file.size,
+      });
+      return { ok: true, key: sentKey.current };
+    }
     if (sending.current) return NOT_SENT;
     sending.current = true;
     try {
