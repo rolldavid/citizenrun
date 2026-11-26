@@ -43,7 +43,10 @@ describe('PUBLIC_ROUTES', () => {
 
   it('every entry names a method and a /v1 path', () => {
     for (const entry of PUBLIC_ROUTES) {
-      expect(entry).toMatch(/^(GET|POST|PUT|PATCH|DELETE) \/v1\/[a-z0-9./:-]+$/);
+      // Segments are lower-case; a path parameter keeps its camelCase name (`:idOrSlug`).
+      expect(entry).toMatch(
+        /^(GET|POST|PUT|PATCH|DELETE) \/v1(\/([a-z0-9.-]+|:[a-z][a-zA-Z0-9]*))+$/,
+      );
     }
   });
 

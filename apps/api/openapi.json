@@ -136,6 +136,144 @@
           "payload"
         ]
       },
+      "Benefit": {
+        "type": "string",
+        "enum": [
+          "health",
+          "retirement",
+          "other"
+        ]
+      },
+      "CandidacyStatus": {
+        "type": "string",
+        "enum": [
+          "committee_registered",
+          "filed",
+          "qualified",
+          "on_ballot",
+          "advanced",
+          "withdrawn",
+          "disqualified",
+          "won",
+          "lost"
+        ]
+      },
+      "CandidacyView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "person": {
+            "$ref": "#/components/schemas/PersonSummary"
+          },
+          "office": {
+            "$ref": "#/components/schemas/OfficeRef"
+          },
+          "electionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "electionDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "electionKind": {
+            "$ref": "#/components/schemas/ElectionKind"
+          },
+          "electionParty": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "party": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/CandidacyStatus"
+          },
+          "statusHistory": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "$ref": "#/components/schemas/CandidacyStatus"
+                },
+                "on": {
+                  "type": "string",
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "sourceUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "status",
+                "on",
+                "sourceUrl"
+              ]
+            }
+          },
+          "filedOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "person",
+          "office",
+          "electionId",
+          "electionDate",
+          "electionKind",
+          "electionParty",
+          "party",
+          "status",
+          "statusHistory",
+          "filedOn",
+          "sourceUrl"
+        ]
+      },
+      "CandidacyViewPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidacyView"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ]
+      },
       "ClientErrorFrame": {
         "type": "object",
         "properties": {
@@ -160,6 +298,14 @@
           "file",
           "line",
           "column"
+        ]
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
         ]
       },
       "ConsentKind": {
@@ -396,6 +542,18 @@
           "expiresAt"
         ]
       },
+      "DeadlineBasis": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "computed",
+          "scraped",
+          "both",
+          null
+        ]
+      },
       "DistrictRef": {
         "type": "object",
         "properties": {
@@ -445,6 +603,210 @@
         "required": [
           "agreedVersion",
           "currentVersion"
+        ]
+      },
+      "ElectionKind": {
+        "type": "string",
+        "enum": [
+          "primary",
+          "general",
+          "primary_runoff",
+          "general_runoff",
+          "special"
+        ]
+      },
+      "ElectionView": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "officeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "electionDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "electionDateMeta": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ElectionKind"
+          },
+          "party": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "turnoutClass": {
+            "$ref": "#/components/schemas/TurnoutClass"
+          },
+          "filingOpens": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "filingDeadline": {
+            "$ref": "#/components/schemas/LocalDeadline"
+          },
+          "petitionDue": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "deadlineBasis": {
+            "$ref": "#/components/schemas/DeadlineBasis"
+          },
+          "deadlineConflict": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "track": {
+                  "$ref": "#/components/schemas/TrackKind"
+                },
+                "field": {
+                  "type": "string"
+                },
+                "computed": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "ruleCitation": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "ruleCitation"
+                  ]
+                },
+                "scraped": {
+                  "type": "object",
+                  "properties": {
+                    "value": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "sourceUrl": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "quote": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "checkedAt": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "value",
+                    "sourceUrl",
+                    "quote",
+                    "checkedAt"
+                  ]
+                }
+              },
+              "required": [
+                "track",
+                "field",
+                "computed",
+                "scraped"
+              ]
+            }
+          },
+          "filingStatus": {
+            "$ref": "#/components/schemas/FilingStatus"
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FilingTrack"
+            }
+          },
+          "candidatesCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "officeId",
+          "electionDate",
+          "electionDateMeta",
+          "kind",
+          "party",
+          "turnoutClass",
+          "filingOpens",
+          "filingDeadline",
+          "petitionDue",
+          "deadlineBasis",
+          "deadlineConflict",
+          "filingStatus",
+          "tracks",
+          "candidatesCount"
+        ]
+      },
+      "Electorate": {
+        "type": "string",
+        "enum": [
+          "public",
+          "members",
+          "party"
+        ]
+      },
+      "EligibilityKind": {
+        "type": "string",
+        "enum": [
+          "min_age",
+          "residency",
+          "registered_voter",
+          "party_member",
+          "outside_employment_ban",
+          "resign_to_run",
+          "other"
         ]
       },
       "EmailStartResult": {
@@ -585,6 +947,222 @@
           "expiresAt"
         ]
       },
+      "FieldMeta": {
+        "type": "object",
+        "properties": {
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2048,
+            "pattern": "^https:\\/\\/"
+          },
+          "quote": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 2000
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ruleCitation": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "sourceUrl",
+          "quote",
+          "confidence",
+          "checkedAt",
+          "ruleCitation"
+        ]
+      },
+      "FilingStatus": {
+        "type": "string",
+        "enum": [
+          "no_election",
+          "closed",
+          "dates_not_known",
+          "not_open_yet",
+          "open",
+          "opens_not_known"
+        ]
+      },
+      "FilingTrack": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "track": {
+            "$ref": "#/components/schemas/TrackKind"
+          },
+          "opensOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "closesOn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "closesTime": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timezone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "petitionOpens": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "petitionDue": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "feeCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "signatures": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "whereToFile": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "basis": {
+            "$ref": "#/components/schemas/DeadlineBasis"
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ruleCitation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          },
+          "checkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "fieldMeta": {
+            "type": "object",
+            "properties": {
+              "opensOn": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "closesOn": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "closesTime": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "petitionOpens": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "petitionDue": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "feeCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "signatures": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "whereToFile": {
+                "$ref": "#/components/schemas/FieldMeta"
+              }
+            }
+          }
+        },
+        "required": [
+          "id",
+          "track",
+          "opensOn",
+          "closesOn",
+          "closesTime",
+          "timezone",
+          "petitionOpens",
+          "petitionDue",
+          "feeCents",
+          "signatures",
+          "whereToFile",
+          "basis",
+          "sourceUrl",
+          "quote",
+          "ruleCitation",
+          "confidence",
+          "checkedAt",
+          "fieldMeta"
+        ]
+      },
+      "FitsDayJob": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "yes",
+          "likely",
+          "no",
+          null
+        ]
+      },
       "GeoSuggestion": {
         "type": "object",
         "properties": {
@@ -698,6 +1276,14 @@
           "status"
         ]
       },
+      "ImpactLabel": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ]
+      },
       "Issue": {
         "type": "object",
         "properties": {
@@ -743,6 +1329,69 @@
           "nextCursor"
         ]
       },
+      "JurisdictionKind": {
+        "type": "string",
+        "enum": [
+          "state",
+          "county",
+          "city",
+          "township",
+          "school_district",
+          "special_district",
+          "coop",
+          "party"
+        ]
+      },
+      "JurisdictionRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/JurisdictionKind"
+          },
+          "state": {
+            "type": "string"
+          },
+          "website": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "timezone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "state",
+          "website",
+          "timezone"
+        ]
+      },
+      "LeanBasis": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "precinct",
+          "county",
+          "precinct_2020_county_swing",
+          null
+        ]
+      },
       "Level": {
         "type": "string",
         "enum": [
@@ -751,6 +1400,36 @@
           "state",
           "federal",
           "special"
+        ]
+      },
+      "LocalDeadline": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "time": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{2}:\\d{2}$"
+          },
+          "timezone": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "date",
+          "time",
+          "timezone"
         ]
       },
       "LocationResult": {
@@ -1133,6 +1812,14 @@
           "height"
         ]
       },
+      "MeetingTime": {
+        "type": "string",
+        "enum": [
+          "daytime",
+          "evenings",
+          "weekends"
+        ]
+      },
       "NonceResult": {
         "type": "object",
         "properties": {
@@ -1155,6 +1842,1226 @@
           "nonceHash",
           "state",
           "expiresAt"
+        ]
+      },
+      "OfficeDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "officeTypeId": {
+            "type": "string"
+          },
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "electorate": {
+            "$ref": "#/components/schemas/Electorate"
+          },
+          "state": {
+            "type": "string"
+          },
+          "jurisdiction": {
+            "$ref": "#/components/schemas/JurisdictionRef"
+          },
+          "district": {
+            "$ref": "#/components/schemas/DistrictRef"
+          },
+          "outline": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "svg": {
+                "type": "string"
+              },
+              "bbox": {
+                "type": "array",
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "svg",
+              "bbox"
+            ]
+          },
+          "placeholder": {
+            "type": "boolean"
+          },
+          "completeness": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "complete",
+              "partial",
+              "minimal",
+              null
+            ]
+          },
+          "partisan": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "seats": {
+            "type": "integer"
+          },
+          "bodySize": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "seatsUpNext": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payAnnualCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payKind": {
+            "$ref": "#/components/schemas/PayKind"
+          },
+          "payAmountCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "payPeriod": {
+            "$ref": "#/components/schemas/PayPeriod"
+          },
+          "hoursPerWeek": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fitsDayJob": {
+            "$ref": "#/components/schemas/FitsDayJob"
+          },
+          "fullTime": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "signaturesRequired": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "filingFeeCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "costToRunCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "ease": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "easeConfidence": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "high",
+              "medium",
+              "low",
+              null
+            ]
+          },
+          "impact": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "impactMode": {
+            "type": "string",
+            "enum": [
+              "personal",
+              "single_issue"
+            ]
+          },
+          "impactIssueId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "opportunity": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesToWin": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesLow": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesHigh": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "votesEstimated": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "nextElection": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "electionDate": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "kind": {
+                "$ref": "#/components/schemas/ElectionKind"
+              },
+              "party": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "electionDate",
+              "kind",
+              "party"
+            ]
+          },
+          "filingDeadline": {
+            "$ref": "#/components/schemas/LocalDeadline"
+          },
+          "filingStatus": {
+            "$ref": "#/components/schemas/FilingStatus"
+          },
+          "headlineIssueId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issueId": {
+                  "type": "string"
+                },
+                "relevance": {
+                  "type": "number",
+                  "enum": [
+                    1
+                  ]
+                }
+              },
+              "required": [
+                "issueId",
+                "relevance"
+              ]
+            }
+          },
+          "featuredOfficeholder": {
+            "$ref": "#/components/schemas/PersonSummary"
+          },
+          "featuredHolderSince": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "openSeat": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "vacant",
+              "term_limited",
+              "not_running",
+              null
+            ]
+          },
+          "fieldMeta": {
+            "type": "object",
+            "properties": {
+              "payAnnualCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "payKind": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "payAmountCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "payPeriod": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "benefits": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "hoursPerWeek": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "fullTime": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "meetingTimes": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "payChangeNote": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "filingFeeCents": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "signaturesRequired": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "whereToFile": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "seats": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "bodySize": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "seatsUpNext": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "termYears": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "termLimitTerms": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "partisan": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "partySelection": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "electorateCount": {
+                "$ref": "#/components/schemas/FieldMeta"
+              },
+              "filingDeadline": {
+                "$ref": "#/components/schemas/FieldMeta"
+              }
+            }
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "following": {
+                "type": "boolean"
+              },
+              "bookmarked": {
+                "type": "boolean"
+              },
+              "running": {
+                "type": "boolean"
+              },
+              "declarationId": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "following",
+              "bookmarked",
+              "running",
+              "declarationId"
+            ]
+          },
+          "officeTypeName": {
+            "type": "string"
+          },
+          "termYears": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "termLimitTerms": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "electorateCount": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "benefits": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/Benefit"
+            }
+          },
+          "meetingTimes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/MeetingTime"
+            }
+          },
+          "payChangeNote": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "termPayCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "effectiveHourlyCents": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "whereToFile": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "partySelection": {
+            "$ref": "#/components/schemas/PartySelection"
+          },
+          "eligibility": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "$ref": "#/components/schemas/EligibilityKind"
+                },
+                "value": {
+                  "type": "string"
+                },
+                "quote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sourceUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "value",
+                "quote",
+                "sourceUrl",
+                "confidence"
+              ]
+            }
+          },
+          "budget": {
+            "type": "object",
+            "properties": {
+              "cents": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "year": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "meta": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/FieldMeta"
+                  },
+                  {
+                    "type": [
+                      "object",
+                      "null"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "cents",
+              "year",
+              "meta"
+            ]
+          },
+          "powers": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "powerId": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "relevance": {
+                  "type": "number",
+                  "enum": [
+                    1
+                  ]
+                },
+                "quote": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sourceUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "confidence": {
+                  "type": "string",
+                  "enum": [
+                    "high",
+                    "medium",
+                    "low"
+                  ]
+                },
+                "checkedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "issueIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "powerId",
+                "name",
+                "description",
+                "relevance",
+                "quote",
+                "sourceUrl",
+                "confidence",
+                "checkedAt",
+                "issueIds"
+              ]
+            }
+          },
+          "issueRelevance": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "issueId": {
+                  "type": "string"
+                },
+                "relevance": {
+                  "type": "number",
+                  "enum": [
+                    1
+                  ]
+                }
+              },
+              "required": [
+                "issueId",
+                "relevance"
+              ]
+            }
+          },
+          "headlineIssue": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "issueId": {
+                "type": "string"
+              },
+              "a": {
+                "type": "number"
+              },
+              "relevance": {
+                "type": "number",
+                "enum": [
+                  1
+                ]
+              },
+              "impact": {
+                "type": "integer"
+              },
+              "impactLabel": {
+                "$ref": "#/components/schemas/ImpactLabel"
+              },
+              "powerId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "powerName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "issueId",
+              "a",
+              "relevance",
+              "impact",
+              "impactLabel",
+              "powerId",
+              "powerName"
+            ]
+          },
+          "impactInputs": {
+            "type": "object",
+            "properties": {
+              "issues": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "issueId": {
+                      "type": "string"
+                    },
+                    "starred": {
+                      "type": "boolean"
+                    },
+                    "a": {
+                      "type": "number"
+                    },
+                    "relevance": {
+                      "type": "number",
+                      "enum": [
+                        0
+                      ]
+                    }
+                  },
+                  "required": [
+                    "issueId",
+                    "starred",
+                    "a",
+                    "relevance"
+                  ]
+                }
+              },
+              "scale": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "pivot": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "termFactor": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "population": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "populationSource": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "label": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ImpactLabel"
+                  },
+                  {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                ]
+              }
+            },
+            "required": [
+              "issues",
+              "scale",
+              "pivot",
+              "termFactor",
+              "population",
+              "populationSource",
+              "label"
+            ]
+          },
+          "easeInputs": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "enum": [
+                    "votes_to_win",
+                    "uncontested",
+                    "open_seat",
+                    "margin_pct",
+                    "incumbent_cash",
+                    "ballot_cost",
+                    "deadline_pressure",
+                    "lean"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "known": {
+                  "type": "boolean"
+                },
+                "sourceUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "checkedAt": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "date-time"
+                },
+                "contribution": {
+                  "type": "number"
+                },
+                "note": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "key",
+                "value",
+                "known",
+                "sourceUrl",
+                "checkedAt",
+                "contribution",
+                "note"
+              ]
+            }
+          },
+          "entrenched": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "decidedIn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "primary",
+              "general",
+              null
+            ]
+          },
+          "lean": {
+            "type": "object",
+            "properties": {
+              "points": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "basis": {
+                "$ref": "#/components/schemas/LeanBasis"
+              },
+              "approximate": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "points",
+              "basis",
+              "approximate"
+            ]
+          },
+          "votesBasis": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "results",
+              "estimate",
+              null
+            ]
+          },
+          "effort": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "hours": {
+                "type": "integer"
+              },
+              "costCents": {
+                "type": "integer"
+              },
+              "assumptions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "value": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "unit": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "key",
+                    "value",
+                    "unit"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "hours",
+              "costCents",
+              "assumptions"
+            ]
+          },
+          "nextElectionDetail": {
+            "$ref": "#/components/schemas/ElectionView"
+          },
+          "upcomingElections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ElectionView"
+            }
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResultView"
+            }
+          },
+          "officeholders": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "person": {
+                  "$ref": "#/components/schemas/PersonSummary"
+                },
+                "seatLabel": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "since": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "seatUpNext": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "termLimited": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "notRunning": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "cashOnHandCents": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "cashAsOf": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+                },
+                "cashSourceUrl": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "person",
+                "seatLabel",
+                "since",
+                "seatUpNext",
+                "termLimited",
+                "notRunning",
+                "cashOnHandCents",
+                "cashAsOf",
+                "cashSourceUrl"
+              ]
+            }
+          },
+          "boardControl": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "seats": {
+                "type": "integer"
+              },
+              "bodySize": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "seatsUpNext": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "majority": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "partySplit": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "party": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "party",
+                    "count"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "seats",
+              "bodySize",
+              "seatsUpNext",
+              "majority",
+              "partySplit"
+            ]
+          },
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CandidacyView"
+            }
+          },
+          "candidatesCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "declaredRunners": {
+            "type": "array",
+            "items": {},
+            "maxItems": 0
+          },
+          "declaredRunnersCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "officeTypeId",
+          "level",
+          "electorate",
+          "state",
+          "jurisdiction",
+          "district",
+          "outline",
+          "placeholder",
+          "completeness",
+          "partisan",
+          "seats",
+          "bodySize",
+          "seatsUpNext",
+          "payAnnualCents",
+          "payKind",
+          "payAmountCents",
+          "payPeriod",
+          "hoursPerWeek",
+          "fitsDayJob",
+          "fullTime",
+          "signaturesRequired",
+          "filingFeeCents",
+          "costToRunCents",
+          "ease",
+          "easeConfidence",
+          "impact",
+          "impactMode",
+          "impactIssueId",
+          "opportunity",
+          "votesToWin",
+          "votesLow",
+          "votesHigh",
+          "votesEstimated",
+          "nextElection",
+          "filingDeadline",
+          "filingStatus",
+          "headlineIssueId",
+          "issues",
+          "featuredOfficeholder",
+          "featuredHolderSince",
+          "openSeat",
+          "fieldMeta",
+          "retiredAt",
+          "viewer",
+          "officeTypeName",
+          "termYears",
+          "termLimitTerms",
+          "electorateCount",
+          "benefits",
+          "meetingTimes",
+          "payChangeNote",
+          "termPayCents",
+          "effectiveHourlyCents",
+          "whereToFile",
+          "partySelection",
+          "eligibility",
+          "budget",
+          "powers",
+          "issueRelevance",
+          "headlineIssue",
+          "impactInputs",
+          "easeInputs",
+          "entrenched",
+          "decidedIn",
+          "lean",
+          "votesBasis",
+          "effort",
+          "nextElectionDetail",
+          "upcomingElections",
+          "results",
+          "officeholders",
+          "boardControl",
+          "candidates",
+          "candidatesCount",
+          "declaredRunners",
+          "declaredRunnersCount",
+          "changedAt"
+        ]
+      },
+      "OfficeRef": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "jurisdictionName": {
+            "type": "string"
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "title",
+          "state",
+          "jurisdictionName",
+          "retiredAt"
         ]
       },
       "OfficeType": {
@@ -1232,6 +3139,112 @@
         "type": "object",
         "additionalProperties": {}
       },
+      "PartySelection": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "primary_ballot",
+          "caucus",
+          "party_meeting",
+          null
+        ]
+      },
+      "PayKind": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "salary",
+          "stipend",
+          "per_meeting",
+          "none",
+          null
+        ]
+      },
+      "PayPeriod": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "year",
+          "month",
+          "meeting",
+          null
+        ]
+      },
+      "PersonSummary": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "party": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "photo": {
+            "$ref": "#/components/schemas/Media"
+          },
+          "photoCredit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "claimed": {
+            "type": "boolean"
+          },
+          "rosterOnly": {
+            "type": "boolean"
+          },
+          "retiredAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "viewer": {
+            "type": "object",
+            "properties": {
+              "following": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "following"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "party",
+          "photo",
+          "photoCredit",
+          "claimed",
+          "rosterOnly",
+          "retiredAt",
+          "viewer"
+        ]
+      },
       "ReadyzResponse": {
         "type": "object",
         "properties": {
@@ -1308,6 +3321,125 @@
       "RequestExportBody": {
         "type": "object",
         "properties": {}
+      },
+      "ResultView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "electionDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ElectionKind"
+          },
+          "party": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "turnoutClass": {
+            "$ref": "#/components/schemas/TurnoutClass"
+          },
+          "totalVotes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "turnoutPct": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "winnerVotes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "marginVotes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "contested": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "candidates": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "party": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "votes": {
+                  "type": "integer"
+                },
+                "winner": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "name",
+                "party",
+                "votes",
+                "winner"
+              ]
+            }
+          },
+          "certified": {
+            "type": "boolean"
+          },
+          "sourceUrl": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "checkedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "electionDate",
+          "kind",
+          "party",
+          "turnoutClass",
+          "totalVotes",
+          "turnoutPct",
+          "winnerVotes",
+          "marginVotes",
+          "contested",
+          "candidates",
+          "certified",
+          "sourceUrl",
+          "checkedAt"
+        ]
       },
       "SessionInfo": {
         "type": "object",
@@ -1722,6 +3854,30 @@
           "under_18",
           "legal",
           "other"
+        ]
+      },
+      "TrackKind": {
+        "type": "string",
+        "enum": [
+          "party_primary",
+          "independent",
+          "nonpartisan",
+          "write_in",
+          "incumbent"
+        ]
+      },
+      "TurnoutClass": {
+        "type": "string",
+        "enum": [
+          "presidential_general",
+          "midterm_general",
+          "odd_year_general",
+          "primary",
+          "standalone_local",
+          "odd_year_statewide",
+          "spring_local",
+          "spring_with_presidential_primary",
+          "runoff"
         ]
       },
       "UpdateMeBody": {
@@ -4385,6 +6541,250 @@
           },
           "400": {
             "description": "The client header is missing or malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/offices/{idOrSlug}": {
+      "get": {
+        "operationId": "getOffice",
+        "tags": [
+          "offices"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "civic_read",
+          "public": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "client_header_required",
+          "not_found",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "required": true,
+            "name": "idOrSlug",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "rent-housing",
+                "utility-bills",
+                "data-centers-ai",
+                "climate",
+                "corporate-subsidies",
+                "property-taxes",
+                "wages-workers",
+                "policing-justice",
+                "healthcare",
+                "medicare-for-all",
+                "schools",
+                "water-land",
+                "transit",
+                "voting-access",
+                "money-in-politics",
+                "nominations",
+                "public-money",
+                "defund-israel",
+                "foreign-wars"
+              ]
+            },
+            "required": false,
+            "name": "issue",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Every fact of the office with its proof, and the next fileable election.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfficeDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No office has that id or slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "426": {
+            "description": "The build is too old.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/offices/{id}/candidates": {
+      "get": {
+        "operationId": "listOfficeCandidates",
+        "tags": [
+          "offices"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "civic_read",
+          "public": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "invalid_cursor",
+          "client_header_required",
+          "not_found",
+          "upgrade_required",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "electionId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 512
+            },
+            "required": false,
+            "name": "cursor",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of candidacies by election date, status, name and id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CandidacyViewPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request or the cursor is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No office has that id, or the election is not one of its elections.",
             "content": {
               "application/json": {
                 "schema": {
