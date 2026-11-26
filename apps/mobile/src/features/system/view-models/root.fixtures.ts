@@ -1,6 +1,8 @@
+import { noop } from '@/lib/view-models/__fixtures__/common';
+
 import type { RootViewModel } from './root.types';
 
-export const rootStarting: RootViewModel = {
+export const rootStarting = {
   boot: 'starting',
   themeChoice: 'system',
   fontsReady: false,
@@ -11,20 +13,39 @@ export const rootStarting: RootViewModel = {
     unread: { messages: 0, activity: 0 },
     place: null,
     signedIn: false,
+    showGetAppBar: false,
+    suspended: null,
   },
-  onNavigate: () => undefined,
-  onReselect: () => undefined,
-};
+  createDialogOpen: false,
+  onNavigate: noop,
+  onReselect: noop,
+  onCloseCreateDialog: noop,
+} satisfies RootViewModel;
 
-export const rootSignedOut: RootViewModel = { ...rootStarting, boot: 'ready', fontsReady: true };
+export const rootSignedOut = {
+  ...rootStarting,
+  boot: 'ready',
+  fontsReady: true,
+} satisfies RootViewModel;
 
-export const rootSignedIn: RootViewModel = {
+export const rootSignedIn = {
   ...rootSignedOut,
-  shell: { ...rootSignedOut.shell, signedIn: true },
-};
+  shell: { ...rootSignedOut.shell, mode: 'app', active: 'home', signedIn: true },
+} satisfies RootViewModel;
 
-export const rootUpdate: RootViewModel = {
+export const rootUpdate = {
   ...rootSignedOut,
   system: 'update',
   shell: { ...rootSignedOut.shell, mode: 'bare', active: null },
-};
+} satisfies RootViewModel;
+
+export const rootAdultsOnly = {
+  ...rootSignedOut,
+  system: 'adultsOnly',
+  shell: { ...rootSignedOut.shell, mode: 'bare', active: null },
+} satisfies RootViewModel;
+
+export const rootAgreements = {
+  ...rootSignedIn,
+  system: 'agreements',
+} satisfies RootViewModel;

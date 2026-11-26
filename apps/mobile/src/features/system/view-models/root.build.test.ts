@@ -1,129 +1,112 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import {
-  activeItemFor,
-  buildRootViewModel,
-  navTargetFor,
-  shellModeFor,
-  systemScreenFor,
-} from './root.build';
-import type { RootInput } from './root.build';
-import type { NavItem } from './root.types';
+import type { GuardResult } from '@/lib/navigation';
+import { fixtureMe } from '@/lib/view-models/__fixtures__/common';
 
-const INPUT: RootInput = {
-  pathname: '/',
-  hydrated: true,
-  storedTheme: null,
-  fontsReady: true,
-  upgradeBlocked: false,
-  signedIn: false,
-};
+import { agreementsNeeded, buildShell, guardSessionOf, systemScreenFor } from './root.build';
 
-const actions = {
-  onNavigate: (): void => undefined,
-  onReselect: (): void => undefined,
-};
+vi.mock('expo-router', async () => (await import('@/test/router-mock')).routerModule);
+vi.mock('expo-constants', () => ({
+  default: { expoConfig: { extra: { variant: 'development' } } },
+}));
 
-function build(patch: Partial<RootInput>) {
-  return buildRootViewModel({ ...INPUT, ...patch }, actions);
+const STAY: GuardResult = { kind: 'stay' };
+
+function changedTerms() {
+  const me = fixtureMe();
+  return fixtureMe({ consents: { ...me.consents, needed: ['terms'] } });
 }
 
-describe('buildRootViewModel', () => {
-  it('starts while storage hydrates', () => {
-    const vm = build({ hydrated: false, storedTheme: 'dark' });
-    expect(vm.boot).toBe('starting');
-    expect(vm.themeChoice).toBe('system');
-  });
-
-  it('reads the stored theme once hydrated', () => {
-    expect(build({ storedTheme: 'dark' }).themeChoice).toBe('dark');
-    expect(build({ storedTheme: 'light' }).themeChoice).toBe('light');
-    expect(build({ storedTheme: 'system' }).themeChoice).toBe('system');
-    expect(build({ storedTheme: null }).themeChoice).toBe('system');
-    expect(build({}).boot).toBe('ready');
-  });
-
-  it('shows the update screen after a blocked upgrade', () => {
-    const vm = build({ upgradeBlocked: true });
-    expect(vm.system).toBe('update');
-    expect(vm.shell.mode).toBe('bare');
-    expect(vm.shell.active).toBeNull();
-  });
-
-  it('shows no system screen while nothing is blocked', () => {
-    const vm = build({});
-    expect(vm.system).toBeNull();
-    expect(vm.shell.mode).toBe('app');
-    expect(vm.shell.active).toBe('home');
-  });
-
-  it('passes the fonts answer and the session through', () => {
-    expect(build({ fontsReady: false }).fontsReady).toBe(false);
-    expect(build({ fontsReady: true }).fontsReady).toBe(true);
-    expect(build({ signedIn: true }).shell.signedIn).toBe(true);
-    expect(build({ signedIn: false }).shell.signedIn).toBe(false);
-  });
-
-  it('the shell has no unread counts and no place yet', () => {
-    const vm = build({ signedIn: true });
-    expect(vm.shell.unread).toEqual({ messages: 0, activity: 0 });
-    expect(vm.shell.place).toBeNull();
-  });
-
-  it('hands over the given actions', () => {
-    const vm = build({});
-    expect(vm.onNavigate).toBe(actions.onNavigate);
-    expect(vm.onReselect).toBe(actions.onReselect);
+describe('guardSessionOf', () => {
+  it('reads the session for the guard', () => {
+    const me = fixtureMe({ onboardingStep: 'handle', role: 'admin' });
+    expect(guardSessionOf('present', me)).toEqual({
+      kind: 'ready',
+      onboardingStep: 'handle',
+      role: 'admin',
+    });
+    // A loaded Me wins over whatever the presence says.
+    expect(guardSessionOf('unknown', me).kind).toBe('ready');
+    expect(guardSessionOf('absent', null)).toEqual({ kind: 'none' });
+    expect(guardSessionOf('unknown', null)).toEqual({ kind: 'pending' });
+    expect(guardSessionOf('present', null)).toEqual({ kind: 'pending' });
   });
 });
 
 describe('systemScreenFor', () => {
-  it('is update only after a blocked upgrade', () => {
-    expect(systemScreenFor(true)).toBe('update');
-    expect(systemScreenFor(false)).toBeNull();
+  const base = { upgradeBlocked: false, guard: STAY, minorEnded: false, me: null, path: '/' };
+
+  it('shows the system screens in their order', () => {
+    const needsTerms = changedTerms();
+    expect(systemScreenFor(base)).toBeNull();
+    expect(systemScreenFor({ ...base, me: fixtureMe() })).toBeNull();
+    expect(systemScreenFor({ ...base, me: needsTerms })).toBe('agreements');
+    expect(
+      systemScreenFor({ ...base, me: needsTerms, guard: { kind: 'system', screen: 'adultsOnly' } }),
+    ).toBe('adultsOnly');
+    expect(systemScreenFor({ ...base, me: needsTerms, minorEnded: true })).toBe('adultsOnly');
+    expect(
+      systemScreenFor({ ...base, me: needsTerms, minorEnded: true, upgradeBlocked: true }),
+    ).toBe('update');
+    expect(
+      systemScreenFor({ ...base, minorEnded: true, guard: { kind: 'system', screen: 'update' } }),
+    ).toBe('update');
+    expect(systemScreenFor({ ...base, guard: { kind: 'redirect', to: '/welcome' } })).toBeNull();
   });
 });
 
-describe('the shell of a path', () => {
-  it('the hello route is the one app route', () => {
-    expect(shellModeFor('/', null)).toBe('app');
-    for (const path of ['/dev/gallery', '/dev/screens/hello/helloReady', '/no-such-page']) {
-      expect(shellModeFor(path, null)).toBe('bare');
-      expect(activeItemFor(path, null)).toBeNull();
+describe('agreementsNeeded', () => {
+  it('shows the agreements only after onboarding and never on export or deletion', () => {
+    const me = changedTerms();
+    expect(agreementsNeeded(me, '/')).toBe(true);
+    expect(agreementsNeeded(me, '/settings')).toBe(true);
+    expect(agreementsNeeded({ ...me, onboardingStep: 'issues' }, '/')).toBe(false);
+    expect(agreementsNeeded(me, '/settings/export')).toBe(false);
+    expect(agreementsNeeded(me, '/settings/delete-account')).toBe(false);
+    expect(agreementsNeeded(fixtureMe(), '/')).toBe(false);
+    expect(agreementsNeeded(null, '/')).toBe(false);
+  });
+});
+
+describe('buildShell', () => {
+  const signedIn = guardSessionOf('present', fixtureMe());
+
+  it('builds the shell with its empty members', () => {
+    expect(buildShell({ path: '/', system: null, session: signedIn })).toEqual({
+      mode: 'app',
+      active: 'home',
+      unread: { messages: 0, activity: 0 },
+      place: null,
+      signedIn: true,
+      showGetAppBar: false,
+      suspended: null,
+    });
+    expect(buildShell({ path: '/', system: 'adultsOnly', session: signedIn }).mode).toBe('bare');
+    expect(buildShell({ path: '/', system: 'update', session: signedIn }).mode).toBe('bare');
+    // The agreements sheet stands over the navigator, so the shell stays.
+    expect(buildShell({ path: '/', system: 'agreements', session: signedIn })).toMatchObject({
+      mode: 'app',
+      active: 'home',
+    });
+    expect(buildShell({ path: '/settings', system: null, session: signedIn }).active).toBe(
+      'profile',
+    );
+    expect(buildShell({ path: '/', system: null, session: { kind: 'pending' } }).signedIn).toBe(
+      false,
+    );
+    expect(buildShell({ path: '/', system: null, session: { kind: 'none' } }).signedIn).toBe(false);
+  });
+
+  it('a system screen that replaces the navigator makes every path bare with no active item', () => {
+    for (const path of ['/', '/settings', '/welcome']) {
+      for (const system of ['update', 'adultsOnly'] as const) {
+        const shell = buildShell({ path, system, session: signedIn });
+        expect(shell.mode).toBe('bare');
+        expect(shell.active).toBeNull();
+      }
     }
-    expect(activeItemFor('/', null)).toBe('home');
-  });
-
-  it('a system screen makes every path bare with no active item', () => {
-    expect(shellModeFor('/', 'update')).toBe('bare');
-    expect(activeItemFor('/', 'update')).toBeNull();
-  });
-});
-
-describe('navTargetFor', () => {
-  const SIGNED_OUT: readonly (readonly [NavItem, string])[] = [
-    ['home', '/'],
-    ['explore', '/sign-in?next=%2Fexplore'],
-    ['post', '/sign-in?next=%2Fcreate'],
-    ['activity', '/sign-in?next=%2Factivity'],
-    ['messages', '/sign-in?next=%2Fmessages'],
-    ['profile', '/sign-in?next=%2Fprofile'],
-  ];
-
-  const SIGNED_IN: readonly (readonly [NavItem, string])[] = [
-    ['home', '/'],
-    ['explore', '/explore'],
-    ['post', '/create'],
-    ['activity', '/activity'],
-    ['messages', '/messages'],
-    ['profile', '/profile'],
-  ];
-
-  it.each(SIGNED_OUT)('signed-out navigation leads to sign-in except Home: %s', (item, target) => {
-    expect(navTargetFor(item, false)).toBe(target);
-  });
-
-  it.each(SIGNED_IN)('signed-in navigation goes to each path: %s', (item, target) => {
-    expect(navTargetFor(item, true)).toBe(target);
+    expect(buildShell({ path: '/welcome', system: null, session: { kind: 'none' } }).mode).toBe(
+      'bare',
+    );
   });
 });

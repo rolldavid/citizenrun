@@ -1,59 +1,136 @@
 import { onlineManager } from '@tanstack/react-query';
-import { router, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { assertRouterPath } from '@/lib/router-path';
-import { useStartup } from '@/lib/startup';
+import { reportClientError } from '@/lib/client-errors';
+import {
+  clearRememberedNext,
+  dismissTo,
+  navigateTo,
+  navTargetFor,
+  rememberTabItem,
+  tabItemOf,
+  tabRootFor,
+  trackCurrentPath,
+} from '@/lib/navigation';
+import { getSessionPresence, setSessionPresence } from '@/lib/session-state';
 import { links } from '@/platform/links';
+import { queryClient } from '@/platform/query-client';
+import { session } from '@/platform/session';
 import { storage } from '@/platform/storage';
 import { FONT_FACES } from '@/ui/fonts';
 
-import { buildRootViewModel, navTargetFor } from './root.build';
-import type { NavItem, RootViewModel } from './root.types';
+import { runColdStartAgeCheck } from '../data/age-signal';
+import { handleUnauthorized, handleUpgradeRequired } from '../data/session-events';
+import {
+  markStorageHydrated,
+  setBoot,
+  useBoot,
+  useMinorEnded,
+  useThemeChoice,
+  useUpgradeBlocked,
+} from '../data/system-state';
 
-// No session exists yet: `signedIn` is true once a session exists and `Me` has loaded.
-const SIGNED_IN = false;
+import { useGuardState } from './guard-state';
+import { buildShell, guardSessionOf, systemScreenFor } from './root.build';
+import type { NavItem, RootViewModel } from './root.types';
 
 /** The root layout's values: boot, theme, fonts, the system screen and the shell (SCR-root-layout). */
 export function useRootViewModel(): RootViewModel {
-  const { booted, updateRequired } = useStartup();
-  const pathname = usePathname();
+  const client = queryClient.get();
+  useStartup();
+  const boot = useBoot();
   const fontsReady = useFontsReadyAnswer();
-
-  // storage.get throws until hydrate() has resolved, which `booted` follows.
-  const storedTheme = useMemo(() => (booted ? storage.get('theme') : null), [booted]);
+  const g = useGuardState();
+  const { path, me, routeClass } = g;
 
   useEffect(() => {
-    if (booted) void SplashScreen.hideAsync();
-  }, [booted]);
+    if (boot === 'ready') void SplashScreen.hideAsync();
+  }, [boot]);
 
-  return buildRootViewModel(
-    {
-      pathname,
-      hydrated: booted,
-      storedTheme,
-      fontsReady,
-      upgradeBlocked: updateRequired,
-      signedIn: SIGNED_IN,
+  useEffect(() => {
+    trackCurrentPath(path);
+    const tab = tabItemOf(path);
+    if (tab !== null) rememberTabItem(tab);
+  }, [path]);
+
+  // A loaded Me means a session exists.
+  useEffect(() => {
+    if (me !== null && getSessionPresence() !== 'present') setSessionPresence('present');
+  }, [me]);
+
+  // Rule N3: the person has landed.
+  const landed =
+    me?.onboardingStep === 'done' && routeClass !== 'auth' && routeClass !== 'onboarding';
+  useEffect(() => {
+    if (landed) clearRememberedNext();
+  }, [landed, path]);
+
+  // D-531: effects run after the first paint.
+  const isReady = g.boot === 'ready';
+  useEffect(() => {
+    if (isReady && me !== null) void runColdStartAgeCheck(me, client);
+  }, [isReady, me, client]);
+
+  const system = systemScreenFor({
+    upgradeBlocked: useUpgradeBlocked(),
+    guard: g.result,
+    minorEnded: useMinorEnded(),
+    me,
+    path,
+  });
+  const themeChoice = useThemeChoice();
+  const shell = buildShell({ path, system, session: guardSessionOf(g.presence, me) });
+
+  return {
+    boot,
+    themeChoice,
+    fontsReady,
+    system,
+    shell,
+    createDialogOpen: false,
+    onNavigate: (item: NavItem) => {
+      navigateTo(navTargetFor(item, shell.signedIn));
     },
-    { onNavigate, onReselect },
-  );
+    onReselect: (item: NavItem) => {
+      dismissTo(tabRootFor(item));
+    },
+    onCloseCreateDialog: noop,
+  };
 }
 
-function onNavigate(item: NavItem): void {
-  if (item === 'home') {
-    router.navigate('/');
-    return;
+function noop(): void {
+  // the create dialog arrives with SCR-create
+}
+
+/** Starts the platform modules once, in the startup order of the platform modules. */
+function useStartup(): void {
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    void start();
+  }, []);
+}
+
+async function start(): Promise<void> {
+  try {
+    await storage.hydrate();
+    markStorageHydrated();
+    session.configure({
+      onUnauthorized: () => {
+        void handleUnauthorized();
+      },
+      onUpgradeRequired: handleUpgradeRequired,
+    });
+    setSessionPresence(await session.hydrate());
+    queryClient.get();
+    queryClient.start();
+  } catch (error) {
+    // The app still renders, so its requests fail visibly instead of leaving a blank screen.
+    reportClientError(error, { route: null, component: null }, 'app.startup_failed');
   }
-  const target = navTargetFor(item, SIGNED_IN);
-  assertRouterPath(target); // the generated route types cannot name a path built at run time
-  router.push(target);
-}
-
-/** Dismisses every pushed route above the tab; the scroll to the top is signalled by the shell before this. */
-function onReselect(): void {
-  if (router.canDismiss()) router.dismissAll();
+  setBoot('ready');
 }
 
 /**
