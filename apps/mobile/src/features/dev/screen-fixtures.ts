@@ -1,6 +1,12 @@
 import { createElement } from 'react';
 import type { ComponentType, ReactElement } from 'react';
 
+import {
+  SignInScreenView,
+  WelcomeScreenView,
+  signInFixtures,
+  welcomeFixtures,
+} from '@/features/auth';
 import { HelloScreenView, helloFixtures } from '@/features/hello';
 import {
   OnboardingHandleScreenView,
@@ -13,11 +19,15 @@ import {
   photoFixtures,
 } from '@/features/onboarding';
 import {
+  AdultsOnlyScreenView,
   NotFoundScreenView,
   SystemErrorScreenView,
   SystemUpdateScreenView,
+  UnavailableInStateScreenView,
+  adultsOnlyFixtures,
   notFoundFixtures,
   rootFixtures,
+  stateUnavailableFixtures,
   systemErrorFixtures,
   systemUpdateFixtures,
 } from '@/features/system';
@@ -84,6 +94,14 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
   'not-found': defineStaticScreen(NotFoundScreenView, Object.keys(notFoundFixtures)),
   'system-update': defineScreen(SystemUpdateScreenView, systemUpdateFixtures),
   'system-error': defineScreen(SystemErrorScreenView, systemErrorFixtures),
+  'system-adults-only': defineScreen(AdultsOnlyScreenView, adultsOnlyFixtures, { mode: 'bare' }),
+  'system-unavailable-in-state': defineScreen(
+    UnavailableInStateScreenView,
+    stateUnavailableFixtures,
+    { mode: 'bare' },
+  ),
+  welcome: defineScreen(WelcomeScreenView, welcomeFixtures, { mode: 'bare' }),
+  'sign-in': defineScreen(SignInScreenView, signInFixtures, { mode: 'bare' }),
   'onboarding-photo': defineScreen(OnboardingPhotoScreenView, photoFixtures, { mode: 'bare' }),
   'onboarding-handle': defineScreen(OnboardingHandleScreenView, handleFixtures, { mode: 'bare' }),
   'onboarding-issues': defineScreen(OnboardingIssuesScreenView, issuesFixtures, { mode: 'bare' }),

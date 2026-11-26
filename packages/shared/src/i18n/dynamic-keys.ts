@@ -1,9 +1,12 @@
+import { STATE_CODES } from '../constants/geo.ts';
+
 /**
  * Catalog keys that code reaches only through a computed lookup, never as a literal `t('...')`
  * argument, each written as `<namespace>:<key>` with the reason. The catalog check counts them as
  * used.
  */
 const ISSUE_SHORT = 'built from ISSUE_IDS';
+const STATE_NAME = 'built from STATE_CODES (lower-case code)';
 
 export const DYNAMIC_KEYS: readonly { key: string; reason: string }[] = [
   { key: 'common:issueShort.rentHousing', reason: ISSUE_SHORT },
@@ -25,4 +28,8 @@ export const DYNAMIC_KEYS: readonly { key: string; reason: string }[] = [
   { key: 'common:issueShort.publicMoney', reason: ISSUE_SHORT },
   { key: 'common:issueShort.defundIsrael', reason: ISSUE_SHORT },
   { key: 'common:issueShort.foreignWars', reason: ISSUE_SHORT },
+  ...STATE_CODES.map((code) => ({
+    key: `common:state.${code.toLowerCase()}`,
+    reason: STATE_NAME,
+  })),
 ];

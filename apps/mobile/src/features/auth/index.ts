@@ -7,3 +7,7 @@ export { startSession } from './data/session-start';
 export type { ReauthViewModel } from './view-models/reauth.types';
 export type { SignInViewModel, SignInStage } from './view-models/sign-in.types';
 export type { WelcomeViewModel } from './view-models/welcome.types';
+export * as welcomeFixtures from './view-models/welcome.fixtures';
+export * as signInFixtures from './view-models/sign-in.fixtures';
+export { WelcomeScreen, WelcomeScreenView } from './screens/welcome-screen';
+export { SignInScreen, SignInScreenView } from './screens/sign-in-screen';

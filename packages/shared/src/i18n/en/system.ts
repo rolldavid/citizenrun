@@ -14,4 +14,14 @@ export const system = {
     title: 'Something went wrong.',
     body: 'Try again. If it keeps happening, update the app.',
   },
+  adultsOnly: {
+    title: 'This app is for adults.',
+  },
+  stateUnavailable: {
+    title: '{{appName}} is not available in {{state}} yet.',
+    titleGeneric: '{{appName}} is not available where you live yet.',
+    body: 'You can still read public office and candidate pages.',
+    browse: 'Browse offices',
+    delete: 'Delete my account',
+  },
 } as const;

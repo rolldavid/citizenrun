@@ -134,6 +134,21 @@ function typeHandle(value: string): (page: Page) => Promise<void> {
   };
 }
 
+/**
+ * The time the fixtures are written at: a sign-in code fixture was sent then, 30 seconds before it
+ * may be sent again.
+ */
+const FIXTURE_TIME = '2027-01-15T12:00:00.000Z';
+
+/**
+ * Sets the page's clock to the fixtures' own time and waits for the wait to be counted from it, so
+ * the capture of a code fixture shows the 30 seconds of a new code, not the distance to today.
+ */
+async function atFixtureTime(page: Page): Promise<void> {
+  await page.clock.setFixedTime(new Date(FIXTURE_TIME));
+  await expect(page.getByTestId('auth.code-resend-live')).toHaveText(/(^|\D)30(\D|$)/);
+}
+
 export const SCREENS: ScreenEntry[] = [
   // The whole gallery, at either text size, is taller on a phone than one capture takes, so it is
   // captured whole at the two wide viewports only; on the two phones its section entries are the
@@ -1173,6 +1188,148 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/onboarding-location/locationSoonOffline',
     auth: 'none',
   },
+  // Welcome, sign-in and the two screens that stand in place of sign-in. A code fixture counts its
+  // wait from the fixtures' own time, so its capture is taken at that time.
+  {
+    id: 'welcome-welcome-default',
+    path: '/dev/screens/welcome/welcomeDefault',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-methods',
+    path: '/dev/screens/sign-in/signInMethods',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-methods-email-only',
+    path: '/dev/screens/sign-in/signInMethodsEmailOnly',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-methods-busy',
+    path: '/dev/screens/sign-in/signInMethodsBusy',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-methods-notice',
+    path: '/dev/screens/sign-in/signInMethodsNotice',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-email',
+    path: '/dev/screens/sign-in/signInEmail',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-email-sending',
+    path: '/dev/screens/sign-in/signInEmailSending',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-email-error',
+    path: '/dev/screens/sign-in/signInEmailError',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-code',
+    path: '/dev/screens/sign-in/signInCode',
+    auth: 'none',
+    prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-code-checking',
+    path: '/dev/screens/sign-in/signInCodeChecking',
+    auth: 'none',
+    prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-code-wrong',
+    path: '/dev/screens/sign-in/signInCodeWrong',
+    auth: 'none',
+    prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-code-locked',
+    path: '/dev/screens/sign-in/signInCodeLocked',
+    auth: 'none',
+    prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-code-expired',
+    path: '/dev/screens/sign-in/signInCodeExpired',
+    auth: 'none',
+    prepare: atFixtureTime,
+  },
+  {
+    id: 'sign-in-sign-in-code-resend-limited',
+    path: '/dev/screens/sign-in/signInCodeResendLimited',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-checking-age',
+    path: '/dev/screens/sign-in/signInCheckingAge',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-finishing',
+    path: '/dev/screens/sign-in/signInFinishing',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-age-gate',
+    path: '/dev/screens/sign-in/signInAgeGate',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-age-gate-incomplete',
+    path: '/dev/screens/sign-in/signInAgeGateIncomplete',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-state',
+    path: '/dev/screens/sign-in/signInState',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-agreements',
+    path: '/dev/screens/sign-in/signInAgreements',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-ai-consent',
+    path: '/dev/screens/sign-in/signInAiConsent',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-adults-only',
+    path: '/dev/screens/sign-in/signInAdultsOnly',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-state-unavailable',
+    path: '/dev/screens/sign-in/signInStateUnavailable',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-offline',
+    path: '/dev/screens/sign-in/signInOffline',
+    auth: 'none',
+  },
+  {
+    id: 'system-adults-only-adults-only',
+    path: '/dev/screens/system-adults-only/adultsOnly',
+    auth: 'none',
+  },
+  {
+    id: 'system-unavailable-in-state-state-unavailable-named',
+    path: '/dev/screens/system-unavailable-in-state/stateUnavailableNamed',
+    auth: 'none',
+  },
+  {
+    id: 'system-unavailable-in-state-state-unavailable-generic',
+    path: '/dev/screens/system-unavailable-in-state/stateUnavailableGeneric',
+    auth: 'none',
+  },
   // An unknown pair renders the not-found content.
   { id: 'dev-screens-unknown-pair', path: '/dev/screens/none/none', auth: 'none' },
   // The design review's 130% text size.
@@ -1206,6 +1363,22 @@ export const SCREENS: ScreenEntry[] = [
     id: 'onboarding-photo-photo-ready-x130',
     path: '/dev/screens/onboarding-photo/photoReady?textScale=1.3',
     auth: 'none',
+  },
+  {
+    id: 'welcome-welcome-default-x130',
+    path: '/dev/screens/welcome/welcomeDefault?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-methods-email-only-x130',
+    path: '/dev/screens/sign-in/signInMethodsEmailOnly?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'sign-in-sign-in-code-wrong-x130',
+    path: '/dev/screens/sign-in/signInCodeWrong?textScale=1.3',
+    auth: 'none',
+    prepare: atFixtureTime,
   },
   { id: 'dev-spike-map', path: '/dev/spikes/map', auth: 'none', prepare: waitForMapSpike },
   { id: 'dev-spike-card', path: '/dev/spikes/card', auth: 'none', prepare: waitForCardSpike },
