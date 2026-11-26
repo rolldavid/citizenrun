@@ -18,12 +18,16 @@ const lab = vi.hoisted(() => ({
   sizes: [] as number[],
   sizeOf: new Map<string, number>(),
   deleted: [] as string[],
+  released: [] as string[],
 }));
 
 vi.mock('expo-image-manipulator', () => {
   function manipulate(uri: string): unknown {
     lab.ops.push(['manipulate', uri]);
     const context = {
+      release() {
+        lab.released.push('context');
+      },
       crop(rect: unknown) {
         lab.ops.push(['crop', rect]);
         return context;
@@ -38,6 +42,9 @@ vi.mock('expo-image-manipulator', () => {
           return Promise.reject(new Error('fixture decode failure'));
         }
         return Promise.resolve({
+          release() {
+            lab.released.push('image');
+          },
           saveAsync(options: unknown) {
             lab.ops.push(['saveAsync', options]);
             if (lab.saveFails) {
@@ -102,6 +109,7 @@ beforeEach(() => {
   lab.sizes = [];
   lab.sizeOf.clear();
   lab.deleted = [];
+  lab.released = [];
 });
 
 async function nativeUpload(): Promise<(typeof NativeIndex)['upload']> {
@@ -280,6 +288,28 @@ describe('preparePhoto on the web', () => {
       kind: 'rejected',
       reason: 'unsupported_format',
     });
+  });
+
+  it('releases the rendered image and its context, whatever the outcome', async () => {
+    const upload = await webUpload();
+    await upload.preparePhoto(LANDSCAPE, { crop: CENTRED_SQUARE });
+    expect(lab.released.sort()).toEqual(['context', 'image']);
+
+    lab.released = [];
+    lab.sizes = [PHOTO_MAX_BYTES + 1, PHOTO_MAX_BYTES + 1];
+    lab.saves = 0;
+    await upload.preparePhoto(LANDSCAPE, { crop: null });
+    expect(lab.released.sort()).toEqual(['context', 'image']);
+
+    lab.released = [];
+    lab.saveFails = true;
+    await upload.preparePhoto(LANDSCAPE, { crop: null });
+    expect(lab.released.sort()).toEqual(['context', 'image']);
+
+    lab.released = [];
+    lab.renderFails = true;
+    await upload.preparePhoto(LANDSCAPE, { crop: null });
+    expect(lab.released).toEqual(['context']);
   });
 
   it('web loads the manipulator on demand', () => {

@@ -88,14 +88,18 @@ type Saved = { uri: string; width: number; height: number; blob: Blob };
 /** A resize by width alone: the library keeps the aspect ratio. */
 type WidthResize = { resize(size: { width: number }): unknown };
 
-/** Crops (when given) and resizes, never enlarging; null when the browser cannot decode the source. */
+/**
+ * Crops (when given) and resizes, never enlarging; null when the browser cannot decode the source.
+ * The context's canvases are released once it has rendered: the rendered image is a copy.
+ */
 async function render(
   lib: Manipulator,
   item: PickedPhoto,
   crop: CropRect | null,
 ): Promise<Rendered | null> {
+  let context: ReturnType<Manipulator['ImageManipulator']['manipulate']> | null = null;
   try {
-    const context = lib.ImageManipulator.manipulate(item.previewUri);
+    context = lib.ImageManipulator.manipulate(item.previewUri);
     if (crop) {
       context.crop(crop);
     }
@@ -104,6 +108,8 @@ async function render(
     return await context.renderAsync();
   } catch {
     return null;
+  } finally {
+    context?.release();
   }
 }
 
@@ -131,7 +137,8 @@ async function preparePhoto(
   if (image === null) {
     return { kind: 'rejected', reason: 'unsupported_format' };
   }
-  // The re-encode drops the source's EXIF metadata, location included.
+  // The re-encode drops the source's EXIF metadata, location included. The rendered image (a full
+  // PNG blob URL and a canvas) is released whatever the outcome.
   try {
     let saved = await saveMeasured(lib, image, PHOTO_JPEG_QUALITY);
     if (saved.blob.size > PHOTO_MAX_BYTES) {
@@ -157,6 +164,8 @@ async function preparePhoto(
     };
   } catch {
     return ENCODE_FAILED;
+  } finally {
+    image.release();
   }
 }
 
