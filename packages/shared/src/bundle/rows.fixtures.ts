@@ -262,7 +262,7 @@ const givenNameAliases: BGivenNameAlias = {
   source: 'supplement',
 };
 
-/** One valid row per milestone 2 file kind. */
+/** One valid row per file kind of bundle schema revision 0. */
 export const ROW_FIXTURES = {
   jurisdictions,
   districts,
