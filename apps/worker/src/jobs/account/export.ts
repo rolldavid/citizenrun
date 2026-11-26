@@ -7,7 +7,7 @@ import { BRAND, EXPORT_FILE_TTL_MS } from '@citizenrun/shared';
 import { exportKey } from '@citizenrun/shared/storage';
 import { and, eq } from 'drizzle-orm';
 import type { JobContext } from '../../context.ts';
-import { putObject } from '../../lib/bucket-ops.ts';
+import { deleteKeys, putObject } from '../../lib/bucket-ops.ts';
 import { QUEUE_OPTIONS } from '../../queue-options.ts';
 import { PermanentJobError } from '../types.ts';
 import type { JobDefinition } from '../types.ts';
@@ -19,6 +19,13 @@ async function markFailed(ctx: JobContext, exportId: string): Promise<void> {
     .update(dataExports)
     .set({ status: 'failed' })
     .where(and(eq(dataExports.id, exportId), eq(dataExports.status, 'queued')));
+}
+
+// The export of an account being deleted, or gone: its file goes, if one was written, and the row
+// ends `failed`. The file goes first, so a retry after a failed delete still finds the row queued.
+async function discard(ctx: JobContext, userId: string, exportId: string): Promise<void> {
+  await deleteKeys(ctx.storage.media, [exportKey(userId, exportId)], { signal: ctx.signal });
+  await markFailed(ctx, exportId);
 }
 
 // Writes the file through a temporary folder and uploads it; returns its size in bytes.
@@ -76,7 +83,7 @@ export const accountExport: JobDefinition<'account.export'> = {
       .from(users)
       .where(eq(users.id, row.userId));
     if (user === undefined || user.status === 'deleting') {
-      await markFailed(ctx, exportId);
+      await discard(ctx, row.userId, exportId);
       return;
     }
 
@@ -86,15 +93,33 @@ export const accountExport: JobDefinition<'account.export'> = {
       await ctx.touch();
       const key = exportKey(row.userId, exportId);
       const bytes = await uploadExport(ctx, key, JSON.stringify(file), now);
-      await ctx.db
-        .update(dataExports)
-        .set({
-          status: 'ready',
-          objectKey: key,
-          readyAt: now,
-          expiresAt: new Date(now.getTime() + EXPORT_FILE_TTL_MS),
-        })
-        .where(and(eq(dataExports.id, exportId), eq(dataExports.status, 'queued')));
+      // The account is read again with its row held, so a deletion asked for during the upload
+      // either comes first and the file goes, or waits until the export is ready and J-account.delete
+      // then removes the file with the rest.
+      const ready = await ctx.db.transaction(async (tx) => {
+        const [owner] = await tx
+          .select({ status: users.status })
+          .from(users)
+          .where(eq(users.id, row.userId))
+          .for('share');
+        if (owner === undefined || owner.status === 'deleting') {
+          return false;
+        }
+        await tx
+          .update(dataExports)
+          .set({
+            status: 'ready',
+            objectKey: key,
+            readyAt: now,
+            expiresAt: new Date(now.getTime() + EXPORT_FILE_TTL_MS),
+          })
+          .where(and(eq(dataExports.id, exportId), eq(dataExports.status, 'queued')));
+        return true;
+      });
+      if (!ready) {
+        await discard(ctx, row.userId, exportId);
+        return;
+      }
       ctx.log.info('account.exported', { bytes });
     } catch (error) {
       if (ctx.job.isFinalAttempt && !(error instanceof PermanentJobError)) {

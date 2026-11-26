@@ -1,4 +1,4 @@
-import { HeadObjectCommand } from '@aws-sdk/client-s3';
+import { HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { dataExports, markAccountDeleting, users } from '@citizenrun/db';
 import {
   captureLogs,
@@ -174,6 +174,39 @@ describe('J-account.export', () => {
     expect(result.outcome).toBe('completed');
     expect((await exportRow(exportId))?.status).toBe('failed');
     expect(await getTestObject('media', exportKey(kind.user.id, exportId))).toBeNull();
+  });
+
+  it('removes its file when the account starts being deleted during the upload', async () => {
+    const clock = new FakeClock();
+    const kind = await scenario(clock);
+    const exportId = await queuedExport(kind.user.id);
+    const media = await getTestBucket('media');
+    // The deletion request arrives while the file is being uploaded; presigning reads the rest.
+    const send = media.client.send.bind(media.client) as (c: unknown, o?: unknown) => unknown;
+    const deleting = new Proxy(media.client, {
+      get(target, property, receiver): unknown {
+        if (property !== 'send') {
+          return Reflect.get(target, property, receiver) as unknown;
+        }
+        return async (command: unknown, options?: unknown): Promise<unknown> => {
+          if (command instanceof PutObjectCommand) {
+            await getTestDb().transaction((tx) => markAccountDeleting(tx, kind.user.id));
+          }
+          return send(command, options);
+        };
+      },
+    });
+
+    const result = await runJob(
+      accountExport,
+      { exportId },
+      { clock, media: { client: deleting, bucket: media.bucket } },
+    );
+
+    expect(result.outcome).toBe('completed');
+    expect((await exportRow(exportId))?.status).toBe('failed');
+    expect(await getTestObject('media', exportKey(kind.user.id, exportId))).toBeNull();
+    expect(lines('account.exported')).toHaveLength(0);
   });
 
   it('marks the row failed on the last attempt', async () => {
