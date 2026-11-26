@@ -1,6 +1,7 @@
 import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
-import { markAccountDeleting } from '@citizenrun/db';
+import { markAccountDeleting, users } from '@citizenrun/db';
+import type { Db } from '@citizenrun/db';
 import {
   captureLogs,
   getTestBucket,
@@ -79,6 +80,24 @@ async function expectRefused(
   expect(events('media.failed')).toEqual([
     expect.objectContaining({ level: 'warn', target: 'avatar', reason }),
   ]);
+}
+
+/** The test database, with every update of `users` failing: a write that fails once. */
+function failingUserUpdates(): Db {
+  const db = getTestDb();
+  return new Proxy(db, {
+    get(target, property, receiver): unknown {
+      if (property === 'update') {
+        return (table: Parameters<Db['update']>[0]) => {
+          if (table === users) {
+            throw new Error('fixture write failure');
+          }
+          return target.update(table);
+        };
+      }
+      return Reflect.get(target, property, receiver) as unknown;
+    },
+  });
 }
 
 beforeEach(async () => {
@@ -214,6 +233,26 @@ describe('J-media.process for an avatar', () => {
     expect(user.avatarKey).toBe(previous.keys.small);
     expect(user.avatarPendingKey).toBeNull();
     expect(await peekQueue('uploads.cleanup')).toEqual([]);
+  });
+
+  it('a refused avatar whose pending key could not be cleared clears it on the retry', async () => {
+    const clock = new FakeClock();
+    const fixture = await avatarUpload(clock, truncated(await solidJpeg(1200, 900)));
+    await setAvatarColumns(fixture.user.id, { avatarPendingKey: fixture.keys.small });
+
+    const first = await runJob(mediaProcessImage, fixture.payload, {
+      clock,
+      db: failingUserUpdates(),
+      retryCount: 0,
+    });
+    expect(first.outcome).toBe('failed');
+
+    const retry = await runJob(mediaProcessImage, fixture.payload, { clock, retryCount: 1 });
+
+    expect(retry.outcome).toBe('completed');
+    expect((await userRow(fixture.user.id)).avatarPendingKey).toBeNull();
+    expect(await getTestObject('media', fixture.upload.key)).toBeNull();
+    expect((await uploadRow(fixture.upload.id)).objectDeletedAt).not.toBeNull();
   });
 
   it('others see the default until it passes', async () => {

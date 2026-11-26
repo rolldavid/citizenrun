@@ -149,8 +149,10 @@ async function load(ctx: JobContext, payload: AvatarTarget): Promise<Avatar | nu
     }
     return null;
   }
-  // Already settled: refused, discarded or deleted.
+  // Already settled: refused, discarded or deleted. A refusal whose pending-key write failed after
+  // the original went is finished here, on its retry.
   if (upload.objectDeletedAt !== null) {
+    await clearPending(ctx, avatar);
     return null;
   }
   if (await hasNewerAvatar(ctx.db, userId, uploadId)) {
