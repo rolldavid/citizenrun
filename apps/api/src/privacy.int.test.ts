@@ -1,42 +1,114 @@
 import { readFile } from 'node:fs/promises';
 import { sql } from 'drizzle-orm';
 import type { Db } from '@citizenrun/db';
-import { getTestDb } from '@citizenrun/db/testing';
-import { CreateClientErrorBodySchema, ERROR_CODES, newId } from '@citizenrun/shared';
-import { marker } from '@citizenrun/shared/testing';
+import { getTestDb, insertUser } from '@citizenrun/db/testing';
+import {
+  AppleCallbackFormSchema,
+  AppleHandoffBodySchema,
+  AppleNotificationBodySchema,
+  CreateClientErrorBodySchema,
+  ERROR_CODES,
+  LEGAL_VERSIONS,
+  SignInWithAppleBodySchema,
+  SignInWithGoogleBodySchema,
+  StartEmailSignInBodySchema,
+  VerifyEmailSignInBodySchema,
+  brandVariant,
+  newId,
+  variantForAppEnv,
+} from '@citizenrun/shared';
+import type { ErrorCode } from '@citizenrun/shared';
+import { randomToken } from '@citizenrun/shared/crypto';
+import { FakeClock, marker } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { OPENAPI_FILE } from './scripts/gen-openapi.ts';
 import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
+import { insertIdentity } from './testing/factories.ts';
+import { FIXTURE_APPLE, FakeIdentityProviders } from './testing/fakes/identity.ts';
 import type { TestResponse } from './testing/request.ts';
 
 // TEST-privacy-logscan's API suite. The always-on scan of the harness runs after every case as well.
 
+/** How a row's request is sent. */
+type Transport = {
+  /** JSON (the default), or Apple's url-encoded form post from Apple's origin with no client header. */
+  body?: 'json' | 'form';
+  /** The X-OS-Client value of a JSON request; null sends none (a provider's server call). */
+  client?: string | null;
+};
+
+/** One run's request: the app it went to, the answer, and the secrets the scan looks for besides the marker. */
+type Sent = { testApp: TestApp; response: TestResponse; secrets: readonly string[] };
+
 /** One operation that takes text a user typed or a secret, and how to run it three ways. */
 type SensitiveInput = {
   path: string;
-  /** The body fields, as dot paths, that get the marker. */
+  transport?: Transport;
+  /** The body fields, as dot paths, that get the marker or carry a secret of the run. */
   fields: readonly string[];
-  /** A valid body without any marker. */
+  /** A valid body without any marker, for the validation failures. */
   validBody: () => Record<string, unknown>;
   /** Whether a body is valid, so the marker goes only into values the schema admits. */
   isValid: (body: unknown) => boolean;
   successStatus: number;
-  /** The text of every stored row the success path writes. */
-  storedText: () => Promise<string>;
-  /** A database whose write rejects with an error whose message holds the marker. */
-  failingDb: () => Db;
+  /** Success: the fields carry the marker where the schema admits it, or a secret the run made. */
+  success: () => Promise<Sent>;
+  /** The text of every stored row the success path writes, when no stored row may hold the marker. */
+  storedText?: () => Promise<string>;
+  /** Asserts the answer to a body with one invalid marked field; default 400 `invalid_request`. */
+  expectInvalid?: (response: TestResponse) => Promise<void>;
+  /** A failure inside the operation; asserts its answer and returns what it sent. */
+  failInside: () => Promise<Sent>;
 };
 
 const HTTP_METHODS = ['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace'];
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const IOS = 'ios/1.4.0';
+const ANDROID = 'android/1.4.0';
+const APPLE_ORIGIN = 'https://appleid.apple.com';
+const APPLE_RETURN_PREFIX = `${brandVariant(variantForAppEnv('ci')).scheme}://auth/apple?`;
+// The lengths an over-long marked value tries in turn: one past each maximum of the listed schemas.
+const OVER_MAXIMUM_LENGTHS = [101, 257, 513, 1025, 4097, 8193];
+
+const START_EMAIL = '/v1/auth/email/start';
+const VERIFY_EMAIL = '/v1/auth/email/verify';
+const NONCE = '/v1/auth/nonce';
+const APPLE = '/v1/auth/apple';
+const APPLE_CALLBACK = '/v1/auth/apple/callback';
+const APPLE_HANDOFF = '/v1/auth/apple/handoff';
+const APPLE_NOTIFICATIONS = '/v1/auth/apple/notifications';
+const GOOGLE = '/v1/auth/google';
 
 // Every request comes from its own address, so no case nears a per-replica limit.
-let nextHost = 100;
+const TEST_NETS = ['203.0.113', '198.51.100'];
+const HOSTS_PER_NET = 254;
+let nextHost = 0;
 function freshIp(): string {
-  const ip = `203.0.113.${String(nextHost)}`;
+  const net = TEST_NETS[Math.floor(nextHost / HOSTS_PER_NET) % TEST_NETS.length] ?? '203.0.113';
+  const ip = `${net}.${String((nextHost % HOSTS_PER_NET) + 1)}`;
   nextHost += 1;
   return ip;
+}
+
+// Each provider row signs in a subject of its own.
+let nextSubject = 1;
+function freshSubject(): string {
+  const subject = `000555.privacy.${String(nextSubject)}`;
+  nextSubject += 1;
+  return subject;
+}
+
+/** A test address holding the lower-cased marker; the email schema lower-cases what it admits. */
+function markedEmail(prefix: string): string {
+  return `${prefix}${marker().toLowerCase()}@example.test`;
+}
+
+/** A marked value of exactly `length` characters. */
+function markerOfLength(length: number): string {
+  const value = marker();
+  return value.repeat(Math.ceil(length / value.length)).slice(0, length);
 }
 
 function clientErrorBody(): Record<string, unknown> {
@@ -49,6 +121,19 @@ function clientErrorBody(): Record<string, unknown> {
     platform: 'web',
     frames: [{ file: 'src/features/office/office-screen.tsx', line: 42, column: 7 }],
     requestId: newId(),
+  };
+}
+
+function signupDetails(): Record<string, unknown> {
+  return {
+    age: { method: 'self_declared', sourceTier: 'self' },
+    agreements: {
+      termsVersion: LEGAL_VERSIONS.terms,
+      contentPolicyVersion: LEGAL_VERSIONS.content_policy,
+      privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
+    },
+    aiScreening: true,
+    state: 'TX',
   };
 }
 
@@ -71,14 +156,158 @@ function insertRejectingDb(): Db {
   ) as Db; // a fake with only the insert path the operations use
 }
 
+/** A test app with the fixture Apple and Google settings and the fake key sets behind them. */
+async function providerApp(): Promise<{ testApp: TestApp; identity: FakeIdentityProviders }> {
+  const clock = new FakeClock();
+  const identity = new FakeIdentityProviders(clock);
+  const testApp = await createTestApp({
+    clock,
+    identity,
+    env: { ...identity.appleEnv(), ...identity.googleEnv() },
+  });
+  return { testApp, identity };
+}
+
+function wrapResponse(response: Response): TestResponse {
+  return {
+    status: response.status,
+    headers: response.headers,
+    json: async <T = unknown>(): Promise<T> => {
+      const parsed: unknown = await response.json();
+      return parsed as T; // the caller names the shape it expects
+    },
+    text: () => response.text(),
+  };
+}
+
+async function post(
+  testApp: TestApp,
+  path: string,
+  body: unknown,
+  transport: Transport = {},
+): Promise<TestResponse> {
+  if (transport.body === 'form') {
+    const fields = Object.entries(body as Record<string, unknown>).map(
+      ([name, value]): [string, string] => [name, String(value)],
+    ); // a form row's body holds strings only
+    const response = await testApp.app.request(
+      new URL(path, testApp.deps.env.PUBLIC_URL).toString(),
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Origin: APPLE_ORIGIN,
+          'x-real-ip': freshIp(),
+        },
+        body: new URLSearchParams(fields).toString(),
+      },
+    );
+    return wrapResponse(response);
+  }
+  return testApp.request.post(path, {
+    client: transport.client === undefined ? IOS : transport.client,
+    ip: freshIp(),
+    body,
+  });
+}
+
+type NonceResult = { nonce: string; nonceHash: string; state: string; expiresAt: string };
+
+async function issueNonce(testApp: TestApp, client: string): Promise<NonceResult> {
+  const response = await post(testApp, NONCE, {}, { client });
+  expect(response.status).toBe(200);
+  return response.json<NonceResult>();
+}
+
+/** E-AUTH-01 for `email` on `testApp`: the pending token and the code the capture mailer holds. */
+async function startEmail(
+  testApp: TestApp,
+  email: string,
+): Promise<{ pendingToken: string; code: string }> {
+  const response = await post(testApp, START_EMAIL, { email });
+  expect(response.status).toBe(200);
+  const { pendingToken } = await response.json<{ pendingToken: string }>();
+  const code = testApp.fakes.mailer.codeFor(email) ?? '';
+  expect(code).toMatch(/^[0-9]{6}$/);
+  return { pendingToken, code };
+}
+
+/** A string field of a log line or row equal to the code: the code as JSON writes it. */
+function asJsonString(value: string): string {
+  return JSON.stringify(value);
+}
+
+function returnQuery(response: TestResponse): URLSearchParams {
+  expect(response.status).toBe(302);
+  const location = response.headers.get('location') ?? '';
+  expect(location.startsWith(APPLE_RETURN_PREFIX)).toBe(true);
+  expectNoMarkerIn(location);
+  return new URLSearchParams(location.slice(APPLE_RETURN_PREFIX.length));
+}
+
+async function expectReturnError(response: TestResponse, error: string): Promise<void> {
+  expect(returnQuery(response).get('error')).toBe(error);
+  expect(await response.text()).toBe('');
+}
+
+/** Apple's form post for a fresh nonce on `testApp`, with the marker in `code` and in `user`. */
+async function markedCallbackForm(
+  testApp: TestApp,
+  identity: FakeIdentityProviders,
+): Promise<{ form: Record<string, string>; nonce: NonceResult; idToken: string }> {
+  const nonce = await issueNonce(testApp, ANDROID);
+  const email = markedEmail('c');
+  const idToken = await identity.appleIdToken({
+    aud: FIXTURE_APPLE.servicesId,
+    nonce: nonce.nonceHash,
+    sub: freshSubject(),
+    email,
+    email_verified: true,
+  });
+  const user = JSON.stringify({ name: { firstName: marker(), lastName: marker() }, email });
+  return {
+    form: { state: nonce.state, code: marker(), id_token: idToken, user },
+    nonce,
+    idToken,
+  };
+}
+
+/** E-AUTH-03 then E-AUTH-05 on `testApp`: the redirect's hand-off code and every secret on the way. */
+async function appleHandoffCode(
+  testApp: TestApp,
+  identity: FakeIdentityProviders,
+): Promise<{ code: string; nonce: NonceResult; secrets: string[] }> {
+  const { form, nonce, idToken } = await markedCallbackForm(testApp, identity);
+  const response = await post(testApp, APPLE_CALLBACK, form, { body: 'form' });
+  const code = returnQuery(response).get('code') ?? '';
+  expect(code).toMatch(TOKEN_PATTERN);
+  return { code, nonce, secrets: [code, nonce.nonce, nonce.nonceHash, nonce.state, idToken] };
+}
+
+function base64Url(text: string): string {
+  return Buffer.from(text, 'utf8').toString('base64url');
+}
+
 /** Every operation with a string field in its body or query that gets the marker. */
 const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
   createClientError: {
     path: '/v1/client-errors',
+    transport: { client: 'web' },
     fields: ['name', 'code', 'route', 'component', 'appVersion', 'frames.0.file', 'requestId'],
     validBody: clientErrorBody,
     isValid: (body) => CreateClientErrorBodySchema.safeParse(body).success,
     successStatus: 204,
+    // The marker goes only into keys the schema drops.
+    success: async () => {
+      const testApp = await createTestApp();
+      const body = {
+        ...clientErrorBody(),
+        message: marker(),
+        stack: `Error: ${marker()}\n    at fixture (src/app.ts:1:1)`,
+      };
+      const response = await post(testApp, '/v1/client-errors', body, { client: 'web' });
+      return { testApp, response, secrets: [] };
+    },
     storedText: async () => {
       const rows = await getTestDb().execute<{ text: string }>(
         sql`select coalesce(string_agg(t::text, ''), '') as text from client_errors t`,
@@ -86,7 +315,305 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       );
       return rows[0]?.text ?? '';
     },
-    failingDb: insertRejectingDb,
+    // Valid fields carry the marker where the schema admits it, and the write throws.
+    failInside: async () => {
+      const testApp = await createTestApp({ db: insertRejectingDb() });
+      const fields = SENSITIVE_INPUTS['createClientError']?.fields ?? [];
+      const body = clientErrorBody();
+      let marked = 0;
+      for (const field of fields) {
+        for (const candidate of [marker(), `/${marker()}`]) {
+          const tried = structuredClone(body);
+          setAt(tried, field, candidate);
+          if (CreateClientErrorBodySchema.safeParse(tried).success) {
+            setAt(body, field, candidate);
+            marked += 1;
+            break;
+          }
+        }
+      }
+      expect(marked).toBeGreaterThan(0);
+      const response = await post(testApp, '/v1/client-errors', body, { client: 'web' });
+      await expectEnvelope(response, 'internal');
+      const errorLines = testApp.logs.filter((line) => line.parsed['event'] === 'request.error');
+      expect(errorLines).toHaveLength(1);
+      return { testApp, response, secrets: [] };
+    },
+  },
+  startEmailSignIn: {
+    path: START_EMAIL,
+    fields: ['email'],
+    validBody: () => ({ email: 'person@example.test' }),
+    isValid: (body) => StartEmailSignInBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const testApp = await createTestApp();
+      const email = markedEmail('m');
+      const response = await post(testApp, START_EMAIL, { email });
+      const { pendingToken } = await response.json<{ pendingToken: string }>();
+      const code = testApp.fakes.mailer.codeFor(email) ?? '';
+      expect(code).toMatch(/^[0-9]{6}$/);
+      return { testApp, response, secrets: [pendingToken, asJsonString(code)] };
+    },
+    // The capture mailer's provider 5xx.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      testApp.fakes.mailer.failNext('5xx');
+      const response = await post(testApp, START_EMAIL, { email: markedEmail('m') });
+      await expectEnvelope(response, 'unavailable');
+      expect(testApp.fakes.mailer.sent).toHaveLength(0);
+      return { testApp, response, secrets: [] };
+    },
+  },
+  verifyEmailSignIn: {
+    path: VERIFY_EMAIL,
+    fields: ['pendingToken', 'code', 'signup.state'],
+    validBody: () => ({ pendingToken: randomToken(), code: '123456', signup: signupDetails() }),
+    isValid: (body) => VerifyEmailSignInBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const testApp = await createTestApp();
+      const { pendingToken, code } = await startEmail(testApp, markedEmail('v'));
+      const response = await post(testApp, VERIFY_EMAIL, {
+        pendingToken,
+        code,
+        signup: signupDetails(),
+      });
+      return { testApp, response, secrets: [pendingToken, asJsonString(code)] };
+    },
+    // A wrong code.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      const { pendingToken, code } = await startEmail(testApp, markedEmail('w'));
+      const wrong = code === '000000' ? '000001' : '000000';
+      const response = await post(testApp, VERIFY_EMAIL, {
+        pendingToken,
+        code: wrong,
+        signup: signupDetails(),
+      });
+      await expectEnvelope(response, 'code_invalid');
+      return {
+        testApp,
+        response,
+        secrets: [pendingToken, asJsonString(code), asJsonString(wrong)],
+      };
+    },
+  },
+  signInWithApple: {
+    path: APPLE,
+    fields: ['idToken', 'nonce', 'code', 'name.givenName', 'name.familyName'],
+    validBody: () => ({
+      idToken: 'header.payload.signature',
+      code: 'fixture-code',
+      nonce: randomToken(),
+      name: { givenName: 'Given', familyName: 'Family' },
+    }),
+    isValid: (body) => SignInWithAppleBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const { testApp, identity } = await providerApp();
+      identity.registerAppleEndpoints(testApp.fakes.outbound);
+      const nonce = await issueNonce(testApp, IOS);
+      const idToken = await identity.appleIdToken({
+        nonce: nonce.nonceHash,
+        sub: freshSubject(),
+        email: markedEmail('a'),
+        email_verified: true,
+      });
+      const response = await post(testApp, APPLE, {
+        idToken,
+        code: marker(),
+        nonce: nonce.nonce,
+        name: { givenName: marker(), familyName: marker() },
+        signup: signupDetails(),
+      });
+      expect(identity.exchanges.map((exchange) => exchange.code)).toEqual([marker()]);
+      return { testApp, response, secrets: [idToken, nonce.nonce, nonce.nonceHash] };
+    },
+    // Apple's token endpoint answers 500 with the marker in its body; the sign-in still succeeds.
+    failInside: async () => {
+      const { testApp, identity } = await providerApp();
+      testApp.fakes.outbound.on('appleid.apple.com', 'POST', '/auth/token', () => ({
+        status: 500,
+        body: `token endpoint failed ${marker()}`,
+      }));
+      const nonce = await issueNonce(testApp, IOS);
+      const idToken = await identity.appleIdToken({
+        nonce: nonce.nonceHash,
+        sub: freshSubject(),
+        email: markedEmail('b'),
+        email_verified: true,
+      });
+      const response = await post(testApp, APPLE, {
+        idToken,
+        code: marker(),
+        nonce: nonce.nonce,
+        name: { givenName: marker(), familyName: marker() },
+        signup: signupDetails(),
+      });
+      expect(response.status).toBe(200);
+      expect(testApp.fakes.outbound.calls.map((call) => call.path)).toEqual(['/auth/token']);
+      return { testApp, response, secrets: [idToken, nonce.nonce, nonce.nonceHash] };
+    },
+  },
+  appleSignInCallback: {
+    path: APPLE_CALLBACK,
+    transport: { body: 'form' },
+    fields: ['id_token', 'code', 'state', 'user'],
+    validBody: () => ({ state: 'x', code: 'fixture-code', id_token: 'x', user: '{}' }),
+    isValid: (body) => AppleCallbackFormSchema.safeParse(body).success,
+    successStatus: 302,
+    success: async () => {
+      const { testApp, identity } = await providerApp();
+      identity.registerAppleEndpoints(testApp.fakes.outbound);
+      const { form, nonce, idToken } = await markedCallbackForm(testApp, identity);
+      const response = await post(testApp, APPLE_CALLBACK, form, { body: 'form' });
+      const code = returnQuery(response).get('code') ?? '';
+      expect(code).toMatch(TOKEN_PATTERN);
+      return {
+        testApp,
+        response,
+        secrets: [idToken, nonce.state, nonce.nonce, nonce.nonceHash, code],
+      };
+    },
+    // Every refusal of Apple's form post is a redirect, a malformed form included.
+    expectInvalid: (response) => expectReturnError(response, 'invalid_request'),
+    // A state that fails verification.
+    failInside: async () => {
+      const { testApp, identity } = await providerApp();
+      identity.registerAppleEndpoints(testApp.fakes.outbound);
+      const { form, nonce, idToken } = await markedCallbackForm(testApp, identity);
+      const response = await post(
+        testApp,
+        APPLE_CALLBACK,
+        { ...form, state: marker() },
+        { body: 'form' },
+      );
+      await expectReturnError(response, 'state_invalid');
+      expect(testApp.fakes.outbound.calls).toHaveLength(0);
+      return { testApp, response, secrets: [idToken, nonce.state, nonce.nonce, nonce.nonceHash] };
+    },
+  },
+  appleSignInHandoff: {
+    path: APPLE_HANDOFF,
+    transport: { client: ANDROID },
+    fields: ['code', 'nonce'],
+    validBody: () => ({ code: randomToken(), nonce: randomToken() }),
+    isValid: (body) => AppleHandoffBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const { testApp, identity } = await providerApp();
+      identity.registerAppleEndpoints(testApp.fakes.outbound);
+      const { code, nonce, secrets } = await appleHandoffCode(testApp, identity);
+      const response = await post(
+        testApp,
+        APPLE_HANDOFF,
+        { code, nonce: nonce.nonce, signup: signupDetails() },
+        { client: ANDROID },
+      );
+      return { testApp, response, secrets };
+    },
+    // A used hand-off code.
+    failInside: async () => {
+      const { testApp, identity } = await providerApp();
+      identity.registerAppleEndpoints(testApp.fakes.outbound);
+      const { code, nonce, secrets } = await appleHandoffCode(testApp, identity);
+      const body = { code, nonce: nonce.nonce, signup: signupDetails() };
+      const first = await post(testApp, APPLE_HANDOFF, body, { client: ANDROID });
+      expect(first.status).toBe(200);
+      const response = await post(testApp, APPLE_HANDOFF, body, { client: ANDROID });
+      await expectEnvelope(response, 'handoff_invalid');
+      return { testApp, response, secrets };
+    },
+  },
+  receiveAppleNotification: {
+    path: APPLE_NOTIFICATIONS,
+    transport: { client: null },
+    fields: ['payload'],
+    validBody: () => ({ payload: 'header.payload.signature' }),
+    isValid: (body) => AppleNotificationBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const { testApp, identity } = await providerApp();
+      const email = markedEmail('n');
+      const subject = freshSubject();
+      const user = await insertUser(testApp.deps.db, { email });
+      await insertIdentity(testApp.deps.db, {
+        userId: user.id,
+        provider: 'apple',
+        subject,
+        email,
+        emailVerified: true,
+      });
+      const payload = await identity.appleNotification({
+        type: 'email-disabled',
+        sub: subject,
+        email: `${marker()}@example.test`,
+      });
+      const response = await post(testApp, APPLE_NOTIFICATIONS, { payload }, { client: null });
+      return { testApp, response, secrets: [payload, subject] };
+    },
+    // An unsigned payload.
+    failInside: async () => {
+      const { testApp } = await providerApp();
+      const claims = {
+        iss: APPLE_ORIGIN,
+        aud: FIXTURE_APPLE.bundleId,
+        events: JSON.stringify({
+          type: 'email-disabled',
+          sub: marker(),
+          email: `${marker()}@example.test`,
+        }),
+      };
+      const payload = `${base64Url(JSON.stringify({ alg: 'none', typ: 'JWT' }))}.${base64Url(
+        JSON.stringify(claims),
+      )}.`;
+      const response = await post(testApp, APPLE_NOTIFICATIONS, { payload }, { client: null });
+      await expectEnvelope(response, 'signature_invalid');
+      return { testApp, response, secrets: [payload] };
+    },
+  },
+  signInWithGoogle: {
+    path: GOOGLE,
+    fields: ['idToken', 'nonce'],
+    validBody: () => ({ idToken: 'header.payload.signature', nonce: randomToken() }),
+    isValid: (body) => SignInWithGoogleBodySchema.safeParse(body).success,
+    successStatus: 200,
+    success: async () => {
+      const { testApp, identity } = await providerApp();
+      const nonce = await issueNonce(testApp, IOS);
+      const idToken = await identity.googleIdToken({
+        nonce: nonce.nonceHash,
+        sub: freshSubject(),
+        email: markedEmail('g'),
+        email_verified: true,
+      });
+      const response = await post(testApp, GOOGLE, {
+        idToken,
+        nonce: nonce.nonce,
+        signup: signupDetails(),
+      });
+      return { testApp, response, secrets: [idToken, nonce.nonce, nonce.nonceHash] };
+    },
+    // A token for another audience.
+    failInside: async () => {
+      const { testApp, identity } = await providerApp();
+      const nonce = await issueNonce(testApp, IOS);
+      const idToken = await identity.googleIdToken({
+        nonce: nonce.nonceHash,
+        aud: FIXTURE_APPLE.bundleId,
+        sub: freshSubject(),
+        email: markedEmail('h'),
+        email_verified: true,
+      });
+      const response = await post(testApp, GOOGLE, {
+        idToken,
+        nonce: nonce.nonce,
+        signup: signupDetails(),
+      });
+      await expectEnvelope(response, 'identity_token_invalid');
+      return { testApp, response, secrets: [idToken, nonce.nonce, nonce.nonceHash] };
+    },
   },
 };
 
@@ -102,9 +629,26 @@ function setAt(body: Record<string, unknown>, path: string, value: unknown): voi
   (target as Record<string, unknown>)[keys.at(-1) ?? ''] = value; // the parent found above
 }
 
+// A value's base64 forms, one per byte alignment of the value inside the encoded text: each is the
+// run of characters made of the value's bytes only, the same whatever comes before and after.
+function base64Forms(value: string): string[] {
+  const bytes = Buffer.from(value, 'utf8');
+  return [0, 1, 2].map((offset) => {
+    const shifted = Buffer.concat([Buffer.alloc(offset), bytes]);
+    const encoded = shifted.toString('base64');
+    const skipGroups = offset === 0 ? 0 : 1;
+    const wholeGroups = Math.floor(shifted.length / 3) - skipGroups;
+    return encoded.slice(skipGroups * 4, (skipGroups + wholeGroups) * 4);
+  });
+}
+
+/** The marker and its lower-cased form (an email or a handle is stored lower-cased), each plain, URL-encoded and in base64. */
 function markedForms(): string[] {
-  const value = marker();
-  return [value, encodeURIComponent(value), Buffer.from(value, 'utf8').toString('base64')];
+  return [marker(), marker().toLowerCase()].flatMap((value) => [
+    value,
+    encodeURIComponent(value),
+    ...base64Forms(value),
+  ]);
 }
 
 function expectNoMarkerIn(text: string): void {
@@ -113,18 +657,28 @@ function expectNoMarkerIn(text: string): void {
   }
 }
 
-function expectNoMarkerInLogs(testApp: TestApp): void {
+/** No captured log line and no job payload holds a form of the marker or a secret of the run. */
+async function expectNothingLeaked(testApp: TestApp, secrets: readonly string[]): Promise<void> {
   expect(testApp.logs.length).toBeGreaterThan(0);
-  for (const line of testApp.logs) {
-    expectNoMarkerIn(line.raw);
+  const jobs = await getTestDb().execute<{ text: string }>(
+    sql`select coalesce(string_agg(data::text, ''), '') as text from pgboss.job`,
+    'objects',
+  );
+  const texts = [...testApp.logs.map((line) => line.raw), jobs[0]?.text ?? ''];
+  for (const text of texts) {
+    expectNoMarkerIn(text);
+    for (const secret of secrets) {
+      expect(secret).not.toBe('');
+      expect(text).not.toContain(secret);
+    }
   }
 }
 
 async function send(testApp: TestApp, input: SensitiveInput, body: unknown): Promise<TestResponse> {
-  return testApp.request.post(input.path, { client: 'web', ip: freshIp(), body });
+  return post(testApp, input.path, body, input.transport);
 }
 
-async function expectEnvelope(response: TestResponse, code: 'invalid_request' | 'internal') {
+async function expectEnvelope(response: TestResponse, code: ErrorCode): Promise<void> {
   expect(response.status).toBe(ERROR_CODES[code].status);
   expect(response.headers.get('x-request-id')).toMatch(UUID_PATTERN);
   const text = await response.text();
@@ -134,54 +688,46 @@ async function expectEnvelope(response: TestResponse, code: 'invalid_request' | 
   });
 }
 
-/** Success: the marker goes only into keys the schema drops; the row is stored without it. */
+/** Success: the documented status; no stored row the row names holds the marker; nothing leaked. */
 async function runSuccess(input: SensitiveInput): Promise<void> {
-  const testApp = await createTestApp();
-  const response = await send(testApp, input, {
-    ...input.validBody(),
-    message: marker(),
-    stack: `Error: ${marker()}\n    at fixture (src/app.ts:1:1)`,
-  });
+  const { testApp, response, secrets } = await input.success();
   expect(response.status).toBe(input.successStatus);
-  const stored = await input.storedText();
-  expect(stored).not.toBe('');
-  expectNoMarkerIn(stored);
-  expectNoMarkerInLogs(testApp);
+  if (input.storedText !== undefined) {
+    const stored = await input.storedText();
+    expect(stored).not.toBe('');
+    expectNoMarkerIn(stored);
+  }
+  await expectNothingLeaked(testApp, secrets);
 }
 
 /** Validation failure: each field in turn holds an invalid marked value. */
 async function runValidationFailures(input: SensitiveInput): Promise<void> {
   const testApp = await createTestApp();
+  const candidates = [`Bad ${marker()}`, ...OVER_MAXIMUM_LENGTHS.map(markerOfLength)];
   for (const field of input.fields) {
     const body = structuredClone(input.validBody());
-    setAt(body, field, `Bad ${marker()}`);
-    expect(input.isValid(body), field).toBe(false);
-    await expectEnvelope(await send(testApp, input, body), 'invalid_request');
-  }
-  expectNoMarkerInLogs(testApp);
-}
-
-/** Inner failure: valid fields carry the marker where the schema admits it, and the write throws. */
-async function runInnerFailure(input: SensitiveInput): Promise<void> {
-  const testApp = await createTestApp({ db: input.failingDb() });
-  const body = structuredClone(input.validBody());
-  let marked = 0;
-  for (const field of input.fields) {
-    for (const candidate of [marker(), `/${marker()}`]) {
+    expect(input.isValid(body), field).toBe(true);
+    const invalid = candidates.find((candidate) => {
       const tried = structuredClone(body);
       setAt(tried, field, candidate);
-      if (input.isValid(tried)) {
-        setAt(body, field, candidate);
-        marked += 1;
-        break;
-      }
+      return !input.isValid(tried);
+    });
+    expect(invalid, field).toBeDefined();
+    setAt(body, field, invalid);
+    const response = await send(testApp, input, body);
+    if (input.expectInvalid === undefined) {
+      await expectEnvelope(response, 'invalid_request');
+    } else {
+      await input.expectInvalid(response);
     }
   }
-  expect(marked).toBeGreaterThan(0);
-  await expectEnvelope(await send(testApp, input, body), 'internal');
-  const errorLines = testApp.logs.filter((line) => line.parsed['event'] === 'request.error');
-  expect(errorLines).toHaveLength(1);
-  expectNoMarkerInLogs(testApp);
+  await expectNothingLeaked(testApp, []);
+}
+
+/** Inner failure: the row arranges the failure and asserts its answer; nothing leaked. */
+async function runInnerFailure(input: SensitiveInput): Promise<void> {
+  const { testApp, secrets } = await input.failInside();
+  await expectNothingLeaked(testApp, secrets);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -274,7 +820,7 @@ describe('the API privacy suite', () => {
     const refusing = await createTestApp();
     const refused = await send(refusing, input, { ...input.validBody(), name: `Bad ${marker()}` });
     await expectEnvelope(refused, 'invalid_request');
-    expectNoMarkerInLogs(refusing);
+    await expectNothingLeaked(refusing, []);
 
     await runInnerFailure(input);
   });
