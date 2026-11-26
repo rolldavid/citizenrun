@@ -478,6 +478,32 @@ describe('useSignInViewModel', () => {
     ]);
   });
 
+  it('sends one request for two presses of Resend in one tick', async () => {
+    const hook = render();
+    act(() => {
+      hook.result.current.onChooseEmail();
+    });
+    act(() => {
+      hook.result.current.email.onSubmit(EMAIL);
+    });
+    await reachStage(hook, 'code');
+    act(() => {
+      hook.result.current.code?.onResend();
+      hook.result.current.code?.onResend();
+    });
+    await waitFor(() => {
+      expect(hook.result.current.code?.resendStatus).toBe('idle');
+    });
+    expect(requests('/v1/auth/email/start')).toHaveLength(2);
+
+    act(() => {
+      hook.result.current.code?.onResend();
+    });
+    await waitFor(() => {
+      expect(requests('/v1/auth/email/start')).toHaveLength(3);
+    });
+  });
+
   it('waits for the resend time before sending again', async () => {
     answers({ start: json(200, { ...START, resendAvailableAt: '2999-01-01T00:00:00.000Z' }) });
     const hook = render();

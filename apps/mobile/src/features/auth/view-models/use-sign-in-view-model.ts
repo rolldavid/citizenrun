@@ -109,6 +109,7 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
   const client = useQueryClient();
   const now = useNow();
   const inFlight = useRef(false);
+  const resending = useRef(false);
   const { emailCode } = state;
   const challenge = emailCode.challenge;
 
@@ -216,14 +217,18 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
   };
 
   const onResend = (): void => {
-    if (offline || challenge === null || emailCode.code.resendStatus === 'sending') return;
+    // The ref, not the rendered status: two presses before a render send one request
+    if (offline || challenge === null || resending.current) return;
+    if (emailCode.code.resendStatus === 'sending') return;
     if (Date.now() < Date.parse(challenge.resendAvailableAt)) return;
+    resending.current = true;
     dispatch(emailEvent({ type: 'resendSubmitted' }));
     void (async () => {
       const outcome = await requestEmailCode({
         email: challenge.sentTo,
         pendingToken: challenge.pendingToken,
       });
+      resending.current = false;
       dispatch(
         emailEvent(
           outcome.ok
