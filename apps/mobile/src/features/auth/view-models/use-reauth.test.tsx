@@ -1,5 +1,5 @@
 import type { Me } from '@citizenrun/shared';
-import { act, waitFor } from '@testing-library/react';
+import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { readMeFromCache, writeMeToCache } from '@/features/system';
@@ -78,6 +78,17 @@ function minutesFromNow(minutes: number): string {
   return new Date(Date.now() + minutes * 60_000).toISOString();
 }
 
+/** Lets the stubbed requests answer and the hook settle; no timer of the test is real. */
+async function settle(): Promise<void> {
+  for (let round = 0; round < 10; round += 1) {
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setImmediate(resolve);
+      });
+    });
+  }
+}
+
 async function openAndSendCode(hook: Hook): Promise<void> {
   act(() => {
     hook.result.current.openFor(action);
@@ -85,9 +96,8 @@ async function openAndSendCode(hook: Hook): Promise<void> {
   act(() => {
     hook.result.current.vm.onSendCode();
   });
-  await waitFor(() => {
-    expect(hook.result.current.vm.code).not.toBeNull();
-  });
+  await settle();
+  expect(hook.result.current.vm.code).not.toBeNull();
 }
 
 function submitCode(hook: Hook): void {
@@ -101,6 +111,7 @@ function nonceRequests() {
 }
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
   stub = installApiStub([]);
   answerVerify(json(200, RENEWED));
   configureTestApiClient();
@@ -108,6 +119,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
   resetNavigationState();
   resetSessionPresence();
@@ -149,9 +161,8 @@ describe('useReauth', () => {
     const hook = render();
     await openAndSendCode(hook);
     submitCode(hook);
-    await waitFor(() => {
-      expect(action).toHaveBeenCalledTimes(1);
-    });
+    await settle();
+    expect(action).toHaveBeenCalledTimes(1);
 
     expect(stub.requests.find((request) => request.path === '/v1/auth/email/verify')?.body).toEqual(
       { pendingToken: PENDING, code: '123456', intent: 'reauth' },
@@ -162,9 +173,8 @@ describe('useReauth', () => {
     expect(hook.result.current.vm.open).toBe(false);
 
     submitCode(hook);
-    await waitFor(() => {
-      expect(sessionFake.calls).toHaveLength(2);
-    });
+    await settle();
+    expect(sessionFake.calls).toHaveLength(2);
     expect(action).toHaveBeenCalledTimes(1);
   });
 
@@ -173,9 +183,8 @@ describe('useReauth', () => {
     const hook = render();
     await openAndSendCode(hook);
     submitCode(hook);
-    await waitFor(() => {
-      expect(hook.result.current.vm.notice?.code).toBe('reauth_mismatch');
-    });
+    await settle();
+    expect(hook.result.current.vm.notice?.code).toBe('reauth_mismatch');
     expect(hook.result.current.vm.open).toBe(true);
     expect(hook.result.current.vm.code).toBeNull();
     expect(action).not.toHaveBeenCalled();
@@ -201,33 +210,22 @@ describe('useReauth', () => {
     act(() => {
       submitLater?.('123456');
     });
-    await waitFor(() => {
-      expect(
-        stub.requests.filter((request) => request.path === '/v1/auth/email/verify'),
-      ).toHaveLength(1);
-    });
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 20);
-      });
-    });
+    await settle();
+    expect(
+      stub.requests.filter((request) => request.path === '/v1/auth/email/verify'),
+    ).toHaveLength(1);
     expect(action).not.toHaveBeenCalled();
   });
 
   it('asks for no nonce while closed', async () => {
     const hook = render();
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, 20);
-      });
-    });
+    await settle();
     expect(nonceRequests()).toEqual([]);
 
     act(() => {
       hook.result.current.openFor(action);
     });
-    await waitFor(() => {
-      expect(nonceRequests()).toHaveLength(1);
-    });
+    await settle();
+    expect(nonceRequests()).toHaveLength(1);
   });
 });
