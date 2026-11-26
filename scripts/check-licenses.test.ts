@@ -50,15 +50,20 @@ const EXCEPTION: LicenseException = {
 };
 
 describe('satisfies', () => {
-  it.each(['MIT', 'MIT-0', '(MIT OR GPL-3.0-only)', 'Apache-2.0 AND MIT', 'BlueOak-1.0.0'])(
-    'passes %s',
-    (expression) => {
-      expect(satisfies(expression, ALLOWED)).toBe(true);
-    },
-  );
+  it.each([
+    'MIT',
+    'MIT-0',
+    '(MIT OR GPL-3.0-only)',
+    'Apache-2.0 AND MIT',
+    'BlueOak-1.0.0',
+    'Zlib',
+    '(MIT AND Zlib)',
+  ])('passes %s', (expression) => {
+    expect(satisfies(expression, ALLOWED)).toBe(true);
+  });
 
   it.each([
-    '(MIT AND Zlib)',
+    '(MIT AND GPL-3.0-only)',
     'GPL-3.0-or-later',
     'LGPL-3.0-or-later',
     'Apache-2.0 WITH LLVM-exception',
