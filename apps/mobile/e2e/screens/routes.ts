@@ -122,17 +122,26 @@ function tapPastLimit(testID: string, line: string): (page: Page) => Promise<voi
 }
 
 /**
+ * Types into one field, waits until the field holds what was typed and leaves the field. What is
+ * typed is a screen's own state: a fixture holds what the app answered, not the text it answered.
+ */
+async function typeInto(page: Page, testID: string, value: string): Promise<void> {
+  const field = page.getByTestId(testID);
+  await field.fill(value);
+  await expect(field).toHaveValue(value);
+  await field.blur();
+}
+
+/**
  * Types a handle into the handle step's field and leaves the field, so the capture shows the handle
  * its status line is about. A fixture holds what the check found, not what was typed.
  */
 function typeHandle(value: string): (page: Page) => Promise<void> {
-  return async (page) => {
-    const field = page.getByTestId('onboarding.handle-field');
-    await field.fill(value);
-    await expect(field).toHaveValue(value);
-    await field.blur();
-  };
+  return (page) => typeInto(page, 'onboarding.handle-field', value);
 }
+
+/** The longest handle the field takes, which is the one its line about length stands under. */
+const LONGEST_HANDLE = 'test_fixture_handles';
 
 /**
  * The time the fixtures are written at: a sign-in code fixture was sent then, 30 seconds before it
@@ -147,6 +156,28 @@ const FIXTURE_TIME = '2027-01-15T12:00:00.000Z';
 async function atFixtureTime(page: Page): Promise<void> {
   await page.clock.setFixedTime(new Date(FIXTURE_TIME));
   await expect(page.getByTestId('auth.code-resend-live')).toHaveText(/(^|\D)30(\D|$)/);
+}
+
+/** The six digits a code fixture is about. */
+const FIXTURE_CODE = '123456';
+
+/**
+ * The code stage while its code is checked, with the six digits that are being checked. The field
+ * takes no typing while it waits, so the digits are put into it as they stood when the check
+ * began: the boxes show them and the button under them is the busy Verify.
+ */
+async function codeBeingChecked(page: Page): Promise<void> {
+  await atFixtureTime(page);
+  const field = page.getByTestId('auth.code-field');
+  await field.evaluate((input, digits) => {
+    const holder = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+    holder?.set?.call(input, digits);
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  }, FIXTURE_CODE);
+  await expect(field).toHaveValue(FIXTURE_CODE);
+  const verify = page.getByTestId('auth.code-verify');
+  await expect(verify).toHaveText('Verify');
+  await expect(verify).toHaveAttribute('aria-busy', 'true');
 }
 
 /**
@@ -192,6 +223,50 @@ async function aiConsentSheetAtRest(page: Page): Promise<void> {
 /** The add-email sheet has faded in and, on a phone, risen to where it rests. */
 async function addEmailSheetAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('auth.add-email-sheet'));
+}
+
+/**
+ * The add-email sheet at rest with the address its line is about: one that is an address, so the
+ * button under it reads Continue.
+ */
+async function addEmailInUseTyped(page: Page): Promise<void> {
+  await addEmailSheetAtRest(page);
+  await typeInto(page, 'auth.email-field', 'fixture@example.test');
+  await expect(page.getByText('That email belongs to another account.')).toBeVisible();
+  const next = page.getByTestId('auth.email-continue');
+  await expect(next).toHaveText('Continue');
+  await expect(next).toBeEnabled();
+}
+
+/** The profile's Save, which reads Save and can be pressed once something differs. */
+async function profileSaveEnabled(page: Page): Promise<void> {
+  const save = page.getByTestId('settings.profile-save');
+  await expect(save).toHaveText('Save');
+  await expect(save).toBeEnabled();
+}
+
+/** The profile with a name that is not the profile's own, so its Save is on. */
+async function profileNameChanged(page: Page): Promise<void> {
+  await typeInto(page, 'settings.profile-name', 'Fixture Q. Person');
+  await profileSaveEnabled(page);
+}
+
+/**
+ * A name the field takes whole and the service counts as longer than 50: its one "\u0133" is two
+ * letters once the name is normalized.
+ */
+const OVER_LONG_NAME = 'Fixture Person van der Langenaam-Voorbeeld D\u0133kstra';
+
+/**
+ * The profile with the text its two refused fields are about: the over-long name and a link that
+ * is not https. Both differ from the profile, so Save is on for the next try.
+ */
+async function profileRefusedText(page: Page): Promise<void> {
+  await typeInto(page, 'settings.profile-name', OVER_LONG_NAME);
+  await typeInto(page, 'settings.profile-link', 'http://example.test/fixture');
+  await expect(page.getByText('Use 50 characters or fewer.')).toBeVisible();
+  await expect(page.getByText('Use a full https:// address.')).toBeVisible();
+  await profileSaveEnabled(page);
 }
 
 /**
@@ -1144,6 +1219,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'onboarding-handle-handle-too-long',
     path: '/dev/screens/onboarding-handle/handleTooLong',
     auth: 'none',
+    prepare: typeHandle(LONGEST_HANDLE),
   },
   {
     id: 'onboarding-handle-handle-characters',
@@ -1320,7 +1396,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'sign-in-sign-in-code-checking',
     path: '/dev/screens/sign-in/signInCodeChecking',
     auth: 'none',
-    prepare: atFixtureTime,
+    prepare: codeBeingChecked,
   },
   {
     id: 'sign-in-sign-in-code-wrong',
@@ -1517,6 +1593,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'settings-profile-profile-edit-dirty',
     path: '/dev/screens/settings-profile/profileEditDirty',
     auth: 'none',
+    prepare: profileNameChanged,
   },
   {
     id: 'settings-profile-profile-edit-saving',
@@ -1532,6 +1609,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'settings-profile-profile-edit-field-errors',
     path: '/dev/screens/settings-profile/profileEditFieldErrors',
     auth: 'none',
+    prepare: profileRefusedText,
   },
   {
     id: 'settings-profile-profile-edit-handle-locked',
@@ -1661,7 +1739,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'settings-account-account-add-email-in-use',
     path: '/dev/screens/settings-account/accountAddEmailInUse',
     auth: 'none',
-    prepare: addEmailSheetAtRest,
+    prepare: addEmailInUseTyped,
   },
   {
     id: 'settings-account-account-loading',
