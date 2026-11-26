@@ -491,6 +491,27 @@ describe('Google on phones', () => {
     expect(narrow?.props).toMatchObject({ colorScheme: 'dark', size: 'standard' });
   });
 
+  it('the library button stands flush left in the width it is given', async () => {
+    env.googleWebClientId = FIXTURE_WEB_ID;
+    env.googleIosClientId = FIXTURE_IOS_ID;
+    for (const os of ['ios', 'android'] as const) {
+      const auth = await load(os);
+      await auth.prepare();
+      const p = pending<GoogleSignInResult>();
+      for (const width of [400, 320, 280]) {
+        const button = renderOnce(auth.GoogleSignInButton, {
+          ...googleProps(p),
+          appearance: { ...APPEARANCE, width },
+        });
+        // The library draws its button at its own width; it sits at the leading edge, never centred.
+        expect(button?.props, `${os} ${String(width)}`).toMatchObject({
+          contentAlignment: 'leading',
+          style: { width, height: 48 },
+        });
+      }
+    }
+  });
+
   it('Google configures with the nonce before signing in', async () => {
     env.googleWebClientId = FIXTURE_WEB_ID;
     google.presentExplicitSignIn.mockResolvedValue({ type: 'cancelled', data: null });

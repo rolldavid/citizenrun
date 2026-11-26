@@ -355,11 +355,14 @@ function GoogleSignInButton(props: GoogleSignInButtonProps): ReactElement | null
       props.onResult(result);
     });
   };
+  // The library draws its button at a width of its own inside the box it is given and centres it by
+  // default; the provider buttons stand flush left, so it is pinned to the leading edge.
   return (
     <LibraryGoogleButton
       signInBehavior="none"
       colorScheme={GOOGLE_COLOR_SCHEME[appearance.googleTheme]}
       size={appearance.width >= GOOGLE_SIGN_IN_BUTTON_WIDTH.wide ? 'wide' : 'standard'}
+      contentAlignment="leading"
       style={{ width: appearance.width, height: GOOGLE_SIGN_IN_BUTTON_HEIGHT }}
       disabled={disabled}
       testID={testID}
