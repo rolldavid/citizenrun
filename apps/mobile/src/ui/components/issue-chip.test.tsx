@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
-import { ISSUE_IDS, color, isIssueId, issue } from '@/ui/tokens';
+import { ISSUE_IDS, color, isIssueId, issue, rule, size } from '@/ui/tokens';
 
 import { IssueChip, IssueGridChip } from './issue-chip';
 import type { IssueChipProps } from './issue-chip';
@@ -237,12 +237,27 @@ describe('IssueChip', () => {
 
   it('an issue this build does not know has one line between its tile and its name', () => {
     const chip = drawState('unknown');
-    // The chip's own box and line stand round the tile, so the tile inside draws no keyline.
-    expect(chip.line.style.width).toBe('1px');
-    for (const part of chip.tile.querySelectorAll<HTMLElement>('*')) {
-      expect(part.style.borderTopWidth === '' || part.style.borderTopWidth === '0px').toBe(true);
-    }
+    // The chip's own box and line stand round the tile, so the keyline the tile draws is cut away:
+    // the tile stands one hairline outside a window one hairline smaller at each side.
+    expect(chip.line.style.width).toBe(`${String(rule.hairline)}px`);
+    const keylined = [...chip.tile.querySelectorAll<HTMLElement>('*')].filter(
+      (part) => part.style.borderTopWidth === `${String(rule.hairline)}px`,
+    );
+    expect(keylined).toHaveLength(1);
+    const [square] = keylined;
+    const holder = square?.parentElement;
+    const cut = holder?.parentElement;
+    expect(square?.style.width).toBe(`${String(size.chip)}px`);
+    expect(holder?.style.marginLeft).toBe(`-${String(rule.hairline)}px`);
+    expect(holder?.style.marginTop).toBe(`-${String(rule.hairline)}px`);
+    expect(cut?.style.overflow).toBe('hidden');
+    expect(cut?.style.width).toBe(`${String(size.chip - 2 * rule.hairline)}px`);
+    expect(cut?.style.height).toBe(`${String(size.chip - 2 * rule.hairline)}px`);
+    expect(cut?.parentElement).toBe(chip.tile);
     expect(chip.tile.querySelectorAll('svg')).toHaveLength(1);
+    // A known issue's tile stands in the chip as it is, with nothing cut.
+    const known = drawState('idle');
+    expect(known.tile.querySelector('[style*="overflow: hidden"]')).toBeNull();
   });
 
   it('the fixtures hold the eleven states', () => {

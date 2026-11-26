@@ -53,6 +53,11 @@ const TILE_RING: ViewStyle = {
   borderWidth: rule.hairline,
 };
 const TILE_KEYLINE: ViewStyle = { flex: 1, borderWidth: rule.hairline };
+// The tile of an issue this build does not know draws a keyline of its own. In a chip the chip's
+// box and line already stand round the tile, so the keyline is cut away: the tile is set one
+// hairline outside a window that is one hairline smaller at each side.
+const TILE_WINDOW: ViewStyle = { alignSelf: 'center', overflow: 'hidden' };
+const TILE_IN_WINDOW: ViewStyle = { margin: -rule.hairline };
 const STAR_ZONE: ViewStyle = {
   position: 'absolute',
   top: 0,
@@ -119,6 +124,9 @@ function Chip({
     overflow: 'hidden',
     ...(fills ? FILLS_ITS_CELL : {}),
   };
+  const tile = <IssueTile issueId={issueId} size={sizeName === 'sm' ? 'chipSmall' : 'chip'} />;
+  // What shows of an unknown issue's tile: all of it but its keyline.
+  const inside = least - 2 * rule.hairline;
   const drawn = (
     <View style={box} {...(pressable ? UNDER_ITS_TARGET : {})}>
       <View
@@ -127,7 +135,13 @@ function Chip({
           { width: least, backgroundColor: paint === null ? theme.color.well : paint.fill },
         ]}
       >
-        <IssueTile issueId={issueId} size={sizeName === 'sm' ? 'chipSmall' : 'chip'} bare={true} />
+        {paint === null ? (
+          <View style={[TILE_WINDOW, { width: inside, height: inside }]}>
+            <View style={TILE_IN_WINDOW}>{tile}</View>
+          </View>
+        ) : (
+          tile
+        )}
         {selected ? (
           <View style={[TILE_RING, { borderColor: theme.color.selectedBg }]}>
             <View style={[TILE_KEYLINE, { borderColor: theme.color.selectedText }]} />
