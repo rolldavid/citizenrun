@@ -6,14 +6,15 @@ import {
   insertUser,
   setUserIssues,
 } from '@citizenrun/db/testing';
-import { LEGAL_VERSIONS, MeSchema } from '@citizenrun/shared';
-import { asc } from 'drizzle-orm';
+import { sessions, users } from '@citizenrun/db';
+import { ApiError, LEGAL_VERSIONS, MeSchema } from '@citizenrun/shared';
+import { asc, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { signInAdmin } from '../../testing/auth.ts';
 import { createTestApp } from '../../testing/app.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { insertIdentity, insertSession } from '../../testing/factories.ts';
-import { loadMe } from './load-me.ts';
+import { loadConsentState, loadMe } from './load-me.ts';
 
 const MINUTE_MS = 60_000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
@@ -47,6 +48,15 @@ async function newUser(overrides: Parameters<typeof insertUser>[1] = {}) {
     expiresAt: shift(now, 90 * DAY_MS),
   });
   return { user, session };
+}
+
+async function expectUnauthenticated(promise: Promise<unknown>): Promise<void> {
+  const error: unknown = await promise.then(
+    () => null,
+    (reason: unknown) => reason,
+  );
+  expect(error).toBeInstanceOf(ApiError);
+  expect(error instanceof ApiError ? error.code : null).toBe('unauthenticated');
 }
 
 function load(userId: string, sessionId: string) {
@@ -225,7 +235,7 @@ describe('loadMe', () => {
     expect((await load(old.user.id, old.session.id)).handleChangeAvailableAt).toBeNull();
   });
 
-  it('a suspended user carries the reason', async () => {
+  it("a suspended user's Me carries the reason and since", async () => {
     const now = testApp.deps.clock.now();
     const { user, session } = await newUser({
       status: 'suspended',
@@ -235,5 +245,75 @@ describe('loadMe', () => {
     const me = await load(user.id, session.id);
     expect(me.status).toBe('suspended');
     expect(me.suspension).toEqual({ reason: 'spam', since: now.toISOString() });
+  });
+
+  it('loadMe throws unauthenticated for a deleting user', async () => {
+    const { user, session } = await newUser();
+    await testApp.deps.db
+      .update(users)
+      .set({ status: 'deleting', deletionRequestedAt: testApp.deps.clock.now() })
+      .where(eq(users.id, user.id));
+    await expectUnauthenticated(load(user.id, session.id));
+  });
+
+  it('loadMe throws unauthenticated when the session row is gone', async () => {
+    const { user, session } = await newUser();
+    await testApp.deps.db.delete(sessions).where(eq(sessions.id, session.id));
+    await expectUnauthenticated(load(user.id, session.id));
+    // Another user's session is not this user's.
+    const other = await newUser();
+    await expectUnauthenticated(load(user.id, other.session.id));
+  });
+
+  it('loadMe throws unauthenticated when the user row is gone', async () => {
+    const { user, session } = await newUser();
+    await testApp.deps.db.delete(users).where(eq(users.id, user.id));
+    await expectUnauthenticated(load(user.id, session.id));
+  });
+
+  it('loadConsentState ignores declined document rows', async () => {
+    const now = testApp.deps.clock.now();
+    const user = await insertUser(testApp.deps.db, {});
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'privacy_policy',
+      version: '2000-01-01',
+      createdAt: shift(now, -2 * MINUTE_MS),
+    });
+    // A newer row, written by hand, that does not grant.
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'privacy_policy',
+      version: LEGAL_VERSIONS.privacy_policy,
+      granted: false,
+      createdAt: shift(now, -MINUTE_MS),
+    });
+    const state = await loadConsentState(testApp.deps.db, user.id);
+    expect(state.privacyPolicy).toEqual({
+      agreedVersion: '2000-01-01',
+      currentVersion: LEGAL_VERSIONS.privacy_policy,
+    });
+    expect(state.needed).toEqual(['terms', 'content_policy', 'privacy_policy']);
+    expect(state.aiScreening).toBe('not_asked');
+  });
+
+  it('loadConsentState takes the newest granted version of each document', async () => {
+    const now = testApp.deps.clock.now();
+    const user = await insertUser(testApp.deps.db, {});
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'terms',
+      version: '2000-01-01',
+      createdAt: shift(now, -2 * MINUTE_MS),
+    });
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'terms',
+      version: LEGAL_VERSIONS.terms,
+      createdAt: shift(now, -MINUTE_MS),
+    });
+    const state = await loadConsentState(testApp.deps.db, user.id);
+    expect(state.terms.agreedVersion).toBe(LEGAL_VERSIONS.terms);
+    expect(state.needed).toEqual(['content_policy', 'privacy_policy']);
   });
 });

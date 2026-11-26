@@ -1,3 +1,4 @@
+import type { Db, Tx } from '@citizenrun/db';
 import {
   authIdentities,
   issues,
@@ -14,7 +15,8 @@ import {
   NEW_ACCOUNT_DAYS,
   SENSITIVE_RECENT_SIGNIN_MS,
 } from '@citizenrun/shared';
-import type { Me } from '@citizenrun/shared';
+import { ApiError } from '@citizenrun/shared';
+import type { ConsentState, Me } from '@citizenrun/shared';
 import { and, asc, desc, eq, inArray, isNotNull, isNull } from 'drizzle-orm';
 import type { Deps } from '../../deps.ts';
 import { toAvatarMedia } from '../../lib/media.ts';
@@ -33,34 +35,8 @@ function iso(at: Date | null): string | null {
   return at === null ? null : at.toISOString();
 }
 
-/**
- * The signed-in user's `Me` (E-ME-01 steps 2 and 6), read by the user's id
- * and the session in use. `Me` carries no admin key (D-801). Throws when the user or the session
- * row is missing.
- */
-export async function loadMe(
-  deps: Deps,
-  input: { userId: string; sessionId: string; now: Date },
-): Promise<Me> {
-  const { db } = deps;
-  const { userId, sessionId, now } = input;
-
-  const [user] = await db.select().from(users).where(eq(users.id, userId));
-  if (user === undefined) {
-    throw new Error('The signed-in user has no row.');
-  }
-  // index: auth_identities_user
-  const methods = await db
-    .selectDistinct({ provider: authIdentities.provider })
-    .from(authIdentities)
-    .where(eq(authIdentities.userId, userId))
-    .orderBy(asc(authIdentities.provider));
-  const picks = await db
-    .select({ issueId: userIssues.issueId, starred: userIssues.starred })
-    .from(userIssues)
-    .innerJoin(issues, eq(issues.id, userIssues.issueId))
-    .where(eq(userIssues.userId, userId))
-    .orderBy(asc(issues.sort));
+/** ConsentState of L-age-consent for one user, against LEGAL_VERSIONS. */
+export async function loadConsentState(db: Db | Tx, userId: string): Promise<ConsentState> {
   // index: user_consents_user
   const agreed = await db
     .selectDistinctOn([userConsents.kind], {
@@ -83,6 +59,37 @@ export async function loadMe(
     .where(and(eq(userConsents.userId, userId), eq(userConsents.kind, 'ai_screening')))
     .orderBy(desc(userConsents.id))
     .limit(1);
+
+  const agreedVersions = new Map<string, string>(agreed.map((row) => [row.kind, row.version]));
+  const consentOf = (kind: Agreement) => ({
+    agreedVersion: agreedVersions.get(kind) ?? null,
+    currentVersion: LEGAL_VERSIONS[kind],
+  });
+  return {
+    terms: consentOf('terms'),
+    contentPolicy: consentOf('content_policy'),
+    privacyPolicy: consentOf('privacy_policy'),
+    aiScreening: screening === undefined ? 'not_asked' : screening.granted ? 'granted' : 'declined',
+    needed: AGREEMENTS.filter((kind) => agreedVersions.get(kind) !== LEGAL_VERSIONS[kind]),
+  };
+}
+
+/**
+ * The signed-in user's `Me` (E-ME-01), read by the user's id and the session in use.
+ * `Me` carries no admin key (D-801). Throws `unauthenticated` when the user row is gone or
+ * `deleting`, or the session row is gone.
+ */
+export async function loadMe(
+  deps: Deps,
+  input: { userId: string; sessionId: string; now: Date },
+): Promise<Me> {
+  const { db } = deps;
+  const { userId, sessionId, now } = input;
+
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (user === undefined || user.status === 'deleting') {
+    throw new ApiError('unauthenticated');
+  }
   const [session] = await db
     .select({
       platform: sessions.platform,
@@ -92,8 +99,22 @@ export async function loadMe(
     .from(sessions)
     .where(and(eq(sessions.id, sessionId), eq(sessions.userId, userId)));
   if (session === undefined) {
-    throw new Error('The session in use has no row.');
+    throw new ApiError('unauthenticated');
   }
+  // index: auth_identities_user
+  const methods = await db
+    .selectDistinct({ provider: authIdentities.provider })
+    .from(authIdentities)
+    .where(eq(authIdentities.userId, userId))
+    .orderBy(asc(authIdentities.provider));
+  // index: user_issues_pkey
+  const picks = await db
+    .select({ issueId: userIssues.issueId, starred: userIssues.starred })
+    .from(userIssues)
+    .innerJoin(issues, eq(issues.id, userIssues.issueId))
+    .where(eq(userIssues.userId, userId))
+    .orderBy(asc(issues.sort));
+  const consents = await loadConsentState(db, userId);
   let avatarPending = user.avatarPendingKey !== null;
   if (!avatarPending) {
     // index: uploads_user
@@ -113,12 +134,6 @@ export async function loadMe(
     avatarPending = pending !== undefined;
   }
 
-  const agreedVersions = new Map<string, string>(agreed.map((row) => [row.kind, row.version]));
-  const consentOf = (kind: Agreement) => ({
-    agreedVersion: agreedVersions.get(kind) ?? null,
-    currentVersion: LEGAL_VERSIONS[kind],
-  });
-  const needed = AGREEMENTS.filter((kind) => agreedVersions.get(kind) !== LEGAL_VERSIONS[kind]);
   const handleChangeAvailableAt =
     user.handleChangedAt === null ? null : addMs(user.handleChangedAt, HANDLE_CHANGE_DAYS * DAY_MS);
 
@@ -128,6 +143,7 @@ export async function loadMe(
     name: user.name,
     bio: user.bio,
     link: user.link,
+    // Only avatar_key: a pending avatar is shown to nobody (INV-42).
     avatar: await toAvatarMedia(user.avatarKey, deps.storage.media, now),
     avatarPending,
     email: user.email,
@@ -157,14 +173,7 @@ export async function loadMe(
             sourceTier: user.ageSourceTier,
             checkedAt: iso(user.ageCheckedAt),
           },
-    consents: {
-      terms: consentOf('terms'),
-      contentPolicy: consentOf('content_policy'),
-      privacyPolicy: consentOf('privacy_policy'),
-      aiScreening:
-        screening === undefined ? 'not_asked' : screening.granted ? 'granted' : 'declined',
-      needed,
-    },
+    consents,
     session: {
       platform: session.platform,
       authenticatedAt: session.authenticatedAt.toISOString(),
