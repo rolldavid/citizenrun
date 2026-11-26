@@ -12,8 +12,7 @@ import { onboarding } from './en/onboarding.ts';
 import { profile } from './en/profile.ts';
 import { settings } from './en/settings.ts';
 
-export { formatDate } from './format/date.ts';
-export type { DateStyle } from './format/date.ts';
+export * from './format/index.ts';
 
 export const RESOURCES = {
   en: {
