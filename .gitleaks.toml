@@ -13,6 +13,8 @@ regexes = [
   '''osdev-secret-key''',
   '''^0{64}$''',
   '''^(0123456789abcdef)+$''',
+  # File names of the throwaway keys tests generate at run time, such as rsa-fixture.p8.
+  '''^[a-z0-9]+-fixture\.p8$''',
 ]
 paths = [
   '''(^|/)pnpm-lock\.yaml$''',
