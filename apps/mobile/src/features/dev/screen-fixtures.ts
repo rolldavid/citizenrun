@@ -21,6 +21,26 @@ import {
   photoFixtures,
 } from '@/features/onboarding';
 import {
+  SettingsAboutScreenView,
+  SettingsAccountScreenView,
+  SettingsAppearanceScreenView,
+  SettingsDeleteAccountScreenView,
+  SettingsExportScreenView,
+  SettingsIssuesScreenView,
+  SettingsPrivacyScreenView,
+  SettingsProfileScreenView,
+  SettingsScreenView,
+  settingsAboutFixtures,
+  settingsAccountFixtures,
+  settingsAppearanceFixtures,
+  settingsDeleteAccountFixtures,
+  settingsExportFixtures,
+  settingsFixtures,
+  settingsIssuesFixtures,
+  settingsPrivacyFixtures,
+  settingsProfileFixtures,
+} from '@/features/settings';
+import {
   AdultsOnlyScreenView,
   NotFoundScreenView,
   SystemErrorScreenView,
@@ -89,6 +109,9 @@ function RootLayoutView(props: { vm: RootViewModel }): ReactElement {
   return createElement(RootLayoutFixtureView, props);
 }
 
+/** The shell of every settings screen: the app's, with Profile as the active item. */
+const SETTINGS_SHELL: ScreenShell = { mode: 'app', active: 'profile' };
+
 /** Screen id to its view and named fixtures. Each screen adds its row with its view. */
 export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
   hello: defineScreen(HelloScreenView, helloFixtures, { mode: 'app', active: 'home' }),
@@ -112,4 +135,33 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
   'onboarding-location': defineScreen(OnboardingLocationScreenView, locationFixtures, {
     mode: 'bare',
   }),
+  settings: defineScreen(SettingsScreenView, settingsFixtures, SETTINGS_SHELL),
+  'settings-profile': defineScreen(
+    SettingsProfileScreenView,
+    settingsProfileFixtures,
+    SETTINGS_SHELL,
+  ),
+  'settings-issues': defineScreen(SettingsIssuesScreenView, settingsIssuesFixtures, SETTINGS_SHELL),
+  'settings-account': defineScreen(
+    SettingsAccountScreenView,
+    settingsAccountFixtures,
+    SETTINGS_SHELL,
+  ),
+  'settings-appearance': defineScreen(
+    SettingsAppearanceScreenView,
+    settingsAppearanceFixtures,
+    SETTINGS_SHELL,
+  ),
+  'settings-privacy': defineScreen(
+    SettingsPrivacyScreenView,
+    settingsPrivacyFixtures,
+    SETTINGS_SHELL,
+  ),
+  'settings-export': defineScreen(SettingsExportScreenView, settingsExportFixtures, SETTINGS_SHELL),
+  'settings-delete-account': defineScreen(
+    SettingsDeleteAccountScreenView,
+    settingsDeleteAccountFixtures,
+    SETTINGS_SHELL,
+  ),
+  'settings-about': defineScreen(SettingsAboutScreenView, settingsAboutFixtures, SETTINGS_SHELL),
 };

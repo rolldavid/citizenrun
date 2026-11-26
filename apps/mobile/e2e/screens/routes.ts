@@ -160,6 +160,43 @@ async function reauthCodeAtRest(page: Page): Promise<void> {
   await reauthSheetAtRest(page);
 }
 
+/** The AI-screening question's sheet has faded in and, on a phone, risen to where it rests. */
+async function aiConsentSheetAtRest(page: Page): Promise<void> {
+  await layerAtRest(page.getByTestId('settings.ai-consent'));
+}
+
+/** The add-email sheet has faded in and, on a phone, risen to where it rests. */
+async function addEmailSheetAtRest(page: Page): Promise<void> {
+  await layerAtRest(page.getByTestId('auth.add-email-sheet'));
+}
+
+/**
+ * The add-email sheet at rest with its code stage counted from the fixtures' own time: the minute
+ * its fixture leaves before another code may be sent, not the distance to today.
+ */
+async function addEmailCodeAtRest(page: Page): Promise<void> {
+  await page.clock.setFixedTime(new Date(FIXTURE_TIME));
+  await expect(page.getByTestId('auth.code-resend-live')).toHaveText(/(^|\D)60(\D|$)/);
+  await addEmailSheetAtRest(page);
+}
+
+/** The dialog that confirms an account's deletion has faded in. */
+async function deleteDialogAtRest(page: Page): Promise<void> {
+  await layerAtRest(page.getByTestId('settings.delete-dialog'));
+}
+
+/**
+ * The export screen counts its wait from the fixtures' own time, not from today: the clock is set
+ * and the page is told it has come back into view, which is when the screen reads the time again.
+ */
+async function exportWaitAtFixtureTime(page: Page): Promise<void> {
+  await page.clock.setFixedTime(new Date(FIXTURE_TIME));
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event('visibilitychange'));
+  });
+  await expect(page.getByTestId('settings.export-request')).toContainText('You can request again');
+}
+
 export const SCREENS: ScreenEntry[] = [
   // The whole gallery, at either text size, is taller on a phone than one capture takes, so it is
   // captured whole at the two wide viewports only; on the two phones its section entries are the
@@ -1372,6 +1409,383 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/system-unavailable-in-state/stateUnavailableGeneric',
     auth: 'none',
   },
+  // The settings screens, in the app's shell with Profile active. A sheet or a dialog is captured
+  // once it is where it rests; the issues screen's limit lines and its tight layout are drawn as
+  // the sign-up step's are.
+  {
+    id: 'settings-settings-default',
+    path: '/dev/screens/settings/settingsDefault',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-support',
+    path: '/dev/screens/settings/settingsSupport',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-logging-out',
+    path: '/dev/screens/settings/settingsLoggingOut',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-loading',
+    path: '/dev/screens/settings/settingsLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-error',
+    path: '/dev/screens/settings/settingsError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-offline',
+    path: '/dev/screens/settings/settingsOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-settings-stale',
+    path: '/dev/screens/settings/settingsStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit',
+    path: '/dev/screens/settings-profile/profileEdit',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-dirty',
+    path: '/dev/screens/settings-profile/profileEditDirty',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-saving',
+    path: '/dev/screens/settings-profile/profileEditSaving',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-saved',
+    path: '/dev/screens/settings-profile/profileEditSaved',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-field-errors',
+    path: '/dev/screens/settings-profile/profileEditFieldErrors',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-handle-locked',
+    path: '/dev/screens/settings-profile/profileEditHandleLocked',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-avatar-pending',
+    path: '/dev/screens/settings-profile/profileEditAvatarPending',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-ai-consent',
+    path: '/dev/screens/settings-profile/profileEditAiConsent',
+    auth: 'none',
+    prepare: aiConsentSheetAtRest,
+  },
+  {
+    id: 'settings-profile-profile-edit-loading',
+    path: '/dev/screens/settings-profile/profileEditLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-error',
+    path: '/dev/screens/settings-profile/profileEditError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-offline',
+    path: '/dev/screens/settings-profile/profileEditOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-stale',
+    path: '/dev/screens/settings-profile/profileEditStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-loading',
+    path: '/dev/screens/settings-issues/settingsIssuesLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-error',
+    path: '/dev/screens/settings-issues/settingsIssuesError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-offline',
+    path: '/dev/screens/settings-issues/settingsIssuesOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-none',
+    path: '/dev/screens/settings-issues/settingsIssuesNone',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-stale',
+    path: '/dev/screens/settings-issues/settingsIssuesStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-two',
+    path: '/dev/screens/settings-issues/settingsIssuesTwo',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-five',
+    path: '/dev/screens/settings-issues/settingsIssuesFive',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-ten',
+    path: '/dev/screens/settings-issues/settingsIssuesTen',
+    auth: 'none',
+    prepare: tapPastLimit('onboarding.issue-schools', '10 is the most'),
+  },
+  {
+    id: 'settings-issues-settings-issues-star-limit',
+    path: '/dev/screens/settings-issues/settingsIssuesStarLimit',
+    auth: 'none',
+    prepare: tapPastLimit('onboarding.issue-property-taxes-star', '3 stars is the most'),
+  },
+  {
+    id: 'settings-issues-settings-issues-sending',
+    path: '/dev/screens/settings-issues/settingsIssuesSending',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-submit-error',
+    path: '/dev/screens/settings-issues/settingsIssuesSubmitError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-tight',
+    path: '/dev/screens/settings-issues/settingsIssuesTight?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'settings-issues-settings-issues-saved',
+    path: '/dev/screens/settings-issues/settingsIssuesSaved',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-with-email',
+    path: '/dev/screens/settings-account/accountWithEmail',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-no-email',
+    path: '/dev/screens/settings-account/accountNoEmail',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-email-bounced',
+    path: '/dev/screens/settings-account/accountEmailBounced',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-add-email-code',
+    path: '/dev/screens/settings-account/accountAddEmailCode',
+    auth: 'none',
+    prepare: addEmailCodeAtRest,
+  },
+  {
+    id: 'settings-account-account-add-email-in-use',
+    path: '/dev/screens/settings-account/accountAddEmailInUse',
+    auth: 'none',
+    prepare: addEmailSheetAtRest,
+  },
+  {
+    id: 'settings-account-account-loading',
+    path: '/dev/screens/settings-account/accountLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-error',
+    path: '/dev/screens/settings-account/accountError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-offline',
+    path: '/dev/screens/settings-account/accountOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-account-account-stale',
+    path: '/dev/screens/settings-account/accountStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-appearance-appearance-system',
+    path: '/dev/screens/settings-appearance/appearanceSystem',
+    auth: 'none',
+  },
+  {
+    id: 'settings-appearance-appearance-dark',
+    path: '/dev/screens/settings-appearance/appearanceDark',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-m1',
+    path: '/dev/screens/settings-privacy/privacyM1',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-saving',
+    path: '/dev/screens/settings-privacy/privacySaving',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-save-failed',
+    path: '/dev/screens/settings-privacy/privacySaveFailed',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-loading',
+    path: '/dev/screens/settings-privacy/privacyLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-error',
+    path: '/dev/screens/settings-privacy/privacyError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-offline',
+    path: '/dev/screens/settings-privacy/privacyOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-privacy-privacy-stale',
+    path: '/dev/screens/settings-privacy/privacyStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-none',
+    path: '/dev/screens/settings-export/exportNone',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-queued',
+    path: '/dev/screens/settings-export/exportQueued',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-ready',
+    path: '/dev/screens/settings-export/exportReady',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-expired',
+    path: '/dev/screens/settings-export/exportExpired',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-failed',
+    path: '/dev/screens/settings-export/exportFailed',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-wait',
+    path: '/dev/screens/settings-export/exportWait',
+    auth: 'none',
+    prepare: exportWaitAtFixtureTime,
+  },
+  {
+    id: 'settings-export-export-reauth',
+    path: '/dev/screens/settings-export/exportReauth',
+    auth: 'none',
+    prepare: reauthSheetAtRest,
+  },
+  {
+    id: 'settings-export-export-loading',
+    path: '/dev/screens/settings-export/exportLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-error',
+    path: '/dev/screens/settings-export/exportError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-offline',
+    path: '/dev/screens/settings-export/exportOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-export-export-stale',
+    path: '/dev/screens/settings-export/exportStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-info',
+    path: '/dev/screens/settings-delete-account/deleteInfo',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-confirm',
+    path: '/dev/screens/settings-delete-account/deleteConfirm',
+    auth: 'none',
+    prepare: deleteDialogAtRest,
+  },
+  {
+    id: 'settings-delete-account-delete-reauth',
+    path: '/dev/screens/settings-delete-account/deleteReauth',
+    auth: 'none',
+    prepare: reauthSheetAtRest,
+  },
+  {
+    id: 'settings-delete-account-delete-deleting',
+    path: '/dev/screens/settings-delete-account/deleteDeleting',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-error',
+    path: '/dev/screens/settings-delete-account/deleteError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-suspended',
+    path: '/dev/screens/settings-delete-account/deleteSuspended',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-deleted',
+    path: '/dev/screens/settings-delete-account/deleteDeleted',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-loading',
+    path: '/dev/screens/settings-delete-account/deleteLoading',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-load-error',
+    path: '/dev/screens/settings-delete-account/deleteLoadError',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-offline',
+    path: '/dev/screens/settings-delete-account/deleteOffline',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-stale',
+    path: '/dev/screens/settings-delete-account/deleteStale',
+    auth: 'none',
+  },
+  {
+    id: 'settings-about-about-m1',
+    path: '/dev/screens/settings-about/aboutM1',
+    auth: 'none',
+  },
   // An unknown pair renders the not-found content.
   { id: 'dev-screens-unknown-pair', path: '/dev/screens/none/none', auth: 'none' },
   // The design review's 130% text size.
@@ -1421,6 +1835,21 @@ export const SCREENS: ScreenEntry[] = [
     path: '/dev/screens/sign-in/signInCodeWrong?textScale=1.3',
     auth: 'none',
     prepare: atFixtureTime,
+  },
+  {
+    id: 'settings-settings-default-x130',
+    path: '/dev/screens/settings/settingsDefault?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'settings-profile-profile-edit-x130',
+    path: '/dev/screens/settings-profile/profileEdit?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'settings-delete-account-delete-info-x130',
+    path: '/dev/screens/settings-delete-account/deleteInfo?textScale=1.3',
+    auth: 'none',
   },
   { id: 'dev-spike-map', path: '/dev/spikes/map', auth: 'none', prepare: waitForMapSpike },
   { id: 'dev-spike-card', path: '/dev/spikes/card', auth: 'none', prepare: waitForCardSpike },

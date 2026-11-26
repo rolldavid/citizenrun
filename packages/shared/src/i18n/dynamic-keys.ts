@@ -7,6 +7,7 @@ import { STATE_CODES } from '../constants/geo.ts';
  */
 const ISSUE_SHORT = 'built from ISSUE_IDS';
 const STATE_NAME = 'built from STATE_CODES (lower-case code)';
+const EMAIL_STATUS = 'built from Me.emailStatus';
 
 export const DYNAMIC_KEYS: readonly { key: string; reason: string }[] = [
   { key: 'common:issueShort.rentHousing', reason: ISSUE_SHORT },
@@ -32,4 +33,7 @@ export const DYNAMIC_KEYS: readonly { key: string; reason: string }[] = [
     key: `common:state.${code.toLowerCase()}`,
     reason: STATE_NAME,
   })),
+  { key: 'settings:account.emailStatus.bounced', reason: EMAIL_STATUS },
+  { key: 'settings:account.emailStatus.complained', reason: EMAIL_STATUS },
+  { key: 'settings:account.emailStatus.disabled', reason: EMAIL_STATUS },
 ];

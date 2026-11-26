@@ -71,6 +71,8 @@ export const auth = {
       'Public posts, comments and bios may be checked by an automated AI service run by Anthropic; direct messages never are.',
     allow: 'Allow',
     notNow: 'Not now',
+    dontAllow: "Don't allow",
+    declineNote: 'Your content is never sent to it. Keyword checks still apply.',
   },
   reauth: {
     title: 'Sign in again to continue',
