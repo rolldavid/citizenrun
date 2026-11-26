@@ -5,7 +5,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { repoRoot } from './lib/repo-root.ts';
 
 // apps/mobile/metro.config.cjs resolves the `locales` re-export of zod's entry modules to a module
-// that exports English alone, which keeps every zod locale out of the web bundle (D-164).
+// that exports English alone, which keeps every zod locale out of the web bundle (D-164). It also
+// resolves each `@citizenrun/shared/api/<name>` request that babel.config.cjs writes to the one
+// generated file that defines the name, so the web bundle carries only the operations it calls.
 
 type Resolution = { type: string; filePath?: string };
 type ResolveContext = {
@@ -25,6 +27,9 @@ const fromApp = createRequire(join(APP, 'package.json'));
 const ZOD = dirname(fromApp.resolve('zod/package.json'));
 const ZOD_ENTRIES = ['v4/core/index.js', 'v4/classic/external.js'];
 const METRO_ANSWER: Resolution = { type: 'sourceFile', filePath: '/resolved/by/metro.js' };
+const API = join(repoRoot(), 'packages/shared/src/api');
+const API_ENTRY = '@citizenrun/shared/api';
+const API_INDEX: Resolution = { type: 'sourceFile', filePath: join(API, 'index.ts') };
 
 function resolveRequest(): Resolve {
   const config = fromApp('./metro.config.cjs') as { resolver: { resolveRequest: Resolve } };
@@ -70,5 +75,39 @@ describe('metro.config.cjs', () => {
         `export * as locales from "${LOCALES_REQUEST}";`,
       );
     }
+  });
+
+  it('resolves a name of the generated client to the file that defines it', () => {
+    const resolve = resolveRequest();
+    const cases: [string, string][] = [
+      ['useGetReadyz', 'web/web.ts'],
+      ['createClientError', 'safety/safety.ts'],
+      ['getMe', 'me/me.ts'],
+    ];
+    for (const [name, file] of cases) {
+      const context = contextFrom(join(APP, 'src/lib/client-errors.ts'));
+      vi.mocked(context.resolveRequest).mockReturnValue(API_INDEX);
+      expect(resolve(context, `${API_ENTRY}/${name}`, 'web')).toEqual({
+        type: 'sourceFile',
+        filePath: join(API, file),
+      });
+      expect(context.resolveRequest).toHaveBeenCalledWith(context, API_ENTRY, 'web');
+    }
+  });
+
+  it('resolves a name no generated file defines to the entry', () => {
+    const resolve = resolveRequest();
+    for (const name of ['NoSuchOperation', 'ReadyzResponse']) {
+      const context = contextFrom(join(APP, 'src/lib/client-errors.ts'));
+      vi.mocked(context.resolveRequest).mockReturnValue(API_INDEX);
+      expect(resolve(context, `${API_ENTRY}/${name}`, 'ios')).toEqual(API_INDEX);
+    }
+  });
+
+  it('leaves the entry itself to Metro', () => {
+    const resolve = resolveRequest();
+    const context = contextFrom(join(APP, 'src/lib/client-errors.ts'));
+    expect(resolve(context, API_ENTRY, 'web')).toEqual(METRO_ANSWER);
+    expect(context.resolveRequest).toHaveBeenCalledWith(context, API_ENTRY, 'web');
   });
 });

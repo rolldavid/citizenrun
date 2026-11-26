@@ -1,3 +1,4 @@
+const fs = require('node:fs');
 const http = require('node:http');
 const https = require('node:https');
 const path = require('node:path');
@@ -13,15 +14,56 @@ const ZOD_LOCALES_REQUEST = '../locales/index.js';
 const ZOD_ENTRY_FOLDER = /[\\/]node_modules[\\/]zod[\\/]v4[\\/](?:core|classic|mini)[\\/][^\\/]+$/;
 const ZOD_LOCALES = path.join(__dirname, 'src', 'lib', 'zod-locales.ts');
 
+// babel.config.cjs turns each value imported by name from the generated API client's entry into the
+// request `@citizenrun/shared/api/<name>`. It resolves to the one generated file that defines the
+// name, read from the client's files at each resolution so a regenerated client is never stale; a
+// name no file defines, or more than one defines, resolves to the entry (D-164).
+const API_ENTRY = '@citizenrun/shared/api';
+const API_NAME_REQUEST = /^@citizenrun\/shared\/api\/([A-Za-z_$][\w$]*)$/;
+
+function apiFileDefining(apiFolder, name) {
+  const definition = new RegExp(
+    `^export (?:async function|function|const|let|class) ${name.replace(/\$/g, '\\$')}\\b`,
+    'm',
+  );
+  const files = [];
+  for (const entry of fs.readdirSync(apiFolder, { withFileTypes: true })) {
+    if (!entry.isDirectory()) {
+      continue;
+    }
+    const folder = path.join(apiFolder, entry.name);
+    for (const file of fs.readdirSync(folder)) {
+      const filePath = path.join(folder, file);
+      if (file.endsWith('.ts') && definition.test(fs.readFileSync(filePath, 'utf8'))) {
+        files.push(filePath);
+      }
+    }
+  }
+  return files.length === 1 ? files[0] : null;
+}
+
 const upstreamResolve = config.resolver.resolveRequest;
+
+function resolveUpstream(context, moduleName, platform) {
+  return upstreamResolve
+    ? upstreamResolve(context, moduleName, platform)
+    : context.resolveRequest(context, moduleName, platform);
+}
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (moduleName === ZOD_LOCALES_REQUEST && ZOD_ENTRY_FOLDER.test(context.originModulePath)) {
     return { type: 'sourceFile', filePath: ZOD_LOCALES };
   }
-  return upstreamResolve
-    ? upstreamResolve(context, moduleName, platform)
-    : context.resolveRequest(context, moduleName, platform);
+  const apiName = API_NAME_REQUEST.exec(moduleName);
+  if (apiName) {
+    const entry = resolveUpstream(context, API_ENTRY, platform);
+    const filePath =
+      entry.type === 'sourceFile'
+        ? apiFileDefining(path.dirname(entry.filePath), apiName[1])
+        : null;
+    return filePath ? { type: 'sourceFile', filePath } : entry;
+  }
+  return resolveUpstream(context, moduleName, platform);
 };
 
 // The web app and the API share one origin in development: these paths go to the local API.
