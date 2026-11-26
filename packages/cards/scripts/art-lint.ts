@@ -253,11 +253,16 @@ function twoNumbers(text: string): [number, number] | null {
   return [Number(a), Number(b)];
 }
 
-/** Every violation of the art rules in one source file, in the order of the checks; empty when it passes. */
+/**
+ * Every violation of the art rules in one source file, in the order of the checks; empty when it
+ * passes. With `illustrationIds`, an office drawing or a glyph must be named by one of them, and so
+ * must the relative its `data-placeholder-of` names (CARD-art-ids).
+ */
 export function lintArtSource(
   group: ArtGroup,
   fileName: string,
   svgText: string,
+  options?: { illustrationIds?: ReadonlySet<string> },
 ): readonly ArtViolation[] {
   const rules = ART_RULES[group];
   const read = readSource(svgText);
@@ -278,6 +283,24 @@ export function lintArtSource(
   if (isKebab && group === 'issues') {
     const id = fileName.slice(0, -'.svg'.length);
     report('id', ISSUE_ID_SET.has(id) ? [] : [`${id} is not an issue id`]);
+  }
+  const illustrationIds = options?.illustrationIds;
+  if (isKebab && group !== 'issues' && illustrationIds !== undefined) {
+    const id = fileName.slice(0, -'.svg'.length);
+    const relative = attributeOf(rootAttributes, 'data-placeholder-of');
+    const problems: string[] = [];
+    if (!illustrationIds.has(id)) {
+      problems.push(`${id} is not an illustration id of an office type`);
+    }
+    if (relative !== undefined && !illustrationIds.has(relative)) {
+      problems.push(
+        `data-placeholder-of "${relative}" is not an illustration id of an office type`,
+      );
+    }
+    if (relative === id) {
+      problems.push(`data-placeholder-of "${relative}" names the file itself`);
+    }
+    report('id', problems);
   }
 
   // 3. root

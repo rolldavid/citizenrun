@@ -314,3 +314,73 @@ describe('lintArtSource', () => {
     });
   });
 });
+
+describe('lintArtSource with the illustration ids', () => {
+  const illustrationIds: ReadonlySet<string> = new Set([
+    'county-treasurer',
+    'congress',
+    'legislature',
+  ]);
+  const PIN =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">\n  <path d="M4 4h16v16H4z" fill="#111111"/>\n</svg>\n';
+  const OFFICE_ROOT =
+    'xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" data-crop="80" data-spot="8 24"';
+  const placeholderPin = (relative: string): string =>
+    PIN.replace('viewBox="0 0 24 24"', `viewBox="0 0 24 24" data-placeholder-of="${relative}"`);
+  const rules = (group: 'offices' | 'pins', fileName: string, text: string): ArtRule[] =>
+    lintArtSource(group, fileName, text, { illustrationIds }).map((violation) => violation.rule);
+
+  it('passes an office and a pin named by an id', () => {
+    expect(rules('offices', 'county-treasurer.svg', office())).toEqual([]);
+    expect(rules('pins', 'county-treasurer.svg', PIN)).toEqual([]);
+  });
+
+  it('an office file that is no illustration fails', () => {
+    expect(rules('offices', 'not-a-drawing.svg', office())).toEqual(['id']);
+    const [violation] = lintArtSource('offices', 'not-a-drawing.svg', office(), {
+      illustrationIds,
+    });
+    expect(violation?.message).toContain('not-a-drawing');
+  });
+
+  it('a pin file that is no illustration fails', () => {
+    expect(rules('pins', 'not-a-glyph.svg', PIN)).toEqual(['id']);
+  });
+
+  it('a placeholder of an unknown relative fails', () => {
+    const text = office({ root: `${OFFICE_ROOT} data-placeholder-of="no-such-id"` });
+    expect(rules('offices', 'congress.svg', text)).toEqual(['id']);
+    expect(
+      lintArtSource('offices', 'congress.svg', text, { illustrationIds })[0]?.message,
+    ).toContain('no-such-id');
+    expect(rules('pins', 'congress.svg', placeholderPin('no-such-id'))).toEqual(['id']);
+  });
+
+  it('a placeholder of a known relative passes', () => {
+    const text = office({ root: `${OFFICE_ROOT} data-placeholder-of="county-treasurer"` });
+    expect(rules('offices', 'congress.svg', text)).toEqual([]);
+    expect(rules('pins', 'legislature.svg', placeholderPin('congress'))).toEqual([]);
+  });
+
+  it('a placeholder of itself fails', () => {
+    const text = office({ root: `${OFFICE_ROOT} data-placeholder-of="congress"` });
+    expect(rules('offices', 'congress.svg', text)).toEqual(['id']);
+    expect(rules('pins', 'congress.svg', placeholderPin('congress'))).toEqual(['id']);
+  });
+
+  it('without the id set the office checks are unchanged', () => {
+    expect(lintArtSource('offices', 'not-a-drawing.svg', office())).toEqual([]);
+    const text = office({ root: `${OFFICE_ROOT} data-placeholder-of="no-such-id"` });
+    expect(lintArtSource('offices', 'congress.svg', text)).toEqual([]);
+    expect(lintArtSource('pins', 'not-a-glyph.svg', PIN)).toEqual([]);
+  });
+
+  it('the id set does not change the issue rule', () => {
+    expect(
+      lintArtSource('issues', 'not-an-issue.svg', issue(), { illustrationIds }).map(
+        (violation) => violation.rule,
+      ),
+    ).toEqual(['id']);
+    expect(lintArtSource('issues', 'climate.svg', issue(), { illustrationIds })).toEqual([]);
+  });
+});

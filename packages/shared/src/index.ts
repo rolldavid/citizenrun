@@ -21,3 +21,4 @@ export * from './num/index.ts';
 export * from './time/index.ts';
 export * from './scoring/index.ts';
 export * from './names/index.ts';
+export * from './map/outline.ts';

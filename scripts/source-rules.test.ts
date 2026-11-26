@@ -355,3 +355,129 @@ describe('the pipeline home', () => {
     expect(stackBuckets('standIn').data).toBe('data');
   });
 });
+
+const OFFICE_TYPE_START = /^- id: ([a-z0-9]+(-[a-z0-9]+)*)$/;
+const OFFICE_TYPE_ILLUSTRATION = /^ {2}illustration: ([a-z0-9]+(-[a-z0-9]+)*)$/;
+
+/**
+ * The distinct illustration ids of the office types file, in first-seen order. The same strict line
+ * format as the cards generator's reader: a record starts at `- id: <id>` and holds exactly one
+ * `  illustration: <id>` line; anything else in those two shapes throws with its line number.
+ */
+function readIllustrationIds(yamlText: string): string[] {
+  const ids: string[] = [];
+  let record: { id: string; line: number; illustration: string | null } | null = null;
+  const close = (): void => {
+    if (record !== null && record.illustration === null) {
+      throw new Error(
+        `data/office-types.yaml line ${String(record.line)}: ${record.id} has no illustration`,
+      );
+    }
+  };
+  const seen = new Set<string>();
+  yamlText.split('\n').forEach((text, index) => {
+    const line = index + 1;
+    const start = OFFICE_TYPE_START.exec(text);
+    if (start !== null) {
+      close();
+      const id = start[1] ?? '';
+      if (seen.has(id))
+        throw new Error(`data/office-types.yaml line ${String(line)}: ${id} repeats`);
+      seen.add(id);
+      record = { id, line, illustration: null };
+      return;
+    }
+    if (text.startsWith('-')) {
+      throw new Error(`data/office-types.yaml line ${String(line)} does not start a record`);
+    }
+    if (!/^\s*illustration\s*:/.test(text)) return;
+    const match = OFFICE_TYPE_ILLUSTRATION.exec(text);
+    if (match === null || record === null || record.illustration !== null) {
+      throw new Error(`data/office-types.yaml line ${String(line)} is not one illustration line`);
+    }
+    record.illustration = match[1] ?? '';
+    if (!ids.includes(record.illustration)) ids.push(record.illustration);
+  });
+  close();
+  if (seen.size === 0) throw new Error('data/office-types.yaml holds no office type');
+  return ids;
+}
+
+/** One message per office or pin file that is missing for an illustration id or is no id. */
+function officeArtParityProblems(input: {
+  illustrationIds: readonly string[];
+  officeFiles: readonly string[];
+  pinFiles: readonly string[];
+}): string[] {
+  const problems: string[] = [];
+  const ids = new Set(input.illustrationIds);
+  const groups = [
+    { folder: 'art/offices', files: input.officeFiles },
+    { folder: 'art/pins', files: input.pinFiles },
+  ];
+  for (const { folder, files } of groups) {
+    const names = new Set(files.map((file) => file.replace(/\.svg$/, '')));
+    for (const id of input.illustrationIds) {
+      if (!names.has(id)) problems.push(`${folder} has no file for the illustration ${id}`);
+    }
+    for (const file of files) {
+      if (!ids.has(file.replace(/\.svg$/, ''))) {
+        problems.push(`${folder}/${file} is not named by an illustration id`);
+      }
+    }
+  }
+  return problems;
+}
+
+describe('office art and data', () => {
+  it('office art parity finds every problem', () => {
+    const problems = officeArtParityProblems({
+      illustrationIds: ['a', 'b'],
+      officeFiles: ['a.svg', 'c.svg'],
+      pinFiles: ['a.svg', 'b.svg'],
+    });
+    expect(problems).toEqual([
+      'art/offices has no file for the illustration b',
+      'art/offices/c.svg is not named by an illustration id',
+    ]);
+  });
+
+  it('parity passes when the files are the ids', () => {
+    expect(
+      officeArtParityProblems({
+        illustrationIds: ['a', 'b'],
+        officeFiles: ['a.svg', 'b.svg'],
+        pinFiles: ['b.svg', 'a.svg'],
+      }),
+    ).toEqual([]);
+  });
+
+  it('reads the illustration ids', () => {
+    const text = [
+      '# Fixture office types.',
+      '- id: fixture-senate',
+      "  name: 'Fixture senator'",
+      '  illustration: fixture-chamber',
+      '- id: fixture-house',
+      "  name: 'Fixture representative'",
+      '  illustration: fixture-chamber',
+      '- id: fixture-clerk',
+      '  illustration: fixture-clerk',
+      '',
+    ].join('\n');
+    expect(readIllustrationIds(text)).toEqual(['fixture-chamber', 'fixture-clerk']);
+    expect(() => readIllustrationIds(text.replace('  illustration: fixture-clerk\n', ''))).toThrow(
+      'line 8',
+    );
+    expect(() =>
+      readIllustrationIds(text.replace('  illustration: fixture-clerk', '  illustration: Clerk')),
+    ).toThrow('line 9');
+  });
+
+  it('reads the data file', () => {
+    const ids = readIllustrationIds(readFileSync(join(ROOT, 'data', 'office-types.yaml'), 'utf8'));
+    expect(ids).toHaveLength(39);
+    expect(ids).toContain('congress');
+    expect(ids).toContain('city-council');
+  });
+});
