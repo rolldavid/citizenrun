@@ -115,6 +115,10 @@
           "needed"
         ]
       },
+      "CreateAuthNonceBody": {
+        "type": "object",
+        "properties": {}
+      },
       "CreateClientErrorBody": {
         "type": "object",
         "properties": {
@@ -325,6 +329,10 @@
         "required": [
           "status"
         ]
+      },
+      "LogoutBody": {
+        "type": "object",
+        "properties": {}
       },
       "Me": {
         "type": "object",
@@ -584,6 +592,30 @@
           "url",
           "width",
           "height"
+        ]
+      },
+      "NonceResult": {
+        "type": "object",
+        "properties": {
+          "nonce": {
+            "type": "string"
+          },
+          "nonceHash": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "nonce",
+          "nonceHash",
+          "state",
+          "expiresAt"
         ]
       },
       "OnboardingStep": {
@@ -1181,6 +1213,160 @@
           },
           "429": {
             "description": "Too many requests or sign-ups.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "logout",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "optional",
+          "rateLimit": "auth.logout",
+          "public": true,
+          "allowWhenSuspended": true
+        },
+        "x-errors": [
+          "invalid_request",
+          "unauthenticated",
+          "origin_rejected",
+          "rate_limited"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "cookie": []
+          },
+          {}
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Signed out; on the web the session cookie is cleared."
+          },
+          "400": {
+            "description": "The request is not valid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The bearer token does not resolve.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/nonce": {
+      "post": {
+        "operationId": "createAuthNonce",
+        "tags": [
+          "auth"
+        ],
+        "x-route": {
+          "auth": "none",
+          "rateLimit": "auth.nonce",
+          "public": true
+        },
+        "x-errors": [
+          "client_header_required",
+          "origin_rejected",
+          "rate_limited"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAuthNonceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The nonce, its hash for the provider, the signed Apple state and the expiry.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NonceResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The client header is missing or malformed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The request-forgery check failed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests.",
             "content": {
               "application/json": {
                 "schema": {

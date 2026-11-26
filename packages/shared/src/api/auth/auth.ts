@@ -10,8 +10,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CreateAuthNonceBody,
   EmailStartResult,
   ErrorEnvelope,
+  LogoutBody,
+  NonceResult,
   SessionInfo,
   StartEmailSignInBody,
   VerifyEmailSignInBody,
@@ -214,4 +217,162 @@ export const useVerifyEmailSignIn = <TError = ErrorType<ErrorEnvelope>, TContext
   TContext
 > => {
   return useMutation(getVerifyEmailSignInMutationOptions(options), queryClient);
+};
+export const getLogoutUrl = () => {
+  return `/v1/auth/logout`;
+};
+
+export const logout = async (
+  logoutBody: LogoutBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<void> => {
+  return apiFetch<void>(getLogoutUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(logoutBody),
+  });
+};
+
+export const getLogoutMutationKey = () => ['logout'] as const;
+
+export const getLogoutMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof logout>>,
+    TError,
+    LogoutMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof logout>>,
+  TError,
+  LogoutMutationVariables,
+  TContext
+> => {
+  const mutationKey = getLogoutMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof logout>>,
+    LogoutMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return logout(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type LogoutMutationResult = NonNullable<Awaited<ReturnType<typeof logout>>>;
+export type LogoutMutationBody = LogoutBody;
+export type LogoutMutationError = ErrorType<ErrorEnvelope>;
+export type LogoutMutationVariables = { data: LogoutBody };
+
+export const useLogout = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof logout>>,
+      TError,
+      LogoutMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof logout>>,
+  TError,
+  LogoutMutationVariables,
+  TContext
+> => {
+  return useMutation(getLogoutMutationOptions(options), queryClient);
+};
+export const getCreateAuthNonceUrl = () => {
+  return `/v1/auth/nonce`;
+};
+
+export const createAuthNonce = async (
+  createAuthNonceBody: CreateAuthNonceBody,
+  options?: Parameters<typeof apiFetch>[1],
+): Promise<NonceResult> => {
+  return apiFetch<NonceResult>(getCreateAuthNonceUrl(), {
+    ...options,
+    method: 'POST',
+    headers: getHeaders({ 'Content-Type': 'application/json' }, options?.headers),
+    body: JSON.stringify(createAuthNonceBody),
+  });
+};
+
+export const getCreateAuthNonceMutationKey = () => ['createAuthNonce'] as const;
+
+export const getCreateAuthNonceMutationOptions = <
+  TError = ErrorType<ErrorEnvelope>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createAuthNonce>>,
+    TError,
+    CreateAuthNonceMutationVariables,
+    TContext
+  >;
+  request?: SecondParameter<typeof apiFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createAuthNonce>>,
+  TError,
+  CreateAuthNonceMutationVariables,
+  TContext
+> => {
+  const mutationKey = getCreateAuthNonceMutationKey();
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createAuthNonce>>,
+    CreateAuthNonceMutationVariables
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createAuthNonce(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateAuthNonceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createAuthNonce>>
+>;
+export type CreateAuthNonceMutationBody = CreateAuthNonceBody;
+export type CreateAuthNonceMutationError = ErrorType<ErrorEnvelope>;
+export type CreateAuthNonceMutationVariables = { data: CreateAuthNonceBody };
+
+export const useCreateAuthNonce = <TError = ErrorType<ErrorEnvelope>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createAuthNonce>>,
+      TError,
+      CreateAuthNonceMutationVariables,
+      TContext
+    >;
+    request?: SecondParameter<typeof apiFetch>;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
+  Awaited<ReturnType<typeof createAuthNonce>>,
+  TError,
+  CreateAuthNonceMutationVariables,
+  TContext
+> => {
+  return useMutation(getCreateAuthNonceMutationOptions(options), queryClient);
 };
