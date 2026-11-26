@@ -55,6 +55,9 @@ type Avatar = {
   keys: { small: string; large: string };
 };
 
+/** How far one attempt got: derivatives written, then made the avatar. */
+type Progress = { written: boolean; promoted: boolean };
+
 /** A failure no retry can fix; the job records it and returns. */
 class AvatarRefused extends Error {
   override readonly name = 'AvatarRefused';
@@ -245,7 +248,7 @@ async function promote(
 }
 
 // Steps 2 to 7.
-async function processLoaded(ctx: JobContext, avatar: Avatar): Promise<void> {
+async function processLoaded(ctx: JobContext, avatar: Avatar, progress: Progress): Promise<void> {
   const { upload, keys } = avatar;
   const bytes = await readOriginal(ctx, upload);
   const sha256 = sha256Of(bytes);
@@ -263,6 +266,7 @@ async function processLoaded(ctx: JobContext, avatar: Avatar): Promise<void> {
     [keys.large, outputNamed(outputs, '1080.jpg')],
     [keys.small, outputNamed(outputs, '320.jpg')],
   ];
+  progress.written = true;
   for (const [key, output] of written) {
     await putObject(
       ctx.storage.media,
@@ -276,6 +280,7 @@ async function processLoaded(ctx: JobContext, avatar: Avatar): Promise<void> {
     ctx.log.info('media.superseded', { target: 'avatar' });
     return;
   }
+  progress.promoted = true;
   // Only after the commit: a rollback after the delete would fail a good avatar on its retry.
   await deleteOriginal(ctx, upload);
   const latencyMs =
@@ -293,16 +298,32 @@ async function refuse(ctx: JobContext, avatar: Avatar, reason: AvatarFailReason)
 
 // Step 9: the last attempt gives up. Each write is tried on its own, so a bucket that is down does
 // not stop the database write; the original is marked deleted only once its delete went through.
-async function giveUp(ctx: JobContext, avatar: Avatar): Promise<void> {
+// An avatar this attempt already made current has passed: only its original was left. Derivatives
+// written for an avatar that never became current go to the cleanup job, as a discarded upload's do.
+async function giveUp(ctx: JobContext, avatar: Avatar, progress: Progress): Promise<void> {
   try {
     await deleteOriginal(ctx, avatar.upload);
   } catch {
     // The job goes to ops.dead, which alerts.
   }
+  if (progress.promoted) {
+    return;
+  }
   try {
     await clearPending(ctx, avatar);
   } catch {
     // As above.
+  }
+  if (progress.written) {
+    try {
+      await ctx.enqueue('uploads.cleanup', {
+        scope: 'avatar',
+        userId: avatar.userId,
+        uploadId: avatar.upload.id,
+      });
+    } catch {
+      // As above.
+    }
   }
   ctx.log.warn('media.failed', { target: 'avatar', reason: 'retries_exhausted' });
 }
@@ -313,9 +334,10 @@ export async function processAvatar(payload: AvatarTarget, ctx: JobContext): Pro
   if (avatar === null) {
     return;
   }
+  const progress: Progress = { written: false, promoted: false };
   try {
     try {
-      await processLoaded(ctx, avatar);
+      await processLoaded(ctx, avatar, progress);
     } catch (error) {
       if (error instanceof AvatarRefused) {
         await refuse(ctx, avatar, error.reason);
@@ -325,7 +347,7 @@ export async function processAvatar(payload: AvatarTarget, ctx: JobContext): Pro
     }
   } catch (error) {
     if (ctx.job.isFinalAttempt) {
-      await giveUp(ctx, avatar);
+      await giveUp(ctx, avatar, progress);
     }
     throw error;
   }

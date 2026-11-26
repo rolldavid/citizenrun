@@ -1,4 +1,9 @@
-import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+} from '@aws-sdk/client-s3';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { markAccountDeleting, users } from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
@@ -30,6 +35,7 @@ import {
 import { sha256Of } from '../../lib/media/photo.ts';
 import type { Bucket } from '../../lib/storage.ts';
 import { peekQueue, runJob } from '../../testing/job.ts';
+import { uploadsCleanup } from '../cleanup/uploads-cleanup.ts';
 import {
   avatarUpload,
   setAvatarColumns,
@@ -94,6 +100,19 @@ function failingUserUpdates(): Db {
           }
           return target.update(table);
         };
+      }
+      return Reflect.get(target, property, receiver) as unknown;
+    },
+  });
+}
+
+/** The test database, with every transaction failing before it starts. */
+function failingTransactions(): Db {
+  const db = getTestDb();
+  return new Proxy(db, {
+    get(target, property, receiver): unknown {
+      if (property === 'transaction') {
+        return (): Promise<never> => Promise.reject(new Error('fixture transaction failure'));
       }
       return Reflect.get(target, property, receiver) as unknown;
     },
@@ -253,6 +272,67 @@ describe('J-media.process for an avatar', () => {
     expect((await userRow(fixture.user.id)).avatarPendingKey).toBeNull();
     expect(await getTestObject('media', fixture.upload.key)).toBeNull();
     expect((await uploadRow(fixture.upload.id)).objectDeletedAt).not.toBeNull();
+  });
+
+  it('the last attempt hands derivatives that never became the avatar to the cleanup', async () => {
+    const clock = new FakeClock();
+    const fixture = await avatarUpload(clock, await solidJpeg(1200, 900));
+    await setAvatarColumns(fixture.user.id, { avatarPendingKey: fixture.keys.small });
+
+    const last = await runJob(mediaProcessImage, fixture.payload, {
+      clock,
+      db: failingTransactions(),
+      retryCount: 2,
+    });
+
+    expect(last.outcome).toBe('failed');
+    const user = await userRow(fixture.user.id);
+    expect(user.avatarKey).toBeNull();
+    expect(user.avatarPendingKey).toBeNull();
+    expect(events('media.failed')).toEqual([
+      expect.objectContaining({ level: 'warn', target: 'avatar', reason: 'retries_exhausted' }),
+    ]);
+    expect((await peekQueue('uploads.cleanup')).map((job) => job.data)).toEqual([
+      { scope: 'avatar', userId: fixture.user.id, uploadId: fixture.upload.id },
+    ]);
+    const cleanup = await runJob(
+      uploadsCleanup,
+      { scope: 'avatar', userId: fixture.user.id, uploadId: fixture.upload.id },
+      { clock },
+    );
+    expect(cleanup.outcome).toBe('completed');
+    expect(await derivatives(fixture.user.id)).toEqual([]);
+  });
+
+  it('the last attempt of an avatar that passed logs no failure when its original stays', async () => {
+    const clock = new FakeClock();
+    const fixture = await avatarUpload(clock, await solidJpeg(1200, 900));
+    const media = await getTestBucket('media');
+    const noDeletes = {
+      send: (command: unknown, options?: unknown): Promise<unknown> => {
+        if (command instanceof DeleteObjectsCommand) {
+          return Promise.reject(new Error('fixture bucket outage'));
+        }
+        return (media.client.send as (c: unknown, o?: unknown) => Promise<unknown>)(
+          command,
+          options,
+        );
+      },
+    } as unknown as S3Client;
+
+    const last = await runJob(mediaProcessImage, fixture.payload, {
+      clock,
+      media: { client: noDeletes, bucket: media.bucket },
+      retryCount: 2,
+    });
+
+    expect(last.outcome).toBe('failed');
+    expect((await userRow(fixture.user.id)).avatarKey).toBe(fixture.keys.small);
+    expect(await derivatives(fixture.user.id)).toEqual(
+      [fixture.keys.large, fixture.keys.small].sort(),
+    );
+    expect(events('media.failed')).toEqual([]);
+    expect((await uploadRow(fixture.upload.id)).objectDeletedAt).toBeNull();
   });
 
   it('others see the default until it passes', async () => {
