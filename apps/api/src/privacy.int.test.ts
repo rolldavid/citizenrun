@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { eq, sql } from 'drizzle-orm';
-import { users } from '@citizenrun/db';
+import { userDistricts, users } from '@citizenrun/db';
 import type { Db } from '@citizenrun/db';
 import { getTestDb, insertConsents, insertUser } from '@citizenrun/db/testing';
 import {
@@ -12,6 +12,7 @@ import {
   ERROR_CODES,
   LEGAL_VERSIONS,
   SetHandleBodySchema,
+  SetLocationBodySchema,
   SignInWithAppleBodySchema,
   SignInWithGoogleBodySchema,
   StartEmailSignInBodySchema,
@@ -31,9 +32,16 @@ import { createTestApp } from './testing/app.ts';
 import type { TestApp } from './testing/app.ts';
 import { signIn } from './testing/auth.ts';
 import { insertIdentity } from './testing/factories.ts';
-import { fakeAddressSuggestions } from './testing/fakes/geocoder.ts';
+import { fakeAddressSuggestions, fakeCensusGeocoder } from './testing/fakes/geocoder.ts';
 import { FIXTURE_APPLE, FakeIdentityProviders } from './testing/fakes/identity.ts';
 import { findTextInTables } from './testing/find-in-tables.ts';
+import {
+  DEFAULT_FIXTURE_POINT,
+  FIXTURE_ADDRESS,
+  fixtureCensusMatch,
+  insertLocationFixture,
+  locationBody,
+} from './testing/location.ts';
 import type { TestAuth, TestResponse } from './testing/request.ts';
 
 // TEST-privacy-logscan's API suite. The always-on scan of the harness runs after every case as well.
@@ -96,6 +104,7 @@ const ME = '/v1/me';
 const CHECK_HANDLE = '/v1/handles/check';
 const SET_HANDLE = '/v1/me/handle';
 const SUGGEST_PLACES = '/v1/geo/autocomplete';
+const SET_LOCATION = '/v1/me/location';
 // A fixture key, never a real one: Geoapify with the suggestion fake behind it.
 const FIXTURE_GEO_KEY = 'fixture-geo-key';
 const GEOAPIFY_ENV = { GEO_PROVIDER: 'geoapify', GEO_API_KEY: FIXTURE_GEO_KEY } as const;
@@ -362,10 +371,41 @@ async function geoapifyApp(): Promise<TestApp> {
   return testApp;
 }
 
+let nextUnmarked = 1;
+
 /** A user whose email holds no marker, signed in by bearer, so a table scan for it means something. */
+async function unmarkedUserWithId(testApp: TestApp): Promise<{ userId: string; auth: TestAuth }> {
+  const email = `fixture.places.${String(nextUnmarked)}@example.test`;
+  nextUnmarked += 1;
+  const user = await insertUser(testApp.deps.db, { email });
+  return { userId: user.id, auth: await signIn(testApp.deps.db, user, 'bearer') };
+}
+
 async function unmarkedUser(testApp: TestApp): Promise<TestAuth> {
-  const user = await insertUser(testApp.deps.db, { email: 'fixture.places@example.test' });
-  return signIn(testApp.deps.db, user, 'bearer');
+  return (await unmarkedUserWithId(testApp)).auth;
+}
+
+/** A typed street address with the marker in it. */
+function markedAddress(): string {
+  return `${marker()} Fixture Road`;
+}
+
+/** The default point's body; both coordinates are registered with the always-on scan. */
+function markedPoint(): Record<string, unknown> {
+  return locationBody(DEFAULT_FIXTURE_POINT.lat, DEFAULT_FIXTURE_POINT.lng);
+}
+
+/** The coordinates of the default point as six-decimal text, the form the scan looks for. */
+function pointTexts(): string[] {
+  return [DEFAULT_FIXTURE_POINT.lat.toFixed(6), DEFAULT_FIXTURE_POINT.lng.toFixed(6)];
+}
+
+/** A test app with the location fixture and a Census fake that matches the marked address. */
+async function locationApp(): Promise<TestApp> {
+  const testApp = await createTestApp();
+  await insertLocationFixture(testApp.deps.db, testApp.deps.clock.now());
+  fakeCensusGeocoder(testApp.fakes.outbound, { [markedAddress()]: fixtureCensusMatch('99001') });
+  return testApp;
 }
 
 /** Every operation with a string field in its body or query that gets the marker. */
@@ -880,6 +920,55 @@ const SENSITIVE_INPUTS: Readonly<Record<string, SensitiveInput>> = {
       return { testApp, response, secrets: [FIXTURE_GEO_KEY] };
     },
   },
+  setLocation: {
+    path: SET_LOCATION,
+    transport: { method: 'put' },
+    fields: ['address', 'lat', 'lng'],
+    validBody: () => ({ address: FIXTURE_ADDRESS }),
+    isValid: (body) => SetLocationBodySchema.safeParse(body).success,
+    signedIn: true,
+    successStatus: 200,
+    // The marked address, answered by the Census fake with a match, then a point.
+    success: async () => {
+      const testApp = await locationApp();
+      const auth = await unmarkedUser(testApp);
+      const byAddress = await sendSignedIn(
+        testApp,
+        SET_LOCATION,
+        { address: markedAddress() },
+        { method: 'put' },
+        auth,
+      );
+      expect(byAddress.status).toBe(200);
+      const response = await sendSignedIn(
+        testApp,
+        SET_LOCATION,
+        markedPoint(),
+        { method: 'put' },
+        auth,
+      );
+      expect(await response.json()).toMatchObject({ outcome: 'matched', exactDistrictCount: 4 });
+      expect(testApp.fakes.outbound.calls).toHaveLength(1);
+      return { testApp, response, secrets: pointTexts() };
+    },
+    // The Census Geocoder answers 5xx with the address in its body.
+    failInside: async () => {
+      const testApp = await createTestApp();
+      fakeCensusGeocoder(testApp.fakes.outbound, { [markedAddress()]: '5xx' });
+      const auth = await unmarkedUser(testApp);
+      const response = await sendSignedIn(
+        testApp,
+        SET_LOCATION,
+        { address: markedAddress() },
+        { method: 'put' },
+        auth,
+      );
+      await expectEnvelope(response, 'geocoder_unavailable');
+      // One attempt and one retry.
+      expect(testApp.fakes.outbound.calls).toHaveLength(2);
+      return { testApp, response, secrets: [] };
+    },
+  },
 };
 
 /** Operations with a string field that a user never types, each with its reason. */
@@ -1185,6 +1274,47 @@ describe('the API privacy suite', () => {
     for (const form of markedForms()) {
       expect(await findTextInTables(getTestDb(), form), form).toEqual([]);
     }
+
+    // The location: a typed address and a point through PUT /v1/me/location.
+    const located = await locationApp();
+    const { userId, auth: locatedAuth } = await unmarkedUserWithId(located);
+    for (const body of [{ address: markedAddress() }, markedPoint()]) {
+      const response = await sendSignedIn(
+        located,
+        SET_LOCATION,
+        body,
+        { method: 'put' },
+        locatedAuth,
+      );
+      expect(response.status).toBe(200);
+    }
+    // The address reached the Census Geocoder, its one intended recipient; the districts reached
+    // user_districts, their one store.
+    expect(located.fakes.outbound.calls).toHaveLength(1);
+    const stored = await getTestDb()
+      .select({ districtId: userDistricts.districtId })
+      .from(userDistricts)
+      .where(eq(userDistricts.userId, userId));
+    expect(stored).toHaveLength(5);
+    await expectNothingLeaked(located, pointTexts());
+    const events = await getTestDb().execute<{ text: string }>(
+      sql`select coalesce(string_agg(props::text, ''), '') as text from app_events`,
+      'objects',
+    );
+    for (const text of [...pointTexts(), ...markedForms()]) {
+      expect(events[0]?.text ?? '').not.toContain(text);
+      expect(await findTextInTables(getTestDb(), text), text).toEqual([]);
+    }
+    for (const line of located.logs) {
+      for (const { districtId } of stored) {
+        expect(line.raw).not.toContain(districtId);
+      }
+    }
+    const locationJobs = await getTestDb().execute<{ n: number }>(
+      sql`select count(*)::int as n from pgboss.job`,
+      'objects',
+    );
+    expect(locationJobs[0]?.n).toBe(0);
   });
 
   it('every operation that takes text is listed', async () => {
