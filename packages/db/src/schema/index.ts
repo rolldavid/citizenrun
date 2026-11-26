@@ -8,3 +8,5 @@ export * from './accounts.ts';
 export * from './social.ts';
 export * from './geo.ts';
 export * from './civic.ts';
+export * from './people.ts';
+export * from './bundles.ts';

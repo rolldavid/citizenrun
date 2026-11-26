@@ -1,0 +1,3165 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "beafc730-0b5d-40cc-be40-ced4e020ff8a",
+  "prevIds": [
+    "c59bd49f-c2d2-4b3a-ada7-6b849dda835e"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "candidacies"
+      ],
+      "writes": [
+        "s|tbl|public.candidacies",
+        "n|tbl|public.candidacies",
+        "e|tbl|public.candidacies",
+        "n|rel|public.candidacies",
+        "n|type|public.candidacies",
+        "n|rel|public.candidacies_pkey",
+        "n|rel|public.candidacies_filing_key_key",
+        "n|rel|public.candidacies_person_election_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "candidacy_filings"
+      ],
+      "writes": [
+        "s|tbl|public.candidacy_filings",
+        "n|tbl|public.candidacy_filings",
+        "e|tbl|public.candidacy_filings",
+        "n|rel|public.candidacy_filings",
+        "n|type|public.candidacy_filings",
+        "n|rel|public.candidacy_filings_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "given_name_aliases"
+      ],
+      "writes": [
+        "s|tbl|public.given_name_aliases",
+        "n|tbl|public.given_name_aliases",
+        "e|tbl|public.given_name_aliases",
+        "n|rel|public.given_name_aliases",
+        "n|type|public.given_name_aliases",
+        "n|rel|public.given_name_aliases_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "officeholders"
+      ],
+      "writes": [
+        "s|tbl|public.officeholders",
+        "n|tbl|public.officeholders",
+        "e|tbl|public.officeholders",
+        "n|rel|public.officeholders",
+        "n|type|public.officeholders",
+        "n|rel|public.officeholders_pkey",
+        "n|rel|public.officeholders_source_key_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "people"
+      ],
+      "writes": [
+        "s|tbl|public.people",
+        "n|tbl|public.people",
+        "e|tbl|public.people",
+        "n|rel|public.people",
+        "n|type|public.people",
+        "n|rel|public.people_pkey",
+        "n|rel|public.people_source_key_key",
+        "n|rel|public.people_slug_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "person_aliases"
+      ],
+      "writes": [
+        "s|tbl|public.person_aliases",
+        "n|tbl|public.person_aliases",
+        "e|tbl|public.person_aliases",
+        "n|rel|public.person_aliases",
+        "n|type|public.person_aliases",
+        "n|rel|public.person_aliases_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "unmatched_filings"
+      ],
+      "writes": [
+        "s|tbl|public.unmatched_filings",
+        "n|tbl|public.unmatched_filings",
+        "e|tbl|public.unmatched_filings",
+        "n|rel|public.unmatched_filings",
+        "n|type|public.unmatched_filings",
+        "n|rel|public.unmatched_filings_pkey",
+        "n|rel|public.unmatched_filings_filing_key_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "candidacies",
+        "candidacies_election"
+      ],
+      "writes": [
+        "s|idx|public.candidacies_election",
+        "n|idx|public.candidacies_election",
+        "e|idx|public.candidacies_election",
+        "n|rel|public.candidacies_election"
+      ],
+      "reads": [
+        "n|tbl|public.candidacies",
+        "n|sch|public",
+        "n|col|public.candidacies.election_id",
+        "n|col|public.candidacies.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "candidacies",
+        "candidacies_created"
+      ],
+      "writes": [
+        "s|idx|public.candidacies_created",
+        "n|idx|public.candidacies_created",
+        "e|idx|public.candidacies_created",
+        "n|rel|public.candidacies_created"
+      ],
+      "reads": [
+        "n|tbl|public.candidacies",
+        "n|sch|public",
+        "n|col|public.candidacies.created_at"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "candidacy_filings",
+        "candidacy_filings_candidacy"
+      ],
+      "writes": [
+        "s|idx|public.candidacy_filings_candidacy",
+        "n|idx|public.candidacy_filings_candidacy",
+        "e|idx|public.candidacy_filings_candidacy",
+        "n|rel|public.candidacy_filings_candidacy"
+      ],
+      "reads": [
+        "n|tbl|public.candidacy_filings",
+        "n|sch|public",
+        "n|col|public.candidacy_filings.candidacy_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "candidacy_filings",
+        "candidacy_filings_source"
+      ],
+      "writes": [
+        "s|idx|public.candidacy_filings_source",
+        "n|idx|public.candidacy_filings_source",
+        "e|idx|public.candidacy_filings_source",
+        "n|rel|public.candidacy_filings_source"
+      ],
+      "reads": [
+        "n|tbl|public.candidacy_filings",
+        "n|sch|public",
+        "n|col|public.candidacy_filings.source"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "given_name_aliases",
+        "given_name_aliases_alias"
+      ],
+      "writes": [
+        "s|idx|public.given_name_aliases_alias",
+        "n|idx|public.given_name_aliases_alias",
+        "e|idx|public.given_name_aliases_alias",
+        "n|rel|public.given_name_aliases_alias"
+      ],
+      "reads": [
+        "n|tbl|public.given_name_aliases",
+        "n|sch|public",
+        "n|col|public.given_name_aliases.alias"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "officeholders",
+        "officeholders_office"
+      ],
+      "writes": [
+        "s|idx|public.officeholders_office",
+        "n|idx|public.officeholders_office",
+        "e|idx|public.officeholders_office",
+        "n|rel|public.officeholders_office"
+      ],
+      "reads": [
+        "n|tbl|public.officeholders",
+        "n|sch|public",
+        "n|col|public.officeholders.office_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "officeholders",
+        "officeholders_person"
+      ],
+      "writes": [
+        "s|idx|public.officeholders_person",
+        "n|idx|public.officeholders_person",
+        "e|idx|public.officeholders_person",
+        "n|rel|public.officeholders_person"
+      ],
+      "reads": [
+        "n|tbl|public.officeholders",
+        "n|sch|public",
+        "n|col|public.officeholders.person_id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_name_trgm"
+      ],
+      "writes": [
+        "s|idx|public.people_name_trgm",
+        "n|idx|public.people_name_trgm",
+        "e|idx|public.people_name_trgm",
+        "n|rel|public.people_name_trgm"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.name"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_name_key_trgm"
+      ],
+      "writes": [
+        "s|idx|public.people_name_key_trgm",
+        "n|idx|public.people_name_key_trgm",
+        "e|idx|public.people_name_key_trgm",
+        "n|rel|public.people_name_key_trgm"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.name_key"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_last_name"
+      ],
+      "writes": [
+        "s|idx|public.people_last_name",
+        "n|idx|public.people_last_name",
+        "e|idx|public.people_last_name",
+        "n|rel|public.people_last_name"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_one_owner"
+      ],
+      "writes": [
+        "s|idx|public.people_one_owner",
+        "n|idx|public.people_one_owner",
+        "e|idx|public.people_one_owner",
+        "n|rel|public.people_one_owner"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.claimed_by"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_photo_key"
+      ],
+      "writes": [
+        "s|idx|public.people_photo_key",
+        "n|idx|public.people_photo_key",
+        "e|idx|public.people_photo_key",
+        "n|rel|public.people_photo_key"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.photo_key"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "people",
+        "people_pending_links"
+      ],
+      "writes": [
+        "s|idx|public.people_pending_links",
+        "n|idx|public.people_pending_links",
+        "e|idx|public.people_pending_links",
+        "n|rel|public.people_pending_links"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "person_aliases",
+        "person_aliases_trgm"
+      ],
+      "writes": [
+        "s|idx|public.person_aliases_trgm",
+        "n|idx|public.person_aliases_trgm",
+        "e|idx|public.person_aliases_trgm",
+        "n|rel|public.person_aliases_trgm"
+      ],
+      "reads": [
+        "n|tbl|public.person_aliases",
+        "n|sch|public",
+        "n|col|public.person_aliases.alias"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "unmatched_filings",
+        "unmatched_filings_open"
+      ],
+      "writes": [
+        "s|idx|public.unmatched_filings_open",
+        "n|idx|public.unmatched_filings_open",
+        "e|idx|public.unmatched_filings_open",
+        "n|rel|public.unmatched_filings_open"
+      ],
+      "reads": [
+        "n|tbl|public.unmatched_filings",
+        "n|sch|public",
+        "n|col|public.unmatched_filings.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "candidacies"
+      ],
+      "writes": [
+        "s|fk|public.candidacies.candidacies_person_id_fkey",
+        "n|fk|public.candidacies.candidacies_person_id_fkey",
+        "e|fk|public.candidacies.candidacies_person_id_fkey",
+        "n|con|public.candidacies.candidacies_person_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.candidacies",
+        "n|sch|public",
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.candidacies.person_id",
+        "n|col|public.people.id",
+        "e|uniqueness|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "candidacies"
+      ],
+      "writes": [
+        "s|fk|public.candidacies.candidacies_election_id_fkey",
+        "n|fk|public.candidacies.candidacies_election_id_fkey",
+        "e|fk|public.candidacies.candidacies_election_id_fkey",
+        "n|con|public.candidacies.candidacies_election_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.candidacies",
+        "n|sch|public",
+        "n|tbl|public.elections",
+        "n|sch|public",
+        "n|col|public.candidacies.election_id",
+        "n|col|public.elections.id",
+        "e|uniqueness|public.elections.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "candidacy_filings"
+      ],
+      "writes": [
+        "s|fk|public.candidacy_filings.candidacy_filings_candidacy_id_fkey",
+        "n|fk|public.candidacy_filings.candidacy_filings_candidacy_id_fkey",
+        "e|fk|public.candidacy_filings.candidacy_filings_candidacy_id_fkey",
+        "n|con|public.candidacy_filings.candidacy_filings_candidacy_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.candidacy_filings",
+        "n|sch|public",
+        "n|tbl|public.candidacies",
+        "n|sch|public",
+        "n|col|public.candidacy_filings.candidacy_id",
+        "n|col|public.candidacies.id",
+        "e|uniqueness|public.candidacies.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "officeholders"
+      ],
+      "writes": [
+        "s|fk|public.officeholders.officeholders_office_id_fkey",
+        "n|fk|public.officeholders.officeholders_office_id_fkey",
+        "e|fk|public.officeholders.officeholders_office_id_fkey",
+        "n|con|public.officeholders.officeholders_office_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.officeholders",
+        "n|sch|public",
+        "n|tbl|public.offices",
+        "n|sch|public",
+        "n|col|public.officeholders.office_id",
+        "n|col|public.offices.id",
+        "e|uniqueness|public.offices.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "officeholders"
+      ],
+      "writes": [
+        "s|fk|public.officeholders.officeholders_person_id_fkey",
+        "n|fk|public.officeholders.officeholders_person_id_fkey",
+        "e|fk|public.officeholders.officeholders_person_id_fkey",
+        "n|con|public.officeholders.officeholders_person_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.officeholders",
+        "n|sch|public",
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.officeholders.person_id",
+        "n|col|public.people.id",
+        "e|uniqueness|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "people"
+      ],
+      "writes": [
+        "s|fk|public.people.people_claimed_by_fkey",
+        "n|fk|public.people.people_claimed_by_fkey",
+        "e|fk|public.people.people_claimed_by_fkey",
+        "n|con|public.people.people_claimed_by_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.people.claimed_by",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "people"
+      ],
+      "writes": [
+        "s|fk|public.people.people_merged_into_fkey",
+        "n|fk|public.people.people_merged_into_fkey",
+        "e|fk|public.people.people_merged_into_fkey",
+        "n|con|public.people.people_merged_into_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.people.merged_into",
+        "n|col|public.people.id",
+        "e|uniqueness|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "person_aliases"
+      ],
+      "writes": [
+        "s|fk|public.person_aliases.person_aliases_person_id_fkey",
+        "n|fk|public.person_aliases.person_aliases_person_id_fkey",
+        "e|fk|public.person_aliases.person_aliases_person_id_fkey",
+        "n|con|public.person_aliases.person_aliases_person_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.person_aliases",
+        "n|sch|public",
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.person_aliases.person_id",
+        "n|col|public.people.id",
+        "e|uniqueness|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "unmatched_filings"
+      ],
+      "writes": [
+        "s|fk|public.unmatched_filings.unmatched_filings_office_id_fkey",
+        "n|fk|public.unmatched_filings.unmatched_filings_office_id_fkey",
+        "e|fk|public.unmatched_filings.unmatched_filings_office_id_fkey",
+        "n|con|public.unmatched_filings.unmatched_filings_office_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.unmatched_filings",
+        "n|sch|public",
+        "n|tbl|public.offices",
+        "n|sch|public",
+        "n|col|public.unmatched_filings.office_id",
+        "n|col|public.offices.id",
+        "e|uniqueness|public.offices.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "unmatched_filings"
+      ],
+      "writes": [
+        "s|fk|public.unmatched_filings.unmatched_filings_person_id_fkey",
+        "n|fk|public.unmatched_filings.unmatched_filings_person_id_fkey",
+        "e|fk|public.unmatched_filings.unmatched_filings_person_id_fkey",
+        "n|con|public.unmatched_filings.unmatched_filings_person_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.unmatched_filings",
+        "n|sch|public",
+        "n|tbl|public.people",
+        "n|sch|public",
+        "n|col|public.unmatched_filings.person_id",
+        "n|col|public.people.id",
+        "e|uniqueness|public.people.id"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "unmatched_filings"
+      ],
+      "writes": [
+        "s|fk|public.unmatched_filings.unmatched_filings_decided_by_fkey",
+        "n|fk|public.unmatched_filings.unmatched_filings_decided_by_fkey",
+        "e|fk|public.unmatched_filings.unmatched_filings_decided_by_fkey",
+        "n|con|public.unmatched_filings.unmatched_filings_decided_by_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.unmatched_filings",
+        "n|sch|public",
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.unmatched_filings.decided_by",
+        "n|col|public.users.id",
+        "e|uniqueness|public.users.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "candidacies",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "candidacy_filings",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "given_name_aliases",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "officeholders",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "people",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "person_aliases",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "unmatched_filings",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "filing_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "source",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "person_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "election_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "party",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "status_history",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'[]'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "filed_on",
+        "type": "date",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "raw_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "first_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "middle_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "last_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "suffix",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "name_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": {
+          "as": "os_name_key(first_name, last_name)",
+          "type": "stored"
+        },
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "match_confidence",
+        "type": "numeric",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "overrides",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "filing_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "source",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "last_seen_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "gone_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "canonical",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "alias",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "source",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "source_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "office_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "person_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "seat_label",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "since",
+        "type": "date",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "until",
+        "type": "date",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "seat_up_next",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "term_limited",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "not_running",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "cash_on_hand_cents",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "cash_as_of",
+        "type": "date",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "cash_source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "source_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "slug",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "first_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "middle_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "last_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "suffix",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "name_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": {
+          "as": "os_name_key(first_name, last_name)",
+          "type": "stored"
+        },
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "party",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_credit",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_license",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_source_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_width",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_height",
+        "type": "integer",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "photo_pending_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "website",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "donate_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "volunteer_url",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "pending_links",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "claimed_by",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "origin",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "roster_only",
+        "type": "boolean",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "false",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "overrides",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'{}'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "merged_into",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "retired_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "person_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "alias",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "filing_key",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "kind",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'filing'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "source",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "state",
+        "type": "char(2)",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "raw",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "reason",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "suggested",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "features",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "resolution",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "office_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "person_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "decided_by",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "resolved_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_election",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "election_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_created",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "created_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_candidacy",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "candidacy_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_source",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "source",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"gone_at\" is null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "given_name_aliases_alias",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "alias",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_office",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "office_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_person",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "person_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_name_trgm",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "name",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_name_key_trgm",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "name_key",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_last_name",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "lower(\"last_name\")",
+            "isExpression": true,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_one_owner",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "claimed_by",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": "\"claimed_by\" is not null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_photo_key",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "photo_key",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"photo_key\" is not null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_pending_links",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"pending_links\" is not null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "person_aliases_trgm",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "alias",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": {
+              "name": "gin_trgm_ops",
+              "default": false
+            }
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "gin",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_open",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"resolved_at\" is null",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_person_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "person_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "people",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_election_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "election_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "elections",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_candidacy_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "candidacy_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "candidacies",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_office_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "office_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "offices",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_person_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "person_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "people",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_claimed_by_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "claimed_by"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_merged_into_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "merged_into"
+        ],
+        "schemaTo": "public",
+        "tableTo": "people",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "person_aliases_person_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "person_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "people",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_office_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "office_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "offices",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_person_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "person_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "people",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "NO ACTION",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_decided_by_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "decided_by"
+        ],
+        "schemaTo": "public",
+        "tableTo": "users",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "SET NULL",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "given_name_aliases_pkey",
+        "columns": [
+          "canonical",
+          "alias"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "person_aliases",
+        "name": "person_aliases_pkey",
+        "columns": [
+          "person_id",
+          "alias"
+        ],
+        "nameExplicit": true,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_pkey",
+        "columns": [
+          "filing_key"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_filing_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "filing_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_person_election_key",
+        "nameExplicit": true,
+        "columns": [
+          "person_id",
+          "election_id",
+          "party"
+        ],
+        "nullsNotDistinct": true,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_source_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "source_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_source_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "source_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_slug_key",
+        "nameExplicit": true,
+        "columns": [
+          "slug"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_filing_key_key",
+        "nameExplicit": true,
+        "columns": [
+          "filing_key"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_status_check",
+        "value": "\"status\" in ('committee_registered', 'filed', 'qualified', 'on_ballot', 'advanced', 'withdrawn', 'disqualified', 'won', 'lost')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_party_check",
+        "value": "\"party\" ~ '^[a-z][a-z0-9_]{0,39}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_match_confidence_check",
+        "value": "\"match_confidence\" between 0 and 1",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacies",
+        "name": "candidacies_source_url_check",
+        "value": "\"source_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_status_check",
+        "value": "\"status\" in ('committee_registered', 'filed', 'qualified', 'on_ballot', 'advanced', 'withdrawn', 'disqualified', 'won', 'lost')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "candidacy_filings",
+        "name": "candidacy_filings_source_url_check",
+        "value": "\"source_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "given_name_aliases",
+        "name": "given_name_aliases_source_check",
+        "value": "\"source\" in ('nicknames', 'supplement', 'admin')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "officeholders",
+        "name": "officeholders_cash_source_url_check",
+        "value": "\"cash_source_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_slug_check",
+        "value": "\"slug\" ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(\"slug\") <= 120",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_party_check",
+        "value": "\"party\" ~ '^[a-z][a-z0-9_]{0,39}$'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_website_check",
+        "value": "\"website\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_donate_url_check",
+        "value": "\"donate_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_volunteer_url_check",
+        "value": "\"volunteer_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "people",
+        "name": "people_photo_source_url_check",
+        "value": "\"photo_source_url\" like 'https://%'",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_kind_check",
+        "value": "\"kind\" in ('filing', 'result')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "unmatched_filings",
+        "name": "unmatched_filings_resolution_check",
+        "value": "\"resolution\" in ('matched', 'created', 'rejected')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}

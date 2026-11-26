@@ -1,0 +1,520 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "6d9c8995-ebcf-4f06-be67-a7d7fc57e52f",
+  "prevIds": [
+    "beafc730-0b5d-40cc-be40-ced4e020ff8a"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "bundle_changes"
+      ],
+      "writes": [
+        "s|tbl|public.bundle_changes",
+        "n|tbl|public.bundle_changes",
+        "e|tbl|public.bundle_changes",
+        "n|rel|public.bundle_changes",
+        "n|type|public.bundle_changes",
+        "n|rel|public.bundle_changes_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "data_bundles"
+      ],
+      "writes": [
+        "s|tbl|public.data_bundles",
+        "n|tbl|public.data_bundles",
+        "e|tbl|public.data_bundles",
+        "n|rel|public.data_bundles",
+        "n|type|public.data_bundles",
+        "n|rel|public.data_bundles_pkey",
+        "n|rel|public.data_bundles_version_key"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "bundle_changes",
+        "bundle_changes_bundle"
+      ],
+      "writes": [
+        "s|idx|public.bundle_changes_bundle",
+        "n|idx|public.bundle_changes_bundle",
+        "e|idx|public.bundle_changes_bundle",
+        "n|rel|public.bundle_changes_bundle"
+      ],
+      "reads": [
+        "n|tbl|public.bundle_changes",
+        "n|sch|public",
+        "n|col|public.bundle_changes.bundle_id",
+        "n|col|public.bundle_changes.table_name"
+      ]
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "data_bundles",
+        "data_bundles_loaded"
+      ],
+      "writes": [
+        "s|idx|public.data_bundles_loaded",
+        "n|idx|public.data_bundles_loaded",
+        "e|idx|public.data_bundles_loaded",
+        "n|rel|public.data_bundles_loaded"
+      ],
+      "reads": [
+        "n|tbl|public.data_bundles",
+        "n|sch|public",
+        "n|col|public.data_bundles.kind",
+        "n|col|public.data_bundles.loaded_at"
+      ]
+    },
+    {
+      "statementType": "create_fk",
+      "statementTarget": [
+        "table",
+        "public",
+        "bundle_changes"
+      ],
+      "writes": [
+        "s|fk|public.bundle_changes.bundle_changes_bundle_id_fkey",
+        "n|fk|public.bundle_changes.bundle_changes_bundle_id_fkey",
+        "e|fk|public.bundle_changes.bundle_changes_bundle_id_fkey",
+        "n|con|public.bundle_changes.bundle_changes_bundle_id_fkey"
+      ],
+      "reads": [
+        "n|tbl|public.bundle_changes",
+        "n|sch|public",
+        "n|tbl|public.data_bundles",
+        "n|sch|public",
+        "n|col|public.bundle_changes.bundle_id",
+        "n|col|public.data_bundles.id",
+        "e|uniqueness|public.data_bundles.id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "bundle_changes",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "data_bundles",
+        "isRlsEnabled": false,
+        "entityType": "tables"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "id",
+        "type": "bigint",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": {
+          "type": "always",
+          "name": "bundle_changes_id_seq",
+          "increment": "1",
+          "startWith": "1",
+          "minValue": "1",
+          "maxValue": "9223372036854775807",
+          "cache": 1,
+          "cycle": false
+        },
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "bundle_id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "table_name",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "row_key",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "op",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "before",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "version",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "kind",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "'full'",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "status",
+        "type": "text",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "stats",
+        "type": "jsonb",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "loaded_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": false,
+        "dimensions": 0,
+        "default": null,
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "created_at",
+        "type": "timestamp with time zone",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "now()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "bundle_changes_bundle",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "bundle_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "table_name",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "data_bundles_loaded",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "kind",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "loaded_at",
+            "isExpression": false,
+            "asc": false,
+            "nullsFirst": true,
+            "opclass": null
+          }
+        ],
+        "isUnique": false,
+        "where": "\"status\" = 'loaded'",
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "bundle_changes_bundle_id_fkey",
+        "nameExplicit": true,
+        "columns": [
+          "bundle_id"
+        ],
+        "schemaTo": "public",
+        "tableTo": "data_bundles",
+        "columnsTo": [
+          "id"
+        ],
+        "onUpdate": "NO ACTION",
+        "onDelete": "CASCADE",
+        "entityType": "fks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "bundle_changes_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "data_bundles_pkey",
+        "columns": [
+          "id"
+        ],
+        "nameExplicit": false,
+        "entityType": "pks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "data_bundles_version_key",
+        "nameExplicit": true,
+        "columns": [
+          "version"
+        ],
+        "nullsNotDistinct": false,
+        "entityType": "uniques"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "bundle_changes",
+        "name": "bundle_changes_op_check",
+        "value": "\"op\" in ('insert', 'update', 'retire', 'delete')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "data_bundles_kind_check",
+        "value": "\"kind\" in ('full', 'filings')",
+        "entityType": "checks"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "data_bundles",
+        "name": "data_bundles_status_check",
+        "value": "\"status\" in ('loading', 'loaded', 'rejected', 'held', 'reverted')",
+        "entityType": "checks"
+      }
+    }
+  ]
+}
