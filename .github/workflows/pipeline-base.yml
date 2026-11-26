@@ -1,0 +1,178 @@
+name: pipeline-base
+
+on:
+  schedule:
+    - cron: '23 6 20 10 *' # yearly base load, 20 October (D-310)
+    - cron: '41 5 * * 1' # weekly: known, people, housekeeping
+    - cron: '13 4 1 * *' # monthly: coops
+  workflow_dispatch:
+    inputs:
+      command:
+        description: Job to run
+        type: choice
+        options: [base, known, coops, people, housekeeping]
+        default: base
+      states:
+        description: State codes separated by commas, or all
+        type: string
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-base
+  cancel-in-progress: false
+
+# Every job reads the staging Environment's data bucket, so it runs once staging exists (D-561).
+# Logs print counts only, and no job uploads an artifact (D-116).
+jobs:
+  plan:
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '23 6 20 10 *' || (github.event_name == 'workflow_dispatch' && inputs.command == 'base'))
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 15
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    outputs:
+      states: ${{ steps.plan.outputs.states }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - id: plan
+        run: |
+          pnpm run pipeline base --state "$STATES" --plan-out "$RUNNER_TEMP/plan.json"
+          echo "states=$(jq -c .states "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
+
+  base:
+    needs: plan
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '23 6 20 10 *' || (github.event_name == 'workflow_dispatch' && inputs.command == 'base')) && needs.plan.outputs.states != '[]'
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        state: ${{ fromJSON(needs.plan.outputs.states) }}
+      max-parallel: 20
+      fail-fast: false
+    # The block sums run in a scratch database on this PostGIS server.
+    services:
+      postgres:
+        image: postgis/postgis:17-3.7@sha256:d09654ba11d2a091e220e561c32b17ad00b0858045bc29741e7bcedcd9c4ee60
+        env: { POSTGRES_DB: citizenrun, POSTGRES_USER: citizenrun, POSTGRES_PASSWORD: citizenrun }
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U citizenrun -d citizenrun" --health-interval 10s
+          --health-timeout 5s --health-retries 10 --shm-size 512m
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline base --state "${{ matrix.state }}"
+
+  base-us:
+    needs: [plan, base]
+    if: ${{ !cancelled() && vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '23 6 20 10 *' || (github.event_name == 'workflow_dispatch' && inputs.command == 'base')) }}
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 120
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline base --state US
+
+  known:
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '41 5 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.command == 'known'))
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 180
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline known --state "$STATES"
+
+  people:
+    needs: known
+    if: ${{ !cancelled() && vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '41 5 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.command == 'people')) }}
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 300
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+      FEC_API_KEY: ${{ secrets.FEC_API_KEY }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline people --state "$STATES"
+      - run: pnpm run pipeline people --state US
+
+  housekeeping:
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '41 5 * * 1' || (github.event_name == 'workflow_dispatch' && inputs.command == 'housekeeping'))
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 60
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline housekeeping
+
+  coops:
+    if: vars.RAILWAY_STAGING_READY == 'true' && (github.event.schedule == '13 4 1 * *' || (github.event_name == 'workflow_dispatch' && inputs.command == 'coops'))
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 300
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+      STATES: ${{ inputs.states || 'all' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm run pipeline coops --state "$STATES"

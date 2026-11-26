@@ -1,0 +1,47 @@
+name: pipeline-bundle
+
+on:
+  schedule:
+    - cron: '7 9 * * *' # nightly
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: Bundle kind
+        type: choice
+        options: [full, geometry]
+        default: full
+      states:
+        description: States whose stages 3 to 5 run again (comma list, or all); the bundle holds every state
+        type: string
+        default: all
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pipeline-bundle
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    # Runs once staging exists: it reads the staging Environment's data bucket (D-561).
+    if: vars.RAILWAY_STAGING_READY == 'true'
+    runs-on: ubuntu-24.04
+    environment: staging
+    timeout-minutes: 240
+    env:
+      DATA_BUCKET: ${{ vars.DATA_BUCKET }}
+      DATA_ENDPOINT: ${{ vars.DATA_ENDPOINT }}
+      DATA_REGION: ${{ vars.DATA_REGION }}
+      DATA_ACCESS_KEY_ID: ${{ secrets.DATA_ACCESS_KEY_ID }}
+      DATA_SECRET_ACCESS_KEY: ${{ secrets.DATA_SECRET_ACCESS_KEY }}
+      PIPELINE_RUN_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # A failing rules fixture stops the run before any bundle is written.
+      - run: pnpm --filter @citizenrun/rules test
+      - env:
+          KIND: ${{ inputs.kind || 'full' }}
+          STATES: ${{ inputs.states || 'all' }}
+        run: pnpm run pipeline bundle --kind "$KIND" --state "$STATES"
