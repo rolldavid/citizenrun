@@ -333,6 +333,17 @@ describe('Apple on iOS', () => {
     });
   });
 
+  it("offers Apple from the system's answer alone, whatever Google's ids", async () => {
+    expect(await (await load('ios')).prepare()).toEqual({ apple: true, google: false });
+
+    env.googleWebClientId = FIXTURE_WEB_ID;
+    expect(await (await load('ios')).prepare()).toEqual({ apple: true, google: false });
+
+    apple.isAvailableAsync.mockResolvedValue(false);
+    env.googleIosClientId = FIXTURE_IOS_ID;
+    expect(await (await load('ios')).prepare()).toEqual({ apple: false, google: true });
+  });
+
   it('a throwing availability check answers false', async () => {
     apple.isAvailableAsync.mockRejectedValue(new Error('x'));
     const auth = await load('ios');
