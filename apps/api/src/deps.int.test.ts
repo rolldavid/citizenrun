@@ -1,10 +1,14 @@
 import { DatabaseUnavailableError, createPool } from '@citizenrun/db';
 import { getTestDatabaseUrl } from '@citizenrun/db/testing';
+import { fileURLToPath } from 'node:url';
 import { createLogger } from '@citizenrun/shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createDeps } from './deps.ts';
 import { isCaptureMailer } from './lib/mailer.ts';
 import { testApiEnv } from './testing/env.ts';
+
+// The committed legal documents, which the factory renders before it connects.
+const DOCUMENTS_DIR = fileURLToPath(new URL('../assets/documents/', import.meta.url));
 
 // Nothing listens on port 1, so every connection attempt is refused.
 const UNREACHABLE_DATABASE_URL = 'postgres://citizenrun:citizenrun@127.0.0.1:1/fixture';
@@ -36,9 +40,9 @@ describe('createDeps', () => {
     });
     const env = testApiEnv({ DATABASE_URL: UNREACHABLE_DATABASE_URL });
     const startedAt = Date.now();
-    await expect(createDeps(env, logger, { databaseWaitMs: 1500 })).rejects.toThrow(
-      DatabaseUnavailableError,
-    );
+    await expect(
+      createDeps(env, logger, { documentsDir: DOCUMENTS_DIR, databaseWaitMs: 1500 }),
+    ).rejects.toThrow(DatabaseUnavailableError);
     expect(Date.now() - startedAt).toBeLessThan(5_000);
     expect(end).toHaveBeenCalledTimes(1);
     expect(lines.join('\n')).not.toContain(UNREACHABLE_DATABASE_URL);
@@ -49,6 +53,7 @@ describe('createDeps', () => {
     const rt = await createDeps(
       testApiEnv({ DATABASE_URL: getTestDatabaseUrl(), APP_SECRET: '0'.repeat(64) }),
       logger,
+      { documentsDir: DOCUMENTS_DIR },
     );
     try {
       // CTL-07's vector for the all-zero secret.
@@ -64,7 +69,7 @@ describe('createDeps', () => {
     const env = testApiEnv({ DATABASE_URL: getTestDatabaseUrl() });
     expect(env.RESEND_API_KEY).toBeNull();
     expect(env.captureMail).toBe(true);
-    const rt = await createDeps(env, logger);
+    const rt = await createDeps(env, logger, { documentsDir: DOCUMENTS_DIR });
     try {
       expect(isCaptureMailer(rt.mailer)).toBe(true);
       expect(isCaptureMailer(rt.mailer) ? rt.mailer.captured() : null).toEqual([]);

@@ -952,4 +952,7 @@ export const SCREENS: ScreenEntry[] = [
   },
   // The art contact sheet: every drawing the app holds, for the art review.
   { id: 'dev-art', path: '/dev/art', auth: 'none' },
+  { id: 'legal-privacy', path: '/privacy', auth: 'none' },
+  { id: 'legal-terms', path: '/terms', auth: 'none' },
+  { id: 'legal-content-policy', path: '/content-policy', auth: 'none' },
 ];

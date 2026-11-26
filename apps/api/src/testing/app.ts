@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { createDb, createEnqueue, createPool } from '@citizenrun/db';
 import type { Db, Enqueue } from '@citizenrun/db';
 import {
@@ -8,7 +9,7 @@ import {
   registerScanSource,
 } from '@citizenrun/db/testing';
 import type { CapturedLine } from '@citizenrun/db/testing';
-import { createLogger } from '@citizenrun/shared';
+import { BRAND, brandVariant, createI18n, createLogger } from '@citizenrun/shared';
 import { FakeClock } from '@citizenrun/shared/testing';
 import { loadKeyRing } from '@citizenrun/shared/crypto';
 import type { PgBoss } from 'pg-boss';
@@ -20,6 +21,8 @@ import { createLifecycle } from '../lib/lifecycle.ts';
 import type { Lifecycle } from '../lib/lifecycle.ts';
 import { isCaptureMailer } from '../lib/mailer.ts';
 import { devMailboxEnabled } from '../routes/dev/index.ts';
+import { loadLegalDocuments } from '../web/documents/load.ts';
+import type { LegalDocumentPages } from '../web/documents/load.ts';
 import type { CapturedMailbox } from '../lib/mailer.ts';
 import { FakeIdentityProviders } from './fakes/identity.ts';
 import { CaptureMailer } from './fakes/mailer.ts';
@@ -38,6 +41,8 @@ export type TestAppOverrides = {
   db?: Db;
   queue?: { enqueue: Enqueue };
   lifecycle?: Lifecycle;
+  /** Replaces the legal pages rendered from the committed documents with every contact as brand.json has it. */
+  documents?: LegalDocumentPages;
 };
 
 /** The fakes behind a test app's dependencies, for a test to read and drive. */
@@ -98,6 +103,23 @@ async function testEnqueue(): Promise<Enqueue> {
   return createEnqueue(boss);
 }
 
+// The committed documents, and the origin of the test environment (TEST-harness-app).
+const DOCUMENTS_DIR = fileURLToPath(new URL('../../assets/documents/', import.meta.url));
+const TEST_DOCUMENTS_PUBLIC_URL = 'https://app.example.test';
+let defaultDocuments: LegalDocumentPages | null = null;
+
+/** The legal pages a test app serves by default: the `development` variant's name, rendered once per test file. */
+export function testDocuments(): LegalDocumentPages {
+  defaultDocuments ??= loadLegalDocuments({
+    dir: DOCUMENTS_DIR,
+    appName: brandVariant('development').displayName,
+    publicUrl: TEST_DOCUMENTS_PUBLIC_URL,
+    contacts: BRAND.contacts,
+    t: createI18n({ lng: 'en' }).getFixedT('en'),
+  });
+  return defaultDocuments;
+}
+
 afterAll(async () => {
   const stopping = boss;
   boss = null;
@@ -149,6 +171,7 @@ export async function createTestApp(overrides: TestAppOverrides = {}): Promise<T
     keyRing: loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS ?? null),
     outbound: outbound.fetch,
     identityKeys: identity.keys,
+    documents: overrides.documents ?? testDocuments(),
   };
   const app = createApp(deps, { devMailbox: devMailboxEnabled(env) });
   const resetStatementCount = (): void => {

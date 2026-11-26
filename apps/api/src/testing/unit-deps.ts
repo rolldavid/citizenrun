@@ -31,7 +31,7 @@ function parseLine(raw: string): Record<string, unknown> {
 /**
  * The dependencies of a middleware unit test: the test environment, a fake clock, a capture
  * mailer, a logger whose lines land in `logs`, a fresh drain state, the test key ring, a fake
- * outbound fetch with no routes, the fake sign-in key sets, and no database, queue or bucket. It imports nothing that starts the database harness, so unit projects can use it.
+ * outbound fetch with no routes, the fake sign-in key sets, and no database, queue, bucket or legal pages. It imports nothing that starts the database harness, so unit projects can use it.
  */
 export function createUnitDeps(
   overrides: { env?: Record<string, string | undefined>; clock?: FakeClock } = {},
@@ -58,6 +58,7 @@ export function createUnitDeps(
     keyRing: loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS ?? null),
     outbound: createFakeOutbound().fetch,
     identityKeys: new FakeIdentityProviders(clock).keys,
+    documents: noService(),
     logs,
   };
 }

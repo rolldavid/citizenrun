@@ -15,11 +15,14 @@ import {
 } from './lib/process-errors.ts';
 import { webAssetsFor } from './web/assets.ts';
 import { devMailboxEnabled } from './routes/dev/index.ts';
+import { DocumentError } from './web/documents/render.ts';
 import { WebShellInvalidError } from './web/shell.ts';
 
 // This file sits two folders below the repository's apps folder, in src/ and in dist/ alike.
 const here = dirname(fileURLToPath(import.meta.url));
 const defaultWebDistDir = resolve(here, '../../mobile/dist');
+// The legal documents, at the same relative path from src/server.ts and dist/server.js.
+const documentsDir = fileURLToPath(new URL('../assets/documents/', import.meta.url));
 
 function readEnv(): ApiEnv {
   try {
@@ -35,7 +38,17 @@ function readEnv(): ApiEnv {
 }
 
 async function start(env: ApiEnv, logger: Logger): Promise<void> {
-  const runtime = await createDeps(env, logger);
+  let runtime: Awaited<ReturnType<typeof createDeps>>;
+  try {
+    runtime = await createDeps(env, logger, { documentsDir });
+  } catch (error) {
+    if (error instanceof DocumentError) {
+      // The reason and the file name only, never a document's text (E-WEB-06).
+      logger.error('documents.invalid', { reason: error.reason, file: error.file });
+      process.exit(1);
+    }
+    throw error;
+  }
   // A running service strips undeclared response keys; the mailbox exists only locally (E-AUTH-11).
   const app = createApp(runtime, { devMailbox: devMailboxEnabled(env) });
   // The web export is read once, before serving (D-163); without one the API still runs.

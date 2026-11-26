@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { DOCUMENT_PAGE_CSS } from '@citizenrun/shared';
 import type { ApiEnv } from '../env.ts';
 
 /** Whether the shell's policy is enforced; report-only until then (D-232). */
@@ -7,11 +8,19 @@ export const CSP_ENFORCED: boolean = false; // D-232
 /** The policy of every `/v1` response (L-security-headers, D-446). */
 export const V1_CSP = "default-src 'none'; frame-ancestors 'none'"; // L-security-headers, D-446
 
-/** Hashes of the server's own page stylesheets and scripts; none exists yet (L-csp). */
+/** A CSP hash source: `'sha256-` + base64 of the SHA-256 of the UTF-8 text + `'`. */
+export function sha256Source(text: string): string {
+  return `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
+}
+
+/** Hashes of the server's own page stylesheets and scripts, computed once at start (L-csp). */
 export const pageHashes: {
   readonly styles: readonly string[];
   readonly scripts: readonly string[];
-} = { styles: [], scripts: [] };
+} = Object.freeze({
+  styles: Object.freeze([sha256Source(DOCUMENT_PAGE_CSS)]),
+  scripts: Object.freeze([]),
+});
 
 /** What the shell's policy is built from, computed once at start (L-csp). */
 export type CspInputs = {
@@ -28,11 +37,6 @@ const GOOGLE_GSI = 'https://accounts.google.com/gsi/';
 const GOOGLE_GSI_CLIENT = 'https://accounts.google.com/gsi/client';
 const GOOGLE_GSI_STYLE = 'https://accounts.google.com/gsi/style';
 const APPLE_JS = 'https://appleid.cdn-apple.com';
-
-/** A CSP hash source: `'sha256-` + base64 of the SHA-256 of the UTF-8 text + `'`. */
-export function sha256Source(text: string): string {
-  return `'sha256-${createHash('sha256').update(text, 'utf8').digest('base64')}'`;
-}
 
 /** The media bucket's origin: virtual-hosted unless path style is forced (D-248). */
 export function mediaOrigin(env: ApiEnv): string {

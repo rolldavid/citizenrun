@@ -1,5 +1,6 @@
 import { createFlagReader, waitForDatabase, withEmailCounters } from '@citizenrun/db';
 import type { Db, Enqueue, FlagReader } from '@citizenrun/db';
+import { BRAND, brandVariant, createI18n, variantForAppEnv } from '@citizenrun/shared';
 import type { Clock, Logger, Mailer } from '@citizenrun/shared';
 import { loadKeyRing } from '@citizenrun/shared/crypto';
 import type { KeyRing } from '@citizenrun/shared/crypto';
@@ -16,6 +17,8 @@ import { createOutboundFetch } from './lib/outbound-fetch.ts';
 import type { OutboundFetch } from './lib/outbound-fetch.ts';
 import { createApiQueue } from './lib/queue.ts';
 import { createMediaBucket } from './lib/storage.ts';
+import { prepareLegalDocuments } from './web/documents/load.ts';
+import type { LegalDocumentPages } from './web/documents/load.ts';
 
 export type { Clock } from '@citizenrun/shared';
 
@@ -35,6 +38,8 @@ export type Deps = {
   keyRing: KeyRing;
   outbound: OutboundFetch;
   identityKeys: IdentityKeys;
+  /** The three legal pages, rendered before the server listens (L-legal-docs). */
+  documents: LegalDocumentPages;
 };
 
 /** The two sign-in providers' signing key sets (D-452). */
@@ -97,9 +102,31 @@ export function countedMailer(inner: Mailer, db: Db, clock: { now(): Date }, log
 export type ApiRuntime = Deps & { close(): Promise<void> };
 
 /**
- * Builds the running service's dependencies from its environment: the pool and database, the
- * send-only queue, the media bucket, the counted mailer, the clock, the given logger, the drain
- * state, the key ring, the outbound fetch and the sign-in key sets.
+ * The legal pages of a running service from the documents folder its entry file computed, with the
+ * variant's display name, `PUBLIC_URL`, the brand's contacts and the English catalog (L-legal-docs).
+ * Throws DocumentError when a document is missing or invalid.
+ */
+export function loadServiceDocuments(
+  env: ApiEnv,
+  logger: Logger,
+  documentsDir: string,
+): LegalDocumentPages {
+  return prepareLegalDocuments({
+    dir: documentsDir,
+    appName: brandVariant(variantForAppEnv(env.APP_ENV)).displayName,
+    publicUrl: env.PUBLIC_URL,
+    contacts: BRAND.contacts,
+    t: createI18n({ lng: 'en' }).getFixedT('en'),
+    appEnv: env.APP_ENV,
+    logger,
+  });
+}
+
+/**
+ * Builds the running service's dependencies from its environment: the legal pages from
+ * `documentsDir` (read first, so an invalid document stops the start before any connection), the
+ * pool and database, the send-only queue, the media bucket, the counted mailer, the clock, the
+ * given logger, the drain state, the key ring, the outbound fetch and the sign-in key sets.
  * Waits for the database before the queue starts (D-140), for `databaseWaitMs` or the helper's own
  * window; when it gives up, the pool is ended and DatabaseUnavailableError is rethrown.
  * `close()` stops the queue, then ends the pool.
@@ -107,8 +134,9 @@ export type ApiRuntime = Deps & { close(): Promise<void> };
 export async function createDeps(
   env: ApiEnv,
   logger: Logger,
-  options: { databaseWaitMs?: number } = {},
+  options: { documentsDir: string; databaseWaitMs?: number },
 ): Promise<ApiRuntime> {
+  const documents = loadServiceDocuments(env, logger, options.documentsDir);
   const pool = createApiPool(env);
   const db = createApiDb(pool);
   let queue: Awaited<ReturnType<typeof createApiQueue>>;
@@ -135,6 +163,7 @@ export async function createDeps(
     keyRing: loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS ?? null),
     outbound,
     identityKeys: createIdentityKeys(outbound),
+    documents,
     close: async () => {
       await queue.stop();
       await pool.end();

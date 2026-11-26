@@ -5,6 +5,7 @@ import { limit } from '../middleware/rate-limit.ts';
 import { createRouter } from '../router.ts';
 import type { ApiEnv, RouteContext } from '../router.ts';
 import { shellHandler, webOnly } from '../web/catch-all.ts';
+import { registerDocumentRoutes } from '../web/documents/routes.ts';
 import { robotsHandler } from '../web/robots.ts';
 import { staticFiles } from '../web/static.ts';
 import { registerAuthRoutes } from './auth/index.ts';
@@ -47,8 +48,9 @@ export function registerRoutes(
   // D-163
   app.get('/robots.txt', limit(deps, 'web_seo'), robotsHandler(deps));
 
-  // D-163 row 8: /healthz and /readyz.
+  // D-163 row 8: /healthz and /readyz, then the legal pages, before the static files (D-163).
   registerHealthRoutes(app, deps);
+  registerDocumentRoutes(app, deps);
 
   // D-163
   app.use('*', staticFiles(deps));

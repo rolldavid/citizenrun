@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { DOCUMENT_PAGE_CSS } from '@citizenrun/shared';
 import { describe, expect, it } from 'vitest';
 import { testApiEnv } from '../testing/env.ts';
 import {
@@ -23,6 +25,9 @@ const FIXTURE_INPUTS: CspInputs = {
   upgradeInsecureRequests: true,
 };
 
+// The document stylesheet's hash, computed here independently of csp.ts.
+const DOCUMENT_STYLE_HASH = `'sha256-${createHash('sha256').update(DOCUMENT_PAGE_CSS, 'utf8').digest('base64')}'`;
+
 function directive(policy: string, name: string): string | undefined {
   return policy.split('; ').find((part) => part === name || part.startsWith(`${name} `));
 }
@@ -32,7 +37,7 @@ describe('content security policy', () => {
     expect(buildShellCsp(FIXTURE_INPUTS)).toBe(
       "default-src 'self'; " +
         "script-src 'self' https://appleid.cdn-apple.com https://accounts.google.com/gsi/client 'sha256-c2NyaXB0Zml4dHVyZQ=='; " +
-        "style-src 'self' https://accounts.google.com/gsi/style 'sha256-c3R5bGVmaXh0dXJl'; " +
+        `style-src 'self' https://accounts.google.com/gsi/style 'sha256-c3R5bGVmaXh0dXJl' ${DOCUMENT_STYLE_HASH}; ` +
         "img-src 'self' data: blob: https://media-x.t3.example.test; " +
         "media-src 'self' blob: https://media-x.t3.example.test; " +
         "font-src 'self' data:; " +
@@ -47,7 +52,17 @@ describe('content security policy', () => {
         "frame-ancestors 'none'; " +
         'upgrade-insecure-requests',
     );
-    expect(pageHashes).toEqual({ styles: [], scripts: [] });
+    expect(pageHashes).toEqual({ styles: [DOCUMENT_STYLE_HASH], scripts: [] });
+  });
+
+  it('pageHashes holds the hash of the document stylesheet', () => {
+    expect(pageHashes.styles).toEqual([sha256Source(DOCUMENT_PAGE_CSS)]);
+    expect(pageHashes.scripts).toEqual([]);
+    const styleSrc = directive(buildShellCsp(FIXTURE_INPUTS), 'style-src') ?? '';
+    expect(styleSrc.split(' ')).toContain(DOCUMENT_STYLE_HASH);
+    expect(directive(buildShellCsp(FIXTURE_INPUTS), 'script-src')).not.toContain(
+      DOCUMENT_STYLE_HASH,
+    );
   });
 
   it('script-src has no unsafe-eval or unsafe-inline', () => {
