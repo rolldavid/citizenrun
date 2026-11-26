@@ -21,7 +21,7 @@ import {
   safeEqualHex,
   sha256Hex,
 } from '@citizenrun/shared/crypto';
-import { and, eq, gt, isNull, ne, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, lte, ne, sql } from 'drizzle-orm';
 import { enqueueOf, flagsOf } from '../../deps.ts';
 import type { Deps } from '../../deps.ts';
 import type { ApiEnv } from '../../env.ts';
@@ -146,7 +146,44 @@ export async function startEmailSignIn(
   let challengeId: string;
   let sendCount: number;
   let pendingToken: string;
-  if (resend === null) {
+  // A resend keeps `attempts`, so one challenge never takes more than five wrong codes (D-243). The
+  // update holds the 30-second rule and the expiry itself, so of two resends sent at once only one
+  // passes, and a challenge spent or deleted since the read updates nothing.
+  const [updated] =
+    resend === null
+      ? []
+      : await db
+          .update(emailCodes)
+          .set({
+            codeHash,
+            expiresAt,
+            sendCount: sql`${emailCodes.sendCount} + 1`,
+            lastSentAt: now,
+          })
+          .where(
+            and(
+              eq(emailCodes.id, resend.id),
+              gt(emailCodes.expiresAt, now),
+              lte(emailCodes.lastSentAt, addMs(now, -EMAIL_CODE_RESEND_MIN_MS)),
+            ),
+          )
+          .returning({ sendCount: emailCodes.sendCount });
+  if (resend !== null && updated === undefined) {
+    // index: email_codes_pkey
+    const [still] = await db
+      .select({ lastSentAt: emailCodes.lastSentAt })
+      .from(emailCodes)
+      .where(and(eq(emailCodes.id, resend.id), gt(emailCodes.expiresAt, now)));
+    if (still !== undefined) {
+      const waitMs = still.lastSentAt.getTime() + EMAIL_CODE_RESEND_MIN_MS - now.getTime();
+      throw new ApiError('rate_limited', {
+        retryAfterSeconds: Math.max(1, Math.ceil(waitMs / MS_PER_SECOND)),
+      });
+    }
+    // The challenge is gone: this is a new challenge (E-AUTH-01 step 4).
+    resend = null;
+  }
+  if (resend === null || updated === undefined) {
     pendingToken = randomToken();
     challengeId = newId();
     sendCount = 1;
@@ -161,20 +198,6 @@ export async function startEmailSignIn(
       lastSentAt: now,
     });
   } else {
-    // A resend keeps `attempts`, so one challenge never takes more than five wrong codes (D-243).
-    const [updated] = await db
-      .update(emailCodes)
-      .set({
-        codeHash,
-        expiresAt,
-        sendCount: sql`${emailCodes.sendCount} + 1`,
-        lastSentAt: now,
-      })
-      .where(eq(emailCodes.id, resend.id))
-      .returning({ sendCount: emailCodes.sendCount });
-    if (updated === undefined) {
-      throw new Error('The challenge to resend has no row.');
-    }
     pendingToken = resend.pendingToken;
     challengeId = resend.id;
     sendCount = updated.sendCount;

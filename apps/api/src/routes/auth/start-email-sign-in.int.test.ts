@@ -7,6 +7,7 @@ import { eq, sql } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { addressHashOf } from '../../middleware/rate-limit.ts';
 import { createTestApp } from '../../testing/app.ts';
+import { withWritesHeld } from '../../testing/held-writes.ts';
 import type { TestApp } from '../../testing/app.ts';
 import { queuedJobs } from '../../testing/jobs.ts';
 import type { TestRequestOptions, TestResponse } from '../../testing/request.ts';
@@ -290,6 +291,62 @@ describe('POST /v1/auth/email/start', () => {
     await expectError(await verify(first.pendingToken, stillWrong), 422, 'code_invalid');
     await expectError(await verify(first.pendingToken, stillWrong), 422, 'code_attempts_exhausted');
     expect(await challengeRows()).toHaveLength(0);
+  });
+
+  it('two resends sent at once pass the 30-second rule once', async () => {
+    const email = 'twice@example.test';
+    const first = await startOk(email);
+    testApp.deps.clock.advance(31 * SECOND_MS);
+    const answers = await withWritesHeld('email_codes', 2, () => [
+      start(email, { pendingToken: first.pendingToken }),
+      start(email, { pendingToken: first.pendingToken }),
+    ]);
+    expect(answers.map((response) => response.status).sort()).toEqual([200, 429]);
+    const refused = answers.find((response) => response.status === 429);
+    if (refused !== undefined) {
+      await expectError(refused, 429, 'rate_limited');
+      expect(refused.headers.get('retry-after')).toBe('30');
+    }
+    const rows = await challengeRows(email);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.sendCount).toBe(2);
+  });
+
+  it('a resend whose challenge is spent meanwhile starts a new challenge', async () => {
+    const email = 'spent@example.test';
+    const first = await startOk(email);
+    testApp.deps.clock.advance(31 * SECOND_MS);
+    const db = testApp.deps.db;
+    const sent: Promise<TestResponse>[] = [];
+    // The challenge goes in a transaction that commits only once the resend waits on its row.
+    await db.transaction(async (tx) => {
+      await tx.delete(emailCodes).where(eq(emailCodes.email, email));
+      sent.push(start(email, { pendingToken: first.pendingToken }));
+      for (let tries = 0; tries < 200; tries += 1) {
+        const waiting = await db.execute<{ count: number }>(
+          sql`select count(*)::int as count from pg_stat_activity
+              where datname = current_database() and wait_event_type = 'Lock'`,
+          'objects',
+        );
+        if ((waiting[0]?.count ?? 0) > 0) {
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    });
+    const [pending] = sent;
+    if (pending === undefined) {
+      throw new Error('The resend was never sent.');
+    }
+    const response = await pending;
+    expect(response.status).toBe(200);
+    const result = await response.json<StartResult>();
+    expect(result.pendingToken).not.toBe(first.pendingToken);
+    const rows = await challengeRows(email);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.pendingTokenHash).toBe(sha256Hex(result.pendingToken));
+    expect(rows[0]?.sendCount).toBe(1);
+    expect(rows[0]?.attempts).toBe(0);
   });
 
   it('three codes an hour per email', async () => {
