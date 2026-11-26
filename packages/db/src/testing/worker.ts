@@ -86,15 +86,22 @@ export async function ensureWorkerDatabase(): Promise<void> {
     return;
   }
   const { stamp, runId, templateName } = harnessContext();
+  await prepareWorkerDatabase(workerDatabaseName(stamp, runId, workerSlot()), templateName);
+  databaseReady = true;
+}
+
+/**
+ * Creates the clone `name` of `templateName`, or reuses it when an earlier file of the slot made
+ * it, and makes sure it holds the kept rows: a clone whose copy failed as it was made gets the
+ * copy on its next use, never a reuse without it.
+ */
+export async function prepareWorkerDatabase(name: string, templateName: string): Promise<void> {
   const settings = harnessSettings();
-  const name = workerDatabaseName(stamp, runId, workerSlot());
   const admin = await connectHarnessClient(settings.databaseUrl, 'os-test-clone');
-  let created = false;
   try {
     await admin.query(
       `create database ${admin.escapeIdentifier(name)} template ${admin.escapeIdentifier(templateName)}`,
     );
-    created = true;
   } catch (error) {
     // An earlier file in this slot made the clone.
     if (!(error instanceof Error && 'code' in error && error.code === ALREADY_EXISTS)) {
@@ -103,23 +110,23 @@ export async function ensureWorkerDatabase(): Promise<void> {
   } finally {
     await admin.end().catch(() => undefined);
   }
-  if (created) {
-    await keepReferenceRows(databaseUrlFor(settings.databaseUrl, name));
-  }
-  databaseReady = true;
+  await keepReferenceRows(databaseUrlFor(settings.databaseUrl, name));
 }
 
 /** The schema of the clone that holds the migration's reference rows, outside `public`. */
 export const KEPT_ROWS_SCHEMA = 'os_harness';
 
-// Copies the migration's `state_rules` rows once, as the clone is made and before any test runs,
-// so every later file in this slot restores the migration's values even when an earlier file left
-// them changed (TEST-harness-db). resetDb() never truncates outside schema `public`.
+// Copies the migration's `state_rules` rows once, before any test of the clone runs, so every later
+// file in this slot restores the migration's values even when an earlier file left them changed
+// (TEST-harness-db). A copy that exists is kept as it is. resetDb() never truncates outside schema
+// `public`.
 async function keepReferenceRows(databaseUrl: string): Promise<void> {
   const clone = await connectHarnessClient(databaseUrl, 'os-test-clone');
   try {
-    await clone.query(`create schema ${KEPT_ROWS_SCHEMA}`);
-    await clone.query(`create table ${KEPT_ROWS_SCHEMA}.state_rules as table public.state_rules`);
+    await clone.query(`create schema if not exists ${KEPT_ROWS_SCHEMA}`);
+    await clone.query(
+      `create table if not exists ${KEPT_ROWS_SCHEMA}.state_rules as table public.state_rules`,
+    );
   } finally {
     await clone.end().catch(() => undefined);
   }
