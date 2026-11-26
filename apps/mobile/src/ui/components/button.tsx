@@ -182,7 +182,8 @@ export function Button({
   };
 
   return (
-    <View style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start' }}>
+    // Never wider than the room it stands in: in a row that wraps, a long label takes a second line.
+    <View style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start', maxWidth: '100%' }}>
       <Pressable
         role={href === undefined ? 'button' : 'link'}
         label={label}

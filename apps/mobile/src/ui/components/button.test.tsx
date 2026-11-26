@@ -576,6 +576,14 @@ describe('Button', () => {
     expect(drawState('twoLines').label.textContent).toBe(STATES.twoLines.label);
   });
 
+  it('is never wider than the room it stands in', () => {
+    // In a row that wraps, a button as wide as a long label would run off a narrow screen.
+    for (const state of ['quiet', 'twoLines'] as const) {
+      const outer = drawState(state).target.parentElement;
+      expect(outer?.style.maxWidth, state).toBe('100%');
+    }
+  });
+
   it('a narrow window at a large text size of the screen draws the short label too', () => {
     const props = { ...STATES.run, shortLabel: 'Run' };
     layout.isTight = false;
