@@ -9,6 +9,8 @@ export type KeyGroupProps = {
   onKeyDown: (event: KeyGroupKey) => void;
   role: 'radiogroup' | 'listbox';
   accessibilityLabel?: string;
+  /** The id a control that opens the group names it by. */
+  nativeID?: string;
   testID?: string;
   children: ReactNode;
 };
@@ -23,6 +25,7 @@ export function KeyGroup({
   onKeyDown,
   role,
   accessibilityLabel,
+  nativeID,
   testID,
   children,
 }: KeyGroupProps): JSX.Element {
@@ -30,6 +33,7 @@ export function KeyGroup({
     <View
       role={role as Role} // React Native's types leave the listbox role out; the web's view takes it
       aria-label={accessibilityLabel}
+      nativeID={nativeID}
       testID={testID}
       onKeyDown={(event) => {
         const { key, altKey, ctrlKey, metaKey } = event.nativeEvent;

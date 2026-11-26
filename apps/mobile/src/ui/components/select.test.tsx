@@ -477,6 +477,27 @@ describe('Select', () => {
     expect(words.className).not.toContain('whiteSpace');
   });
 
+  it('the open control names the list it has open', () => {
+    for (const width of [EXPANDED, MEDIUM, COMPACT]) {
+      setViewport(...width);
+      const control = draw();
+      const name = String(width[0]);
+      expect(control.getAttribute('aria-controls'), name).toBeNull();
+      fireEvent.click(control);
+      const id = control.getAttribute('aria-controls');
+      expect(id, name).not.toBeNull();
+      const list = document.getElementById(id ?? '');
+      // The list of a wide screen is the listbox itself; a phone's sheet holds the radio rows.
+      if (width !== COMPACT) {
+        expect(list?.getAttribute('role'), name).toBe('listbox');
+      }
+      const rows = within(list ?? document.body).queryAllByRole(
+        width === COMPACT ? 'radio' : 'option',
+      );
+      expect(rows, name).toHaveLength(SORTS.length);
+    }
+  });
+
   it('placeholder and no choice', () => {
     const onChange = vi.fn();
     for (const width of [EXPANDED, MEDIUM, COMPACT]) {

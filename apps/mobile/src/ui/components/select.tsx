@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import type { JSX } from 'react';
 import { ScrollView, View } from 'react-native';
 import type { ViewInstance, ViewStyle } from 'react-native';
@@ -110,6 +110,8 @@ function Control({
 }: ControlProps): JSX.Element {
   const layout = useBreakpoint();
   const named = useFieldA11y();
+  // The open list's id: the control names the list it has open.
+  const listId = useId();
   const trigger = useRef<ViewInstance>(null);
   const rows = useRef<(ViewInstance | null)[]>([]);
   const shown = useRef(false);
@@ -184,6 +186,7 @@ function Control({
         role="combobox"
         label={named.accessibilityLabel}
         state={{ expanded: open }}
+        {...(open ? { controls: listId } : {})}
         disabled={disabled}
         hover="fill"
         feedback="moveAndFill"
@@ -222,14 +225,16 @@ function Control({
           testID={`${testID}-sheet`}
         >
           <ScrollView keyboardShouldPersistTaps="handled">
-            <RadioGroup
-              label={label}
-              labelHidden={true}
-              value={value}
-              options={options}
-              onChange={choose}
-              testID={`${testID}-options`}
-            />
+            <View nativeID={listId}>
+              <RadioGroup
+                label={label}
+                labelHidden={true}
+                value={value}
+                options={options}
+                onChange={choose}
+                testID={`${testID}-options`}
+              />
+            </View>
           </ScrollView>
         </Sheet>
       ) : (
@@ -242,7 +247,12 @@ function Control({
           label={label}
           testID={`${testID}-popover`}
         >
-          <KeyGroup role="listbox" accessibilityLabel={label} onKeyDown={onListKey}>
+          <KeyGroup
+            role="listbox"
+            accessibilityLabel={label}
+            nativeID={listId}
+            onKeyDown={onListKey}
+          >
             <View style={LIST} onLayout={showActiveRow}>
               {options.map((option, index) => (
                 <Fragment key={option.value}>
