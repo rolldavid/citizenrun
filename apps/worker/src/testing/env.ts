@@ -4,9 +4,10 @@ import type { WorkerEnv } from '../env.ts';
 // A URL no unit test connects to; runJob passes the worker's test database instead.
 const UNIT_DATABASE_URL =
   'postgres://citizenrun:citizenrun@localhost:5432/unit_tests_never_connect';
-// Buckets no unit test reaches; runJob passes the test `backups` and `media` buckets instead.
+// Buckets no unit test reaches; runJob passes the test `backups`, `media` and `data` buckets instead.
 const UNIT_BACKUPS_BUCKET = 'unit-tests-never-connect';
 const UNIT_MEDIA_BUCKET = 'unit-tests-never-connect';
+const UNIT_DATA_BUCKET = 'unit-tests-never-connect';
 // A visibly fixed test key, never a real secret; the same value as the API's test environment.
 const TEST_APP_SECRET = '0123456789abcdef'.repeat(4);
 
@@ -38,6 +39,11 @@ export function testWorkerEnv(overrides: Record<string, string | undefined> = {}
     MEDIA_REGION: 'us-east-1',
     MEDIA_ACCESS_KEY_ID: testSetting('TEST_S3_ACCESS_KEY_ID', 'osdev'),
     MEDIA_SECRET_ACCESS_KEY: testSetting('TEST_S3_SECRET_ACCESS_KEY', 'osdev-secret-key'),
+    DATA_BUCKET: UNIT_DATA_BUCKET,
+    DATA_ENDPOINT: testSetting('TEST_S3_ENDPOINT', 'http://localhost:8333'),
+    DATA_REGION: 'us-east-1',
+    DATA_ACCESS_KEY_ID: testSetting('TEST_S3_ACCESS_KEY_ID', 'osdev'),
+    DATA_SECRET_ACCESS_KEY: testSetting('TEST_S3_SECRET_ACCESS_KEY', 'osdev-secret-key'),
     S3_FORCE_PATH_STYLE: 'true',
     APP_SECRET: TEST_APP_SECRET,
     ADMIN_EMAILS: 'admin@example.test',

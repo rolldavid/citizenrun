@@ -208,6 +208,10 @@ describe('the queue registry', () => {
       'uploads.cleanup': ['standard', 30, 900, 300, null],
       'media.process.image': ['standard', 2, 60, 120, null],
       'notify.email': ['standard', 60, 1800, 120, null],
+      'bundle.poll': ['singleton', 60, 900, 300, null],
+      'bundle.load': ['singleton', 300, 3600, 14400, 60],
+      'bundle.revert': ['singleton', 300, 3600, 7200, 60],
+      'score.issues': ['standard', 60, 900, 3600, 60],
     };
     const boss = await startBoss();
     // ops.dead last: the other queues name it as their dead letter.
@@ -631,6 +635,8 @@ describe('the queue registry', () => {
         ['S-cost.check', '50 9 * * *', 'once'],
         ['S-cleanup.retention.hourly', '5 * * * *', 'skip'],
         ['S-cleanup.retention.nightly', '15 7 * * *', 'once'],
+        ['S-bundle.poll', '*/15 * * * *', 'skip'],
+        ['S-score.issues.weekly', '30 12 * * 0', 'once'],
       ]);
     } finally {
       for (const entry of SCHEDULE_REGISTRY) {
@@ -890,14 +896,16 @@ describe('the account job queues and schedules', () => {
           singletonKey: 'nightly',
         },
       ]);
-      const milestoneZero = schedules.filter((schedule) => schedule.name !== 'cleanup.retention');
-      expect(milestoneZero.map((schedule) => schedule.name).sort()).toEqual([
+      const others = schedules.filter((schedule) => schedule.name !== 'cleanup.retention');
+      expect(others.map((schedule) => schedule.name).sort()).toEqual([
         'backup.check',
+        'bundle.poll',
         'cost.check',
         'db.connections-check',
         'ops.heartbeat',
+        'score.issues',
       ]);
-      for (const schedule of milestoneZero) {
+      for (const schedule of others) {
         expect(schedule.key).toBe('');
         expect(schedule.options?.singletonKey).toBeUndefined();
       }
@@ -928,6 +936,155 @@ describe('the account job queues and schedules', () => {
       await boss.send('cleanup.retention', { scope: 'hourly' }, { singletonKey: 'hourly' }),
     ).toBeNull();
     expect(await pendingCount('cleanup.retention')).toBe(2);
+  });
+});
+
+describe('the bundle job queues and schedules', () => {
+  it('the bundle and scoring queues have their options and dead-letter to ops.dead', async () => {
+    // Written out, not read from QUEUE_OPTIONS, so a changed value fails here.
+    const expected: Partial<
+      Record<
+        JobName,
+        {
+          policy: string;
+          localConcurrency: number;
+          retryDelay: number;
+          retryDelayMax: number;
+          expireInSeconds: number;
+          heartbeatSeconds: number | null;
+          pollingIntervalSeconds: number;
+        }
+      >
+    > = {
+      'bundle.poll': {
+        policy: 'singleton',
+        localConcurrency: 1,
+        retryDelay: 60,
+        retryDelayMax: 900,
+        expireInSeconds: 300,
+        heartbeatSeconds: null,
+        pollingIntervalSeconds: 10,
+      },
+      'bundle.load': {
+        policy: 'singleton',
+        localConcurrency: 1,
+        retryDelay: 300,
+        retryDelayMax: 3600,
+        expireInSeconds: 14400,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 5,
+      },
+      'bundle.revert': {
+        policy: 'singleton',
+        localConcurrency: 1,
+        retryDelay: 300,
+        retryDelayMax: 3600,
+        expireInSeconds: 7200,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 5,
+      },
+      'score.issues': {
+        policy: 'standard',
+        localConcurrency: 1,
+        retryDelay: 60,
+        retryDelayMax: 900,
+        expireInSeconds: 3600,
+        heartbeatSeconds: 60,
+        pollingIntervalSeconds: 5,
+      },
+    };
+    const names = Object.keys(expected) as JobName[];
+    const registry = QUEUE_REGISTRY.filter((definition) => names.includes(definition.name));
+    expect(registry.map((definition) => definition.name).sort()).toEqual([...names].sort());
+
+    const boss = await startBoss();
+    for (const name of names) {
+      await boss.deleteQueue(name);
+    }
+    const workOptions = new Map<string, unknown>();
+    const record = (name: string, options: unknown): Promise<string> => {
+      workOptions.set(name, options);
+      return Promise.resolve(`fixture-worker-${name}`);
+    };
+    vi.spyOn(boss, 'work').mockImplementation(record);
+    await registerQueues(boss, await runtimeFor(boss), registry);
+
+    for (const name of names) {
+      const row = expected[name];
+      const queue = await boss.getQueue(name);
+      expect({
+        name,
+        policy: queue?.policy,
+        retryLimit: queue?.retryLimit,
+        retryBackoff: queue?.retryBackoff,
+        retryDelay: queue?.retryDelay,
+        retryDelayMax: queue?.retryDelayMax,
+        expireInSeconds: queue?.expireInSeconds,
+        heartbeatSeconds: queue?.heartbeatSeconds ?? null,
+        deleteAfterSeconds: queue?.deleteAfterSeconds,
+        deadLetter: queue?.deadLetter,
+      }).toEqual({
+        name,
+        policy: row?.policy,
+        retryLimit: 2,
+        retryBackoff: true,
+        retryDelay: row?.retryDelay,
+        retryDelayMax: row?.retryDelayMax,
+        expireInSeconds: row?.expireInSeconds,
+        heartbeatSeconds: row?.heartbeatSeconds,
+        deleteAfterSeconds: 86400,
+        deadLetter: 'ops.dead',
+      });
+      expect(workOptions.get(name)).toEqual({
+        batchSize: 1,
+        includeMetadata: true,
+        localConcurrency: row?.localConcurrency,
+        pollingIntervalSeconds: row?.pollingIntervalSeconds,
+      });
+    }
+  });
+
+  it('the bundle poll and weekly issue schedules exist after boot', async () => {
+    const boss = await startBoss();
+    try {
+      await registerSchedules(boss, testLogger());
+      const found = (await boss.getSchedules())
+        .filter((schedule) => schedule.name === 'bundle.poll' || schedule.name === 'score.issues')
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((schedule) => ({
+          name: schedule.name,
+          cron: schedule.cron,
+          data: schedule.data,
+          key: schedule.key,
+          timezone: schedule.timezone,
+          missed: schedule.options?.missed,
+          singletonKey: schedule.options?.singletonKey,
+        }));
+      expect(found).toEqual([
+        {
+          name: 'bundle.poll',
+          cron: '*/15 * * * *',
+          data: {},
+          key: '',
+          timezone: 'UTC',
+          missed: 'skip',
+          singletonKey: undefined,
+        },
+        {
+          name: 'score.issues',
+          cron: '30 12 * * 0',
+          data: { scope: 'all' },
+          key: '',
+          timezone: 'UTC',
+          missed: 'once',
+          singletonKey: undefined,
+        },
+      ]);
+    } finally {
+      for (const entry of SCHEDULE_REGISTRY) {
+        await boss.unschedule(entry.queue, entry.key);
+      }
+    }
   });
 });
 

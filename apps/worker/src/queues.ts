@@ -7,6 +7,9 @@ import { createJobContext } from './context.ts';
 import type { JobContext, WorkerRuntime } from './context.ts';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { bundleLoad } from './jobs/bundle/load.ts';
+import { bundlePoll } from './jobs/bundle/poll.ts';
+import { bundleRevert } from './jobs/bundle/revert.ts';
 import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
 import { mediaProcessImage } from './jobs/media/process-image.ts';
@@ -17,6 +20,7 @@ import { connectionsCheckJob } from './jobs/ops/connections-check.ts';
 import { costCheckJob } from './jobs/ops/cost-check.ts';
 import { opsDeadJob } from './jobs/ops/dead.ts';
 import { opsHeartbeatJob } from './jobs/ops/heartbeat.ts';
+import { scoreIssues } from './jobs/score/issues.ts';
 import { JobFailedError, PermanentJobError, errorClassOf } from './jobs/types.ts';
 import type { AnyJobDefinition, JobDefinition, QueueOptions } from './jobs/types.ts';
 import { QUEUE_OPTIONS } from './queue-options.ts';
@@ -45,6 +49,10 @@ export const QUEUE_REGISTRY: readonly AnyJobDefinition[] = [
   uploadsCleanup,
   mediaProcessImage,
   notifyEmail,
+  bundlePoll,
+  bundleLoad,
+  bundleRevert,
+  scoreIssues,
 ];
 
 /** Every schedule, crons in UTC; nothing else calls pg-boss `schedule`. */
@@ -102,6 +110,24 @@ export const SCHEDULE_REGISTRY: readonly ScheduleEntry[] = [
     cron: '15 7 * * *',
     data: { scope: 'nightly' },
     key: 'nightly',
+    missed: 'once',
+  },
+  // Every 15 minutes; the next tick comes soon, so a missed one is skipped.
+  {
+    id: 'S-bundle.poll',
+    queue: 'bundle.poll',
+    cron: '*/15 * * * *',
+    data: {},
+    key: '',
+    missed: 'skip',
+  },
+  // Weekly full rebuild, after a migration changes issue_powers.
+  {
+    id: 'S-score.issues.weekly',
+    queue: 'score.issues',
+    cron: '30 12 * * 0',
+    data: { scope: 'all' },
+    key: '',
     missed: 'once',
   },
 ];

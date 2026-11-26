@@ -214,4 +214,72 @@ export const QUEUE_OPTIONS: {
       pollingIntervalSeconds: 2, // J-notify.email
     },
   },
+  'bundle.poll': {
+    queue: {
+      policy: JOB_POLICIES['bundle.poll'], // J-bundle.poll
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-bundle.poll
+      retryBackoff: true, // D-238
+      retryDelayMax: 900, // J-bundle.poll
+      expireInSeconds: 300, // J-bundle.poll
+      heartbeatSeconds: null, // J-bundle.poll
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-bundle.poll
+      pollingIntervalSeconds: 10, // J-bundle.poll
+    },
+  },
+  'bundle.load': {
+    queue: {
+      policy: JOB_POLICIES['bundle.load'], // J-bundle.load
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-bundle.load
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-bundle.load
+      expireInSeconds: 14400, // J-bundle.load
+      heartbeatSeconds: 60, // J-bundle.load
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-bundle.load
+      pollingIntervalSeconds: 5, // J-bundle.load
+    },
+  },
+  'bundle.revert': {
+    queue: {
+      policy: JOB_POLICIES['bundle.revert'], // J-bundle.revert
+      retryLimit: 2, // D-238
+      retryDelay: 300, // J-bundle.revert
+      retryBackoff: true, // D-238
+      retryDelayMax: 3600, // J-bundle.revert
+      expireInSeconds: 7200, // J-bundle.revert
+      heartbeatSeconds: 60, // J-bundle.revert
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-bundle.revert
+      pollingIntervalSeconds: 5, // J-bundle.revert
+    },
+  },
+  'score.issues': {
+    queue: {
+      policy: JOB_POLICIES['score.issues'], // J-score.issues
+      retryLimit: 2, // D-238
+      retryDelay: 60, // J-score.issues
+      retryBackoff: true, // D-238
+      retryDelayMax: 900, // J-score.issues
+      expireInSeconds: 3600, // J-score.issues
+      heartbeatSeconds: 60, // J-score.issues
+      deleteAfterSeconds: 86400, // finished jobs kept 24 hours
+      deadLetter: 'ops.dead', // D-238
+    },
+    work: {
+      localConcurrency: 1, // J-score.issues
+      pollingIntervalSeconds: 5, // J-score.issues
+    },
+  },
 };

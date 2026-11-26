@@ -222,4 +222,35 @@ describe('renderOpsAlert', () => {
       'other is at 5 and projected at 7, over its threshold of 6.',
     );
   });
+
+  it('renders the bundle alerts', () => {
+    const bundleId = '0195d2c4-0000-7000-8000-000000000002';
+    const version = '20270115T060000Z-full';
+    const cases = [
+      { kind: 'bundle_stale', values: { hoursSince: 49 }, shows: '49' },
+      { kind: 'bundle_rejected', values: { bundleId, version, gate: 'checksums' }, shows: version },
+      { kind: 'bundle_held', values: { bundleId, version }, shows: version },
+    ] as const;
+    for (const { kind, values, shows } of cases) {
+      const rendered = renderOpsAlert({ kind, values, env: 'staging' }, t);
+      expect(rendered.subject.startsWith(`[${BRAND.displayName} staging] `), kind).toBe(true);
+      expect(rendered.subject, kind).toContain(shows);
+      for (const part of [rendered.subject, rendered.text, rendered.html]) {
+        expect(part, kind).not.toContain('{{');
+        expect(part, kind).not.toContain('opsAlert');
+      }
+    }
+    expect(
+      renderOpsAlert({ kind: 'bundle_stale', values: { hoursSince: 49 }, env: 'staging' }, t).text,
+    ).toContain('No full data bundle has loaded for 49 hours.');
+    expect(
+      renderOpsAlert(
+        { kind: 'bundle_rejected', values: { bundleId, version, gate: 'checksums' }, env: 'ci' },
+        t,
+      ).text,
+    ).toContain(`Bundle ${version} failed the gate checksums. The last good data stays loaded.`);
+    expect(
+      renderOpsAlert({ kind: 'bundle_held', values: { bundleId, version }, env: 'ci' }, t).subject,
+    ).toBe(`[${BRAND.displayName} ci] Bundle ${version} waits for approval`);
+  });
 });

@@ -29,6 +29,18 @@ export const notifications = {
       subject: '[{{appName}} {{env}}] Database connections at {{count}}',
       body: '{{count}} of {{max}} database connections are in use. The budget is in the infrastructure runbook.',
     },
+    bundleStale: {
+      subject: '[{{appName}} {{env}}] No new data bundle for {{hoursSince}} hours',
+      body: 'No full data bundle has loaded for {{hoursSince}} hours. Check the pipeline workflows.',
+    },
+    bundleRejected: {
+      subject: '[{{appName}} {{env}}] Bundle {{version}} rejected',
+      body: 'Bundle {{version}} failed the gate {{gate}}. The last good data stays loaded.',
+    },
+    bundleHeld: {
+      subject: '[{{appName}} {{env}}] Bundle {{version}} waits for approval',
+      body: 'Bundle {{version}} crossed a hold threshold. Approve or reject it in the Bundles screen.',
+    },
     costProjection: {
       subject: '[{{appName}} {{env}}] Cost projection over threshold: {{line}}',
       body: '{{line}} is at {{value}} and projected at {{projected}}, over its threshold of {{threshold}}.',

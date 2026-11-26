@@ -131,11 +131,13 @@ async function testRuntime(input: {
 }): Promise<WorkerRuntime> {
   const backups = input.storage?.backups ?? (await getTestBucket('backups'));
   const media = input.media ?? input.storage?.media ?? (await getTestBucket('media'));
+  const data = input.storage?.data ?? (await getTestBucket('data'));
   const env = buildEnv(
     {
       DATABASE_URL: getTestDatabaseUrl(),
       BACKUPS_BUCKET: backups.bucket,
       MEDIA_BUCKET: media.bucket,
+      DATA_BUCKET: data.bucket,
     },
     input.env,
   );
@@ -144,7 +146,7 @@ async function testRuntime(input: {
     logger: createLogger({ service: 'worker', level: 'debug', sink: captureLogs().sink }),
     db: input.db ?? getTestDb(),
     enqueue: input.enqueue ?? createEnqueue(await testBoss()),
-    storage: { backups, media },
+    storage: { backups, media, data },
     mailer: input.mailer,
     keys: input.keys ?? loadKeyRing(env.APP_SECRET, env.APP_SECRET_PREVIOUS),
     outbound: input.outbound ?? createFakeOutbound().fetch,
@@ -155,7 +157,7 @@ async function testRuntime(input: {
 
 /**
  * Runs one handler in process with the test dependencies (TEST-harness-job): this worker's
- * database, a send-only boss, the test `backups` and `media` buckets, a new CaptureMailer, the
+ * database, a send-only boss, the test `backups`, `media` and `data` buckets, a new CaptureMailer, the
  * test key ring, an outbound fake with no routes, the log capture, the test environment, a
  * FakeClock, a no-op `touch` and `retryLimit` 2. The payload is parsed as the worker parses it; a
  * payload that fails its schema never reaches `handle` and is `permanent`. Reports `completed`,

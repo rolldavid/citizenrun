@@ -100,6 +100,10 @@ const SAMPLE_PAYLOADS: { [N in JobName]: JobPayload<N> } = {
   'uploads.cleanup': { scope: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
   'media.process.image': { target: 'avatar', userId: SAMPLE_ID, uploadId: SAMPLE_ID },
   'notify.email': { template: 'signin_method_added', userId: SAMPLE_ID, provider: 'apple' },
+  'bundle.poll': {},
+  'bundle.load': { bundleId: SAMPLE_ID, mode: 'new' },
+  'bundle.revert': { bundleId: SAMPLE_ID, adminId: SAMPLE_ID },
+  'score.issues': { scope: 'offices', officeIds: [SAMPLE_ID] },
 };
 
 const LONG = 'a'.repeat(65);
@@ -277,9 +281,44 @@ describe('the job list', () => {
     ).toBe(false);
   });
 
+  it('a bundle.load payload holds the bundle id and its mode only', () => {
+    const schema = JOB_PAYLOADS['bundle.load'];
+    for (const mode of ['new', 'approved', 'reload'] as const) {
+      expect(schema.safeParse({ bundleId: SAMPLE_ID, mode }).success, mode).toBe(true);
+    }
+    expect(schema.safeParse({ bundleId: SAMPLE_ID, mode: 'force' }).success).toBe(false);
+    expect(schema.safeParse({ bundleId: SAMPLE_ID }).success).toBe(false);
+    expect(
+      schema.safeParse({ bundleId: SAMPLE_ID, mode: 'new', version: '20270101T000000Z-full' })
+        .success,
+    ).toBe(false);
+    expect(
+      JOB_PAYLOADS['bundle.revert'].safeParse({ bundleId: SAMPLE_ID, adminId: SAMPLE_ID }).success,
+    ).toBe(true);
+    expect(JOB_PAYLOADS['bundle.revert'].safeParse({ bundleId: SAMPLE_ID }).success).toBe(false);
+  });
+
+  it('a score.issues payload is every office or 1 to 5,000 office ids', () => {
+    const schema = JOB_PAYLOADS['score.issues'];
+    expect(schema.safeParse({ scope: 'all' }).success).toBe(true);
+    expect(schema.safeParse({ scope: 'all', officeIds: [SAMPLE_ID] }).success).toBe(false);
+    expect(schema.safeParse({ scope: 'offices', officeIds: [] }).success).toBe(false);
+    const many = Array.from({ length: 5000 }, () => SAMPLE_ID);
+    expect(schema.safeParse({ scope: 'offices', officeIds: many }).success).toBe(true);
+    expect(schema.safeParse({ scope: 'offices', officeIds: [...many, SAMPLE_ID] }).success).toBe(
+      false,
+    );
+    expect(schema.safeParse({ scope: 'offices', officeIds: ['not-a-uuid'] }).success).toBe(false);
+  });
+
   it('empty payloads refuse extra keys', () => {
     expect(JOB_PAYLOADS['cost.check'].safeParse({ a: 1 }).success).toBe(false);
-    for (const name of ['ops.heartbeat', 'backup.check', 'db.connections-check'] as const) {
+    for (const name of [
+      'ops.heartbeat',
+      'backup.check',
+      'db.connections-check',
+      'bundle.poll',
+    ] as const) {
       expect(JOB_PAYLOADS[name].safeParse({ a: 1 }).success, name).toBe(false);
       expect(JOB_PAYLOADS[name].safeParse({}).success, name).toBe(true);
     }

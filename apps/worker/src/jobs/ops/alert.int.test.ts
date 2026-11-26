@@ -18,6 +18,16 @@ const SAMPLES = {
   },
   dump_stale: { hoursSinceNewest: 40 },
   connections_high: { count: 85, max: 100 },
+  bundle_stale: { hoursSince: 49 },
+  bundle_rejected: {
+    bundleId: '0195d2c4-0000-7000-8000-000000000002',
+    version: '20270115T060000Z-full',
+    gate: 'checksums',
+  },
+  bundle_held: {
+    bundleId: '0195d2c4-0000-7000-8000-000000000002',
+    version: '20270115T060000Z-full',
+  },
   cost_projection: { line: 'storage', value: 700_000_000_000, projected: 1050, threshold: 1000 },
 } as const satisfies Record<OpsAlertKind, Readonly<Record<string, string | number | null>>>;
 

@@ -26,7 +26,14 @@ function alertOptions(replace: AlertReplace): AlertOptions {
 }
 
 type OpsAlertSection = 'notifications:opsAlert';
-type OpsAlertName = 'jobFailed' | 'dumpStale' | 'connectionsHigh' | 'costProjection';
+type OpsAlertName =
+  | 'jobFailed'
+  | 'dumpStale'
+  | 'connectionsHigh'
+  | 'bundleStale'
+  | 'bundleRejected'
+  | 'bundleHeld'
+  | 'costProjection';
 type CostLineBody =
   'bodyStorage' | 'bodyUploadGrowth' | 'bodyEmailMonth' | 'bodyEmailDay' | 'bodySigninCeiling';
 type OpsAlertKey =
@@ -59,6 +66,21 @@ function subjectAndBody(
       return {
         subject: t('notifications:opsAlert.connectionsHigh.subject', options),
         body: t('notifications:opsAlert.connectionsHigh.body', options),
+      };
+    case 'bundle_stale':
+      return {
+        subject: t('notifications:opsAlert.bundleStale.subject', options),
+        body: t('notifications:opsAlert.bundleStale.body', options),
+      };
+    case 'bundle_rejected':
+      return {
+        subject: t('notifications:opsAlert.bundleRejected.subject', options),
+        body: t('notifications:opsAlert.bundleRejected.body', options),
+      };
+    case 'bundle_held':
+      return {
+        subject: t('notifications:opsAlert.bundleHeld.subject', options),
+        body: t('notifications:opsAlert.bundleHeld.body', options),
       };
     case 'cost_projection':
       return {

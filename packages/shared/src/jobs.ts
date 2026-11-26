@@ -19,6 +19,10 @@ export const JOB_NAMES = [
   'uploads.cleanup',
   'media.process.image',
   'notify.email',
+  'bundle.poll',
+  'bundle.load',
+  'bundle.revert',
+  'score.issues',
 ] as const;
 export type JobName = (typeof JOB_NAMES)[number];
 
@@ -42,6 +46,10 @@ export const JOB_POLICIES = {
   'uploads.cleanup': 'standard',
   'media.process.image': 'standard',
   'notify.email': 'standard',
+  'bundle.poll': 'singleton',
+  'bundle.load': 'singleton',
+  'bundle.revert': 'singleton',
+  'score.issues': 'standard',
 } as const satisfies Record<JobName, QueuePolicy>;
 
 /** The kinds of ops alert whose sending step exists. */
@@ -49,6 +57,9 @@ export const OpsAlertKindSchema = z.enum([
   'job_failed',
   'dump_stale',
   'connections_high',
+  'bundle_stale',
+  'bundle_rejected',
+  'bundle_held',
   'cost_projection',
 ]);
 export type OpsAlertKind = z.infer<typeof OpsAlertKindSchema>;
@@ -101,6 +112,13 @@ export const JOB_PAYLOADS = {
         provider: z.enum(['email', 'apple', 'google']),
       })
       .strict(),
+  ]),
+  'bundle.poll': Empty,
+  'bundle.load': z.object({ bundleId: Id, mode: z.enum(['new', 'approved', 'reload']) }).strict(),
+  'bundle.revert': z.object({ bundleId: Id, adminId: Id }).strict(),
+  'score.issues': z.discriminatedUnion('scope', [
+    z.object({ scope: z.literal('all') }).strict(),
+    z.object({ scope: z.literal('offices'), officeIds: z.array(Id).min(1).max(5000) }).strict(),
   ]),
 } as const satisfies Record<JobName, z.ZodType>;
 

@@ -30,8 +30,8 @@ export type JobContext = {
   /** The app pool (D-138). */
   db: Db;
   enqueue: Enqueue;
-  /** `media` is the MEDIA_* bucket. */
-  storage: { backups: Bucket; media: Bucket };
+  /** `media` is the MEDIA_* bucket; `data` the DATA_* bucket the pipeline publishes bundles to. */
+  storage: { backups: Bucket; media: Bucket; data: Bucket };
   mailer: Mailer;
   /** The key ring of APP_SECRET and APP_SECRET_PREVIOUS, built once at boot (CTL-07). */
   keys: KeyRing;
@@ -44,15 +44,15 @@ export type JobContext = {
 
 /**
  * The process-wide dependencies every job context is built from. `main.ts` and the test harness
- * give `storage.media`, `keys` and `outbound`; a runtime without one of them gets it built once
- * from its `env`, as `main.ts` builds it.
+ * give `storage.media`, `storage.data`, `keys` and `outbound`; a runtime without one of them gets
+ * it built once from its `env`, as `main.ts` builds it.
  */
 export type WorkerRuntime = {
   env: WorkerEnv;
   logger: Logger;
   db: Db;
   enqueue: Enqueue;
-  storage: { backups: Bucket; media?: Bucket };
+  storage: { backups: Bucket; media?: Bucket; data?: Bucket };
   mailer: Mailer;
   keys?: KeyRing;
   outbound?: OutboundFetch;
@@ -60,21 +60,26 @@ export type WorkerRuntime = {
   abort: AbortController;
 };
 
-type RuntimeExtras = { media: Bucket; keys: KeyRing; outbound: OutboundFetch };
+type RuntimeExtras = { media: Bucket; data: Bucket; keys: KeyRing; outbound: OutboundFetch };
 
 // Built at most once per runtime object, so a job never rebuilds a client or the key ring.
 const builtExtras = new WeakMap<WorkerRuntime, RuntimeExtras>();
 
 function extrasOf(runtime: WorkerRuntime): RuntimeExtras {
-  const { media } = runtime.storage;
+  const { media, data } = runtime.storage;
   const { keys, outbound } = runtime;
-  if (media !== undefined && keys !== undefined && outbound !== undefined) {
-    return { media, keys, outbound };
+  if (media !== undefined && data !== undefined && keys !== undefined && outbound !== undefined) {
+    return { media, data, keys, outbound };
   }
   let built = builtExtras.get(runtime);
   if (built === undefined) {
+    // The env's buckets are built at most once, and only when one is missing.
+    let fromEnv: ReturnType<typeof createWorkerBuckets> | null = null;
+    const envBuckets = (): ReturnType<typeof createWorkerBuckets> =>
+      (fromEnv ??= createWorkerBuckets(runtime.env));
     built = {
-      media: media ?? createWorkerBuckets(runtime.env).media,
+      media: media ?? envBuckets().media,
+      data: data ?? envBuckets().data,
       keys: keys ?? loadKeyRing(runtime.env.APP_SECRET, runtime.env.APP_SECRET_PREVIOUS),
       outbound: outbound ?? createOutboundFetch(runtime.env),
     };
@@ -104,7 +109,7 @@ export function createJobContext(
     log: runtime.logger.child({ job: job.name, jobId: job.id }),
     db: runtime.db,
     enqueue: runtime.enqueue,
-    storage: { backups: runtime.storage.backups, media: extras.media },
+    storage: { backups: runtime.storage.backups, media: extras.media, data: extras.data },
     mailer: runtime.mailer,
     keys: extras.keys,
     outbound: extras.outbound,

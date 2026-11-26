@@ -31,6 +31,12 @@ export type WorkerEnv = Readonly<{
   MEDIA_REGION: string;
   MEDIA_ACCESS_KEY_ID: string;
   MEDIA_SECRET_ACCESS_KEY: string;
+  /** The `data` bucket the pipeline publishes bundles to; the worker reads it and writes its index file. */
+  DATA_BUCKET: string;
+  DATA_ENDPOINT: string;
+  DATA_REGION: string;
+  DATA_ACCESS_KEY_ID: string;
+  DATA_SECRET_ACCESS_KEY: string;
   S3_FORCE_PATH_STYLE: boolean;
   /** 64 lower-case hex characters, the same value as the API's (D-244). */
   APP_SECRET: string;
@@ -170,6 +176,12 @@ const WorkerEnvSchema = z.object({
   MEDIA_REGION: bucketValue,
   MEDIA_ACCESS_KEY_ID: bucketValue,
   MEDIA_SECRET_ACCESS_KEY: bucketValue,
+  // Infrastructure values, required everywhere: never an owner input (D-589).
+  DATA_BUCKET: bucketValue,
+  DATA_ENDPOINT: urlWithProtocol(['http:', 'https:']),
+  DATA_REGION: bucketValue,
+  DATA_ACCESS_KEY_ID: bucketValue,
+  DATA_SECRET_ACCESS_KEY: bucketValue,
   S3_FORCE_PATH_STYLE: booleanFlag,
   APP_SECRET: appSecret,
   APP_SECRET_PREVIOUS: appSecret.optional().transform((value) => value ?? null),

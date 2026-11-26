@@ -17,6 +17,13 @@ const MEDIA_VARIABLES = [
   'MEDIA_ACCESS_KEY_ID',
   'MEDIA_SECRET_ACCESS_KEY',
 ] as const;
+const DATA_VARIABLES = [
+  'DATA_BUCKET',
+  'DATA_ENDPOINT',
+  'DATA_REGION',
+  'DATA_ACCESS_KEY_ID',
+  'DATA_SECRET_ACCESS_KEY',
+] as const;
 const APPLE_OWNER_INPUTS = APPLE_VARIABLES.map((variable) => ({
   variable,
   ownerInput: 'OI-apple-identifiers',
@@ -49,6 +56,12 @@ function infra(appEnv: string, extra: Source = {}): Source {
     MEDIA_REGION: 'us-east-1',
     MEDIA_ACCESS_KEY_ID: 'fixture-access',
     MEDIA_SECRET_ACCESS_KEY: 'fixture-secret',
+    // The values of apps/worker/.env.example.
+    DATA_BUCKET: 'dev-data',
+    DATA_ENDPOINT: 'http://localhost:8333',
+    DATA_REGION: 'us-east-1',
+    DATA_ACCESS_KEY_ID: 'osdev',
+    DATA_SECRET_ACCESS_KEY: 'osdev-secret-key',
     APP_SECRET: LOCAL_APP_SECRET,
     ...extra,
   };
@@ -176,6 +189,27 @@ describe('loadEnv', () => {
     expect(env.MEDIA_ENDPOINT).toBe('http://localhost:8333');
     expect(refusal(infra('ci', { MEDIA_ENDPOINT: 'ftp://store.example.test' })).variables).toEqual([
       'MEDIA_ENDPOINT',
+    ]);
+  });
+
+  it('stops without the data bucket', () => {
+    const values = infra('ci');
+    for (const variable of DATA_VARIABLES) {
+      const missing = refusal(infra('ci', { [variable]: undefined }));
+      expect(missing.variables).toEqual([variable]);
+      expect(refusal(deployed('staging', { [variable]: undefined })).variables).toEqual([variable]);
+      // The refusal names the variable and holds none of the values.
+      for (const name of DATA_VARIABLES) {
+        const value = values[name] ?? '';
+        expect(missing.message).not.toContain(value);
+        expect(JSON.stringify(missing.variables)).not.toContain(value);
+      }
+    }
+    const env = loadEnv(values);
+    expect(env.DATA_BUCKET).toBe('dev-data');
+    expect(env.DATA_ENDPOINT).toBe('http://localhost:8333');
+    expect(refusal(infra('ci', { DATA_ENDPOINT: 'ftp://store.example.test' })).variables).toEqual([
+      'DATA_ENDPOINT',
     ]);
   });
 

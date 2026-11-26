@@ -1,13 +1,19 @@
 import { generateKeyPairSync } from 'node:crypto';
 import { dataExports, markAccountDeleting, users } from '@citizenrun/db';
+import { insertLoadingBundle } from '@citizenrun/db/bundle';
 import {
   captureLogs,
   createTestBoss,
+  fixtureVersion,
   getTestBucket,
   getTestDb,
+  insertDataBundle,
   insertDataExport,
   insertUpload,
   insertUser,
+  writeFixtureBundle,
+  zzBundle,
+  zzGeometry,
 } from '@citizenrun/db/testing';
 import { JOB_NAMES, newId } from '@citizenrun/shared';
 import type { JobName } from '@citizenrun/shared';
@@ -17,6 +23,9 @@ import { eq, sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { accountDelete } from './jobs/account/delete.ts';
 import { accountExport } from './jobs/account/export.ts';
+import { bundleLoad } from './jobs/bundle/load.ts';
+import { bundlePoll } from './jobs/bundle/poll.ts';
+import { bundleRevert } from './jobs/bundle/revert.ts';
 import { cleanupRetention } from './jobs/cleanup/retention.ts';
 import { uploadsCleanup } from './jobs/cleanup/uploads-cleanup.ts';
 import { avatarUpload, setAvatarColumns } from './lib/media/testing/avatar-upload.ts';
@@ -24,6 +33,7 @@ import { mediaProcessImage } from './jobs/media/process-image.ts';
 import { notifyEmail } from './jobs/notify/email.ts';
 import { opsAlertJob } from './jobs/ops/alert.ts';
 import { opsDeadJob } from './jobs/ops/dead.ts';
+import { scoreIssues } from './jobs/score/issues.ts';
 import { PermanentJobError } from './jobs/types.ts';
 import { solidJpeg, truncated } from './lib/media/images.fixtures.ts';
 import type { Bucket } from './lib/storage.ts';
@@ -384,6 +394,131 @@ async function cleanupRetentionPaths(): Promise<void> {
   expect(anyLineHolds(stale.userId)).toBe(false);
 }
 
+const BUNDLE_TODAY = '2027-01-15';
+const BUNDLE_NOW = new Date('2027-01-15T06:00:00Z');
+
+// A name the store refuses, so neither a read nor a write can create it.
+async function missingDataBucket(): Promise<Bucket> {
+  const data = await getTestBucket('data');
+  return { client: data.client, bucket: `${data.bucket}_gone` };
+}
+
+// The data of every job row of every queue, in any state.
+async function allJobData(): Promise<string> {
+  const rows = await getTestDb().execute<{ data: unknown }>(
+    sql`select data from pgboss.job`,
+    'objects',
+  );
+  return JSON.stringify(rows.map((row) => row.data));
+}
+
+/** Publishes a ZZ bundle whose first person's name carries the marker and inserts its loading row. */
+async function markedBundle(minute: number): Promise<string> {
+  const files = zzBundle({ today: BUNDLE_TODAY, offices: 2 });
+  const person = files.people?.[0];
+  if (person === undefined) {
+    throw new Error('The fixture has no person.');
+  }
+  person.name = `Fixture Holder ${marker()}`;
+  const version = fixtureVersion(`2027-01-15T06:${String(minute).padStart(2, '0')}:00Z`, 'full');
+  await writeFixtureBundle({ version, files, geometry: zzGeometry(), pointer: true });
+  const bundleId = await getTestDb().transaction((tx) =>
+    insertLoadingBundle(tx, { version, kind: 'full' }),
+  );
+  if (bundleId === null) {
+    throw new Error('The bundle row exists.');
+  }
+  return bundleId;
+}
+
+async function markedPeople(): Promise<number> {
+  const [found] = await getTestDb().execute<{ n: number }>(
+    sql`select count(*)::int as n from people where name like ${`%${marker()}%`}`,
+    'objects',
+  );
+  return found?.n ?? 0;
+}
+
+async function expectNoMarkerOutsideRows(): Promise<void> {
+  expect(captureLogs().lines.length).toBeGreaterThan(0);
+  expect(anyLineHolds(marker())).toBe(false);
+  expect(await allJobData()).not.toContain(marker());
+  expect(await alertJobData()).not.toContain(marker());
+}
+
+async function bundleLoadPaths(): Promise<void> {
+  const clock = new FakeClock(BUNDLE_NOW);
+  // Retry: the data bucket does not exist, so the manifest read throws.
+  const failing = await markedBundle(0);
+  const retried = await runJob(
+    bundleLoad,
+    { bundleId: failing, mode: 'new' },
+    { clock, storage: { data: await missingDataBucket() } },
+  );
+  expect(retried.outcome).toBe('failed');
+
+  // Success: the marked name is stored, and is in no log line, job payload or alert.
+  const done = await runJob(bundleLoad, { bundleId: failing, mode: 'new' }, { clock });
+  expect(done.outcome).toBe('completed');
+  expect(await markedPeople()).toBe(1);
+
+  // Permanent: an unknown bundle.
+  const unknown = await runJob(bundleLoad, { bundleId: newId(), mode: 'new' }, { clock });
+  expect(unknown.outcome).toBe('permanent');
+  await expectNoMarkerOutsideRows();
+}
+
+async function bundlePollPaths(): Promise<void> {
+  const clock = new FakeClock(BUNDLE_NOW);
+  await markedBundle(0);
+  // Retry: the data bucket does not exist, so writing loader.json throws.
+  const retried = await runJob(
+    bundlePoll,
+    {},
+    { clock, storage: { data: await missingDataBucket() } },
+  );
+  expect(retried.outcome).toBe('failed');
+  // Success: the pointer names a bundle whose rows carry the marker; nothing of them is read.
+  const done = await runJob(bundlePoll, {}, { clock });
+  expect(done.outcome).toBe('completed');
+  await expectNoMarkerOutsideRows();
+}
+
+async function bundleRevertPaths(): Promise<void> {
+  const clock = new FakeClock(BUNDLE_NOW);
+  const bundleId = await markedBundle(0);
+  expect((await runJob(bundleLoad, { bundleId, mode: 'new' }, { clock })).outcome).toBe(
+    'completed',
+  );
+  const adminId = newId();
+  // Permanent: a sample bundle is never reverted.
+  const sample = await insertDataBundle(getTestDb(), {
+    version: 'sample-20270101T000000Z-full',
+    status: 'loaded',
+    loadedAt: BUNDLE_NOW,
+  });
+  const refused = await runJob(bundleRevert, { bundleId: sample.id, adminId }, { clock });
+  expect(refused.outcome).toBe('permanent');
+  // Success: the marked person is retired, never logged.
+  const done = await runJob(bundleRevert, { bundleId, adminId }, { clock });
+  expect(done.outcome).toBe('completed');
+  expect(await markedPeople()).toBe(1);
+  await expectNoMarkerOutsideRows();
+  expect(anyLineHolds(adminId)).toBe(false);
+}
+
+async function scoreIssuesPaths(): Promise<void> {
+  const clock = new FakeClock(BUNDLE_NOW);
+  const bundleId = await markedBundle(0);
+  expect((await runJob(bundleLoad, { bundleId, mode: 'new' }, { clock })).outcome).toBe(
+    'completed',
+  );
+  const ran = await runQueued({ queues: ['score.issues'], clock });
+  expect(ran.map((job) => job.outcome)).toEqual(['completed']);
+  expect((await runJob(scoreIssues, { scope: 'all' }, { clock })).outcome).toBe('completed');
+  await expectNoMarkerOutsideRows();
+}
+
 const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   'ops.dead': { covered: true, run: deadLetterPaths },
   'ops.alert': { covered: true, run: opsAlertPaths },
@@ -405,6 +540,18 @@ const QUEUE_PRIVACY: { readonly [N in JobName]: QueuePrivacy } = {
   },
   'media.process.image': { covered: true, run: mediaProcessImagePaths },
   'notify.email': { covered: true, run: notifyEmailPaths },
+  'bundle.poll': {
+    covered: true,
+    run: bundlePollPaths,
+    noPermanentPath: 'a missing or invalid pointer is treated as absent; nothing fails for good',
+  },
+  'bundle.load': { covered: true, run: bundleLoadPaths },
+  'bundle.revert': { covered: true, run: bundleRevertPaths },
+  'score.issues': {
+    covered: true,
+    run: scoreIssuesPaths,
+    noPermanentPath: 'a failure is a database error, which is retried; no permanent path',
+  },
 };
 
 async function runCovered(name: JobName): Promise<void> {
@@ -460,5 +607,21 @@ describe('worker privacy', () => {
 
   it('retention never logs a user or an object key', async () => {
     await runCovered('cleanup.retention');
+  });
+
+  it('bundle loads never log a bundle row', async () => {
+    await runCovered('bundle.load');
+  });
+
+  it('bundle polls never log a bundle row', async () => {
+    await runCovered('bundle.poll');
+  });
+
+  it('bundle reverts never log a bundle row or the admin', async () => {
+    await runCovered('bundle.revert');
+  });
+
+  it('issue scoring never logs a bundle row', async () => {
+    await runCovered('score.issues');
   });
 });

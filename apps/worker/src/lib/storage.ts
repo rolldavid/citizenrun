@@ -13,8 +13,12 @@ export type ListedObject = { key: string; size: number; lastModified: Date };
 // ListObjectsV2's own page limit.
 const DEFAULT_PAGE_SIZE = 1000;
 
-/** The buckets the worker holds keys for: `backups` and `media`. Opens no connection itself. */
-export function createWorkerBuckets(env: WorkerEnv): { backups: Bucket; media: Bucket } {
+/** The buckets the worker holds keys for: `backups`, `media` and `data`. Opens no connection itself. */
+export function createWorkerBuckets(env: WorkerEnv): {
+  backups: Bucket;
+  media: Bucket;
+  data: Bucket;
+} {
   return {
     backups: {
       client: createS3Client({
@@ -35,6 +39,16 @@ export function createWorkerBuckets(env: WorkerEnv): { backups: Bucket; media: B
         forcePathStyle: env.S3_FORCE_PATH_STYLE,
       }),
       bucket: env.MEDIA_BUCKET,
+    },
+    data: {
+      client: createS3Client({
+        endpoint: env.DATA_ENDPOINT,
+        region: env.DATA_REGION,
+        accessKeyId: env.DATA_ACCESS_KEY_ID,
+        secretAccessKey: env.DATA_SECRET_ACCESS_KEY,
+        forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      }),
+      bucket: env.DATA_BUCKET,
     },
   };
 }
