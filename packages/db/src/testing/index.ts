@@ -16,6 +16,20 @@ export {
   getTestObject,
   listTestKeys,
 } from './storage.ts';
+export { readTestObject, testDataBucketClient, testMediaStore } from './bundle-io.ts';
+export { sha256Hex, squareWkbHex } from './wkb.ts';
+export {
+  fixturePhotoRecord,
+  fixtureVersion,
+  snapshotCivic,
+  writeFixtureBundle,
+  zzBundle,
+  zzGeometry,
+  zzPhotoJpeg,
+} from './bundle-fixtures.ts';
+export type { FixtureAsset, FixtureBundleInput, FixtureRows } from './bundle-fixtures.ts';
+export { GATE_FAULTS } from './bundle-faults.ts';
+export type { GateFault } from './bundle-faults.ts';
 export { fetchPresignedGet } from './presigned-get.ts';
 export { buildPolicyForm, uploadWithPolicy } from './upload-with-policy.ts';
 export { seedUsersStep } from '../seed/steps/010-users.ts';

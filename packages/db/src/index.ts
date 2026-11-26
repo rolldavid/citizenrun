@@ -35,3 +35,9 @@ export {
   insertDisplayBandFullSql,
   insertDistrictPartsSql,
 } from './sql/district-geometry.ts';
+export {
+  BundleStatsSchema,
+  GateResultSchema,
+  type BundleStats,
+  type GateResult,
+} from './bundle/stats.ts';

@@ -80,7 +80,8 @@ export async function putTestObject(
   );
 }
 
-function isMissingKey(error: unknown): boolean {
+/** True for the store's answer to a key that does not exist. */
+export function isMissingKey(error: unknown): boolean {
   if (!(error instanceof Error)) {
     return false;
   }
