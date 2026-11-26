@@ -593,6 +593,8 @@ describe('the worker smoke', () => {
       'db.connections-check',
       'cost.check',
       'cleanup.retention',
+      'db.size-check',
+      'field-reports.export',
     ]);
     expect(workerQueuesFailure(rows)).toBeNull();
     const clock = { name: '__pgboss__send-it', policy: 'standard', scheduled: false };

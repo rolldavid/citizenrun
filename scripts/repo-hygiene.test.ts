@@ -96,7 +96,14 @@ describe('repository hygiene', () => {
 
   it('local CORS equals Railway CORS', () => {
     const local: unknown = JSON.parse(read('docker/seaweedfs/cors.json'));
-    expect(local).toStrictEqual(mediaCorsRules(['http://localhost:8081', 'http://localhost:8080']));
+    expect(local).toStrictEqual(
+      mediaCorsRules([
+        'http://localhost:8081',
+        'http://localhost:8080',
+        'http://localhost:8070',
+        'http://localhost:8071',
+      ]),
+    );
   });
 
   it('every action is pinned by SHA', () => {
