@@ -53,4 +53,12 @@ export const errors = {
     "This bundle can't be loaded again. A newer bundle is loaded, or this one is waiting.",
   bundle_not_held: "This bundle isn't waiting for approval.",
   bundle_not_revertable: 'Only one of the last seven loaded bundles can be reverted.',
+  address_not_found: 'We could not find that address. Check it, or use your location.',
+  need_street_address: 'Add a street address.',
+  outside_us: 'United States only.',
+  geocoder_unavailable: "We can't look up addresses right now. Try again, or use your location.",
+  office_retired: 'This office is no longer listed.',
+  area_too_large: 'That area has too many offices. Zoom in or choose a smaller area.',
+  account_too_new: 'New accounts can do this after their first 24 hours.',
+  link_invalid: 'Use a full link that starts with https:// and names a website.',
 } as const;

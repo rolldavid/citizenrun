@@ -50,6 +50,21 @@ export const RATE_LIMIT_POLICIES = {
   web_static: [{ subject: 'ip', action: 'web_static', limit: 1200, window: '1m', store: 'memory' }], // E-WEB-04
   web_page: [{ subject: 'ip', action: 'web_page', limit: 240, window: '1m', store: 'memory' }], // E-WEB-05
   web_seo: [{ subject: 'ip', action: 'web_seo', limit: 120, window: '1m', store: 'memory' }], // E-WEB-03
+  // E-OFF-01, E-OFF-02, E-PPL-01: one per-address budget for the logged-out civic reads (CTL-43, CTL-39)
+  civic_read: [
+    { subject: 'user', action: 'civic', limit: 600, window: '1m', store: 'db' },
+    {
+      subject: 'ip',
+      action: 'civic',
+      limit: 240,
+      window: '1m',
+      store: 'memory',
+      when: 'logged_out',
+    },
+  ],
+  explore_list: [{ subject: 'user', action: 'explore', limit: 120, window: '1m', store: 'db' }], // E-EXP-01
+  office_toggle: [{ subject: 'user', action: 'toggle', limit: 120, window: '1m', store: 'db' }], // E-OFF-04 to E-OFF-07
+  field_report: [{ subject: 'user', action: 'freport', limit: 5, window: '1m', store: 'db' }], // E-OFF-09; the daily limit is counted from field_reports
   // D-854: a /v1 request that no route's metadata matches
   'v1.unmatched': [
     { subject: 'ip', action: 'v1_unmatched', limit: 120, window: '1m', store: 'memory' },

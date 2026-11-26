@@ -3,4 +3,7 @@
 
 export const LIMITS = {
   clientErrorBytes: 4_096, // L-limits
+  followsPerDay: { newAccount: 100, established: 400 }, // L-limits
+  fieldReportsPerDay: 10, // L-limits
+  reportNoteChars: 1_000, // L-limits
 } as const;

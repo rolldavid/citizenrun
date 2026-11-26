@@ -56,6 +56,20 @@ describe('rate-limit policies', () => {
       ],
       web_page: [{ subject: 'ip', action: 'web_page', limit: 240, window: '1m', store: 'memory' }],
       web_seo: [{ subject: 'ip', action: 'web_seo', limit: 120, window: '1m', store: 'memory' }],
+      civic_read: [
+        { subject: 'user', action: 'civic', limit: 600, window: '1m', store: 'db' },
+        {
+          subject: 'ip',
+          action: 'civic',
+          limit: 240,
+          window: '1m',
+          store: 'memory',
+          when: 'logged_out',
+        },
+      ],
+      explore_list: [{ subject: 'user', action: 'explore', limit: 120, window: '1m', store: 'db' }],
+      office_toggle: [{ subject: 'user', action: 'toggle', limit: 120, window: '1m', store: 'db' }],
+      field_report: [{ subject: 'user', action: 'freport', limit: 5, window: '1m', store: 'db' }],
       'v1.unmatched': [
         { subject: 'ip', action: 'v1_unmatched', limit: 120, window: '1m', store: 'memory' },
       ],

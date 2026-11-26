@@ -54,4 +54,12 @@ export const ErrorEnvelopeErrorCode = {
   bundle_not_reloadable: 'bundle_not_reloadable',
   bundle_not_held: 'bundle_not_held',
   bundle_not_revertable: 'bundle_not_revertable',
+  address_not_found: 'address_not_found',
+  need_street_address: 'need_street_address',
+  outside_us: 'outside_us',
+  geocoder_unavailable: 'geocoder_unavailable',
+  office_retired: 'office_retired',
+  area_too_large: 'area_too_large',
+  account_too_new: 'account_too_new',
+  link_invalid: 'link_invalid',
 } as const;

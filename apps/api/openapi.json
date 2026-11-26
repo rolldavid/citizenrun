@@ -491,7 +491,15 @@
                   "bundle_busy",
                   "bundle_not_reloadable",
                   "bundle_not_held",
-                  "bundle_not_revertable"
+                  "bundle_not_revertable",
+                  "address_not_found",
+                  "need_street_address",
+                  "outside_us",
+                  "geocoder_unavailable",
+                  "office_retired",
+                  "area_too_large",
+                  "account_too_new",
+                  "link_invalid"
                 ]
               },
               "message": {

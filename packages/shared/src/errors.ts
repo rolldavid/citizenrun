@@ -54,6 +54,14 @@ export const ERROR_CODES = {
   bundle_not_reloadable: { status: 409, message: 'The bundle cannot be reloaded.' },
   bundle_not_held: { status: 409, message: 'The bundle is not held.' },
   bundle_not_revertable: { status: 409, message: 'The bundle cannot be reverted.' },
+  address_not_found: { status: 422, message: 'No address match.' },
+  need_street_address: { status: 422, message: 'A street address is required.' },
+  outside_us: { status: 422, message: 'The point is outside the United States.' },
+  geocoder_unavailable: { status: 503, message: 'The address lookup service is unavailable.' },
+  office_retired: { status: 422, message: 'The office is retired.' },
+  area_too_large: { status: 422, message: 'The area holds too many offices.' },
+  account_too_new: { status: 422, message: 'The account is too new for this action.' },
+  link_invalid: { status: 422, message: 'The link is not a safe https link.' },
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CODES;

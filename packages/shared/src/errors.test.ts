@@ -64,6 +64,18 @@ const BUNDLE_CODE_STATUSES: Record<string, number> = {
   bundle_not_revertable: 409,
 };
 
+// The civic codes and their statuses (L-error-registry).
+const CIVIC_CODE_STATUSES: Record<string, number> = {
+  address_not_found: 422,
+  need_street_address: 422,
+  outside_us: 422,
+  geocoder_unavailable: 503,
+  office_retired: 422,
+  area_too_large: 422,
+  account_too_new: 422,
+  link_invalid: 422,
+};
+
 describe('error registry', () => {
   it('every error code maps to one status', () => {
     const entries = Object.entries(ERROR_CODES);
@@ -77,13 +89,52 @@ describe('error registry', () => {
     expect(ERROR_CODES.internal).toEqual({ status: 500, message: 'Internal error.' });
   });
 
-  it('holds exactly the starting codes, the account codes and the bundle codes', () => {
+  it('holds exactly the starting, account, bundle and civic codes', () => {
     expect(Object.keys(ERROR_CODES).sort()).toEqual(
       [
         ...STARTING_CODES,
         ...Object.keys(ACCOUNT_CODE_STATUSES),
         ...Object.keys(BUNDLE_CODE_STATUSES),
+        ...Object.keys(CIVIC_CODE_STATUSES),
       ].sort(),
+    );
+  });
+
+  it('the civic codes have their statuses', () => {
+    const registered = Object.fromEntries(
+      Object.keys(CIVIC_CODE_STATUSES).map((code) => [
+        code,
+        Object.hasOwn(ERROR_CODES, code)
+          ? ERROR_CODES[code as ErrorCode].status // narrowed by the hasOwn check above
+          : null,
+      ]),
+    );
+    expect(registered).toEqual(CIVIC_CODE_STATUSES);
+    expect(Object.values(CIVIC_CODE_STATUSES)).toEqual([422, 422, 422, 503, 422, 422, 422, 422]);
+  });
+
+  it('withdrawn codes do not exist', () => {
+    for (const code of ['follow_limit', 'run_limit', 'field_report_limit']) {
+      expect(Object.hasOwn(ERROR_CODES, code), code).toBe(false);
+    }
+  });
+
+  it('the civic codes have their catalog text', () => {
+    expect(errors.address_not_found).toBe(
+      'We could not find that address. Check it, or use your location.',
+    );
+    expect(errors.need_street_address).toBe('Add a street address.');
+    expect(errors.outside_us).toBe('United States only.');
+    expect(errors.geocoder_unavailable).toBe(
+      "We can't look up addresses right now. Try again, or use your location.",
+    );
+    expect(errors.office_retired).toBe('This office is no longer listed.');
+    expect(errors.area_too_large).toBe(
+      'That area has too many offices. Zoom in or choose a smaller area.',
+    );
+    expect(errors.account_too_new).toBe('New accounts can do this after their first 24 hours.');
+    expect(errors.link_invalid).toBe(
+      'Use a full link that starts with https:// and names a website.',
     );
   });
 
@@ -118,7 +169,10 @@ describe('error registry', () => {
       'posting_paused',
       'id_conflict',
       'email_required',
-      'address_not_found',
+      'office_not_runnable',
+      'not_in_results',
+      'person_retired',
+      'claim_email_domain_mismatch',
       'source_not_official',
       'measure_recently_reviewed',
     ]) {
