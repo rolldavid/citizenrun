@@ -53,6 +53,28 @@ export const STATES = {
     onNavigate: () => undefined,
     onReselect: () => undefined,
   },
+  // One of each: the counts in the singular.
+  labeledPlaceSingular: {
+    variant: 'labeled',
+    active: 'home',
+    unread: { messages: 0, activity: 0 },
+    place: { name: 'Fixture Alder', districtCount: 1, officeCount: 1 },
+    onNavigate: () => undefined,
+    onReselect: () => undefined,
+  },
+  // A place too long for one line of the foot.
+  labeledLongPlace: {
+    variant: 'labeled',
+    active: 'home',
+    unread: { messages: 0, activity: 0 },
+    place: {
+      name: 'Fixture Charlotte and Mecklenburg County Consolidated Area',
+      districtCount: 14,
+      officeCount: 38,
+    },
+    onNavigate: () => undefined,
+    onReselect: () => undefined,
+  },
 } as const satisfies Readonly<Record<string, RailProps>>;
 
 export const PREVIEW: Readonly<Partial<Record<keyof typeof STATES, InteractionPreviewState>>> = {};

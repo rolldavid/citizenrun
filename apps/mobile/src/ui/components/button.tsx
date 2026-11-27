@@ -34,6 +34,12 @@ type ButtonBase = {
   fullWidth?: boolean;
   /** Used on a tight layout, where the label would wrap ("Run" for "Run for this office"). */
   shortLabel?: string;
+  /** The accessible name when it differs from the label ("Run for this office", "Follow Dana Okafor"). */
+  accessibilityLabel?: string;
+  /** The hint ("Press to stop following"). */
+  accessibilityHint?: string;
+  /** Sets the selected state: Run while running, Follow while following. */
+  selected?: boolean;
   haptic?: HapticName;
   testID: string;
 };
@@ -149,6 +155,9 @@ export function Button({
   busy = false,
   fullWidth = false,
   shortLabel,
+  accessibilityLabel,
+  accessibilityHint,
+  selected,
   haptic,
   testID,
 }: ButtonProps): JSX.Element {
@@ -158,7 +167,7 @@ export function Button({
   const small = sizeName === 'sm';
   const tone: ResolvedTone = disabled ? 'disabled' : look.tone;
   const leading: IconName | undefined = done ? 'check' : icon;
-  // The accessible name stays the long label.
+  // The accessible name stays the long label, or the name the caller gives.
   const words = tight && shortLabel !== undefined ? shortLabel : label;
 
   const parts = (
@@ -186,9 +195,10 @@ export function Button({
     <View style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start', maxWidth: '100%' }}>
       <Pressable
         role={href === undefined ? 'button' : 'link'}
-        label={label}
+        label={accessibilityLabel ?? label}
+        {...(accessibilityHint === undefined ? {} : { hint: accessibilityHint })}
         disabled={disabled}
-        state={{ busy }}
+        state={selected === undefined ? { busy } : { busy, selected }}
         testID={testID}
         radius={radius.control}
         feedback={look.feedback}

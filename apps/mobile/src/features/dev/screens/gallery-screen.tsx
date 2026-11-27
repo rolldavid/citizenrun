@@ -4,6 +4,7 @@ import { ScrollView, View } from 'react-native';
 import type { HostInstance, TextInstance, ViewStyle } from 'react-native';
 
 import {
+  ActionRow,
   AgeGate,
   AppBar,
   Avatar,
@@ -25,6 +26,7 @@ import {
   FactRow,
   FeedRule,
   Flag,
+  FollowButton,
   FormField,
   HandleField,
   Icon,
@@ -40,9 +42,12 @@ import {
   Meter,
   MeterInputs,
   Notice,
+  OfficeTile,
+  PersonRow,
   PhotoCredit,
   Popover,
   Pressable,
+  ProfileHeader,
   Progress,
   Prose,
   Radio,
@@ -72,10 +77,12 @@ import {
   useBreakpoint,
 } from '@/ui';
 import type {
+  ActionRowProps,
   AgeGateProps,
   CheckboxProps,
   CodeFieldProps,
   DialogProps,
+  FollowButtonProps,
   HandleFieldProps,
   InteractionPreviewState,
   IssueChipProps,
@@ -94,6 +101,7 @@ import type {
   SwitchProps,
   TextFieldProps,
 } from '@/ui';
+import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
@@ -112,6 +120,7 @@ import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as factRowFixtures from '@/ui/components/fact-row.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
 import * as flagFixtures from '@/ui/components/flag.fixtures';
+import * as followButtonFixtures from '@/ui/components/follow-button.fixtures';
 import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
 import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
@@ -125,9 +134,12 @@ import * as listFixtures from '@/ui/components/list.fixtures';
 import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
 import * as meterFixtures from '@/ui/components/meter.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as officeTileFixtures from '@/ui/components/office-tile.fixtures';
+import * as personRowFixtures from '@/ui/components/person-row.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
+import * as profileHeaderFixtures from '@/ui/components/profile-header.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
 import * as proseFixtures from '@/ui/components/prose.fixtures';
 import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
@@ -643,6 +655,54 @@ function IssueChipSpecimen({ fixture }: { fixture: IssueChipProps }): JSX.Elemen
   );
 }
 
+/**
+ * One state of C-ActionRow, followed and bookmarked by its own presses, at the width the product
+ * gives it. At compact the gallery's own column is the window: a row a card or a page draws from
+ * edge to edge takes back the room around its cell, the action card's row the cell's own room
+ * alone. From medium up the row stands in a box as wide as the feed column or the action card.
+ */
+function ActionRowSpecimen({ fixture }: { fixture: ActionRowProps }): JSX.Element {
+  const layout = useBreakpoint();
+  const [following, setFollowing] = useState(fixture.following);
+  const [bookmarked, setBookmarked] = useState(fixture.bookmarked);
+  const stacked = fixture.layout === 'stacked';
+  return (
+    <View
+      style={
+        layout.breakpoint === 'compact'
+          ? { marginHorizontal: -(stacked ? space.x3 : space.x3 + layout.gutter) }
+          : { width: stacked ? size.actionCard : size.feedColumn }
+      }
+    >
+      <ActionRow
+        {...fixture}
+        following={following}
+        bookmarked={bookmarked}
+        onToggleFollow={() => {
+          setFollowing(!following);
+        }}
+        onToggleBookmark={() => {
+          setBookmarked(!bookmarked);
+        }}
+      />
+    </View>
+  );
+}
+
+/** One state of C-FollowButton, followed and unfollowed by a press. */
+function FollowButtonSpecimen({ fixture }: { fixture: FollowButtonProps }): JSX.Element {
+  const [following, setFollowing] = useState(fixture.following);
+  return (
+    <FollowButton
+      {...fixture}
+      following={following}
+      onToggle={() => {
+        setFollowing(!following);
+      }}
+    />
+  );
+}
+
 /** The 19 issues with the short names the grid's fixtures print. */
 const ISSUES: IssueGridProps['issues'] = issueGridFixtures.STATES.none.issues;
 
@@ -882,6 +942,7 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   ),
   section('C-SectionHeader', 'section-header', 'wide', SectionHeader, sectionHeaderFixtures),
   section('C-ListRow', 'list-row', 'wide', ListRow, listRowFixtures),
+  section('C-PersonRow', 'person-row', 'wide', PersonRow, personRowFixtures),
   section('C-FactRow', 'fact-row', 'wide', FactRow, factRowFixtures),
   // In the column a screen gives it, so a wide window shows every column and a phone scrolls.
   fixtureSection<TableProps>('C-Table', 'table', 'full', tableFixtures, (fixture) => (
@@ -956,6 +1017,22 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
       );
     },
   },
+  section('C-OfficeTile', 'office-tile', 'narrow', OfficeTile, officeTileFixtures),
+  section('C-ProfileHeader', 'profile-header', 'wide', ProfileHeader, profileHeaderFixtures),
+  fixtureSection<ActionRowProps>(
+    'C-ActionRow',
+    'action-row',
+    'full',
+    actionRowFixtures,
+    (fixture) => <ActionRowSpecimen fixture={fixture} />,
+  ),
+  fixtureSection<FollowButtonProps>(
+    'C-FollowButton',
+    'follow-button',
+    'wide',
+    followButtonFixtures,
+    (fixture) => <FollowButtonSpecimen fixture={fixture} />,
+  ),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };

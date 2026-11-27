@@ -633,6 +633,59 @@ describe('Button', () => {
     expect(screen.getByRole('link', { name: 'See the filing steps' })).toBe(target);
   });
 
+  it('an accessible name apart from the label', () => {
+    const { target, label } = draw({
+      ...STATES.run,
+      label: 'Run',
+      accessibilityLabel: 'Run for this office',
+    });
+    // The words stay short, and the name says all of it.
+    expect(label.textContent).toBe('Run');
+    expect(target.getAttribute('aria-label')).toBe('Run for this office');
+    expect(screen.getByRole('button', { name: 'Run for this office' })).toBe(target);
+    expect(screen.queryByRole('button', { name: 'Run' })).toBeNull();
+    // It wins over a short label's long one as well.
+    layout.isTight = true;
+    const tight = draw({
+      ...STATES.run,
+      shortLabel: 'Run',
+      accessibilityLabel: 'Run for County Treasurer',
+    });
+    expect(tight.label.textContent).toBe('Run');
+    expect(tight.target.getAttribute('aria-label')).toBe('Run for County Treasurer');
+    layout.isTight = false;
+    // Without one the label is the name.
+    expect(draw({ ...STATES.run, label: 'Run' }).target.getAttribute('aria-label')).toBe('Run');
+  });
+
+  it('a hint', () => {
+    draw({ ...STATES.primary, accessibilityHint: 'Press to stop following' });
+    expect(nativeProps()['accessibilityHint']).toBe('Press to stop following');
+    // The hint is no part of the name.
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDefined();
+    draw(STATES.primary);
+    expect(nativeProps()['accessibilityHint']).toBeUndefined();
+  });
+
+  it('a selected state', () => {
+    const on = draw({ ...STATES.primary, selected: true });
+    // A button that holds a state is pressed: a button may not carry aria-selected.
+    expect(on.target.getAttribute('aria-pressed')).toBe('true');
+    expect(on.target.hasAttribute('aria-selected')).toBe(false);
+    expect(nativeProps()['accessibilityState']).toMatchObject({ selected: true });
+    const off = draw({ ...STATES.primary, selected: false });
+    expect(off.target.getAttribute('aria-pressed')).toBe('false');
+    expect(nativeProps()['accessibilityState']).toMatchObject({ selected: false });
+    // It stays beside a wait.
+    const waiting = draw({ ...STATES.busy, selected: true });
+    expect(waiting.target.getAttribute('aria-busy')).toBe('true');
+    expect(waiting.target.getAttribute('aria-pressed')).toBe('true');
+    // A button with no such state says nothing of one.
+    const plain = draw(STATES.primary);
+    expect(plain.target.hasAttribute('aria-pressed')).toBe(false);
+    expect(plain.target.hasAttribute('aria-selected')).toBe(false);
+  });
+
   it('run never takes an icon', () => {
     // @ts-expect-error run never takes an icon
     const withIcon = <Button variant="run" icon="plus" label="Run" testID="gallery.button-x" />;

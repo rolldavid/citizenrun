@@ -362,6 +362,36 @@ describe('Screen', () => {
     expect(screen.queryByText(aside)).toBeNull();
   });
 
+  it('the aside sits beside the scroll at expanded', () => {
+    setViewport(...EXPANDED);
+    draw(
+      <Screen appBar={null} width="feed" testID="probe.screen" aside={<View testID="probe.card" />}>
+        <View testID={PROBE} />
+      </Screen>,
+    );
+    const area = scrollOf('probe.screen');
+    const card = screen.getByTestId('probe.card');
+    // The card is in no scrolling view the content is in: the page scrolls under it and it stays.
+    expect(area.contains(screen.getByTestId(PROBE))).toBe(true);
+    expect(area.contains(card)).toBe(false);
+    const row = area.parentElement;
+    expect(row?.contains(card)).toBe(true);
+    expect(row?.style.flexDirection).toBe('row');
+    expect(row === null ? '' : window.getComputedStyle(row).overflowY).not.toBe('auto');
+    expect(row === null ? '' : window.getComputedStyle(row).overflowY).not.toBe('scroll');
+    // The scroll area and the right column are the row's two children, in that order.
+    const column = row?.children[1];
+    expect(row?.children).toHaveLength(2);
+    expect(row?.children[0]).toBe(area);
+    expect(column?.contains(card)).toBe(true);
+    expect(column instanceof HTMLElement ? column.style.width : '').toBe(
+      `${String(size.rightColumn)}px`,
+    );
+    // A card taller than the window scrolls in its own column, apart from the page.
+    expect(column === undefined ? '' : window.getComputedStyle(column).overflowY).toBe('auto');
+    expect(window.getComputedStyle(area).overflowY).toBe('auto');
+  });
+
   it('a home bar scrolls and a screen bar stays', () => {
     setViewport(...COMPACT);
     const home = drawState('homeAppBar');

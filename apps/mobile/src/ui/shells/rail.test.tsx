@@ -34,6 +34,8 @@ const STATE_NAMES = [
   'labeledUnread',
   'labeledWithPlace',
   'labeledNoActive',
+  'labeledPlaceSingular',
+  'labeledLongPlace',
 ] as const;
 
 const ITEMS = ['home', 'explore', 'post', 'activity', 'messages', 'profile'] as const;
@@ -124,7 +126,7 @@ describe('Rail', () => {
     expect(warnings).not.toHaveBeenCalled();
   });
 
-  it('the fixtures hold the six states', () => {
+  it('the fixtures hold the eight states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     expect(STATES.iconsHome).toMatchObject({ variant: 'icons', active: 'home', place: null });
     expect(STATES.iconsUnread.unread).toEqual({ messages: 3, activity: 12 });
@@ -136,6 +138,16 @@ describe('Rail', () => {
       officeCount: 38,
     });
     expect(STATES.labeledNoActive.active).toBeNull();
+    expect(STATES.labeledPlaceSingular.place).toEqual({
+      name: 'Fixture Alder',
+      districtCount: 1,
+      officeCount: 1,
+    });
+    expect(STATES.labeledLongPlace.place).toEqual({
+      name: 'Fixture Charlotte and Mecklenburg County Consolidated Area',
+      districtCount: 14,
+      officeCount: 38,
+    });
     expect(PREVIEW).toEqual({});
     expect(GROUND).toEqual({});
   });
@@ -343,6 +355,30 @@ describe('Rail', () => {
     expect(within(rail).getByText('Alder')).toBeDefined();
     expect(within(rail).getByText('1 district')).toBeDefined();
     expect(within(rail).getByText('1 office')).toBeDefined();
+  });
+
+  it('singular counts', () => {
+    const rail = drawState('labeledPlaceSingular');
+    expect(within(rail).getByText('Fixture Alder')).toBeDefined();
+    expect(within(rail).getByText('1 district')).toBeDefined();
+    expect(within(rail).getByText('1 office')).toBeDefined();
+    expect(within(rail).queryByText(/districts|offices/)).toBeNull();
+  });
+
+  it('a long place takes two lines', () => {
+    const rail = drawState('labeledLongPlace');
+    const name = within(rail).getByText(
+      'Fixture Charlotte and Mecklenburg County Consolidated Area',
+    );
+    // Two lines, then an ellipsis: the counts keep their place under it.
+    expect(window.getComputedStyle(name).webkitLineClamp).toBe('2');
+    const districts = within(rail).getByText('14 districts');
+    const offices = within(rail).getByText('38 offices');
+    expect(name.compareDocumentPosition(districts) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+    expect(districts.parentElement).toBe(offices.parentElement);
+    // A short place is under the same limit and needs one line.
+    const short = within(drawState('labeledWithPlace')).getByText('Wren County');
+    expect(window.getComputedStyle(short).webkitLineClamp).toBe('2');
   });
 
   it('hides the foot without a place and in the icons rail', () => {

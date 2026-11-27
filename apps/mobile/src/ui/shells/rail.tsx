@@ -308,7 +308,8 @@ export function Rail({
         <>
           <View style={SPACER} />
           <View style={FOOT}>
-            <Text role="monoLabel" tone="secondary">
+            {/* A long place takes two lines and never pushes the counts off the foot. */}
+            <Text role="monoLabel" tone="secondary" numberOfLines={2}>
               {place.name}
             </Text>
             <View style={FOOT_COUNTS}>

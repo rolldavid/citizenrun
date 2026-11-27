@@ -8,6 +8,7 @@ import { linksFake } from '@/test/platform/links';
 import { sessionFake } from '@/test/platform/session';
 import { renderWithProviders, setViewport } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
+import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
@@ -26,6 +27,7 @@ import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
 import * as factRowFixtures from '@/ui/components/fact-row.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
 import * as flagFixtures from '@/ui/components/flag.fixtures';
+import * as followButtonFixtures from '@/ui/components/follow-button.fixtures';
 import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
 import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
@@ -39,9 +41,12 @@ import * as listFixtures from '@/ui/components/list.fixtures';
 import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
 import * as meterFixtures from '@/ui/components/meter.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as officeTileFixtures from '@/ui/components/office-tile.fixtures';
+import * as personRowFixtures from '@/ui/components/person-row.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
+import * as profileHeaderFixtures from '@/ui/components/profile-header.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
 import * as proseFixtures from '@/ui/components/prose.fixtures';
 import * as radioGroupFixtures from '@/ui/components/radio-group.fixtures';
@@ -157,6 +162,7 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
     states: Object.keys(sectionHeaderFixtures.STATES),
   },
   { id: 'C-ListRow', slug: 'list-row', states: Object.keys(listRowFixtures.STATES) },
+  { id: 'C-PersonRow', slug: 'person-row', states: Object.keys(personRowFixtures.STATES) },
   { id: 'C-FactRow', slug: 'fact-row', states: Object.keys(factRowFixtures.STATES) },
   { id: 'C-Table', slug: 'table', states: Object.keys(tableFixtures.STATES) },
   { id: 'C-Tag', slug: 'tag', states: Object.keys(tagFixtures.STATES) },
@@ -194,6 +200,14 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
     slug: 'issue-grid',
     states: [...Object.keys(issueGridFixtures.STATES), 'threeInColumn'],
   },
+  { id: 'C-OfficeTile', slug: 'office-tile', states: Object.keys(officeTileFixtures.STATES) },
+  {
+    id: 'C-ProfileHeader',
+    slug: 'profile-header',
+    states: Object.keys(profileHeaderFixtures.STATES),
+  },
+  { id: 'C-ActionRow', slug: 'action-row', states: Object.keys(actionRowFixtures.STATES) },
+  { id: 'C-FollowButton', slug: 'follow-button', states: Object.keys(followButtonFixtures.STATES) },
 ];
 
 const DEFAULTS: GalleryScreenProps = {
@@ -344,6 +358,7 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-StickyFooter',
       'C-SectionHeader',
       'C-ListRow',
+      'C-PersonRow',
       'C-FactRow',
       'C-Table',
       'C-Tag',
@@ -363,6 +378,10 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-IssueTile',
       'C-IssueChip',
       'C-IssueGrid',
+      'C-OfficeTile',
+      'C-ProfileHeader',
+      'C-ActionRow',
+      'C-FollowButton',
     ]);
     expect(COMPONENTS.map((component) => component.id)).toEqual(sectionHeadings());
     // The gallery's own heading is the page's, and the page has one main landmark of its own, which
