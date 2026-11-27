@@ -23,7 +23,7 @@ import { storedZip } from '../lib/zip.fixtures.ts';
 import { EIA_URL } from '../sources/eia861.ts';
 import { coopsSample } from '../sources/eia861.fixtures.ts';
 import { eoBmfUrl } from '../sources/irs-eobmf.ts';
-import { deflate64Zip } from '../sources/irs990.fixtures.ts';
+import { irsBatchZip } from '../sources/irs990.fixtures.ts';
 import { batchUrl, indexUrl } from '../sources/irs990.ts';
 import { fixtureContext } from '../templates/__fixtures__/zz-fake-fetcher.ts';
 import { getTestBucket, resetStorage, testRunId } from '../testing/setup.ts';
@@ -381,7 +381,7 @@ describe('stage 2, co-ops', () => {
     await writeBase(bucket);
     const table = await answers({ city: false });
     table.set(batchUrl(2026, BATCH), {
-      body: deflate64Zip(`${BATCH}/${SAVED}`, await coopsSample(SAVED)),
+      body: irsBatchZip(SAVED, await coopsSample(SAVED)),
       contentType: 'application/zip',
     });
     const module = makeS02Coops({ countyAttributes: () => Promise.resolve(COUNTIES) });

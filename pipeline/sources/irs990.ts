@@ -1,6 +1,9 @@
 // Form 990 e-file returns (PIPE-coops steps 3 to 5): the yearly index, the monthly batches named in
 // it (of which only the matched returns are kept, D-316) and the board facts of a co-op's return.
 import { execFile } from 'node:child_process';
+import { Readable } from 'node:stream';
+import { crc32 } from 'node:zlib';
+import yauzl from 'yauzl';
 import { bucketKeys } from '../lib/bucket.ts';
 import { readDelimited } from '../lib/csv.ts';
 import type { RunContext } from '../lib/runner.ts';
@@ -224,16 +227,106 @@ const execFileRunner: FileRunner = (file, args, options) =>
     );
   });
 
-/**
- * A member name passed to unzip as written: no wildcard (`*`, `?`, `[`), no leading dash that unzip
- * would read as an option, no space or backslash.
- */
-const UNZIP_MEMBER = /^[A-Za-z0-9_][A-Za-z0-9_./-]{0,255}$/;
+const DEFLATE64 = 9;
+const ZIP_LOCAL_HEADER = 0x04034b50;
+const ZIP_CENTRAL_HEADER = 0x02014b50;
+const ZIP_END_OF_CENTRAL_DIRECTORY = 0x06054b50;
+/** Version 2.1, the first that names Deflate64. */
+const ZIP_VERSION_DEFLATE64 = 21;
+/** The one name of the archive unzip is given; it holds no wildcard and is no option. */
+const SINGLE_MEMBER = 'return.xml';
+
+/** An entry's packed bytes with the facts of the central directory that describe them. */
+export type PackedEntry = {
+  readonly method: number;
+  readonly packed: Uint8Array;
+  readonly crc32: number;
+  readonly size: number;
+};
 
 /**
- * The bytes of `member` in the archive at `batchPath`, extracted with the system `unzip -p`, or null
- * when unzip fails, runs past `UNZIP_TIMEOUT_MS` or writes more than `RETURN_MAX_BYTES`. It is the
- * reader of Deflate64 (zip method 9) members, which yauzl refuses (D-880). macOS's UnZip 6.00 lists
+ * A zip of the one entry `entry`, named `name`, its bytes copied as packed: a local file header, the
+ * bytes, the central directory and its end record, with no Zip64 record (the entry is small).
+ */
+export function singleEntryZip(name: string, entry: PackedEntry): Buffer {
+  const nameBytes = Buffer.from(name, 'utf8');
+  const packed = Buffer.from(entry.packed);
+  const local = Buffer.alloc(30);
+  local.writeUInt32LE(ZIP_LOCAL_HEADER, 0);
+  local.writeUInt16LE(ZIP_VERSION_DEFLATE64, 4);
+  local.writeUInt16LE(0, 6);
+  local.writeUInt16LE(entry.method, 8);
+  local.writeUInt32LE(entry.crc32 >>> 0, 14);
+  local.writeUInt32LE(packed.length, 18);
+  local.writeUInt32LE(entry.size, 22);
+  local.writeUInt16LE(nameBytes.length, 26);
+  const central = Buffer.alloc(46);
+  central.writeUInt32LE(ZIP_CENTRAL_HEADER, 0);
+  central.writeUInt16LE(ZIP_VERSION_DEFLATE64, 4);
+  central.writeUInt16LE(ZIP_VERSION_DEFLATE64, 6);
+  central.writeUInt16LE(entry.method, 10);
+  central.writeUInt32LE(entry.crc32 >>> 0, 16);
+  central.writeUInt32LE(packed.length, 20);
+  central.writeUInt32LE(entry.size, 24);
+  central.writeUInt16LE(nameBytes.length, 28);
+  // Times, extra fields, comment, disk, attributes and the local header's offset (0) stay zero.
+  const directory = Buffer.concat([central, nameBytes]);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(ZIP_END_OF_CENTRAL_DIRECTORY, 0);
+  end.writeUInt16LE(1, 8);
+  end.writeUInt16LE(1, 10);
+  end.writeUInt32LE(directory.length, 12);
+  end.writeUInt32LE(local.length + nameBytes.length + packed.length, 16);
+  return Buffer.concat([local, nameBytes, packed, directory, end]);
+}
+
+/**
+ * The packed bytes of the Deflate64 entry `member` of the archive at `path`, read without
+ * decompressing, or null when there is no such entry, it is not Deflate64, it is encrypted, or
+ * either of its sizes passes `RETURN_MAX_BYTES`.
+ */
+async function packedDeflate64Entry(path: string, member: string): Promise<PackedEntry | null> {
+  const zip = await yauzl.openPromise(path, { lazyEntries: true, autoClose: false });
+  try {
+    const entry = await new Promise<yauzl.Entry | null>((resolvePromise, reject) => {
+      zip.on('error', reject);
+      zip.on('end', () => {
+        resolvePromise(null);
+      });
+      zip.on('entry', (seen: yauzl.Entry) => {
+        if (seen.fileName === member) {
+          resolvePromise(seen);
+          return;
+        }
+        zip.readEntry();
+      });
+      zip.readEntry();
+    });
+    if (
+      entry === null ||
+      entry.compressionMethod !== DEFLATE64 ||
+      entry.isEncrypted() ||
+      entry.compressedSize > RETURN_MAX_BYTES ||
+      entry.uncompressedSize > RETURN_MAX_BYTES
+    ) {
+      return null;
+    }
+    const packed = await streamBytes(
+      await zip.openReadStreamPromise(entry, { decodeFileData: false }),
+    );
+    return { method: DEFLATE64, packed, crc32: entry.crc32, size: entry.uncompressedSize };
+  } finally {
+    zip.close();
+  }
+}
+
+/**
+ * The bytes of the Deflate64 (zip method 9) entry `member` of the archive at `batchPath`, which
+ * yauzl refuses (D-880), extracted by the system `unzip -p`; null when unzip exits non-zero, runs
+ * past `UNZIP_TIMEOUT_MS`, writes more than `RETURN_MAX_BYTES`, or writes bytes whose size or
+ * CRC-32 differ from the central directory's. unzip is given a one-entry copy of the member, in a
+ * temporary file deleted afterwards, not the batch itself: macOS's UnZip 6.00 misreads the Zip64
+ * end records of the IRS batches and exits 3 even when the member it wrote is whole. That UnZip lists
  * USE_DEFLATE64 in `unzip -v`, and the ubuntu-24.04 runners ship Info-ZIP unzip with Deflate64.
  */
 export async function unzipMember(
@@ -241,15 +334,25 @@ export async function unzipMember(
   member: string,
   run: FileRunner = execFileRunner,
 ): Promise<Buffer | null> {
-  if (!UNZIP_MEMBER.test(member) || member.includes('..')) return null;
+  let entry: PackedEntry | null;
   try {
-    const out = await run('unzip', ['-p', batchPath, member], {
+    entry = await packedDeflate64Entry(batchPath, member);
+  } catch {
+    return null;
+  }
+  if (entry === null) return null;
+  const single = await toTempFile(Readable.from([singleEntryZip(SINGLE_MEMBER, entry)]), '.zip');
+  try {
+    const out = await run('unzip', ['-p', single.path, SINGLE_MEMBER], {
       maxBuffer: RETURN_MAX_BYTES,
       timeout: UNZIP_TIMEOUT_MS,
     });
-    return out.length > RETURN_MAX_BYTES ? null : out;
+    if (out.length !== entry.size || crc32(out) !== entry.crc32 >>> 0) return null;
+    return out;
   } catch {
     return null;
+  } finally {
+    await single.remove();
   }
 }
 

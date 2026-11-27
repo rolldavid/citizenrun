@@ -1,13 +1,16 @@
+import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { openZipEntry, toTempFile } from '../lib/zip.ts';
+import { storedZip } from '../lib/zip.fixtures.ts';
+import { listZip, openZipEntry, toTempFile } from '../lib/zip.ts';
 import { loadRelevanceDefaults } from '../stages/shared/reference.ts';
 import { repoRoot } from '../stages/shared/repo.ts';
 import { buildCoops } from '../stages/s02-coops.ts';
 import type { CoopsInput } from '../stages/s02-coops.ts';
 import { scriptedRun } from './dataset.fixtures.ts';
 import { coopsSample, coopsText } from './eia861.fixtures.ts';
-import { deflate64Zip } from './irs990.fixtures.ts';
+import { irsBatchZip } from './irs990.fixtures.ts';
 import {
   IrsIndexHeaderError,
   RETURN_MAX_BYTES,
@@ -223,9 +226,18 @@ describe('the index', () => {
 const SAVED_ID = '202640159349301609';
 const BATCH = '2026_TEOS_XML_01A';
 
-/** The saved return packed with Deflate64 in a batch folder, as the IRS batches hold it. */
+/** The saved return packed with Deflate64 in an archive laid out as an IRS batch. */
 async function deflate64Batch(): Promise<Buffer> {
-  return deflate64Zip(`${BATCH}/${SAVED}`, await coopsSample(SAVED));
+  return irsBatchZip(SAVED, await coopsSample(SAVED));
+}
+
+async function onDisk<T>(zip: Buffer, use: (path: string) => Promise<T>): Promise<T> {
+  const temp = await toTempFile(Readable.from([zip]), '.zip');
+  try {
+    return await use(temp.path);
+  } finally {
+    await temp.remove();
+  }
 }
 
 function batchRun(zip: Buffer): ReturnType<typeof scriptedRun> {
@@ -236,16 +248,23 @@ function batchRun(zip: Buffer): ReturnType<typeof scriptedRun> {
   );
 }
 
-/** A runner that records its calls and answers with `answer`. */
+type Call = { file: string; args: readonly string[]; maxBuffer: number; timeout: number };
+
+/** A runner that records its calls, whether the archive it names exists, and answers with `answer`. */
 function recordingRunner(answer: () => Promise<Buffer>): {
   run: FileRunner;
-  calls: { file: string; args: readonly string[]; maxBuffer: number; timeout: number }[];
+  calls: Call[];
+  archives: string[];
 } {
-  const calls: { file: string; args: readonly string[]; maxBuffer: number; timeout: number }[] = [];
+  const calls: Call[] = [];
+  const archives: string[] = [];
   return {
     calls,
+    archives,
     run: (file, args, options) => {
       calls.push({ file, args, maxBuffer: options.maxBuffer, timeout: options.timeout });
+      const archive = args[1] ?? '';
+      if (existsSync(archive)) archives.push(archive);
       return answer();
     },
   };
@@ -256,57 +275,59 @@ function exitError(code: number): Error {
 }
 
 describe('Deflate64 batches', () => {
-  it('yauzl refuses the fixture entry as method 9', async () => {
-    const temp = await toTempFile(Readable.from([await deflate64Batch()]), '.zip');
-    try {
-      await expect(openZipEntry(temp.path, `${BATCH}/${SAVED}`)).rejects.toThrow(
-        'unsupported compression method: 9',
-      );
-    } finally {
-      await temp.remove();
-    }
+  it('yauzl lists the batch but refuses its entry as method 9', async () => {
+    await onDisk(await deflate64Batch(), async (path) => {
+      expect((await listZip(path)).map((entry) => entry.name)).toEqual([SAVED]);
+      await expect(openZipEntry(path, SAVED)).rejects.toThrow('unsupported compression method: 9');
+    });
   });
 
-  it('the system unzip reads a Deflate64 member', async () => {
-    const temp = await toTempFile(Readable.from([await deflate64Batch()]), '.zip');
-    try {
-      const bytes = await unzipMember(temp.path, `${BATCH}/${SAVED}`);
-      expect(bytes?.toString('utf8')).toBe(await coopsText(SAVED));
-    } finally {
-      await temp.remove();
-    }
+  it('the system unzip exits non-zero on the batch itself', async () => {
+    const status = await onDisk(await deflate64Batch(), (path) =>
+      Promise.resolve(spawnSync('unzip', ['-p', path, SAVED]).status),
+    );
+    expect(status).not.toBe(0);
+    expect(status).not.toBeNull();
+  });
+
+  it('the system unzip reads the Deflate64 member through a one-entry copy', async () => {
+    const out = await onDisk(await deflate64Batch(), (path) => unzipMember(path, SAVED));
+    expect(out?.toString('utf8')).toBe(await coopsText(SAVED));
   });
 
   it('a Deflate64 return is extracted with unzip, kept, and its batch is not unavailable', async () => {
     const { ctx, bucket } = batchRun(await deflate64Batch());
     const fetched = await fetchReturns(ctx, 2026, [indexRow('202506', SAVED_ID)]);
     expect(fetched.batchUnavailable).toEqual([]);
-    const saved = await coopsText(SAVED);
-    expect(fetched.returns.get(SAVED_ID)?.xml).toBe(saved);
-    const kept = await bucket.getStream(returnKey(2026, SAVED_ID));
-    expect(kept).not.toBeNull();
+    expect(fetched.returns.get(SAVED_ID)?.xml).toBe(await coopsText(SAVED));
+    expect(await bucket.getStream(returnKey(2026, SAVED_ID))).not.toBeNull();
     const board = parseCoopReturn(fetched.returns.get(SAVED_ID)?.xml ?? '');
     expect(board === 'not_990' ? null : board.boardSize).toBe(9);
   });
 
-  it('unzip runs with the batch path and the member as arguments, capped and timed', async () => {
-    const { run, calls } = recordingRunner(() => Promise.resolve(Buffer.from('<Return/>')));
-    const out = await unzipMember('/tmp/batch.zip', `${BATCH}/${SAVED}`, run);
-    expect(out?.toString('utf8')).toBe('<Return/>');
-    expect(calls).toEqual([
-      {
-        file: 'unzip',
-        args: ['-p', '/tmp/batch.zip', `${BATCH}/${SAVED}`],
-        maxBuffer: RETURN_MAX_BYTES,
-        timeout: UNZIP_TIMEOUT_MS,
-      },
-    ]);
+  it('unzip is given a one-entry copy as arguments, capped and timed, and the copy is deleted', async () => {
+    const saved = Buffer.from(await coopsSample(SAVED));
+    const { run, calls, archives } = recordingRunner(() => Promise.resolve(saved));
+    const out = await onDisk(await deflate64Batch(), (path) => unzipMember(path, SAVED, run));
+    expect(out?.equals(saved)).toBe(true);
+    expect(calls).toHaveLength(1);
+    const [call] = calls;
+    expect(call?.file).toBe('unzip');
+    expect(call?.args[0]).toBe('-p');
+    expect(call?.args[2]).toBe('return.xml');
+    expect(call?.maxBuffer).toBe(RETURN_MAX_BYTES);
+    expect(call?.timeout).toBe(UNZIP_TIMEOUT_MS);
+    expect(archives).toEqual([call?.args[1]]);
+    expect(existsSync(call?.args[1] ?? '')).toBe(false);
   });
 
-  it('a non-zero exit, an overrun, a timeout or a missing unzip gives no bytes', async () => {
+  it('a non-zero exit, an overrun, a timeout, a missing unzip or wrong bytes give none', async () => {
+    const saved = Buffer.from(await coopsSample(SAVED));
+    const flipped = Buffer.from(saved);
+    flipped[100] = (flipped[100] ?? 0) ^ 1;
     const failures: (() => Promise<Buffer>)[] = [
       () => Promise.reject(exitError(2)),
-      () => Promise.reject(exitError(11)),
+      () => Promise.reject(exitError(3)),
       () =>
         Promise.reject(
           Object.assign(new RangeError('stdout maxBuffer length exceeded'), {
@@ -318,19 +339,25 @@ describe('Deflate64 batches', () => {
           Object.assign(new Error('Command failed: unzip'), { killed: true, signal: 'SIGKILL' }),
         ),
       () => Promise.reject(Object.assign(new Error('spawn unzip ENOENT'), { code: 'ENOENT' })),
+      () => Promise.resolve(saved.subarray(1)),
+      () => Promise.resolve(flipped),
       () => Promise.resolve(Buffer.alloc(RETURN_MAX_BYTES + 1)),
     ];
+    const batch = await deflate64Batch();
     for (const answer of failures) {
-      const { run } = recordingRunner(answer);
-      expect(await unzipMember('/tmp/batch.zip', `${BATCH}/${SAVED}`, run)).toBeNull();
+      const { run, calls } = recordingRunner(answer);
+      expect(await onDisk(batch, (path) => unzipMember(path, SAVED, run))).toBeNull();
+      expect(calls).toHaveLength(1);
+      expect(existsSync(calls[0]?.args[1] ?? '')).toBe(false);
     }
   });
 
-  it('a member name unzip would read as a pattern or an option is never passed to it', async () => {
+  it('a member that is absent or not Deflate64 never reaches unzip', async () => {
     const { run, calls } = recordingRunner(() => Promise.resolve(Buffer.from('x')));
-    for (const name of ['-x', '*_public.xml', 'a?.xml', '[a].xml', 'a b.xml', 'a/../b.xml']) {
-      expect(await unzipMember('/tmp/batch.zip', name, run)).toBeNull();
-    }
+    const stored = storedZip([{ name: SAVED, data: await coopsSample(SAVED) }]);
+    expect(await onDisk(stored, (path) => unzipMember(path, SAVED, run))).toBeNull();
+    const batch = await deflate64Batch();
+    expect(await onDisk(batch, (path) => unzipMember(path, 'other_public.xml', run))).toBeNull();
     expect(calls).toEqual([]);
   });
 

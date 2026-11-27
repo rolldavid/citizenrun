@@ -1,14 +1,7 @@
-// Test helper for the Form 990 reader: a one-entry zip whose entry is packed with Deflate64.
+// Test helpers for the Form 990 reader: one-entry zips whose entry is packed with Deflate64, plain
+// and laid out as the IRS batches are.
 import { constants, crc32, deflateRawSync } from 'node:zlib';
-
-const LOCAL_HEADER = 0x04034b50;
-const CENTRAL_HEADER = 0x02014b50;
-const END_OF_CENTRAL_DIRECTORY = 0x06054b50;
-/** Version 2.1, the first that names Deflate64. */
-const VERSION = 21;
-const UTF8_NAMES = 0x0800;
-const DEFLATE64 = 9;
-const DOS_DATE_1980_01_01 = 0x0021;
+import { singleEntryZip } from './irs990.ts';
 
 /**
  * A zip of one entry stored with method 9 (Deflate64). Deflate64 reads a Deflate stream as written
@@ -16,44 +9,43 @@ const DOS_DATE_1980_01_01 = 0x0021;
  * stream: literals and an end of block, no matches. yauzl refuses it; Info-ZIP unzip reads it.
  */
 export function deflate64Zip(name: string, data: Uint8Array): Buffer {
-  const nameBytes = Buffer.from(name, 'utf8');
-  const plain = Buffer.from(data);
-  const packed = deflateRawSync(plain, { strategy: constants.Z_HUFFMAN_ONLY });
-  const crc = crc32(plain);
+  return singleEntryZip(name, {
+    method: 9,
+    packed: deflateRawSync(data, { strategy: constants.Z_HUFFMAN_ONLY }),
+    crc32: crc32(data),
+    size: data.length,
+  });
+}
 
-  const local = Buffer.alloc(30);
-  local.writeUInt32LE(LOCAL_HEADER, 0);
-  local.writeUInt16LE(VERSION, 4);
-  local.writeUInt16LE(UTF8_NAMES, 6);
-  local.writeUInt16LE(DEFLATE64, 8);
-  local.writeUInt16LE(0, 10);
-  local.writeUInt16LE(DOS_DATE_1980_01_01, 12);
-  local.writeUInt32LE(crc, 14);
-  local.writeUInt32LE(packed.length, 18);
-  local.writeUInt32LE(plain.length, 22);
-  local.writeUInt16LE(nameBytes.length, 26);
-  local.writeUInt16LE(0, 28);
+const ZIP64_END = 0x06064b50;
+const ZIP64_LOCATOR = 0x07064b50;
+const END_RECORD = 22;
 
-  const central = Buffer.alloc(46);
-  central.writeUInt32LE(CENTRAL_HEADER, 0);
-  central.writeUInt16LE(VERSION, 4);
-  central.writeUInt16LE(VERSION, 6);
-  central.writeUInt16LE(UTF8_NAMES, 8);
-  central.writeUInt16LE(DEFLATE64, 10);
-  central.writeUInt16LE(0, 12);
-  central.writeUInt16LE(DOS_DATE_1980_01_01, 14);
-  central.writeUInt32LE(crc, 16);
-  central.writeUInt32LE(packed.length, 20);
-  central.writeUInt32LE(plain.length, 24);
-  central.writeUInt16LE(nameBytes.length, 28);
-  // Extra field, comment, disk, attributes and the local header's offset (0) stay zero.
-
-  const directory = Buffer.concat([central, nameBytes]);
-  const end = Buffer.alloc(22);
-  end.writeUInt32LE(END_OF_CENTRAL_DIRECTORY, 0);
-  end.writeUInt16LE(1, 8);
-  end.writeUInt16LE(1, 10);
-  end.writeUInt32LE(directory.length, 12);
-  end.writeUInt32LE(local.length + nameBytes.length + packed.length, 16);
-  return Buffer.concat([local, nameBytes, packed, directory, end]);
+/**
+ * `deflate64Zip` with the end records of an IRS batch: a Zip64 end record and locator before the
+ * end record, the end record's entry counts 0xFFFF, and the locator's disk count 0 where the format
+ * asks for 1. yauzl reads that layout; UnZip 6.00 misreads it and exits non-zero.
+ */
+export function irsBatchZip(name: string, data: Uint8Array): Buffer {
+  const zip = deflate64Zip(name, data);
+  const endAt = zip.length - END_RECORD;
+  const directorySize = zip.readUInt32LE(endAt + 12);
+  const directoryAt = zip.readUInt32LE(endAt + 16);
+  const record = Buffer.alloc(56);
+  record.writeUInt32LE(ZIP64_END, 0);
+  record.writeBigUInt64LE(44n, 4);
+  record.writeUInt16LE(45, 12);
+  record.writeUInt16LE(45, 14);
+  record.writeBigUInt64LE(1n, 24);
+  record.writeBigUInt64LE(1n, 32);
+  record.writeBigUInt64LE(BigInt(directorySize), 40);
+  record.writeBigUInt64LE(BigInt(directoryAt), 48);
+  const locator = Buffer.alloc(20);
+  locator.writeUInt32LE(ZIP64_LOCATOR, 0);
+  locator.writeBigUInt64LE(BigInt(endAt), 8);
+  // The disk count (offset 16) stays 0, as the IRS writes it.
+  const end = Buffer.from(zip.subarray(endAt));
+  end.writeUInt16LE(0xffff, 8);
+  end.writeUInt16LE(0xffff, 10);
+  return Buffer.concat([zip.subarray(0, endAt), record, locator, end]);
 }
