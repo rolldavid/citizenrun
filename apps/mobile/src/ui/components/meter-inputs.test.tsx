@@ -130,7 +130,7 @@ describe('MeterInputs', () => {
     expect(STATES.known.inputs).toHaveLength(3);
     expect(STATES.known.inputs[0]).toMatchObject({
       sentence: 'Nobody filed against the holder in 2023.',
-      source: 'wrencounty.example. Checked Nov 9.',
+      source: 'wrencounty.example. Checked Mon, Nov 9.',
     });
     expect(STATES.unknown.inputs).toEqual([
       { id: 'margin', sentence: null, unknownLabel: 'Margin last time', source: null },

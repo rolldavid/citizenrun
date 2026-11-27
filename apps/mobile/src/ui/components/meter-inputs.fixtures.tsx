@@ -10,19 +10,19 @@ const INPUTS = [
     id: 'contest',
     sentence: 'Nobody filed against the holder in 2023.',
     unknownLabel: 'Who ran last time',
-    source: 'wrencounty.example. Checked Nov 9.',
+    source: 'wrencounty.example. Checked Mon, Nov 9.',
   },
   {
     id: 'margin',
     sentence: 'About 2,100 votes won it last time.',
     unknownLabel: 'Margin last time',
-    source: 'wrencounty.example. Checked Nov 9.',
+    source: 'wrencounty.example. Checked Mon, Nov 9.',
   },
   {
     id: 'filing',
     sentence: '$50 to file. No signatures needed.',
     unknownLabel: 'Cost to file',
-    source: 'elections.fixture-state.example. Checked Oct 12.',
+    source: 'elections.fixture-state.example. Checked Mon, Oct 12.',
   },
 ] as const;
 

@@ -29,7 +29,7 @@ const KNOWN = {
   impact: null,
   closingLine: 'Filing closes Fri, Nov 27. Confirm with your election office.',
   costLine: '$50 to file.',
-  source: { confidence: 'medium', text: 'wrencounty.example. Checked Nov 9.', onPress: press },
+  source: { confidence: 'medium', text: 'wrencounty.example. Checked Mon, Nov 9.', onPress: press },
   onOpenMenu: press,
   itemKey: 'fixture-office-1',
 } as const;

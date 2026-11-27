@@ -138,7 +138,7 @@ describe('OfficeCard', () => {
       impact: null,
       closingLine: CLOSING,
       costLine: '$50 to file.',
-      source: { confidence: 'medium', text: 'wrencounty.example. Checked Nov 9.' },
+      source: { confidence: 'medium', text: 'wrencounty.example. Checked Mon, Nov 9.' },
     });
     expect(STATES.unknown).toMatchObject({
       altText: FIXTURE_ALT_TEXT.allUnknown,
@@ -177,7 +177,7 @@ describe('OfficeCard', () => {
     draw(STATES.known);
     expect(
       screen.getByRole('button', {
-        name: 'Medium confidence. wrencounty.example. Checked Nov 9.',
+        name: 'Medium confidence. wrencounty.example. Checked Mon, Nov 9.',
       }),
     ).toBe(screen.getByTestId('gallery.office-card-known-source'));
     const onOpenMenu = vi.fn();

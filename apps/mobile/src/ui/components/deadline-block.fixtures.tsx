@@ -43,7 +43,7 @@ export const STATES = {
   notOpen: {
     state: 'not_open',
     daysLeft: null,
-    headline: 'Filing opens in 9 days',
+    headline: 'Filing opens in 9 days, on Mon, Nov 23',
     flagLabel: null,
     lines: ['Opens Mon, Nov 23, 2026.'],
     source: sourceOf('gallery.deadline-block-not-open'),
@@ -79,8 +79,7 @@ export const STATES = {
     lines: ['Closes Fri, Nov 27, 2026 at 5:00 pm Pacific.', 'File in person at the county clerk.'],
     source: sourceOf('gallery.deadline-block-conflict'),
     caution: CAUTION,
-    conflict:
-      'Two closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
+    conflict: '2 closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
     testID: 'gallery.deadline-block-conflict',
   },
   // The ticks cut on and the flag dips once, the first time the item is seen.

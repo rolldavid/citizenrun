@@ -174,7 +174,10 @@ describe('DeadlineBlock', () => {
     ]);
     expect(STATES.open.source.confidence).toBe('medium');
     expect(STATES.openSoon).toMatchObject({ daysLeft: 5, flagLabel: '5 days to file' });
-    expect(STATES.notOpen).toMatchObject({ state: 'not_open', headline: 'Filing opens in 9 days' });
+    expect(STATES.notOpen).toMatchObject({
+      state: 'not_open',
+      headline: 'Filing opens in 9 days, on Mon, Nov 23',
+    });
     expect(STATES.notOpen.lines).toEqual(['Opens Mon, Nov 23, 2026.']);
     expect(STATES.closed).toMatchObject({ state: 'closed', headline: 'Filing closed' });
     expect(STATES.closed.lines).toEqual(['Closed Fri, Nov 6, 2026.']);
@@ -184,7 +187,7 @@ describe('DeadlineBlock', () => {
       source: null,
     });
     expect(STATES.conflict.conflict).toBe(
-      'Two closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
+      '2 closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
     );
     expect(STATES.withMotion).toMatchObject({ daysLeft: 5, itemKey: 'fixture-deadline-block' });
     expect(PREVIEW).toEqual({});
@@ -392,7 +395,7 @@ describe('DeadlineBlock', () => {
     const block = draw(STATES.conflict);
     const notice = within(block).getByRole('alert');
     expect(notice.textContent).toBe(
-      'Two closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
+      '2 closing dates are listed: Fri, Nov 27 and Mon, Nov 30. The earlier one is shown.',
     );
     const ring = ringOf(block);
     if (ring === null) {
