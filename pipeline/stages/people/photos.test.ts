@@ -151,6 +151,10 @@ describe('resolvePhotos', () => {
       credit_text: 'Courtesy U.S. Senate Historical Office · Public domain',
       width: 320,
     });
+    // The documented attribution is a link: only its text is kept.
+    expect(member).toContain('<a href=');
+    expect(outcome?.photo?.author).not.toMatch(/[<>]|href/);
+    expect(outcome?.photo?.credit_text).not.toMatch(/[<>]|href/);
     const congress = fetcher.requests.find(
       (r) => new URL(r.req.url).hostname === 'api.congress.gov',
     );
@@ -182,6 +186,40 @@ describe('resolvePhotos', () => {
     expect(outcome?.rejected).toEqual(['missing', 'attribution']);
     expect(outcome?.step).toBe('step3');
     expect(fetcher.requests.some((r) => r.req.url === CONGRESS_IMAGE)).toBe(false);
+  });
+
+  it('a link to a federal site whose text names no federal body is rejected', async () => {
+    const body = JSON.stringify({
+      member: {
+        directOrderName: 'Fixture Member',
+        depiction: {
+          imageUrl: CONGRESS_IMAGE,
+          attribution:
+            '<a href="https://fixture-member.house.gov/senate/about">Image courtesy of the Member</a>',
+        },
+      },
+    });
+    const { fetcher, ctx } = run({ congress: { body, contentType: 'application/json' } });
+    const [outcome] = await resolvePhotos(ctx, [member1], new Map(), KEY);
+    expect(outcome?.rejected).toEqual(['missing', 'attribution']);
+    expect(outcome?.step).toBe('step3');
+    expect(fetcher.requests.some((r) => r.req.url === CONGRESS_IMAGE)).toBe(false);
+  });
+
+  it('an attribution of markup with no text is rejected', async () => {
+    const body = JSON.stringify({
+      member: {
+        directOrderName: 'Fixture Member',
+        depiction: {
+          imageUrl: CONGRESS_IMAGE,
+          attribution: '<a href="https://www.senate.gov/"></a>',
+        },
+      },
+    });
+    const { ctx } = run({ congress: { body, contentType: 'application/json' } });
+    const [outcome] = await resolvePhotos(ctx, [member1], new Map(), KEY);
+    expect(outcome?.rejected).toEqual(['missing', 'attribution']);
+    expect(outcome?.step).toBe('step3');
   });
 
   it('the key is sent only in X-Api-Key', async () => {

@@ -4,7 +4,7 @@
 import { SafeUrlSchema, kebab } from '@citizenrun/shared';
 import { z } from 'zod';
 import type { RunContext } from '../lib/runner.ts';
-import { CC0_URL } from './wikimedia.ts';
+import { CC0_URL, htmlText } from './wikimedia.ts';
 import type { PhotoRecordBase, PhotoRejectReason } from './wikimedia.ts';
 
 export const SOURCE_IDS = ['congress-portraits', 'congress-gov-api'] as const;
@@ -117,8 +117,11 @@ export async function congressGovStep2(
   if (member === undefined || imageUrl === null || !SafeUrlSchema.safeParse(imageUrl).success) {
     return { ok: false, reason: 'missing' };
   }
-  const attribution = member.depiction?.attribution?.replace(/\s+/g, ' ').trim() ?? '';
-  if (attribution !== '' && !FEDERAL_ATTRIBUTION.test(attribution)) {
+  // The documented attribution is HTML (a link to the credited office): the rule and the credit
+  // read its text only, never its markup or the link's URL. Markup with no text is refused.
+  const rawAttribution = member.depiction?.attribution?.trim() ?? '';
+  const attribution = rawAttribution === '' ? '' : htmlText(rawAttribution);
+  if (rawAttribution !== '' && (attribution === '' || !FEDERAL_ATTRIBUTION.test(attribution))) {
     return { ok: false, reason: 'attribution' };
   }
   const fullName =
