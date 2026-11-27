@@ -38,7 +38,7 @@
   "devDependencies": {
     "@tanstack/react-query": "catalog:",
     "@types/react": "catalog:",
-    "orval": "8.48.0",
+    "orval": "8.49.0",
     "react": "catalog:"
   }
 }
