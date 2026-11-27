@@ -149,7 +149,10 @@ describe('MiniMapStill', () => {
       const row = draw(props);
       if (state === 'pressable') {
         expect(row.getAttribute('role'), state).toBe('button');
-        expect(row.getAttribute('aria-label'), state).toBe(props.openLabel);
+        // The words the row shows come first, then what a press does.
+        expect(row.getAttribute('aria-label'), state).toBe(
+          'Fixture Wren County. County. Show Fixture Wren County on the map',
+        );
         continue;
       }
       // A row that opens nothing is plain text beside a picture: no role and no name of its own.
@@ -239,7 +242,11 @@ describe('MiniMapStill', () => {
     const onPress = vi.fn();
     const row = draw({ ...STATES.pressable, onPress });
     expect(screen.getAllByRole('button')).toEqual([row]);
-    expect(screen.getByRole('button', { name: 'Show Fixture Wren County on the map' })).toBe(row);
+    expect(
+      screen.getByRole('button', {
+        name: 'Fixture Wren County. County. Show Fixture Wren County on the map',
+      }),
+    ).toBe(row);
     // At least as high as the smallest target.
     expect(
       [row, ...row.querySelectorAll<HTMLElement>('*')].some(
@@ -249,6 +256,14 @@ describe('MiniMapStill', () => {
     expect(hasChevron(row)).toBe(true);
     fireEvent.click(row);
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('a pressable row is named by every line it shows, then by what it opens', () => {
+    const row = draw({ ...STATES.approximate, onPress: vi.fn() });
+    // The sentence under the level keeps one full stop.
+    expect(row.getAttribute('aria-label')).toBe(
+      `Fixture Wren County. County. ${APPROXIMATE} Show Fixture Wren County on the map`,
+    );
   });
 
   it('approximate line', () => {

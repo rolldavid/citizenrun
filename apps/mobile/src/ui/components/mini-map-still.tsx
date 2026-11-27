@@ -21,7 +21,7 @@ export type MiniMapStillProps = {
   levelLabel: string;
   /** Set when the district's shape is not exact. */
   approximateText: string | null;
-  /** The row's accessible name when it can be pressed. */
+  /** What a press does: the end of the row's accessible name when it can be pressed. */
   openLabel: string;
   /** Null where the row opens nothing, and when there is no outline. */
   onPress: (() => void) | null;
@@ -132,10 +132,16 @@ export function MiniMapStill({
   if (press === null) {
     return <View testID={testID}>{row}</View>;
   }
+  // The name starts with the words the row shows, in the order it draws them, then says what a
+  // press does (D-874). A line that ends a sentence is not given a second full stop.
+  const said = [placeName, levelLabel, approximateText, openLabel]
+    .filter((part): part is string => part !== null && part !== '')
+    .map((part) => part.replace(/\.$/, ''))
+    .join('. ');
   return (
     <Pressable
       role="button"
-      label={openLabel}
+      label={said}
       feedback="move"
       hover="fill"
       testID={testID}
