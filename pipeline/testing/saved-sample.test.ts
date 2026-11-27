@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   SavedSampleMismatchError,
@@ -9,6 +9,7 @@ import {
   sidecarPath,
   writeSavedSample,
 } from './saved-sample.ts';
+import { PILOT_FILES, loadPilotUnits } from '../stages/pilots/harness.ts';
 
 const PIPELINE_ROOT = join(import.meta.dirname, '..');
 const META = '.meta.json';
@@ -71,7 +72,26 @@ describe('saved samples', () => {
     for (const folder of folders) {
       const files = await filesUnder(folder);
       const names = new Set(files);
+      // A pilot capture (D-895) is a stage output, not a fetched document: its capture.json is its
+      // record, and the files it names are checked through it (schema, presence, row counts).
+      const captured = new Set<string>();
+      for (const record of files.filter((file) => file.endsWith('/capture.json'))) {
+        const dir = dirname(record);
+        try {
+          await loadPilotUnits(dir);
+        } catch (error) {
+          problems.push(`${record}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        captured.add(record);
+        for (const name of PILOT_FILES) {
+          captured.add(join(dir, `${name}.ndjson.gz`));
+        }
+      }
       for (const file of files) {
+        if (captured.has(file)) {
+          checked += 1;
+          continue;
+        }
         const base = file.slice(file.lastIndexOf('/') + 1);
         if (file.endsWith(META)) {
           if (!names.has(file.slice(0, -META.length))) {
