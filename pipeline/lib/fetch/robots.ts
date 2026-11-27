@@ -59,8 +59,11 @@ export function parseRobots(text: string): RobotsRules {
       if (current !== null && value !== '') {
         current.rules.push({ allow: key === 'allow', pattern: value });
       }
+    } else if (key !== 'sitemap') {
+      // Any other line of a group (crawl-delay, an unknown key) ends the run of user-agent lines, so a
+      // user-agent after it starts a new group; it adds no rule. Sitemap lines stand outside groups.
+      lastWasAgent = false;
     }
-    // Every other key (sitemap, crawl-delay, unknown) is ignored.
   }
   return { groups };
 }

@@ -92,6 +92,22 @@ describe('obeys robots.txt', () => {
     expect(decide(text, '/b-only')).toBe('allowed');
   });
 
+  it('a crawl-delay line ends the run of user-agent lines', () => {
+    const text = [
+      'User-agent: *',
+      'Crawl-delay: 10',
+      '',
+      'User-agent: SomeBot',
+      'Disallow: /',
+    ].join('\n');
+    expect(parseRobots(text).groups).toEqual([
+      { agents: ['*'], rules: [] },
+      { agents: ['SomeBot'], rules: [{ allow: false, pattern: '/' }] },
+    ]);
+    expect(decide(text, '/laws/section')).toBe('allowed');
+    expect(robotsDecision(parseRobots(text), 'SomeBot', '/laws/section')).toBe('disallowed');
+  });
+
   it('no matching group allows everything', () => {
     expect(decide('User-agent: OtherBot\nDisallow: /\n', '/x')).toBe('allowed');
   });
