@@ -161,8 +161,159 @@ const CONSTITUTIONAL_FOUR_YEAR: ReadonlySet<string> = new Set([
   'county-assessor',
 ]);
 
+// ---------------------------------------------------------------------------------------------
+// By-district offices, by template key (D-894). A `by_district` office carries no stagger group, so
+// its election years come from the Department of Elections' schedules of local elections, keyed by
+// the template entry that makes the office. Each schedule is a table: one row per district, one
+// column per year. The text layer runs each row's cells together; the column a cell sits in (by its
+// position on the page) gives the year. Every seat in these rows has a four-year term, so each key
+// is elected every fourth year, and the years before the schedule's first column follow the same
+// cycle. A key not in the table keeps the office type's years.
+
+const CALENDARS = `${ELECT}/media/boardpapers/calendar`;
+const CITY_COUNCIL_SCHEDULE = `${CALENDARS}/CityCncl26-31-November.pdf`;
+const COUNTY_BOARD_SCHEDULE = `${CALENDARS}/2027_2031CountyBOS.pdf`;
+const COUNTY_SCHOOL_SCHEDULE = `${CALENDARS}/2027_2031CountySchoolBoard.pdf`;
+const CITY_SCHOOL_SCHEDULE = `${CALENDARS}/CITY-SCHOOL-BOARD-ELECTIONS.pdf`;
+
+const CITY_COUNCIL_EVEN =
+  'Department of Elections, City Council Elections, November Even-Numbered Years';
+const CITY_SCHOOL_EVEN =
+  'Department of Elections, City School Board Elections, November Even-Numbered Years';
+
+/** Virginia Beach: Districts 1, 3, 5 and 7 in the 2028 column; 2, 4, 6, 8, 9 and 10 in 2026 and 2030. */
+const VIRGINIA_BEACH_COUNCIL = cite(
+  CITY_COUNCIL_EVEN,
+  CITY_COUNCIL_SCHEDULE,
+  'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4',
+  '2026-01-20',
+);
+/** Richmond: Districts 1 to 9 in the 2028 column. */
+const RICHMOND_COUNCIL = cite(
+  CITY_COUNCIL_EVEN,
+  CITY_COUNCIL_SCHEDULE,
+  'Richmond Mayor 4 District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4',
+  '2026-01-20',
+);
+/** Norfolk: Wards 1 to 5 in the 2026 and 2030 columns; Superwards 6 and 7 in 2028. */
+const NORFOLK_COUNCIL = cite(
+  CITY_COUNCIL_EVEN,
+  CITY_COUNCIL_SCHEDULE,
+  'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4',
+  '2026-01-20',
+);
+/** Virginia Beach: the at-large seat and Districts 1, 3, 5 and 7 in 2028; the others in 2026 and 2030. */
+const VIRGINIA_BEACH_SCHOOL = cite(
+  CITY_SCHOOL_EVEN,
+  CITY_SCHOOL_SCHEDULE,
+  'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4',
+  '2026-01-20',
+);
+/** Richmond: Districts 1 to 9 in the 2028 column. */
+const RICHMOND_SCHOOL = cite(
+  CITY_SCHOOL_EVEN,
+  CITY_SCHOOL_SCHEDULE,
+  'Richmond District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4',
+  '2026-01-20',
+);
+/** Norfolk: Wards 1 to 5 in the 2026 and 2030 columns; Superwards 6 and 7 in 2028. */
+const NORFOLK_SCHOOL = cite(
+  CITY_SCHOOL_EVEN,
+  CITY_SCHOOL_SCHEDULE,
+  'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4',
+  '2026-01-20',
+);
+/** Henrico: each of the five magisterial districts in the 2027 and 2031 columns. */
+const HENRICO_SUPERVISORS = cite(
+  'Department of Elections, County Board of Supervisors (2027, 2029, 2031)',
+  COUNTY_BOARD_SCHEDULE,
+  'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1',
+  '2026-04-20',
+);
+/** Henrico: each of the five magisterial districts in the 2027 and 2031 columns. */
+const HENRICO_SCHOOL = cite(
+  'Department of Elections, County School Board (2027, 2029, 2031)',
+  COUNTY_SCHOOL_SCHEDULE,
+  'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1',
+  '2026-01-21',
+);
+
+/** Elected in the years `first + k × every`, k any integer: `first` is the schedule's first column. */
+type KeyCycle = { readonly first: number; readonly every: number; readonly citation: Citation };
+
+function keyCycles(
+  keys: readonly string[],
+  first: number,
+  citation: Citation,
+): readonly (readonly [string, KeyCycle])[] {
+  return keys.map((key) => [key, { first, every: 4, citation }] as const);
+}
+
+const HENRICO_DISTRICTS = ['brookland', 'fairfield', 'three-chopt', 'tuckahoe', 'varina'];
+const VIRGINIA_BEACH_ODD = [1, 3, 5, 7].map(String);
+const VIRGINIA_BEACH_EVEN = [2, 4, 6, 8, 9, 10].map(String);
+const prefixed = (prefix: string, names: readonly string[]): string[] =>
+  names.map((name) => `${prefix}-${name}`);
+
+/** Template key to election years. */
+const KEY_CYCLES: ReadonlyMap<string, KeyCycle> = new Map([
+  ...keyCycles(
+    prefixed('virginia-beach-city-council-district', VIRGINIA_BEACH_ODD),
+    2028,
+    VIRGINIA_BEACH_COUNCIL,
+  ),
+  ...keyCycles(
+    prefixed('virginia-beach-city-council-district', VIRGINIA_BEACH_EVEN),
+    2026,
+    VIRGINIA_BEACH_COUNCIL,
+  ),
+  ...keyCycles(['richmond-city-council'], 2028, RICHMOND_COUNCIL),
+  ...keyCycles(['norfolk-city-council-ward'], 2026, NORFOLK_COUNCIL),
+  ...keyCycles(
+    ['norfolk-city-council-superward-6', 'norfolk-city-council-superward-7'],
+    2028,
+    NORFOLK_COUNCIL,
+  ),
+  ...keyCycles(
+    prefixed('virginia-beach-school-board-district', VIRGINIA_BEACH_ODD),
+    2028,
+    VIRGINIA_BEACH_SCHOOL,
+  ),
+  ...keyCycles(
+    prefixed('virginia-beach-school-board-district', VIRGINIA_BEACH_EVEN),
+    2026,
+    VIRGINIA_BEACH_SCHOOL,
+  ),
+  ...keyCycles(['richmond-school-board'], 2028, RICHMOND_SCHOOL),
+  ...keyCycles(['norfolk-school-board-ward'], 2026, NORFOLK_SCHOOL),
+  ...keyCycles(
+    ['norfolk-school-board-superward-6', 'norfolk-school-board-superward-7'],
+    2028,
+    NORFOLK_SCHOOL,
+  ),
+  ...keyCycles(
+    prefixed('henrico-board-of-supervisors', HENRICO_DISTRICTS),
+    2027,
+    HENRICO_SUPERVISORS,
+  ),
+  ...keyCycles(prefixed('henrico-school-board', HENRICO_DISTRICTS), 2027, HENRICO_SCHOOL),
+]);
+
+/** The cycle of the office's template key when `year` is one of its election years, else null. */
+function keyCycleIn(office: OfficeRef, year: number): KeyCycle | null {
+  const cycle = KEY_CYCLES.get(office.templateKey);
+  return cycle !== undefined && mod(year - cycle.first, cycle.every) === 0 ? cycle : null;
+}
+
+function mod(a: number, n: number): number {
+  return ((a % n) + n) % n;
+}
+
 /** Whether the office is elected in `year`; an office whose years each locality sets is asked every year. */
 function electedIn(office: OfficeRef, year: number): boolean {
+  if (KEY_CYCLES.has(office.templateKey)) {
+    return keyCycleIn(office, year) !== null;
+  }
   const cycle = STATE_CYCLES[office.officeTypeId];
   if (cycle !== undefined) {
     return year % cycle.every === cycle.at;
@@ -184,12 +335,13 @@ function assertServed(year: number): void {
   }
 }
 
-function generalContest(year: number): ContestOut {
+/** The November general; a keyed office's general cites the schedule that puts it in this year. */
+function generalContest(office: OfficeRef, year: number): ContestOut {
   return {
     date: novemberElectionDay(year),
     kind: 'general',
     party: null,
-    dateCitation: ELECTION_DAY,
+    dateCitation: keyCycleIn(office, year)?.citation ?? ELECTION_DAY,
     electsOutright: false,
   };
 }
@@ -198,12 +350,12 @@ function contests(office: OfficeRef, year: number): readonly ContestOut[] {
   assertServed(year);
   switch (office.schedule) {
     case NOVEMBER_GENERAL:
-      return electedIn(office, year) ? [generalContest(year)] : [];
+      return electedIn(office, year) ? [generalContest(office, year)] : [];
     case JUNE_PRIMARY: {
       if (!electedIn(office, year)) {
         return [];
       }
-      const general = generalContest(year);
+      const general = generalContest(office, year);
       if (office.partisan !== true) {
         return [general];
       }
