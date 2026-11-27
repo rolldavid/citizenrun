@@ -1,5 +1,9 @@
 import { focusManager } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { Context } from 'react';
+
+/** A fixed time for useNow; provided only by the screen fixture registry, never by the app. */
+export const NowOverrideContext: Context<Date | null> = createContext<Date | null>(null);
 
 /** Milliseconds from `now` to the next local midnight; at least 1. */
 export function msUntilNextLocalMidnight(now: Date): number {
@@ -7,11 +11,18 @@ export function msUntilNextLocalMidnight(now: Date): number {
   return Math.max(1, midnight - now.getTime());
 }
 
-/** The current time, refreshed at local midnight and whenever the app regains focus; steady otherwise. */
+/**
+ * The current time, refreshed at local midnight and whenever the app regains focus; steady otherwise.
+ * Under a NowOverrideContext value it answers that value and sets no timer.
+ */
 export function useNow(): Date {
-  const [now, setNow] = useState(() => new Date());
+  const override = useContext(NowOverrideContext);
+  const [now, setNow] = useState(() => override ?? new Date());
 
   useEffect(() => {
+    if (override !== null) {
+      return undefined;
+    }
     let timer: ReturnType<typeof setTimeout> | null = null;
     const schedule = (): void => {
       timer = setTimeout(() => {
@@ -27,7 +38,7 @@ export function useNow(): Date {
       if (timer !== null) clearTimeout(timer);
       unsubscribe();
     };
-  }, []);
+  }, [override]);
 
-  return now;
+  return override ?? now;
 }

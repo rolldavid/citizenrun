@@ -6,6 +6,7 @@ import { SCREEN_FIXTURES, defineScreen, defineStaticScreen } from '@/features/de
 import type { ScreenRegistryEntry } from '@/features/dev/screen-fixtures';
 import { reauthFixtures, signInFixtures, welcomeFixtures } from '@/features/auth';
 import { homeFixtures } from '@/features/feed';
+import { officeFixtures } from '@/features/office';
 import {
   handleFixtures,
   issuesFixtures,
@@ -32,6 +33,7 @@ import {
   systemErrorFixtures,
   systemUpdateFixtures,
 } from '@/features/system';
+import { useNow } from '@/lib/now';
 import { renderWithProviders, setViewport } from '@/test/render';
 import { Text } from '@/ui/components/text';
 import { showToast, ToastHost } from '@/ui/components/toast';
@@ -291,6 +293,7 @@ describe('the registry', () => {
       'settings-export': Object.keys(settingsExportFixtures).sort(),
       'settings-delete-account': Object.keys(settingsDeleteAccountFixtures).sort(),
       'settings-about': Object.keys(settingsAboutFixtures).sort(),
+      'office-slug': Object.keys(officeFixtures).sort(),
     });
     for (const entry of Object.values(SCREEN_FIXTURES)) {
       expect(entry.fixtures.length).toBeGreaterThan(0);
@@ -308,6 +311,7 @@ describe('the registry', () => {
     expect(SCREEN_FIXTURES['not-found']?.shell).toBeUndefined();
     expect(SCREEN_FIXTURES['system-update']?.shell).toBeUndefined();
     expect(SCREEN_FIXTURES['system-error']?.shell).toBeUndefined();
+    expect(SCREEN_FIXTURES['office-slug']?.shell).toEqual({ mode: 'app', active: null });
   });
 });
 
@@ -331,6 +335,25 @@ describe('the registry helpers', () => {
     const entry = defineScreen(StubView, carried);
     expect(entry.fixtures).toEqual(['stubReady', 'stubLong']);
     expect(entry.render('__esModule')).toBeNull();
+  });
+
+  it('draws every fixture at the time the entry fixes, and the clock time without one', () => {
+    function ClockView({ vm }: { vm: StubVm }): JSX.Element {
+      return (
+        <Text role="body" testID="stub.clock">
+          {`${vm.label} ${useNow().toISOString()}`}
+        </Text>
+      );
+    }
+    const fixed = new Date('2026-11-15T17:00:00.000Z');
+    const timed = defineScreen(ClockView, STUB_FIXTURES, undefined, { now: fixed });
+    renderWithProviders(<>{timed.render('stubReady')}</>);
+    expect(screen.getByTestId('stub.clock').textContent).toBe(`Ready ${fixed.toISOString()}`);
+    cleanup();
+
+    const untimed = defineScreen(ClockView, STUB_FIXTURES);
+    renderWithProviders(<>{untimed.render('stubReady')}</>);
+    expect(screen.getByTestId('stub.clock').textContent).not.toBe(`Ready ${fixed.toISOString()}`);
   });
 
   it('a static entry keeps its names when the caller changes its own list', () => {

@@ -191,6 +191,17 @@ async function reauthCodeAtRest(page: Page): Promise<void> {
   await reauthSheetAtRest(page);
 }
 
+/** Opens one sheet of the office page with its own button, and waits until it is where it rests. */
+function openOfficeSheet(control: string, sheet: string): (page: Page) => Promise<void> {
+  return async (page) => {
+    await page.getByTestId(control).click();
+    await layerAtRest(page.getByTestId(sheet));
+  };
+}
+
+const openOfficeSources = openOfficeSheet('office.sources-open-1', 'office.sources-sheet');
+const openOfficeSteps = openOfficeSheet('office.steps-open', 'office.steps-sheet');
+const openOfficeReport = openOfficeSheet('office.report-open', 'office.report-sheet');
 /** The add-email sheet has faded in and, on a phone, risen to where it rests. */
 async function addEmailSheetAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('auth.add-email-sheet'));
@@ -1776,6 +1787,170 @@ export const SCREENS: ScreenEntry[] = [
   },
   // Home before anything fills it. The fixture route has no tab navigator, so no tab bar is drawn.
   { id: 'home-home-placeholder', path: '/dev/screens/home/homePlaceholder', auth: 'none' },
+  // The office page, in the app's shell with no item lit. A sheet is captured once it is where it
+  // rests; the field-report states are captured with the report sheet open.
+  {
+    id: 'office-slug-office-loading',
+    path: '/dev/screens/office-slug/officeLoading',
+    auth: 'none',
+  },
+  { id: 'office-slug-office-error', path: '/dev/screens/office-slug/officeError', auth: 'none' },
+  {
+    id: 'office-slug-office-offline',
+    path: '/dev/screens/office-slug/officeOffline',
+    auth: 'none',
+  },
+  { id: 'office-slug-office-stale', path: '/dev/screens/office-slug/officeStale', auth: 'none' },
+  {
+    id: 'office-slug-office-not-found',
+    path: '/dev/screens/office-slug/officeNotFound',
+    auth: 'none',
+  },
+  { id: 'office-slug-office-ready', path: '/dev/screens/office-slug/officeReady', auth: 'none' },
+  {
+    id: 'office-slug-office-ready-sources',
+    path: '/dev/screens/office-slug/officeReady',
+    auth: 'none',
+    prepare: openOfficeSources,
+  },
+  {
+    id: 'office-slug-office-ready-steps',
+    path: '/dev/screens/office-slug/officeReady',
+    auth: 'none',
+    prepare: openOfficeSteps,
+  },
+  {
+    id: 'office-slug-office-ready-report',
+    path: '/dev/screens/office-slug/officeReady',
+    auth: 'none',
+    prepare: openOfficeReport,
+  },
+  {
+    id: 'office-slug-office-signed-out',
+    path: '/dev/screens/office-slug/officeSignedOut',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-all-unknown',
+    path: '/dev/screens/office-slug/officeAllUnknown',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-pay-not-known',
+    path: '/dev/screens/office-slug/officePayNotKnown',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-deadline-not-known',
+    path: '/dev/screens/office-slug/officeDeadlineNotKnown',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-low-confidence',
+    path: '/dev/screens/office-slug/officeLowConfidence',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-deadline-conflict',
+    path: '/dev/screens/office-slug/officeDeadlineConflict',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-deadline-soon',
+    path: '/dev/screens/office-slug/officeDeadlineSoon',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-not-open-yet',
+    path: '/dev/screens/office-slug/officeNotOpenYet',
+    auth: 'none',
+  },
+  { id: 'office-slug-office-closed', path: '/dev/screens/office-slug/officeClosed', auth: 'none' },
+  {
+    id: 'office-slug-office-no-election',
+    path: '/dev/screens/office-slug/officeNoElection',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-placeholder',
+    path: '/dev/screens/office-slug/officePlaceholder',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-minimal',
+    path: '/dev/screens/office-slug/officeMinimal',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-retired',
+    path: '/dev/screens/office-slug/officeRetired',
+    auth: 'none',
+  },
+  { id: 'office-slug-office-board', path: '/dev/screens/office-slug/officeBoard', auth: 'none' },
+  {
+    id: 'office-slug-office-approximate',
+    path: '/dev/screens/office-slug/officeApproximate',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-members-only',
+    path: '/dev/screens/office-slug/officeMembersOnly',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-party-selection',
+    path: '/dev/screens/office-slug/officePartySelection',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-candidates',
+    path: '/dev/screens/office-slug/officeCandidates',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-two-actions',
+    path: '/dev/screens/office-slug/officeTwoActions',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-single-issue',
+    path: '/dev/screens/office-slug/officeSingleIssue',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-long-name',
+    path: '/dev/screens/office-slug/officeLongName',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-text-scale',
+    path: '/dev/screens/office-slug/officeTextScale?textScale=1.3',
+    auth: 'none',
+  },
+  {
+    id: 'office-slug-office-report-sending',
+    path: '/dev/screens/office-slug/officeReportSending',
+    auth: 'none',
+    prepare: openOfficeReport,
+  },
+  {
+    id: 'office-slug-office-report-sent',
+    path: '/dev/screens/office-slug/officeReportSent',
+    auth: 'none',
+    prepare: openOfficeReport,
+  },
+  {
+    id: 'office-slug-office-report-error',
+    path: '/dev/screens/office-slug/officeReportError',
+    auth: 'none',
+    prepare: openOfficeReport,
+  },
+  {
+    id: 'office-slug-office-report-link-invalid',
+    path: '/dev/screens/office-slug/officeReportLinkInvalid',
+    auth: 'none',
+    prepare: openOfficeReport,
+  },
   // The settings screens, in the app's shell with Profile active. A sheet or a dialog is captured
   // once it is where it rests; the issues screen's limit lines and its tight layout are drawn as
   // the sign-up step's are.

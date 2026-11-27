@@ -143,6 +143,13 @@ export const common = {
     defundIsrael: 'Defunding Israel',
     foreignWars: 'Foreign wars',
   },
+  party: {
+    democratic: 'Democratic',
+    republican: 'Republican',
+    libertarian: 'Libertarian',
+    green: 'Green',
+    independent: 'Independent',
+  },
   ui: {
     loading: 'Loading',
     retry: 'Try again',

@@ -10,6 +10,7 @@ import {
   welcomeFixtures,
 } from '@/features/auth';
 import { HomeScreenView, homeFixtures } from '@/features/feed';
+import { OfficeScreenView, officeFixtures } from '@/features/office';
 import {
   OnboardingHandleScreenView,
   OnboardingIssuesScreenView,
@@ -56,6 +57,7 @@ import {
   systemUpdateFixtures,
 } from '@/features/system';
 import type { RootViewModel } from '@/features/system';
+import { NowOverrideContext } from '@/lib/now';
 import type { NavItemId } from '@/ui/shells/app-shell';
 
 import { RootLayoutFixtureView } from './screens/fixture-screen';
@@ -71,21 +73,32 @@ export type ScreenRegistryEntry = {
   shell?: ScreenShell;
 };
 
+/** How a screen's fixtures are drawn. */
+export type ScreenOptions = {
+  /** The time useNow answers inside every fixture of the screen, so day counts never move. */
+  now?: Date;
+};
+
 /** A screen whose <Name>ScreenView takes a view-model; `fixtures` is its <name>.fixtures.ts module. */
 export function defineScreen<VM>(
   view: ComponentType<{ vm: VM }>,
   fixtures: Readonly<Record<string, VM>>,
   shell?: ScreenShell,
+  options?: ScreenOptions,
 ): ScreenRegistryEntry {
   // The names a fixtures module lists: what it exports, and nothing it only carries.
   const names = Object.keys(fixtures);
+  const now = options?.now ?? null;
   return {
     fixtures: names,
     render: (fixture) => {
       if (!names.includes(fixture)) {
         return null;
       }
-      return createElement(view, { vm: fixtures[fixture] as VM });
+      const drawn = createElement(view, { vm: fixtures[fixture] as VM });
+      return now === null
+        ? drawn
+        : createElement(NowOverrideContext.Provider, { value: now }, drawn);
     },
     ...(shell === undefined ? {} : { shell }),
   };
@@ -111,6 +124,9 @@ function RootLayoutView(props: { vm: RootViewModel }): ReactElement {
   return createElement(RootLayoutFixtureView, props);
 }
 
+/** The time the office fixtures are written at: twelve days before their filing deadline. */
+const OFFICE_FIXTURE_TIME = new Date('2026-11-15T17:00:00.000Z');
+
 /** The shell of every settings screen: the app's, with Profile as the active item. */
 const SETTINGS_SHELL: ScreenShell = { mode: 'app', active: 'profile' };
 
@@ -128,6 +144,13 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
     UnavailableInStateScreenView,
     stateUnavailableFixtures,
     { mode: 'bare' },
+  ),
+  // A pushed page: a direct load of it keeps no navigation item lit (PC6B-11).
+  'office-slug': defineScreen(
+    OfficeScreenView,
+    officeFixtures,
+    { mode: 'app', active: null },
+    { now: OFFICE_FIXTURE_TIME },
   ),
   welcome: defineScreen(WelcomeScreenView, welcomeFixtures, { mode: 'bare' }),
   'sign-in': defineScreen(SignInScreenView, signInFixtures, { mode: 'bare' }),
