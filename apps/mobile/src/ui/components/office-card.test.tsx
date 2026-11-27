@@ -123,6 +123,20 @@ describe('OfficeCard', () => {
     warnings.mockRestore();
   });
 
+  it('the canvas draws its text without pair kerning', () => {
+    const props = ALL.known;
+    draw(props);
+    const lines = [
+      ...screen.getByTestId(`${props.testID}-box`).querySelectorAll<SVGTextElement>('svg text'),
+    ];
+    expect(lines.length).toBeGreaterThan(0);
+    for (const line of lines) {
+      // The browser reads the style; the attribute is what the server's renderer reads.
+      expect(line.style.getPropertyValue('font-kerning'), line.textContent).toBe('none');
+      expect(line.getAttribute('kerning'), line.textContent).toBe('0');
+    }
+  });
+
   it('the fixtures hold the seven states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     for (const state of STATE_NAMES) {

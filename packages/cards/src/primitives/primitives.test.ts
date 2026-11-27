@@ -120,6 +120,46 @@ describe('primitives', () => {
     });
   });
 
+  it('Text is written without pair kerning, and takes it off on the web from CSS', () => {
+    const line = dom.Text({
+      x: 66,
+      y: 207.8,
+      fontFamily: 'Special Gothic',
+      fontWeight: '500',
+      fontSize: 92,
+      fill: 'none',
+      children: 'Treasurer',
+    });
+    // A ref is one of an element's props.
+    const { ref, ...written } = line.props as { ref: (text: unknown) => void } & Record<
+      string,
+      unknown
+    >;
+    expect(written).toEqual({
+      x: 66,
+      y: 207.8,
+      fontFamily: 'Special Gothic',
+      fontWeight: '500',
+      fontSize: 92,
+      fill: 'none',
+      children: 'Treasurer',
+      kerning: 0,
+    });
+
+    const set: [string, string][] = [];
+    ref({
+      style: {
+        setProperty: (name: string, value: string) => {
+          set.push([name, value]);
+        },
+      },
+    });
+    expect(set).toEqual([['font-kerning', 'none']]);
+    expect(() => {
+      ref(null);
+    }).not.toThrow();
+  });
+
   it('fontAttrs names each face by its family and weight', () => {
     const faces: Record<FontFace, { fontFamily: string; fontWeight: string }> = {
       regular: { fontFamily: 'Special Gothic', fontWeight: '400' },

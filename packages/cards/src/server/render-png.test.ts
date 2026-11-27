@@ -17,9 +17,10 @@ import {
 } from '../__fixtures__/office.fixtures.ts';
 import { canvasColorsFrom } from '../colors.ts';
 import type { CanvasColors } from '../colors.ts';
-import { setStrictGlyphs } from '../layout-text.ts';
+import { measureText, setStrictGlyphs } from '../layout-text.ts';
 import { buildOfficeHeroModel } from '../model/office-hero.ts';
 import { altText, buildRunAgainstModel } from '../model/run-against.ts';
+import { fontAttrs, Text } from '../primitives/dom.ts';
 import { CardCanvas } from '../templates/card-canvas.tsx';
 import { HelloCard } from '../templates/hello-card.tsx';
 import { OfficeHeroCanvas } from '../templates/office-hero.tsx';
@@ -101,6 +102,19 @@ function fixtureText(fontWeight: number, fontFamily = 'Special Gothic'): ReactEl
     { key: 'text', x: 96, y: 400, fontFamily, fontWeight, fontSize: 160, fill: '#151515' },
     'Fixture',
   );
+}
+
+/** The column after the last one that holds ink: a pixel much darker than the paper. */
+async function inkRight(png: Uint8Array): Promise<number> {
+  const { data, info } = await sharp(png).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+  for (let x = info.width - 1; x >= 0; x -= 1) {
+    for (let y = 0; y < info.height; y += 1) {
+      if ((data[(y * info.width + x) * info.channels] ?? 255) < 128) {
+        return x + 1;
+      }
+    }
+  }
+  return 0;
 }
 
 /** The overlap flag of a simple glyph's first point and of a composite's component (OpenType `glyf`). */
@@ -257,6 +271,28 @@ describe('renderCardPng', () => {
     expect(sameBytes(medium, blank)).toBe(false);
     expect(sameBytes(medium, bold)).toBe(false);
     expect(sameBytes(medium, mono)).toBe(false);
+  });
+
+  it('draws a line of the primitive without pair kerning, as wide as its advances', async () => {
+    const line = {
+      key: 'line',
+      x: 66,
+      y: 400,
+      ...fontAttrs('medium'),
+      fontSize: 92,
+      fill: '#151515',
+      children: 'Treasurer',
+    };
+    const unkerned = await inkRight(
+      await renderCardPng(card([createElement(Text, line)]), OPTIONS),
+    );
+    const kerned = await inkRight(
+      await renderCardPng(card([createElement('text', line)]), OPTIONS),
+    );
+    // The canvas is drawn at half size. The font kerns "Tr" and other pairs of this word by 14 units in all.
+    const measured = (line.x + measureText(line.children, { face: 'medium', size: 92 })) / 2;
+    expect(Math.abs(unkerned - measured)).toBeLessThanOrEqual(2);
+    expect(unkerned - kerned).toBeGreaterThanOrEqual(5);
   });
 
   it('never draws with a font of the machine', async () => {
@@ -527,6 +563,12 @@ describe('plain canvas markup', () => {
 
     it(`the ${fixture.name} fixture paints only with its canvas colors`, () => {
       expect(problemsOf(fixture, 'paint')).toEqual([]);
+    });
+
+    it(`the ${fixture.name} fixture writes every line of text without pair kerning`, () => {
+      const lines = scanTags(fixture.markup()).filter((tag) => tag.name === 'text');
+      expect(lines.length).toBeGreaterThan(0);
+      expect(lines.map((line) => line.attributes.get('kerning'))).toEqual(lines.map(() => '0'));
     });
   }
 

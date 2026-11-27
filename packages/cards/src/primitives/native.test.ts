@@ -23,6 +23,7 @@ vi.mock('react-native-svg', () =>
 );
 
 const native = await import('./native.ts');
+const svg = await import('react-native-svg');
 
 describe('native primitives', () => {
   it('fontAttrs names each face by its file name and keeps its weight', () => {
@@ -35,6 +36,20 @@ describe('native primitives', () => {
     for (const [face, attrs] of Object.entries(faces)) {
       expect(native.fontAttrs(face as FontFace), face).toEqual(attrs); // Object.entries widens the keys to string
     }
+  });
+
+  it('Text draws its line without pair kerning', () => {
+    const props = {
+      x: 66,
+      y: 207.8,
+      ...native.fontAttrs('medium'),
+      fontSize: 92,
+      fill: 'none',
+      children: 'Treasurer',
+    };
+    const line = native.Text(props);
+    expect(line.type).toBe(svg.Text);
+    expect(line.props).toEqual({ ...props, kerning: 0 });
   });
 
   it('svgRootProps hides the canvas from screen readers', () => {

@@ -1,4 +1,5 @@
-import type { JSXElementConstructor } from 'react';
+import { createElement } from 'react';
+import type { JSX, JSXElementConstructor } from 'react';
 import {
   Circle as NativeCircle,
   ClipPath as NativeClipPath,
@@ -50,7 +51,10 @@ export const Stop: JSXElementConstructor<StopProps> = NativeStop;
 export const ClipPath: JSXElementConstructor<ClipPathProps> = NativeClipPath;
 export const Mask: JSXElementConstructor<MaskProps> = NativeMask;
 export const Image: JSXElementConstructor<ImageProps> = NativeImage;
-export const Text: JSXElementConstructor<TextProps> = NativeText;
+/** A line of text without pair kerning (D-874): react-native-svg kerns by its own rule on Android unless it is given a number. */
+export function Text(props: TextProps): JSX.Element {
+  return createElement(NativeText, { ...props, kerning: 0 });
+}
 export const TSpan: JSXElementConstructor<TSpanProps> = NativeTSpan;
 
 /**

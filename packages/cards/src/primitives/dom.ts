@@ -66,8 +66,14 @@ export function Image(props: ImageProps): JSX.Element {
   return createElement('image', props);
 }
 
+/** The web takes pair kerning off only from CSS. A ref sets it on the drawn element, so the markup the server writes keeps no `style`. */
+function unkernOnTheWeb(text: SVGTextElement | null): void {
+  text?.style.setProperty('font-kerning', 'none');
+}
+
+/** A line of text without pair kerning, as the phones draw it (D-874): `kerning` for the server, CSS for the web. */
 export function Text(props: TextProps): JSX.Element {
-  return createElement('text', props);
+  return createElement('text', { ...props, kerning: 0, ref: unkernOnTheWeb });
 }
 
 export function TSpan(props: TSpanProps): JSX.Element {
