@@ -35,6 +35,8 @@ export const MAX_RETRIES = 3;
 export const BACKOFF_BASE_MS = 2000;
 /** The longest Retry-After honoured (D-326). */
 export const RETRY_AFTER_CAP_MS = 3_600_000;
+/** A crawl request told to wait longer than this defers its host instead of sleeping (D-884). */
+export const CRAWL_DEFER_AFTER_MS = 60_000;
 /** The bytes of a 403, 429 or 503 body read for the challenge scan. */
 export const CHALLENGE_SCAN_BYTES = 65_536;
 /** The only hosts an Authorization header may go to: those of the api.data.gov key (PIPE-fetch). */
@@ -99,7 +101,7 @@ type Attempt =
   | { kind: 'final'; result: FetchResult; bytes?: number; cached?: boolean }
   | { kind: 'body'; status: number; headers: Headers; body: Uint8Array }
   | { kind: 'redirect'; status: number; location: string }
-  | { kind: 'retry'; status: number; retryAfterMs: number | null }
+  | { kind: 'retry'; status: number; retryAfterMs: number | null; waitMs: number | null }
   | { kind: 'block'; status: number; reason: BlockReason };
 
 /** What the fetch.done line reports. */
@@ -146,6 +148,12 @@ function checkHeaders(headers: Readonly<Record<string, string>>, host: string): 
 
 /** Retry-After as seconds or an HTTP date, in milliseconds, capped at one hour. */
 export function parseRetryAfter(value: string | null, nowMs: number): number | null {
+  const ms = retryAfterWait(value, nowMs);
+  return ms === null ? null : Math.min(ms, RETRY_AFTER_CAP_MS);
+}
+
+/** Retry-After as seconds or an HTTP date, in milliseconds, uncapped. */
+function retryAfterWait(value: string | null, nowMs: number): number | null {
   if (value === null) {
     return null;
   }
@@ -160,7 +168,7 @@ export function parseRetryAfter(value: string | null, nowMs: number): number | n
     }
     ms = Math.max(0, at - nowMs);
   }
-  return Math.min(ms, RETRY_AFTER_CAP_MS);
+  return ms;
 }
 
 /** Reads at most `limit` bytes; `over` is true when the body had more. The rest is cancelled. */
@@ -202,6 +210,8 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
   const limiter = new HostLimiter(clock, new HostLock(deps.stateDir, clock));
   const token = productToken();
   const stopped = new Set<string>();
+  // Hosts a crawl request may not contact before the instant a long Retry-After named (D-884).
+  const deferred = new Map<string, number>();
   // Hosts that have answered a request other than robots.txt in this run.
   const contacted = new Set<string>();
   let registryLoad: Promise<HostRegistry> | null = null;
@@ -401,6 +411,7 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
           kind: 'retry',
           status,
           retryAfterMs: parseRetryAfter(response.headers.get('retry-after'), clock.now()),
+          waitMs: retryAfterWait(response.headers.get('retry-after'), clock.now()),
         };
       }
       if (status < 200 || status >= 300) {
@@ -533,6 +544,13 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
         return { kind: 'disallowed', reason: 'blocked_host' };
       }
       const now = clock.now();
+      if (req.class === 'crawl') {
+        const until = deferred.get(host);
+        if (until !== undefined && now < until) {
+          return { kind: 'disallowed', reason: 'retry_later' };
+        }
+        deferred.delete(host);
+      }
       if (deps.isCi && (await registry()).isBlocked(host, now)) {
         await queueForLocalFetch(bucket, host, { ...entry, queued_at: isoAt(now) });
         return { kind: 'disallowed', reason: 'blocked_host' };
@@ -619,6 +637,14 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
         }
         if (outcome.kind !== 'retry') {
           break;
+        }
+        if (
+          req.class === 'crawl' &&
+          outcome.waitMs !== null &&
+          outcome.waitMs > CRAWL_DEFER_AFTER_MS
+        ) {
+          deferred.set(host, clock.now() + outcome.waitMs);
+          return { kind: 'disallowed', reason: 'retry_later' };
         }
         if (attempt > 0) {
           consecutive429 = outcome.status === 429 ? consecutive429 + 1 : 0;

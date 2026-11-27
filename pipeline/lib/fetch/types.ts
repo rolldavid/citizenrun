@@ -37,7 +37,8 @@ export type FetchResult =
         | 'blocked_host'
         | 'daily_cap'
         | 'election_night'
-        | 'not_https';
+        | 'not_https'
+        | 'retry_later'; // crawl only: the host asked for a wait over a minute (D-884)
     }
   | { readonly kind: 'challenge'; readonly status: number }
   | {

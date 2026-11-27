@@ -428,6 +428,56 @@ describe('conditional and polite', () => {
   });
 });
 
+describe('a long Retry-After on a crawl request (D-884)', () => {
+  it('defers the host and refuses later crawl requests to it without a request', async () => {
+    const { fetcher, transport, clock } = await makeFetcher({
+      handler: site(() => ({ status: 503, headers: { 'retry-after': '7200' } })),
+    });
+    expect(await fetcher.fetch({ url: PAGE, class: 'crawl' })).toEqual({
+      kind: 'disallowed',
+      reason: 'retry_later',
+    });
+    expect(transport.pages()).toHaveLength(1);
+    expect(clock.sleeps.filter((ms) => ms > MIN_GAP_MS)).toEqual([]);
+    expect(await fetcher.fetch({ url: `https://${HOST}/other`, class: 'crawl' })).toEqual({
+      kind: 'disallowed',
+      reason: 'retry_later',
+    });
+    expect(transport.pages()).toHaveLength(1);
+    // The wait is not capped at an hour: the host is still deferred after 61 minutes.
+    clock.set(clock.now() + 61 * 60 * 1000);
+    expect((await fetcher.fetch({ url: PAGE, class: 'crawl' })).kind).toBe('disallowed');
+    expect(transport.pages()).toHaveLength(1);
+    clock.set(clock.now() + 60 * 60 * 1000);
+    await fetcher.fetch({ url: PAGE, class: 'crawl' });
+    expect(transport.pages()).toHaveLength(2);
+  });
+
+  it('a dataset request still waits out a long Retry-After', async () => {
+    let calls = 0;
+    const { fetcher, clock } = await makeFetcher({
+      handler: site(() => {
+        calls += 1;
+        return calls === 1 ? { status: 503, headers: { 'retry-after': '120' } } : ok();
+      }),
+    });
+    expect((await fetcher.fetch({ url: PAGE, class: 'dataset' })).kind).toBe('ok');
+    expect(clock.sleeps.filter((ms) => ms > MIN_GAP_MS)).toEqual([120_000]);
+  });
+
+  it('a crawl request still retries after a short Retry-After', async () => {
+    let calls = 0;
+    const { fetcher, clock } = await makeFetcher({
+      handler: site(() => {
+        calls += 1;
+        return calls === 1 ? { status: 429, headers: { 'retry-after': '60' } } : ok();
+      }),
+    });
+    expect((await fetcher.fetch({ url: PAGE, class: 'crawl' })).kind).toBe('ok');
+    expect(clock.sleeps.filter((ms) => ms > MIN_GAP_MS)).toEqual([60_000]);
+  });
+});
+
 describe('user agent', () => {
   it('every request carries our user agent, robots.txt included', async () => {
     const { fetcher, transport } = await makeFetcher({ handler: site(() => ok()) });
