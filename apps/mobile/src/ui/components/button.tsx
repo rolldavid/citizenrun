@@ -1,7 +1,8 @@
 import { assertNever } from '@citizenrun/shared';
+import { useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { View } from 'react-native';
-import type { ViewStyle } from 'react-native';
+import type { LayoutChangeEvent, ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import type { HapticName } from '@/ui/haptic';
@@ -14,6 +15,7 @@ import type { ThemeColors } from '@/ui/tokens';
 import type { ResolvedTone } from '@/ui/tone';
 
 import { Icon } from './icon';
+import { MeasureRuns, wordsOf } from './measure-runs';
 import { Pressable } from './pressable';
 import type { PressableProps } from './pressable';
 import { Text } from './text';
@@ -136,6 +138,56 @@ function PulsingRow({ children }: { children: ReactNode }): JSX.Element {
   return <Animated.View style={[PULSING_ROW, pulse]}>{children}</Animated.View>;
 }
 
+/** How a label stands in a full-width button: whole, with less side room, or also without its icon. */
+export type ButtonFit = 'whole' | 'snug' | 'bare';
+
+/** What a full-width button measures of itself: its width, and its words set on one line. */
+export type ButtonMeasure = {
+  /** The button's width. */
+  room: number;
+  /** The long label on one line. */
+  label: number;
+  /** Each word of the label shown, on its own. */
+  words: readonly number[];
+};
+
+/** The widths a button keeps beside its words, at a side room. */
+function besideWords(side: number, icons: number): number {
+  return 2 * side + 2 * rule.hairline + icons * (size.icon.medium + space.x2);
+}
+
+/**
+ * Whether a full-width button shows its short label: on a tight layout, and wherever the long one
+ * would not stand on one line in the button's width.
+ */
+export function showsShortLabel(
+  measure: Pick<ButtonMeasure, 'room' | 'label'> | null,
+  tight: boolean,
+  side: number,
+  icons: number,
+): boolean {
+  if (tight) return true;
+  return measure !== null && measure.label + besideWords(side, icons) > measure.room;
+}
+
+/**
+ * How a label fits a full-width button that is too narrow for one of its words: a label wraps only
+ * between words and is never cut, so the button first takes the small side room, then leaves out
+ * its leading icon (the check of a done state, which its fill already says).
+ */
+export function buttonFit(
+  measure: Pick<ButtonMeasure, 'room' | 'words'> | null,
+  side: number,
+  icons: number,
+  leading: boolean,
+): ButtonFit {
+  if (measure === null || measure.words.length === 0) return 'whole';
+  const widest = Math.max(...measure.words);
+  if (widest + besideWords(side, icons) <= measure.room) return 'whole';
+  if (widest + besideWords(space.x2, icons) <= measure.room) return 'snug';
+  return leading ? 'bare' : 'snug';
+}
+
 /**
  * C-Button: a labelled action. 'run' is the only accent fill, 'primary' is ink, and the other three
  * have no fill of their own. The label may wrap to two lines and grows the button. While busy the
@@ -166,9 +218,40 @@ export function Button({
   const look = lookOf(variant, theme.color);
   const small = sizeName === 'sm';
   const tone: ResolvedTone = disabled ? 'disabled' : look.tone;
-  const leading: IconName | undefined = done ? 'check' : icon;
+  const side = variant === 'quiet' ? space.x2 : small ? space.x3 : space.x4;
+  // A full-width button measures what it holds, so a label never breaks inside a word.
+  const [room, setRoom] = useState<number | null>(null);
+  const [labelWidth, setLabelWidth] = useState<number | null>(null);
+  const [wordWidths, setWordWidths] = useState<Readonly<Partial<Record<string, number>>>>({});
+  const iconsOf = (withLeading: boolean): number =>
+    (withLeading ? 1 : 0) + (trailingIcon === undefined ? 0 : 1);
+  const baseLeading: IconName | undefined = done ? 'check' : icon;
+  const short =
+    shortLabel !== undefined &&
+    showsShortLabel(
+      fullWidth && room !== null && labelWidth !== null ? { room, label: labelWidth } : null,
+      tight,
+      side,
+      iconsOf(baseLeading !== undefined),
+    );
   // The accessible name stays the long label, or the name the caller gives.
-  const words = tight && shortLabel !== undefined ? shortLabel : label;
+  const words = short ? shortLabel : label;
+  const shownWords = wordsOf(words);
+  const measuredWords = shownWords.flatMap((word) => {
+    const width = wordWidths[word];
+    return width === undefined ? [] : [width];
+  });
+  const fit: ButtonFit =
+    fullWidth && room !== null && measuredWords.length === shownWords.length
+      ? buttonFit(
+          { room, words: measuredWords },
+          side,
+          iconsOf(baseLeading !== undefined),
+          baseLeading !== undefined,
+        )
+      : 'whole';
+  const leading: IconName | undefined = fit === 'bare' ? undefined : baseLeading;
+  const allWords = [...new Set([...wordsOf(label), ...wordsOf(shortLabel ?? '')])];
 
   const parts = (
     <>
@@ -192,7 +275,32 @@ export function Button({
 
   return (
     // Never wider than the room it stands in: in a row that wraps, a long label takes a second line.
-    <View style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start', maxWidth: '100%' }}>
+    <View
+      style={{ alignSelf: fullWidth ? 'stretch' : 'flex-start', maxWidth: '100%' }}
+      {...(fullWidth
+        ? {
+            onLayout: (event: LayoutChangeEvent) => {
+              setRoom(event.nativeEvent.layout.width);
+            },
+          }
+        : {})}
+    >
+      {/* Measured once the button has a width of its own to measure against. */}
+      {fullWidth && room !== null ? (
+        <MeasureRuns
+          role={small ? 'label' : 'bodyStrong'}
+          runs={[label, ...allWords]}
+          onRun={(index, width) => {
+            if (index === 0) {
+              setLabelWidth(width);
+              return;
+            }
+            const word = allWords[index - 1];
+            if (word === undefined) return;
+            setWordWidths((known) => (known[word] === width ? known : { ...known, [word]: width }));
+          }}
+        />
+      ) : null}
       <Pressable
         role={href === undefined ? 'button' : 'link'}
         label={accessibilityLabel ?? label}
@@ -216,7 +324,7 @@ export function Button({
                 ROW,
                 {
                   minHeight: small ? size.buttonSmall : size.button,
-                  paddingHorizontal: variant === 'quiet' ? space.x2 : small ? space.x3 : space.x4,
+                  paddingHorizontal: fit === 'whole' ? side : space.x2,
                   paddingVertical: space.x2,
                   borderRadius: radius.control,
                   // Every variant keeps the outline's width, clear where it has none, so a button

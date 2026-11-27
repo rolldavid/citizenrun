@@ -1,3 +1,4 @@
+import { createContext, useContext } from 'react';
 import type { JSX, ReactElement, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -41,6 +42,13 @@ export type ListRowProps = {
   testID: string;
 };
 
+/**
+ * What a row composed of other parts says, when its title and subtitle do not say all it prints: a
+ * C-PersonRow puts the handle and the tag it draws into the name. Only the row right under it reads
+ * it; the row's own parts see none.
+ */
+export const RowNameContext = createContext<string | null>(null);
+
 const LEADING: ViewStyle = { marginRight: space.x3 };
 const WORDS: ViewStyle = { flex: 1, minWidth: 0 };
 const TITLE_LINE: ViewStyle = { flexDirection: 'row', alignItems: 'baseline', gap: space.x1 };
@@ -78,13 +86,8 @@ function WordSpace(): JSX.Element {
   );
 }
 
-/**
- * C-ListRow: the row of every list. A leading element, a title over one caption line, and one
- * trailing element. With `onPress` or `href` the whole row is one target that fills under a pointer
- * and while pressed and never moves. A row whose trailing element is an action is a target only
- * with `href`, and then the action stands beside the link, never inside it.
- */
-export function ListRow({
+/** C-ListRow, with the name a composing row gave it through `RowNameContext`, or null. */
+function ListRowParts({
   leading,
   title,
   titleSuffix,
@@ -97,7 +100,8 @@ export function ListRow({
   href,
   destructive = false,
   testID,
-}: ListRowProps): JSX.Element {
+  given,
+}: ListRowProps & { given: string | null }): JSX.Element {
   const theme = useTheme();
   const { t } = useTranslation('common');
   const least = sizeName === 'compact' ? size.listRowCompact : size.listRowMin;
@@ -111,7 +115,7 @@ export function ListRow({
       : {}),
   };
 
-  const worded = typeof subtitle === 'string' ? `${title}. ${subtitle}` : title;
+  const worded = given ?? (typeof subtitle === 'string' ? `${title}. ${subtitle}` : title);
   // A setting or a count printed at the row's end is part of what the row says.
   const printed =
     trailing?.kind === 'value'
@@ -246,5 +250,20 @@ export function ListRow({
         </View>
       )}
     </Pressable>
+  );
+}
+
+/**
+ * C-ListRow: the row of every list. A leading element, a title over one caption line, and one
+ * trailing element. With `onPress` or `href` the whole row is one target that fills under a pointer
+ * and while pressed and never moves. A row whose trailing element is an action is a target only
+ * with `href`, and then the action stands beside the link, never inside it.
+ */
+export function ListRow(props: ListRowProps): JSX.Element {
+  const given = useContext(RowNameContext);
+  return (
+    <RowNameContext.Provider value={null}>
+      <ListRowParts {...props} given={given} />
+    </RowNameContext.Provider>
   );
 }

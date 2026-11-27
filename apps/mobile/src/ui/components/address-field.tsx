@@ -299,8 +299,10 @@ function Control({
                     {/* Focus stays in the input: the rows are chosen from it, or by a press. */}
                     <Pressable
                       role="option"
-                      label={row.primary}
-                      {...(row.secondary === null ? {} : { hint: row.secondary })}
+                      // Both lines are read, in the order they are drawn.
+                      label={
+                        row.secondary === null ? row.primary : `${row.primary}. ${row.secondary}`
+                      }
                       state={{ selected: index === current }}
                       focusable={false}
                       hover="fill"

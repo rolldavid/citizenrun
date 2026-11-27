@@ -46,6 +46,15 @@ const LINE = 'wrencounty.example. Checked Mon, Nov 9.';
 
 const WORDS = { high: 'High confidence', medium: 'Medium confidence', low: 'Low confidence' };
 
+/** What a row prints and says: the line alone, or the confidence in words before it once. */
+function saidOf(props: SourceLinkProps): string {
+  const level = props.confidence;
+  if (level === null || props.text.startsWith(WORDS[level])) {
+    return props.text;
+  }
+  return `${WORDS[level]}. ${props.text}`;
+}
+
 /** A color as the page writes it back, so a token and a rendered color compare. */
 function written(value: string): string {
   const probe = document.createElement('span');
@@ -76,13 +85,19 @@ function draw(
   return screen.getByTestId(props.testID);
 }
 
-/** The box round the source line that carries its underline. */
-function underlineOf(target: HTMLElement, text: string): HTMLElement {
-  const box = within(target).getByText(text).parentElement;
-  if (box === null) {
-    throw new Error('the source line has no box');
+/** The run of words that carries the underline: the words the row prints. */
+function underlineOf(target: HTMLElement, said: string): HTMLElement {
+  return within(target).getByText(said);
+}
+
+/** The one line of text the mark and the words stand in. */
+function lineOf(target: HTMLElement, said: string): HTMLElement {
+  const run = underlineOf(target, said);
+  const line = run.parentElement;
+  if (line === null) {
+    throw new Error('the words stand in no line of text');
   }
-  return box;
+  return line;
 }
 
 describe('SourceLink', () => {
@@ -95,7 +110,7 @@ describe('SourceLink', () => {
         for (const state of STATE_NAMES) {
           const target = draw(ALL[state], { theme, textScale: scale }, PREVIEWS[state]);
           const name = `${state} ${theme} ${String(scale)}`;
-          const line = within(target).getByText(ALL[state].text);
+          const line = lineOf(target, saidOf(ALL[state]));
           // The source line: grey mono, with nothing cut from its end.
           expect(line.style.color, name).toBe(written(color[theme].textSecondary));
           expect(line.style.fontFamily, name).toContain('ChivoMono');
@@ -103,10 +118,17 @@ describe('SourceLink', () => {
           expect(line.style.webkitLineClamp, name).toBeFalsy();
           // A chevron at the end of the row.
           expect(target.querySelector('path')?.getAttribute('d'), name).toBe(CHEVRON);
+          // The mark and the words are one line of text, so it wraps where a word ends.
+          expect(target.textContent, name).toBe(saidOf(ALL[state]));
           const level = ALL[state].confidence;
-          expect(target.textContent, name).toBe(
-            level === null ? ALL[state].text : `${WORDS[level]}${ALL[state].text}`,
-          );
+          if (level !== null) {
+            const words = target.textContent ?? '';
+            expect(words.split(WORDS[level]), name).toHaveLength(2);
+            const pip = [...line.querySelectorAll<HTMLElement>('*')].find(
+              (part) => part.style.width === `${String(size.confidencePip.width)}px`,
+            );
+            expect(pip, name).toBeDefined();
+          }
         }
       }
     }
@@ -122,7 +144,10 @@ describe('SourceLink', () => {
       expect(ALL[state].testID, state).toBe(`gallery.source-link-${kebab(state)}`);
     }
     expect(STATES.medium.text).toBe(LINE);
-    expect(STATES.feed).toMatchObject({ confidence: null, text: 'Medium confidence · Sources' });
+    expect(STATES.feed).toMatchObject({
+      confidence: 'medium',
+      text: 'Medium confidence · Sources',
+    });
     // A host of 70 characters, then the date the line must not lose.
     expect(STATES.longText.text.split('. Checked ')[0]).toHaveLength(70);
     expect(STATES.longText.text.endsWith('Checked Mon, Nov 9.')).toBe(true);
@@ -134,11 +159,9 @@ describe('SourceLink', () => {
     setViewport(...COMPACT);
     for (const state of STATE_NAMES) {
       const target = draw(ALL[state]);
-      const level = ALL[state].confidence;
       expect(target.getAttribute('role'), state).toBe('button');
-      expect(target.getAttribute('aria-label'), state).toBe(
-        level === null ? ALL[state].text : `${WORDS[level]}. ${ALL[state].text}`,
-      );
+      // The name is what the row prints, so what is seen is what is read.
+      expect(target.getAttribute('aria-label'), state).toBe(saidOf(ALL[state]));
     }
   });
 
@@ -178,9 +201,27 @@ describe('SourceLink', () => {
     expect(screen.getByRole('button', { name: `High confidence. ${LINE}` })).toBeTruthy();
     draw(STATES.low);
     expect(screen.getByRole('button', { name: `Low confidence. ${LINE}` })).toBeTruthy();
-    // The mark is drawn and not read a second time.
-    const mark = within(draw(STATES.medium)).getByText('Medium confidence');
-    expect(mark.closest('[aria-hidden="true"]')).not.toBeNull();
+    // The pips are drawn and never read.
+    const pips = [...draw(STATES.medium).querySelectorAll<HTMLElement>('*')].filter(
+      (part) => part.style.width === `${String(size.confidencePip.width)}px`,
+    );
+    expect(pips).toHaveLength(size.confidencePips);
+    for (const pip of pips) {
+      expect(pip.closest('[aria-hidden="true"]')).not.toBeNull();
+    }
+  });
+
+  it('a card row says its confidence once', () => {
+    setViewport(...COMPACT);
+    const target = draw(STATES.feed);
+    expect(screen.getByRole('button', { name: 'Medium confidence · Sources' })).toBe(target);
+    expect(target.textContent).toBe('Medium confidence · Sources');
+    const lit = [...target.querySelectorAll<HTMLElement>('*')].filter(
+      (part) =>
+        part.style.width === `${String(size.confidencePip.width)}px` &&
+        part.style.backgroundColor !== '',
+    );
+    expect(lit).toHaveLength(2);
   });
 
   it('no confidence, no badge', () => {
@@ -214,23 +255,26 @@ describe('SourceLink', () => {
     expect(row?.style.minHeight).toBe(`${String(size.target)}px`);
     expect(row?.style.paddingTop).toBe(`${String(space.x2)}px`);
     // A press anywhere in the row is one call; the row opens no address itself.
-    fireEvent.click(within(target).getByText(LINE));
+    fireEvent.click(within(target).getByText(`Medium confidence. ${LINE}`));
     expect(onPress).toHaveBeenCalledTimes(1);
     expect(target.getAttribute('href')).toBeNull();
   });
 
   it('underline under a pointer and on focus', () => {
     setViewport(...COMPACT);
+    const said = `High confidence. ${LINE}`;
     for (const theme of ['light', 'dark'] as const) {
-      const rest = underlineOf(draw(STATES.high, { theme }), LINE);
-      expect(rest.style.borderBottomWidth).toBe('0px');
-      // The room of the underline is kept, so nothing moves when it is drawn.
-      expect(rest.style.marginBottom).toBe(`${String(rule.underline)}px`);
+      const rest = underlineOf(draw(STATES.high, { theme }), said);
+      expect(rest.style.textDecorationLine).toBe('');
       for (const state of ['hover', 'focus'] as const) {
-        const box = underlineOf(draw(ALL[state], { theme }, PREVIEWS[state]), LINE);
-        expect(box.style.borderBottomWidth, state).toBe(`${String(rule.underline)}px`);
-        expect(box.style.borderBottomColor, state).toBe(written(color[theme].textSecondary));
-        expect(box.style.marginBottom, state).toBe('0px');
+        // The words themselves are underlined, line by line as they wrap, never a rule under a box.
+        const run = underlineOf(draw(ALL[state], { theme }, PREVIEWS[state]), said);
+        expect(run.style.textDecorationLine, state).toBe('underline');
+        expect(run.style.textDecorationColor, state).toBe(written(color[theme].textSecondary));
+        expect(run.style.textDecorationThickness, state).toBe(`${String(rule.underline)}px`);
+        for (const part of [run, ...run.querySelectorAll<HTMLElement>('*')]) {
+          expect(part.style.borderBottomWidth, state).toBe('');
+        }
       }
     }
   });

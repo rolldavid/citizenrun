@@ -62,37 +62,53 @@ function wordsOf(level: Level, t: TFunction): string {
 }
 
 /**
+ * The three pips of a level, lit from the left in the text's own color: decoration, hidden from a
+ * screen reader. C-SourceLink sets them in its line of text, before words that already say the level.
+ */
+export function ConfidencePips({ level }: { level: Level }): JSX.Element {
+  const theme = useTheme();
+  const lit = litOf(level);
+  const ink = theme.color.textSecondary;
+  return (
+    <View
+      style={PIPS}
+      aria-hidden={true}
+      accessibilityElementsHidden={true}
+      importantForAccessibility="no-hide-descendants"
+    >
+      {Array.from({ length: size.confidencePips }, (_, index) => (
+        <View
+          key={index}
+          style={[
+            PIP,
+            index < lit
+              ? { backgroundColor: ink }
+              : { borderWidth: rule.hairline, borderColor: ink },
+          ]}
+        />
+      ))}
+    </View>
+  );
+}
+
+/** The level in words, as the badge prints them. */
+export function useConfidenceWords(level: Level): string {
+  const { t } = useTranslation('common');
+  return wordsOf(level, t);
+}
+
+/**
  * C-ConfidenceBadge: how sure a source is, or how complete a record is, as three pips and the
  * level in words. The words carry the meaning: the pips are decoration, and no level has a color
  * or a box. It opens a source line and never stands apart from one.
  */
 export function ConfidenceBadge({ level }: ConfidenceBadgeProps): JSX.Element {
-  const theme = useTheme();
-  const { t } = useTranslation('common');
-  const lit = litOf(level);
-  const ink = theme.color.textSecondary;
+  const words = useConfidenceWords(level);
   return (
     <View style={LINE}>
-      <View
-        style={PIPS}
-        aria-hidden={true}
-        accessibilityElementsHidden={true}
-        importantForAccessibility="no-hide-descendants"
-      >
-        {Array.from({ length: size.confidencePips }, (_, index) => (
-          <View
-            key={index}
-            style={[
-              PIP,
-              index < lit
-                ? { backgroundColor: ink }
-                : { borderWidth: rule.hairline, borderColor: ink },
-            ]}
-          />
-        ))}
-      </View>
+      <ConfidencePips level={level} />
       <Text role="mono" tone="secondary">
-        {wordsOf(level, t)}
+        {words}
       </Text>
     </View>
   );

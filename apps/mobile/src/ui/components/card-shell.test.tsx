@@ -383,4 +383,41 @@ describe('CardShell', () => {
     expect(parseFloat(ground.style.width)).toBeLessThan(DESKTOP.width);
     expect(parseFloat(desktop.style.width)).toBeCloseTo(canvasWidth);
   });
+
+  it('the skeleton has the shape of the card', () => {
+    // Compact: the skeleton's 4:5 block is as wide as the loaded box, full bleed, and only its
+    // header and lines keep the gutter, so the canvas does not jump when the card arrives.
+    for (const [at, sides] of [
+      [PHONE, gutter.regular],
+      [{ width: 360, height: 740 }, gutter.narrow],
+    ] as const) {
+      const loading = draw(STATES.loading, {}, at);
+      expect(loading.style.width, String(at.width)).toBe(`${String(at.width)}px`);
+      expect(loading.style.paddingLeft, String(at.width)).toBe('');
+      const parts = [loading, ...loading.querySelectorAll<HTMLElement>('*')];
+      const block = parts.find((part) => part.style.aspectRatio !== '');
+      if (block === undefined) throw new Error('the skeleton draws no 4:5 block');
+      // No box between the skeleton and its block keeps side room.
+      for (
+        let part: HTMLElement | null = block;
+        part !== null && part !== loading;
+        part = part.parentElement
+      ) {
+        expect(part.style.paddingLeft, String(at.width)).not.toBe(`${String(sides)}px`);
+      }
+      const padded = parts.filter((part) => part.style.paddingLeft === `${String(sides)}px`);
+      // The header row and the lines under the block.
+      expect(padded, String(at.width)).toHaveLength(2);
+      for (const part of padded) {
+        expect(part.style.paddingRight, String(at.width)).toBe(`${String(sides)}px`);
+        expect(part.contains(block), String(at.width)).toBe(false);
+      }
+    }
+    // Expanded: no gutter anywhere, the skeleton as wide as the canvas.
+    const desktop = draw(STATES.loading, {}, DESKTOP);
+    const sided = [desktop, ...desktop.querySelectorAll<HTMLElement>('*')].filter(
+      (part) => part.style.paddingLeft !== '' && part.style.paddingLeft !== '0px',
+    );
+    expect(sided).toEqual([]);
+  });
 });

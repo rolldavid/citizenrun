@@ -23,9 +23,10 @@ export const STATES = {
     onPress: press,
     testID: 'gallery.source-link-no-confidence',
   },
-  // Under a feed card the words say the confidence, and no mark is drawn.
+  // Under a feed card the words say the confidence: the mark stands before them, and they are
+  // printed once.
   feed: {
-    confidence: null,
+    confidence: 'medium',
     text: 'Medium confidence · Sources',
     onPress: press,
     testID: 'gallery.source-link-feed',

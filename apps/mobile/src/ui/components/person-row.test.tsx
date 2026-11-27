@@ -265,12 +265,33 @@ describe('PersonRow', () => {
   });
 
   it('the name is read with its line and tag', () => {
-    const row = draw(STATES.holder);
-    // The link's name holds the person's name and the line.
+    let row = draw(STATES.holder);
+    // The link's name holds the person's name, the line and the tag, in the order they are drawn.
     const said = row.getAttribute('aria-label') ?? '';
     expect(said).toContain('Carol Wynn');
     expect(said).toContain('Holder since 2019');
-    expect(screen.getByRole('link', { name: 'Carol Wynn. Holder since 2019' })).toBe(row);
+    expect(screen.getByRole('link', { name: 'Carol Wynn. Holder since 2019. Independent' })).toBe(
+      row,
+    );
+    // A tag that shares the line is read before it, and a handle after the name.
+    draw(STATES.tagAndAction);
+    expect(
+      screen.getByRole('link', { name: 'Luis Marrero. luis_marrero. Filed. Filed Thu, Nov 12' }),
+    ).toBeTruthy();
+    // A declaration's status is heard on the link.
+    draw(STATES.noPhoto);
+    expect(
+      screen.getByRole('link', { name: 'Tasha Whitfield. Says she is running. Not verified' }),
+    ).toBeTruthy();
+    draw(STATES.withAction);
+    expect(
+      screen.getByRole('link', {
+        name: 'Dana Okafor. dana_okafor. Running for Fixture Alder City Council',
+      }),
+    ).toBeTruthy();
+    draw(STATES.handleOnly);
+    expect(screen.getByRole('link', { name: 'dana_okafor' })).toBeTruthy();
+    row = draw(STATES.holder);
     // The tag's word is in the row, as text and in sentence case, and hidden from nobody.
     const tag = within(row).getByText('Independent');
     expect(tag.closest('[aria-hidden="true"]')).toBeNull();

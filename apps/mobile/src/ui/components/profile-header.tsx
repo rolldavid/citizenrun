@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import type { JSX, ReactElement } from 'react';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
@@ -7,6 +7,7 @@ import { size, space } from '@/ui/tokens';
 
 import { Avatar } from './avatar';
 import { Link } from './link';
+import { MeasureRuns, wordsOf } from './measure-runs';
 import { PhotoCredit } from './photo-credit';
 import { Text } from './text';
 
@@ -32,8 +33,9 @@ export type ProfileHeaderProps = {
 };
 
 const ROW: ViewStyle = { flexDirection: 'row', alignItems: 'flex-start', gap: space.x4 };
-// The credit wraps under the photo, at the photo's width.
-const PHOTO: ViewStyle = { width: size.avatar.xl };
+// The credit wraps under the photo, at the photo's width, or at its longest word's where that is
+// wider, so a word is never broken (a long word at a large text size).
+const PHOTO_WIDTH = size.avatar.xl;
 const WORDS: ViewStyle = { flex: 1, minWidth: 0, gap: space.x1 };
 const NAME_LINE: ViewStyle = {
   flexDirection: 'row',
@@ -70,13 +72,41 @@ export function ProfileHeader({
   testID,
 }: ProfileHeaderProps): JSX.Element {
   const blocked = notice !== null;
+  const credited = photoCredit !== null && !blocked;
+  const creditWords = credited ? wordsOf(photoCredit) : [];
+  const [wordWidths, setWordWidths] = useState<Readonly<Partial<Record<string, number>>>>({});
+  // The words are measured once the page has laid the column out.
+  const [laidOut, setLaidOut] = useState(false);
+  const widest = creditWords.reduce((most, word) => Math.max(most, wordWidths[word] ?? 0), 0);
   return (
     <View testID={testID}>
       <View style={ROW}>
-        <View style={PHOTO}>
+        <View
+          style={{ width: Math.max(PHOTO_WIDTH, widest) }}
+          onLayout={() => {
+            setLaidOut(true);
+          }}
+        >
           {/* The name is printed beside it. */}
           <Avatar size="xl" image={image} name={name} handle={handle} decorative={true} />
-          {photoCredit === null || blocked ? null : <PhotoCredit text={photoCredit} />}
+          {credited ? (
+            <>
+              {laidOut ? (
+                <MeasureRuns
+                  role="mono"
+                  runs={creditWords}
+                  onRun={(index, width) => {
+                    const word = creditWords[index];
+                    if (word === undefined) return;
+                    setWordWidths((known) =>
+                      known[word] === width ? known : { ...known, [word]: width },
+                    );
+                  }}
+                />
+              ) : null}
+              <PhotoCredit text={photoCredit} />
+            </>
+          ) : null}
         </View>
         <View style={WORDS}>
           <View style={NAME_LINE}>

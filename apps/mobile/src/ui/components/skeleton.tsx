@@ -1,4 +1,5 @@
 import { assertNever, typeRoles } from '@citizenrun/shared';
+import { createContext, useContext } from 'react';
 import type { JSX } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
@@ -48,6 +49,13 @@ const CIRCLE: ViewStyle = {
 };
 const CANVAS: ViewStyle = { width: FULL, aspectRatio: 4 / 5, borderRadius: radius.none };
 
+/**
+ * The side room of a `card` skeleton's header and lines, while its canvas stays as wide as the
+ * skeleton: C-CardShell sets the gutter at compact, where its own box is full bleed and its header
+ * and meta stand at the gutter, so the skeleton has the shape of the card it stands for.
+ */
+export const CardSkeletonSides = createContext(0);
+
 function bar(width: DimensionValue): ViewStyle {
   return { width, height: LINE_HEIGHT, borderRadius: radius.none };
 }
@@ -83,6 +91,8 @@ export function Skeleton({
   const theme = useTheme();
   const { t } = useTranslation('common');
   const pulse = usePulse(true);
+  const sides = useContext(CardSkeletonSides);
+  const inset: ViewStyle | null = sides === 0 ? null : { paddingHorizontal: sides };
   const ground = { backgroundColor: theme.color.skeleton };
 
   const block = (style: ViewStyle, key?: number): JSX.Element => (
@@ -105,12 +115,12 @@ export function Skeleton({
       case 'card':
         return (
           <View style={CARD}>
-            <View style={HEADER}>
+            <View style={[HEADER, inset]}>
               {block(CIRCLE)}
               <View style={HEADER_LINES}>{bars(CARD_HEADER_LINES)}</View>
             </View>
             {block(CANVAS)}
-            <View style={LINES}>{bars(paragraph(2))}</View>
+            <View style={[LINES, inset]}>{bars(paragraph(2))}</View>
           </View>
         );
       case 'row':

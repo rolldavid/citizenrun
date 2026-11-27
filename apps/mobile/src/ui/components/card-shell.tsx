@@ -10,7 +10,7 @@ import { radius, size, space } from '@/ui/tokens';
 import { IconButton } from './icon-button';
 import { Link } from './link';
 import { Pressable } from './pressable';
-import { Skeleton } from './skeleton';
+import { CardSkeletonSides, Skeleton } from './skeleton';
 import { Text } from './text';
 
 export type CardShellProps = {
@@ -72,8 +72,12 @@ export function CardShell({
 
   if (loading) {
     return (
-      <View style={{ width, paddingHorizontal: sides }} testID={`${testID}-loading`}>
-        <Skeleton shape="card" />
+      // The skeleton has the card's shape: its canvas as wide as the box, its header and lines at
+      // the gutter the header and meta keep.
+      <View style={{ width }} testID={`${testID}-loading`}>
+        <CardSkeletonSides.Provider value={sides}>
+          <Skeleton shape="card" />
+        </CardSkeletonSides.Provider>
       </View>
     );
   }

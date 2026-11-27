@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { motion, useStamp } from '@/ui/motion';
 import type { AnimatedStyle } from '@/ui/motion';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
+import { useTight } from '@/ui/shells/use-tight';
 import { useTheme } from '@/ui/theme';
 import { gutter, rule, size, space, z } from '@/ui/tokens';
 
@@ -129,7 +130,8 @@ function namedWith(shown: string, name: string): string {
 /** Run: the accent button, its ink done state, or a disabled button that says why. Never an icon. */
 function RunControl({ run, layout, onRun, testID }: RunControlProps): JSX.Element {
   const { t } = useTranslation('common');
-  const { isTight } = useBreakpoint();
+  // The same answer the button gives itself, so the bar and its button change together.
+  const isTight = useTight();
   // The name holds the long form whatever the button shows.
   const name = t('ui.actions.runLong');
   const short = t('ui.actions.run');

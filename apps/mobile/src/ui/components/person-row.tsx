@@ -5,7 +5,7 @@ import type { ViewStyle } from 'react-native';
 import { space } from '@/ui/tokens';
 
 import { Avatar } from './avatar';
-import { ListRow } from './list-row';
+import { ListRow, RowNameContext } from './list-row';
 import type { ListRowProps } from './list-row';
 import { Tag } from './tag';
 import { Text } from './text';
@@ -72,6 +72,18 @@ export function PersonRow({
   ) : (
     line
   );
+  // The name says everything the row prints, in the order it is drawn: the name or the handle, the
+  // handle after a name, then the tag before the line when it shares the line, else after it.
+  const label = tag === null ? null : tag.label;
+  const said = [
+    name ?? handle,
+    name === null ? null : handle,
+    tagInLine ? label : null,
+    line,
+    tagInLine ? null : label,
+  ]
+    .filter((part): part is string => part !== null && part !== '')
+    .join('. ');
   const trailing: ListRowProps['trailing'] =
     action !== null
       ? { kind: 'action', node: action }
@@ -82,26 +94,28 @@ export function PersonRow({
           : undefined;
 
   return (
-    <ListRow
-      size="regular"
-      // The name is printed beside it.
-      leading={<Avatar size="sm" image={image} name={name} handle={handle} decorative={true} />}
-      title={name ?? handle ?? ''}
-      {...(name === null || handle === null
-        ? {}
-        : {
-            titleSuffix: (
-              <View style={HANDLE}>
-                <Text role="mono" tone="secondary" numberOfLines={1}>
-                  {handle}
-                </Text>
-              </View>
-            ),
-          })}
-      {...(subtitle === null ? {} : { subtitle })}
-      {...(trailing === undefined ? {} : { trailing })}
-      {...(href === null ? {} : { href })}
-      testID={testID}
-    />
+    <RowNameContext.Provider value={said}>
+      <ListRow
+        size="regular"
+        // The name is printed beside it.
+        leading={<Avatar size="sm" image={image} name={name} handle={handle} decorative={true} />}
+        title={name ?? handle ?? ''}
+        {...(name === null || handle === null
+          ? {}
+          : {
+              titleSuffix: (
+                <View style={HANDLE}>
+                  <Text role="mono" tone="secondary" numberOfLines={1}>
+                    {handle}
+                  </Text>
+                </View>
+              ),
+            })}
+        {...(subtitle === null ? {} : { subtitle })}
+        {...(trailing === undefined ? {} : { trailing })}
+        {...(href === null ? {} : { href })}
+        testID={testID}
+      />
+    </RowNameContext.Provider>
   );
 }

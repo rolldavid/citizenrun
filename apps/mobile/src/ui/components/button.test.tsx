@@ -8,9 +8,9 @@ import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import type * as UseBreakpoint from '@/ui/shells/use-breakpoint';
-import { opacity, textScale } from '@/ui/tokens';
+import { opacity, rule, size, space, textScale } from '@/ui/tokens';
 
-import { Button } from './button';
+import { Button, buttonFit, showsShortLabel } from './button';
 import type { ButtonProps, ButtonVariant } from './button';
 import { GROUND, PREVIEW, STATES } from './button.fixtures';
 import { InteractionPreview } from './pressable';
@@ -606,6 +606,47 @@ describe('Button', () => {
     const roomy = draw(props);
     expect(roomy.label.textContent).toBe('Run for this office');
     expect(within(roomy.target).queryByText('Run')).toBeNull();
+  });
+
+  it('a label too long for its button takes the short one', () => {
+    // The long label on one line, with 16 and the outline at each side, against the button's width.
+    const beside = 2 * space.x4 + 2 * rule.hairline;
+    expect(showsShortLabel({ room: 139.4, label: 150 }, false, space.x4, 0)).toBe(true);
+    expect(showsShortLabel({ room: 150 + beside, label: 150 }, false, space.x4, 0)).toBe(false);
+    expect(showsShortLabel({ room: 150 + beside - 1, label: 150 }, false, space.x4, 0)).toBe(true);
+    // An icon takes its width and the gap after it.
+    const icon = size.icon.medium + space.x2;
+    expect(showsShortLabel({ room: 150 + beside + icon, label: 150 }, false, space.x4, 1)).toBe(
+      false,
+    );
+    expect(showsShortLabel({ room: 150 + beside, label: 150 }, false, space.x4, 1)).toBe(true);
+    // Unmeasured, only a tight layout takes it; a tight layout always does.
+    expect(showsShortLabel(null, false, space.x4, 0)).toBe(false);
+    expect(showsShortLabel(null, true, space.x4, 0)).toBe(true);
+    expect(showsShortLabel({ room: 400, label: 150 }, true, space.x4, 0)).toBe(true);
+  });
+
+  it('a label never breaks inside a word: the side room narrows, then the check goes', () => {
+    const icon = size.icon.medium + space.x2;
+    const outline = 2 * rule.hairline;
+    // "Running" beside its check fits with 16 at the sides.
+    const word = 80;
+    const whole = word + icon + 2 * space.x4 + outline;
+    expect(buttonFit({ room: whole, words: [word] }, space.x4, 1, true)).toBe('whole');
+    // A little narrower: the side room is 8.
+    expect(buttonFit({ room: whole - 1, words: [word] }, space.x4, 1, true)).toBe('snug');
+    const snug = word + icon + 2 * space.x2 + outline;
+    expect(buttonFit({ room: snug, words: [word] }, space.x4, 1, true)).toBe('snug');
+    // Narrower again: the check is left out, and the word still stands whole.
+    expect(buttonFit({ room: snug - 1, words: [word] }, space.x4, 1, true)).toBe('bare');
+    // Only the widest word counts: the others wrap between words.
+    expect(buttonFit({ room: whole, words: [30, word, 40] }, space.x4, 1, true)).toBe('whole');
+    expect(buttonFit({ room: whole - 1, words: [30, word, 40] }, space.x4, 1, true)).toBe('snug');
+    // With no leading icon there is nothing to leave out.
+    expect(buttonFit({ room: 10, words: [word] }, space.x4, 0, false)).toBe('snug');
+    // Unmeasured, the button is drawn as it always is.
+    expect(buttonFit(null, space.x4, 1, true)).toBe('whole');
+    expect(buttonFit({ room: 10, words: [] }, space.x4, 1, true)).toBe('whole');
   });
 
   it('fullWidth stretches the button, and otherwise it is as wide as its label', () => {

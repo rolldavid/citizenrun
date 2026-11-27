@@ -222,12 +222,16 @@ describe('AddressField', () => {
       if (message !== undefined && message !== null) {
         expect(lineOf(input)?.textContent, state).toContain(message.text);
       }
-      // Each row is named by its place, and described by the line under it.
+      // Each row is named by its place, then the line under it.
       const rows = screen.queryAllByRole('option');
       expect(rows.length > 0, state).toBe(WITH_ROWS.includes(state));
       rows.forEach((row, index) => {
         const suggestion = ALL[state].suggestions[index];
-        expect(row.getAttribute('aria-label'), state).toBe(suggestion?.primary);
+        expect(row.getAttribute('aria-label'), state).toBe(
+          suggestion?.secondary === null || suggestion?.secondary === undefined
+            ? suggestion?.primary
+            : `${suggestion.primary}. ${suggestion.secondary}`,
+        );
         expect(within(row).getByText(String(suggestion?.primary)), state).toBeTruthy();
         // The pin beside it is decoration.
         for (const icon of row.querySelectorAll('svg')) {
@@ -391,9 +395,20 @@ describe('AddressField', () => {
     draw(STATES.readyLong);
     const rows = screen.getAllByRole('option');
     expect(rows).toHaveLength(GEO_SUGGESTIONS_MAX);
+    // Each row is named by both its lines, in the order they are drawn, so what is seen is read.
     expect(rows.map((row) => row.getAttribute('aria-label'))).toEqual(
-      STATES.readyLong.suggestions.slice(0, GEO_SUGGESTIONS_MAX).map((row) => row.primary),
+      STATES.readyLong.suggestions
+        .slice(0, GEO_SUGGESTIONS_MAX)
+        .map((row) => (row.secondary === null ? row.primary : `${row.primary}. ${row.secondary}`)),
     );
+    expect(rows[0]?.getAttribute('aria-label')).toBe(
+      '100 Fixture Street. Fixture Wren County, ZZ 00001',
+    );
+    expect(rows[3]?.getAttribute('aria-label')).toBe('100 Fixture Mill Road');
+    for (const row of rows) {
+      expect(row.getAttribute('aria-description')).toBeNull();
+      expect(row.getAttribute('title')).toBeNull();
+    }
     expect(screen.queryByText('100 Fixture Terrace')).toBeNull();
     // Each row is 44 high, with its pin, its place and the grey line under it.
     for (const row of rows) {
