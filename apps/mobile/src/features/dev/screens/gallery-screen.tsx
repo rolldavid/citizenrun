@@ -7,12 +7,17 @@ import {
   AgeGate,
   AppBar,
   Avatar,
+  BigNumber,
   Button,
   Checkbox,
   CodeField,
   CompactShell,
   ConfidenceBadge,
   CountBadge,
+  DeadlineBlock,
+  DeadlineLine,
+  DeadlineRing,
+  DealLine,
   Dialog,
   EmptyChair,
   EmptyState,
@@ -32,6 +37,8 @@ import {
   List,
   ListRow,
   MediumShell,
+  Meter,
+  MeterInputs,
   Notice,
   PhotoCredit,
   Popover,
@@ -89,11 +96,16 @@ import type {
 } from '@/ui';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
+import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as confidenceBadgeFixtures from '@/ui/components/confidence-badge.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
+import * as deadlineBlockFixtures from '@/ui/components/deadline-block.fixtures';
+import * as deadlineLineFixtures from '@/ui/components/deadline-line.fixtures';
+import * as deadlineRingFixtures from '@/ui/components/deadline-ring.fixtures';
+import * as dealLineFixtures from '@/ui/components/deal-line.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
@@ -110,6 +122,8 @@ import * as issueTileFixtures from '@/ui/components/issue-tile.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
+import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
+import * as meterFixtures from '@/ui/components/meter.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
@@ -891,6 +905,13 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   }),
   section('C-Prose', 'prose', 'full', Prose, proseFixtures),
   section('C-PhotoCredit', 'photo-credit', 'narrow', PhotoCredit, photoCreditFixtures),
+  section('C-BigNumber', 'big-number', 'wide', BigNumber, bigNumberFixtures),
+  section('C-DealLine', 'deal-line', 'wide', DealLine, dealLineFixtures),
+  section('C-Meter', 'meter', 'wide', Meter, meterFixtures),
+  section('C-MeterInputs', 'meter-inputs', 'wide', MeterInputs, meterInputsFixtures),
+  section('C-DeadlineRing', 'deadline-ring', 'narrow', DeadlineRing, deadlineRingFixtures),
+  section('C-DeadlineBlock', 'deadline-block', 'wide', DeadlineBlock, deadlineBlockFixtures),
+  section('C-DeadlineLine', 'deadline-line', 'wide', DeadlineLine, deadlineLineFixtures),
   {
     id: 'C-IssueTile',
     slug: 'issue-tile',

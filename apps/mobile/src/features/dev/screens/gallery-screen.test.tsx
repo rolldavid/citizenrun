@@ -10,11 +10,16 @@ import { renderWithProviders, setViewport } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
+import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as confidenceBadgeFixtures from '@/ui/components/confidence-badge.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
+import * as deadlineBlockFixtures from '@/ui/components/deadline-block.fixtures';
+import * as deadlineLineFixtures from '@/ui/components/deadline-line.fixtures';
+import * as deadlineRingFixtures from '@/ui/components/deadline-ring.fixtures';
+import * as dealLineFixtures from '@/ui/components/deal-line.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
@@ -31,6 +36,8 @@ import * as issueTileFixtures from '@/ui/components/issue-tile.fixtures';
 import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
+import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
+import * as meterFixtures from '@/ui/components/meter.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
@@ -163,6 +170,17 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-SourcesSheet', slug: 'sources-sheet', states: Object.keys(sourcesSheetFixtures.STATES) },
   { id: 'C-Prose', slug: 'prose', states: Object.keys(proseFixtures.STATES) },
   { id: 'C-PhotoCredit', slug: 'photo-credit', states: Object.keys(photoCreditFixtures.STATES) },
+  { id: 'C-BigNumber', slug: 'big-number', states: Object.keys(bigNumberFixtures.STATES) },
+  { id: 'C-DealLine', slug: 'deal-line', states: Object.keys(dealLineFixtures.STATES) },
+  { id: 'C-Meter', slug: 'meter', states: Object.keys(meterFixtures.STATES) },
+  { id: 'C-MeterInputs', slug: 'meter-inputs', states: Object.keys(meterInputsFixtures.STATES) },
+  { id: 'C-DeadlineRing', slug: 'deadline-ring', states: Object.keys(deadlineRingFixtures.STATES) },
+  {
+    id: 'C-DeadlineBlock',
+    slug: 'deadline-block',
+    states: Object.keys(deadlineBlockFixtures.STATES),
+  },
+  { id: 'C-DeadlineLine', slug: 'deadline-line', states: Object.keys(deadlineLineFixtures.STATES) },
   // After the states of its fixtures, the strip of every issue's tile.
   {
     id: 'C-IssueTile',
@@ -335,6 +353,13 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-SourcesSheet',
       'C-Prose',
       'C-PhotoCredit',
+      'C-BigNumber',
+      'C-DealLine',
+      'C-Meter',
+      'C-MeterInputs',
+      'C-DeadlineRing',
+      'C-DeadlineBlock',
+      'C-DeadlineLine',
       'C-IssueTile',
       'C-IssueChip',
       'C-IssueGrid',

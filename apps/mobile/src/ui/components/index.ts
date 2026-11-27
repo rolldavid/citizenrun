@@ -51,6 +51,13 @@ export * from './source-link';
 export * from './sources-sheet';
 export * from './prose';
 export * from './photo-credit';
+export * from './big-number';
+export * from './deal-line';
+export * from './meter';
+export * from './meter-inputs';
+export * from './deadline-ring';
+export * from './deadline-block';
+export * from './deadline-line';
 export * from './issue-tile';
 // C-IssueChip's file also exports the chip as C-IssueGrid lays it out; `@/ui` takes the chip alone.
 export { IssueChip } from './issue-chip';
