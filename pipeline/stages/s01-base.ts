@@ -105,6 +105,7 @@ import {
   featureId,
   joinRateCheck,
   joinUnits,
+  refusedPlaceOverrides,
   schoolJoinPermille,
 } from './base/joins.ts';
 import type { TigerGeoids } from './base/joins.ts';
@@ -138,6 +139,14 @@ export const BLOCKING_CHECKS = ['listing_header', 'unit_counts', 'join_rate', 'g
 const WEBSITE_CONCURRENCY = 8;
 const INVALID_DETAIL_KEYS = 20;
 const UNCLIPPED_LOG_KEYS = 50;
+
+/** A unit override's place code (D-887) that names no TIGER feature for the unit. */
+export class UnitOverrideRefused extends Error {
+  override readonly name = 'UnitOverrideRefused';
+  constructor(pid6s: readonly string[]) {
+    super(`unit-overrides.yaml fips_place not in TIGER for PID6 ${pid6s.join(', ')}`);
+  }
+}
 
 /** The TIGER STATE row of a state differs from the pipeline's table of states: a table error. */
 export class StateTableError extends Error {
@@ -567,6 +576,14 @@ export async function runState(
     tiger,
     school.map ?? new Map(),
   );
+  const refused = refusedPlaceOverrides(
+    units.map((unit) => unit.row),
+    overrides,
+    joined,
+  );
+  if (refused.length > 0) {
+    throw new UnitOverrideRefused(refused);
+  }
   const rates = joinRateCheck(joined);
   checks.push(rates.joinRate, rates.schoolRate);
   if (!rates.schoolRate.passed) {

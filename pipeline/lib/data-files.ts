@@ -169,12 +169,21 @@ export const UnitOverrideSchema = z
     pid6: z.string().regex(/^\d{6}$/, 'not a six-digit PID6'),
     website: SafeUrlSchema.optional(),
     name: text(200).optional(),
+    // The unit's place code in the TIGER vintage in use, where the listing has an older one (D-887).
+    fips_place: z
+      .string()
+      .regex(/^\d{5}$/, 'not a five-digit FIPS place code')
+      .optional(),
     exclude: z.literal(true).optional(),
     reason: text(500),
   })
   .refine(
-    (row) => row.website !== undefined || row.name !== undefined || row.exclude !== undefined,
-    'an override sets website, name or exclude',
+    (row) =>
+      row.website !== undefined ||
+      row.name !== undefined ||
+      row.fips_place !== undefined ||
+      row.exclude !== undefined,
+    'an override sets website, name, fips_place or exclude',
   );
 export type UnitOverride = z.infer<typeof UnitOverrideSchema>;
 

@@ -5,6 +5,7 @@ import {
   SnapshotSourcesFileSchema,
   SourcesFileSchema,
   TimezonesFileSchema,
+  UnitOverrideSchema,
   hasMarker,
   loadBoundarySources,
   loadCoopEinOverrides,
@@ -335,5 +336,15 @@ describe('TimezonesFileSchema', () => {
         TimezonesFileSchema,
       ),
     ).toEqual([expect.stringMatching(/\[0\]\.county_overrides\[0\]\.zone \(line 3\): /)]);
+  });
+});
+
+describe('UnitOverrideSchema', () => {
+  it('accepts a five-digit fips_place alone and refuses any other form', () => {
+    const base = { pid6: '990001', reason: 'TIGER 2026 has the unit under another place code.' };
+    expect(UnitOverrideSchema.safeParse({ ...base, fips_place: '71550' }).success).toBe(true);
+    expect(UnitOverrideSchema.safeParse({ ...base, fips_place: '1571550' }).success).toBe(false);
+    expect(UnitOverrideSchema.safeParse({ ...base, fips_place: '7155' }).success).toBe(false);
+    expect(UnitOverrideSchema.safeParse(base).success).toBe(false);
   });
 });

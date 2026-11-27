@@ -109,6 +109,23 @@ export function joinUnits(
   return { joins, owners, shared, counts };
 }
 
+/**
+ * The PID6s whose override sets a place code (D-887) and which joined no feature with it: TIGER has
+ * no such code for the unit, so the override is refused. Only the state's units are looked at.
+ */
+export function refusedPlaceOverrides(
+  units: readonly Pick<JoinUnit, 'pid6'>[],
+  overrides: readonly { readonly pid6: string; readonly fips_place?: string | undefined }[],
+  result: Pick<JoinResult, 'joins'>,
+): string[] {
+  const present = new Set(units.map((unit) => unit.pid6));
+  return overrides
+    .filter((row) => row.fips_place !== undefined && present.has(row.pid6))
+    .filter((row) => !result.joins.has(row.pid6))
+    .map((row) => row.pid6)
+    .sort();
+}
+
 /** True when `matched` is at least `permille` thousandths of `units`; a kind with no units passes. */
 export function rateAtLeast(matched: number, units: number, permille: number): boolean {
   return matched * 1000 >= units * permille;

@@ -227,7 +227,10 @@ export async function readCheckedListing(
   return { rows: check.passed ? rows : null, check };
 }
 
-/** Applies data/unit-overrides.yaml by PID6: `exclude` drops the unit, `name` and `website` replace. */
+/**
+ * Applies data/unit-overrides.yaml by PID6: `exclude` drops the unit; `name`, `website` and
+ * `fips_place` replace (D-887; the stage refuses a place code TIGER does not have).
+ */
 export function applyUnitOverrides(
   rows: readonly ParsedListingRow[],
   overrides: readonly UnitOverride[],
@@ -247,6 +250,7 @@ export function applyUnitOverrides(
       ...row,
       unit_name: override.name ?? row.unit_name,
       web_address: override.website ?? row.web_address,
+      fips_place: override.fips_place ?? row.fips_place,
     });
   }
   return out;

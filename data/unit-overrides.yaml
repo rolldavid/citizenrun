@@ -1,2 +1,7 @@
 # Corrections to the Census Government Units Listing, by PID6.
-[]
+- pid6: '183701'
+  fips_place: '71550'
+  reason: The listing gives FIPS place 17000, which TIGER 2026 does not have; TIGER 2026 has the unit's place as GEOID 1571550 (Urban Honolulu CDP).
+- pid6: '195851'
+  fips_place: '19365'
+  reason: The listing gives FIPS place 19370, which TIGER 2026 does not have; TIGER 2026 has the unit's place as GEOID 2519365 (Easthampton city).

@@ -8,7 +8,8 @@ import { readListing } from '../../sources/census-gus.ts';
 import { readSchoolFinance } from '../../sources/school-finance.ts';
 import { readDbfBytes } from '../../sources/tiger.ts';
 import { readSavedSample } from '../../testing/saved-sample.ts';
-import { featureId, joinUnits } from './joins.ts';
+import { featureId, joinUnits, refusedPlaceOverrides } from './joins.ts';
+import { applyUnitOverrides } from './listing.ts';
 import type { JoinLayer, JoinUnit, TigerGeoids } from './joins.ts';
 import { unitKind } from './listing.ts';
 
@@ -251,5 +252,48 @@ describe('the four joins match on each pilot state fixture', () => {
     expect(result.joins.get('990001')).toEqual({ layer: 'concity', geoid: '9952004' });
     expect(result.owners.get('concity:9952004')).toBe('990001');
     expect(result.shared).toEqual(['990002']);
+  });
+
+  it('a corrected place code joins, and one TIGER does not have is refused', () => {
+    const empty = new Set<string>();
+    const tiger: TigerGeoids = {
+      county: empty,
+      place: new Set(['9971550']),
+      cousub: empty,
+      concity: empty,
+      unsd: empty,
+      elsd: empty,
+      scsd: empty,
+    };
+    const city = (pid6: string, place: string): JoinUnit => ({
+      pid6,
+      tab: 'General Purpose',
+      kind: 'city',
+      fips_state: '99',
+      fips_county: '003',
+      fips_place: place,
+    });
+    const units = [city('990001', '71550'), city('990002', '17000')];
+    const result = joinUnits(units, tiger, new Map());
+    const overrides = [
+      { pid6: '990001', fips_place: '71550' },
+      { pid6: '990002', fips_place: '17000' },
+      { pid6: '990003', fips_place: '12345' },
+      { pid6: '990004' },
+    ];
+    expect(result.joins.get('990001')).toEqual({ layer: 'place', geoid: '9971550' });
+    expect(refusedPlaceOverrides(units, overrides, result)).toEqual(['990002']);
+  });
+
+  it('an override fips_place replaces the listing code', () => {
+    const row = {
+      pid6: '990001',
+      unit_name: 'CITY OF EXAMPLE',
+      web_address: null,
+      fips_place: '17000',
+    } as unknown as Parameters<typeof applyUnitOverrides>[0][number];
+    const [out] = applyUnitOverrides([row], [{ pid6: '990001', fips_place: '71550', reason: 'r' }]);
+    expect(out?.fips_place).toBe('71550');
+    expect(out?.unit_name).toBe('CITY OF EXAMPLE');
   });
 });
