@@ -38,11 +38,13 @@ const CHANGES_2022 = `${ELECT}/media/electionadministration/electionlaw/2022-Cha
 const CHANGES_2024 = `${ELECT}/media/electionadministration/electionlaw/2024-Changes-to-Virginia-Election-Laws.pdf`;
 const PRIMARY_MOVED_2026 = `${ELECT}/news-releases/primary-election-moved-to-august-4.html`;
 const BULLETINS = `${ELECT}/media/candidatesandpacs`;
+const LOCAL_2022 = `${BULLETINS}/2022-candidate-bulletins/2022-11-08-Local-and-Constitutional-Bulletin-rev-1.5.pdf`;
 const LOCAL_2023 = `${BULLETINS}/2023-candidate-bulletins/2023-11-07_Gen_Bulletin_Local_Offices.pdf`;
 const LOCAL_2024 = `${BULLETINS}/2024-candidate-bulletins/2024-11-05-Gen-Bulletin-Local-Offices-(3-8-24).pdf`;
 const LOCAL_2025 = `${BULLETINS}/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf`;
 const LOCAL_2026 = `${BULLETINS}/2026-candidate-bulletins/2026-11-03_Local_Gen_Bulletin_(2-23-26).pdf`;
 const US_HOUSE_2026 = `${BULLETINS}/2026-candidate-bulletins/2026-11-03_US_House_Gen_Bulletin_(2-23-26).pdf`;
+const HANDBOOK_2026 = `${ELECT}/media/grebhandbook/2026-updates/1_General_Registrar_FINAL_Rev.09.26.pdf`;
 const HOLIDAYS_2020 = `${LIS}?201+ful+CHAP0417`;
 const HOLIDAYS_2021 = `${LIS}?202+ful+CHAP0004`;
 const CANVASS_2022 = `${LIS}?221+ful+CHAP0444`;
@@ -76,7 +78,7 @@ const MAY = 'va_may';
 const PRIMARY_PARTIES = ['democratic', 'republican'] as const;
 
 /** The first and last years the module serves: its earliest published cycle, and the helpers' end. */
-const FIRST_SERVED_YEAR = 2023;
+const FIRST_SERVED_YEAR = 2022;
 const LAST_SERVED_YEAR = 2100;
 
 // ---------------------------------------------------------------------------------------------
@@ -115,7 +117,7 @@ type PrimaryDate = { readonly date: (year: number) => IsoDate; readonly citation
 /** HB 29 (2026) moved the 2026 primary only (D-330: a dated version, so past years still pass). */
 const PRIMARY_DATES: readonly Versioned<PrimaryDate>[] = [
   {
-    validFrom: '2023-01-01',
+    validFrom: '2022-01-01',
     validTo: '2025-12-31',
     rule: { date: thirdTuesdayInJune, citation: PRIMARY_THIRD_TUESDAY },
   },
@@ -262,6 +264,17 @@ const CYCLE_2025 = {
 /** The published cycles, then the rule as last applied in a regular cycle for the years after. */
 const CYCLE_SOURCES: readonly Versioned<CycleSources>[] = [
   {
+    validFrom: '2022-01-01',
+    validTo: '2022-12-31',
+    rule: bulletin(
+      LOCAL_2022,
+      2022,
+      'Monday March 21, 2022 at 12 p.m.',
+      'Primary Tuesday, June 21, 2022 Thursday April 7, 2022 5:00 p.m.',
+      'General Tuesday, November 8, 2022 Tuesday June 21, 2022 7:00 p.m.',
+    ),
+  },
+  {
     validFrom: '2023-01-01',
     validTo: '2023-12-31',
     rule: bulletin(
@@ -321,6 +334,17 @@ const INDEPENDENT_DEADLINE = cite(
   CHANGES_2021,
   'This bill also changes the deadline for filing nomination and candidacy papers for an office determined by a November general election from the 2nd Tuesday to the 3rd Tuesday in June.',
   '2022-01-01',
+);
+
+/**
+ * How a deadline that falls on a holiday moves: the Department of Elections points to § 1-210(C),
+ * the next day that is not a Saturday, Sunday or legal holiday (D-889).
+ */
+const DEADLINE_ON_HOLIDAY = cite(
+  'Va. Code § 1-210(C)',
+  HANDBOOK_2026,
+  'Q: What happens when a major election deadline falls on a state holiday? A: Outside of §24.2, ELECT may reference §1-210 Computation of time in Virginia subparagraph C to provide localities with direction. C states that "when an act of the General Assembly specifies a maximum period of time in which a legal action may be brought and the last day or part of a day on which the clerk\'s office is closed as authorized by an act of the General Assembly, the act may be performed on the next day that is not a Saturday, Sunday, legal holiday, or day or part of a day on which the clerk\'s office is closed as authorized by an act of the General Assembly."',
+  '2022-01-01', // the § 24.2-507 deadline it moves applies from 2022
 );
 
 /** HB 29 (2026) set the 2026 deadlines of United States House candidates apart from every other office. */
@@ -459,10 +483,12 @@ function generalFilerTrack(
     };
   }
   const sources = selectVersion(CYCLE_SOURCES, contest.date);
+  const unrolled = thirdTuesdayInJune(year);
+  const closes = roll(unrolled, 'next_business_day', vaHolidays(year));
   return {
     track,
     opensOn: null,
-    closesOn: computed(thirdTuesdayInJune(year), INDEPENDENT_DEADLINE),
+    closesOn: computed(closes, closes === unrolled ? INDEPENDENT_DEADLINE : DEADLINE_ON_HOLIDAY),
     closesTime: computed(INDEPENDENT_CLOSES_AT, sources.independentHour),
     ...emptyTrack(),
   };

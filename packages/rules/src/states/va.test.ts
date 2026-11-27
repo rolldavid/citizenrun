@@ -3,17 +3,29 @@ import { describe, expect, it } from 'vitest';
 import { VA_FIXTURES } from '../__fixtures__/va/index.ts';
 import { TUESDAY, isBusinessDay, novemberElectionDay, nthWeekdayOfMonth, roll } from '../dates.ts';
 import { runStateRulesSuite } from '../testing/check-fixtures.ts';
-import type { RuleDeclaration } from '../testing/check-fixtures.ts';
+import type { NotYetRolled, RuleDeclaration } from '../testing/check-fixtures.ts';
 import type { ContestRef, OfficeRef } from '../types.ts';
 import { vaRules } from './va.ts';
 
 /**
- * The rules the fixtures exercise. The § 24.2-507 deadline (the third Tuesday in June) of the
- * va_partisan independent track and the va_nonpartisan track is not declared: June 19 is a legal
- * holiday and meets that Tuesday in 2029, no published calendar shows the deadline moved, and the
- * statute's own text on a deadline that falls on a holiday was not retrieved (PIPE-rules-fixtures
- * rule 5: such a rule fits no declared form).
+ * The § 24.2-507 deadline, 7:00 p.m. on the third Tuesday in June, of the va_partisan independent
+ * track and the va_nonpartisan track: June 19 is a legal holiday that first meets that Tuesday in
+ * 2029, after every searched calendar (2022 to 2026), and the Department of Elections points a
+ * deadline on a holiday to the next day that is not a Saturday, Sunday or legal holiday (§ 1-210(C),
+ * D-889). The roll case is worked by hand: the third Tuesday in June 2029 is June 19, Juneteenth,
+ * and the next business day is Wednesday, June 20, 2029. It is never a fixture (D-380).
  */
+const JUNE_DEADLINE_NOT_YET_ROLLED: NotYetRolled = {
+  published: false,
+  fields: [{ field: 'closesOn', weekday: TUESDAY }],
+  direction: 'next_business_day',
+  searchedYears: [2022, 2023, 2024, 2025, 2026],
+  rollCase: { year: 2029, field: 'closesOn', unrolled: '2029-06-19', expected: '2029-06-20' },
+  reason:
+    'The third Tuesday in June is June 19, a legal holiday, first in 2029; no bulletin of 2022 to 2026 shows the deadline moved',
+};
+
+/** The rules the fixtures exercise. */
 const DECLARED_RULES: readonly RuleDeclaration[] = [
   {
     id: 'va.va_partisan.party_primary',
@@ -27,6 +39,18 @@ const DECLARED_RULES: readonly RuleDeclaration[] = [
       unrolled: '2026-05-25',
       direction: 'next_business_day',
     },
+  },
+  {
+    id: 'va.va_partisan.independent',
+    trackSet: 'va_partisan',
+    track: 'independent',
+    rolled: JUNE_DEADLINE_NOT_YET_ROLLED,
+  },
+  {
+    id: 'va.va_nonpartisan.nonpartisan',
+    trackSet: 'va_nonpartisan',
+    track: 'nonpartisan',
+    rolled: JUNE_DEADLINE_NOT_YET_ROLLED,
   },
 ];
 
@@ -167,12 +191,22 @@ describe('VA rules module', () => {
     });
   });
 
-  it('the third Tuesday in June meets Juneteenth in 2029', async () => {
+  it('the third Tuesday in June meets Juneteenth in 2029 and moves to the next day', async () => {
     await eachZone(() => {
       const contest: ContestRef = { date: '2029-11-06', kind: 'general', party: null };
       const track = only(vaRules.filingTracks({ office: office({}), contest }));
-      expect(track.closesOn.value).toBe('2029-06-19');
       expect(isBusinessDay('2029-06-19', vaRules.holidays(2029))).toBe(false);
+      expect(track.closesOn.value).toBe('2029-06-20');
+      expect(track.closesOn.citation.citation).toBe('Va. Code § 1-210(C)');
+      expect(track.closesTime?.value).toBe('19:00');
+      const unmoved = only(
+        vaRules.filingTracks({
+          office: office({}),
+          contest: { date: '2028-11-07', kind: 'general', party: null },
+        }),
+      );
+      expect(unmoved.closesOn.value).toBe('2028-06-20');
+      expect(unmoved.closesOn.citation.citation).toBe('Va. Code § 24.2-507');
     });
   });
 

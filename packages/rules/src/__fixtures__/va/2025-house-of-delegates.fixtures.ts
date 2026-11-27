@@ -56,6 +56,7 @@ export const fixture: RulesFixture = {
         officeTypeId: 'state-house',
         schedule: 'va_june_primary',
         trackSet: 'va_partisan',
+        partisan: true,
       },
       contest: { date: '2025-11-04', kind: 'general', party: null },
       expect: [{ track: 'independent', closesOn: '2025-06-17', closesTime: '19:00' }],
