@@ -52,10 +52,17 @@ describe('docs/crawl-policy.md', () => {
       'Retry-After',
       '429',
       '503',
-      '08:00 to 18:00',
+      'No requests to election results servers on election nights.',
       '400 days',
     ]) {
       expect(POLICY, rule).toContain(rule);
     }
+  });
+
+  it('the crawl policy sets no business-hours limit', () => {
+    expect(POLICY).not.toContain('08:00 to 18:00');
+    expect(POLICY).not.toContain('Website pages are read outside');
+    expect(POLICY.toLowerCase()).not.toContain('business-hours');
+    expect(POLICY.toLowerCase()).not.toContain('business hours');
   });
 });

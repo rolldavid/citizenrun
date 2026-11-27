@@ -103,7 +103,7 @@ describe('stage 3', () => {
       { dryRun: false },
     );
     const refused = fakeFetcher(bucket, {
-      [CODE_URL]: { kind: 'disallowed', reason: 'business_hours' },
+      [CODE_URL]: { kind: 'disallowed', reason: 'daily_cap' },
     });
     const later = context(bucket, refused, '2026-11-24T15:00:00.000Z');
     expect(

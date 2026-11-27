@@ -63,7 +63,7 @@ export function websiteRequestUrl(webAddress: string): string | null {
 /**
  * Requests the unit's site. Valid when the answer is 200 with an HTML type and the final URL passes
  * the safe-link check (https only); the website is the final URL's origin plus path. A refusal by
- * the crawl policy (business hours, the daily cap, robots, a blocked or forbidden host) or a
+ * the crawl policy (the daily cap, robots, a blocked or forbidden host) or a
  * challenge is no verdict. An address whose host the fetch layer cannot name is invalid without a
  * request, and so is a site that redirects to such a host: one unit's address never fails the state.
  */

@@ -41,7 +41,7 @@ We make one exception to robots.txt, for a short list of named endpoints: docume
 - GitHub's repository archive endpoint, for the Open States people repository only: `https://api.github.com/repos/openstates/people/tarball/`, and the address it redirects to, `https://codeload.github.com/openstates/people/legacy.tar.gz/`
 - The Revised Code of Washington on the Washington State Legislature's site: `https://app.leg.wa.gov/RCW/`, every page under it, the section pages and their PDF copies included
 
-The list is exact. Every other path on these hosts, and every other host, follows robots.txt as described above. Every pace rule below still applies to these endpoints, including the business-hours rule for website pages. We still stop when one of them blocks us or shows a challenge page, and a robots.txt group that names `CitizenRunBot` still stops us there.
+The list is exact. Every other path on these hosts, and every other host, follows robots.txt as described above. Every pace rule below still applies to these endpoints. We still stop when one of them blocks us or shows a challenge page, and a robots.txt group that names `CitizenRunBot` still stops us there.
 
 ## Pace
 
@@ -49,7 +49,6 @@ The list is exact. Every other path on these hosts, and every other host, follow
 - At most 2,000 requests to each host in a day.
 - Conditional requests (`If-None-Match` and `If-Modified-Since`), so a page that has not changed is not sent again.
 - We honour `Retry-After`, and back off and retry less often when a host answers 429 or 503.
-- Website pages are read outside 08:00 to 18:00 on weekdays, in the state's time zone.
 - No requests to election results servers on election nights.
 
 ## Public pages only

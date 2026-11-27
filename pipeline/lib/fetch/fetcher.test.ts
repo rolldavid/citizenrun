@@ -297,14 +297,14 @@ describe('the Washington code exception', () => {
     expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
   });
 
-  it('a crawl request in Washington business hours is still refused', async () => {
+  it('a crawl request in Washington working hours is fetched', async () => {
     // Tuesday 2027-03-02, 10:00 in Los Angeles.
     const { fetcher, transport } = await make('2027-03-02T18:00:00.000Z');
-    expect(await fetcher.fetch({ url: SECTION, class: 'crawl', state: 'WA' })).toEqual({
-      kind: 'disallowed',
-      reason: 'business_hours',
-    });
-    expect(transport.requests).toHaveLength(0);
+    expect((await fetcher.fetch({ url: SECTION, class: 'crawl', state: 'WA' })).kind).toBe('ok');
+    expect(transport.requests.map((req) => req.url)).toEqual([
+      'https://app.leg.wa.gov/robots.txt',
+      SECTION,
+    ]);
   });
 });
 
@@ -736,33 +736,26 @@ describe('the request path', () => {
     expect(memory.keys().filter((name) => name.startsWith('cache/raw/'))).toHaveLength(1);
   });
 
-  it('crawl class is refused in business hours', async () => {
+  it('crawl class is fetched at any hour of the week', async () => {
     const make = (at: string) =>
       makeFetcher({
         clock: new TestClock(at),
         handler: site(() => ok()),
         zoneForState: (state) => (state === 'TX' ? 'America/Chicago' : null),
       });
-    // Tuesday 2027-03-02, 10:00 in Chicago.
-    const tuesday = await make('2027-03-02T16:00:00.000Z');
-    expect(await tuesday.fetcher.fetch({ url: PAGE, class: 'crawl', state: 'TX' })).toEqual({
-      kind: 'disallowed',
-      reason: 'business_hours',
-    });
-    expect(tuesday.transport.requests).toHaveLength(0);
-    // Other classes are not held to business hours.
-    expect((await tuesday.fetcher.fetch({ url: PAGE, class: 'dataset', state: 'TX' })).kind).toBe(
-      'ok',
-    );
-    // Tuesday 19:00 and Saturday 10:00 are requested.
-    const evening = await make('2027-03-03T01:00:00.000Z');
-    expect((await evening.fetcher.fetch({ url: PAGE, class: 'crawl', state: 'TX' })).kind).toBe(
-      'ok',
-    );
-    const saturday = await make('2027-03-06T16:00:00.000Z');
-    expect((await saturday.fetcher.fetch({ url: PAGE, class: 'crawl', state: 'TX' })).kind).toBe(
-      'ok',
-    );
+    // Tuesday 2027-03-02 at 10:00 and 19:00, and Saturday 2027-03-06 at 10:00, in Chicago.
+    for (const at of [
+      '2027-03-02T16:00:00.000Z',
+      '2027-03-03T01:00:00.000Z',
+      '2027-03-06T16:00:00.000Z',
+    ]) {
+      const { fetcher, transport } = await make(at);
+      expect((await fetcher.fetch({ url: PAGE, class: 'crawl', state: 'TX' })).kind).toBe('ok');
+      expect(transport.requests.map((req) => req.url)).toEqual([
+        `https://${HOST}/robots.txt`,
+        PAGE,
+      ]);
+    }
   });
 
   it('adapter requests to a results host wait out election night', async () => {

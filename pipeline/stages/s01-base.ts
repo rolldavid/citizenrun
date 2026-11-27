@@ -805,7 +805,7 @@ export async function runState(
   coverage.set('districts:county_approx', approxCount);
   coverage.set('districts:parent_fallback', parentCount);
 
-  // Websites (crawl class: refused in business hours, which leaves them unchecked).
+  // Websites (crawl class: a refusal by the crawl policy leaves them unchecked).
   const previous = await previousWebsites(ctx, state);
   const websites = new Map<string, { url: string; meta: FieldMetaRow } | null>();
   const withWebsite = units.filter((unit) => unit.row.web_address !== null);

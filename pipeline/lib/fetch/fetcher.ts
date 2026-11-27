@@ -7,7 +7,7 @@ import { storeRawBody } from './cache.ts';
 import { isChallenge } from './challenge.ts';
 import type { Clock } from './clock.ts';
 import { HostLock } from './host-lock.ts';
-import { FALLBACK_ZONE, isBusinessHours, isElectionNight } from './hours.ts';
+import { FALLBACK_ZONE, isElectionNight } from './hours.ts';
 import { HostRegistry, hostIsOrUnder, isForbiddenHost, queueForLocalFetch } from './hosts.ts';
 import type { BlockReason, SourceHostRules } from './hosts.ts';
 import { DailyCapError, HostLimiter } from './rate.ts';
@@ -538,9 +538,6 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
         return { kind: 'disallowed', reason: 'blocked_host' };
       }
       const zone = (req.state === undefined ? null : deps.zoneForState(req.state)) ?? FALLBACK_ZONE;
-      if (req.class === 'crawl' && isBusinessHours(now, zone)) {
-        return { kind: 'disallowed', reason: 'business_hours' };
-      }
       if (
         req.class === 'adapter' &&
         deps.hostRules.resultsHosts.some((listed) => hostIsOrUnder(host, listed)) &&

@@ -1,13 +1,10 @@
-// Business hours and election night (D-331).
+// Election night (D-331; D-882 removed the business-hours rule).
 
 /** The zone of a request with no state, or a state with no zone entry. */
 export const FALLBACK_ZONE = 'America/New_York';
 
-const BUSINESS_START_HOUR = 8; // D-331
-const BUSINESS_END_HOUR = 18; // D-331
 const ELECTION_NIGHT_START_HOUR = 17; // D-331
 const ELECTION_NIGHT_END_HOUR = 6; // D-331
-const WEEKDAYS: ReadonlySet<string> = new Set(['Mon', 'Tue', 'Wed', 'Thu', 'Fri']);
 
 const formatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -16,7 +13,6 @@ function formatter(zone: string): Intl.DateTimeFormat {
   if (found === undefined) {
     found = new Intl.DateTimeFormat('en-US', {
       timeZone: zone,
-      weekday: 'short',
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
@@ -29,7 +25,7 @@ function formatter(zone: string): Intl.DateTimeFormat {
   return found;
 }
 
-type LocalTime = { weekday: string; date: string; hour: number };
+type LocalTime = { date: string; hour: number };
 
 function localTime(nowMs: number, zone: string): LocalTime {
   const parts = new Map<string, string>();
@@ -37,7 +33,6 @@ function localTime(nowMs: number, zone: string): LocalTime {
     parts.set(part.type, part.value);
   }
   return {
-    weekday: parts.get('weekday') ?? '',
     date: `${parts.get('year') ?? ''}-${parts.get('month') ?? ''}-${parts.get('day') ?? ''}`,
     hour: Number(parts.get('hour') ?? '0') % 24,
   };
@@ -47,16 +42,6 @@ function dayBefore(date: string): string {
   const at = new Date(`${date}T00:00:00.000Z`);
   at.setUTCDate(at.getUTCDate() - 1);
   return at.toISOString().slice(0, 10);
-}
-
-/** Monday to Friday, from 08:00 up to but not including 18:00, local time in `zone`. */
-export function isBusinessHours(nowMs: number, zone: string): boolean {
-  const local = localTime(nowMs, zone);
-  return (
-    WEEKDAYS.has(local.weekday) &&
-    local.hour >= BUSINESS_START_HOUR &&
-    local.hour < BUSINESS_END_HOUR
-  );
 }
 
 /** From 17:00 local on a listed election date until 06:00 local the next day. */

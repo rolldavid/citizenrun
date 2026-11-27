@@ -11,8 +11,8 @@ function run(answer: Answer | undefined) {
   return scriptedRun(() => answer);
 }
 
-/** A Saturday afternoon: crawl-class requests are allowed, so the host is looked at. */
-const OUTSIDE_BUSINESS_HOURS = '2026-11-28T20:00:00.000Z';
+/** A Tuesday morning in North Carolina: crawl-class requests are fetched at any hour. */
+const WEEKDAY_MORNING = '2026-11-24T16:00:00.000Z';
 const ODD_HOSTS = [
   'www.co,coleman.tx.us',
   'www.ogden_ks.gov',
@@ -24,7 +24,7 @@ const ODD_HOSTS = [
 /** The real fetcher over a fake transport: robots.txt is 404 and every page is HTML. */
 async function realFetcher(page: Handler) {
   return makeFetcher({
-    clock: new TestClock(OUTSIDE_BUSINESS_HOURS),
+    clock: new TestClock(WEEKDAY_MORNING),
     handler: (req, url) =>
       url.pathname === '/robots.txt' ? { status: 404, body: 'not found' } : page(req, url),
   });
@@ -79,10 +79,10 @@ describe('validateWebsite', () => {
     });
   });
 
-  it('business hours leave it unchecked and keep the last value', async () => {
-    const { fetcher } = run({ kind: 'disallowed', reason: 'business_hours' });
+  it('the daily cap leaves it unchecked and keeps the last value', async () => {
+    const { fetcher } = run({ kind: 'disallowed', reason: 'daily_cap' });
     const verdict = await validateWebsite(fetcher, 'https://www.example.gov', 'NC');
-    expect(verdict).toEqual({ kind: 'unchecked', reason: 'business_hours' });
+    expect(verdict).toEqual({ kind: 'unchecked', reason: 'daily_cap' });
     expect(websiteOutcome(verdict, 'https://www.example.gov/')).toEqual({
       website: 'https://www.example.gov/',
       counter: 'website_unchecked',

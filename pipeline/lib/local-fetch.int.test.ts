@@ -56,7 +56,6 @@ async function blockHost(bucket: DataBucket, urls: readonly string[]): Promise<v
 
 async function context(bucket: DataBucket, page: (url: URL) => Scripted) {
   const { log, lines } = captureLogger();
-  // A Saturday, so crawl-class requests are outside business hours.
   const made = await makeFetcher({
     bucket,
     log,

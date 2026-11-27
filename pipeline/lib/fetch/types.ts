@@ -12,7 +12,7 @@ export type FetchRequest = {
   readonly headers?: Readonly<Record<string, string>>; // never a cookie from a login; never Authorization except the api.data.gov key
   readonly conditional?: { readonly etag: string | null; readonly lastModified: string | null };
   readonly maxBytes?: number; // default: 20 MB pages, 200 MB datasets (streamed to the bucket)
-  readonly state?: string; // the state the request serves, for business hours and election night
+  readonly state?: string; // the state the request serves, for election night
   readonly purpose?: string; // 'cache' (the default) or 'snapshot:<source id>': how a queued URL is finished by the local fetch (PIPE-host-registry)
 };
 
@@ -35,7 +35,6 @@ export type FetchResult =
         | 'robots'
         | 'robots_unavailable'
         | 'blocked_host'
-        | 'business_hours'
         | 'daily_cap'
         | 'election_night'
         | 'not_https';

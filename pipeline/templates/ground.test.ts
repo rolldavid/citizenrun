@@ -95,7 +95,7 @@ describe('groundCited', () => {
   });
 
   it('a refused fetch carries an earlier grounding', async () => {
-    const { ctx } = setup({ [CODE_URL]: { kind: 'disallowed', reason: 'business_hours' } });
+    const { ctx } = setup({ [CODE_URL]: { kind: 'disallowed', reason: 'daily_cap' } });
     const marks = await groundCited(ctx, [item('a.quote', CODE_QUOTE)], {
       state: 'ZZ',
       previous: earlier,
@@ -125,7 +125,7 @@ describe('groundCited', () => {
   });
 
   it('a refused fetch with no earlier grounding is ungrounded', async () => {
-    const { ctx } = setup({ [CODE_URL]: { kind: 'disallowed', reason: 'business_hours' } });
+    const { ctx } = setup({ [CODE_URL]: { kind: 'disallowed', reason: 'daily_cap' } });
     const marks = await groundCited(ctx, [item('a', CODE_QUOTE)], { state: 'ZZ', previous: null });
     expect(marks['a']).toEqual({
       grounded: false,
