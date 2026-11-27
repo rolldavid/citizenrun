@@ -282,12 +282,16 @@ describe('Deflate64 batches', () => {
     });
   });
 
-  it('the system unzip exits non-zero on the batch itself', async () => {
-    const status = await onDisk(await deflate64Batch(), (path) =>
-      Promise.resolve(spawnSync('unzip', ['-p', path, SAVED]).status),
+  it('the system unzip either refuses the batch itself or reads the member exactly', async () => {
+    // macOS's unzip exits non-zero on the batches' Zip64 end records; Debian's reads them. Either way
+    // it never yields a wrong member, and the one-entry copy below is what the stage relies on.
+    const result = await onDisk(await deflate64Batch(), (path) =>
+      Promise.resolve(spawnSync('unzip', ['-p', path, SAVED])),
     );
-    expect(status).not.toBe(0);
-    expect(status).not.toBeNull();
+    expect(result.status).not.toBeNull();
+    if (result.status === 0) {
+      expect(result.stdout.toString('utf8')).toBe(await coopsText(SAVED));
+    }
   });
 
   it('the system unzip reads the Deflate64 member through a one-entry copy', async () => {
