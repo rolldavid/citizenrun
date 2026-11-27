@@ -68,6 +68,7 @@ export const FIXTURE_ENV: PipelineEnv = Object.freeze({
   S3_FORCE_PATH_STYLE: true,
   LOG_LEVEL: 'error',
   PIPELINE_RUN_ID: null,
+  PIPELINE_SCRATCH_URL: null,
   FEC_API_KEY: null,
   isCi: false,
 });
