@@ -225,6 +225,27 @@ describe('the database harness', () => {
     const next = await insertAppEvent(db);
     expect(next.id).toBe(1);
   });
+
+  it('resetDb restarts the identity of a table the test emptied itself', async () => {
+    const db = getTestDb();
+    await insertAppEvent(db);
+    await db.execute(sql`delete from app_events`);
+    await resetDb();
+    const next = await insertAppEvent(db);
+    expect(next.id).toBe(1);
+  });
+
+  it('resetDb leaves the file of a table that holds no row', async () => {
+    const filenode = async (): Promise<number> =>
+      (await one<{ node: number }>(sql`select pg_relation_filenode('public.users')::int as node`))
+        .node;
+    const before = await filenode();
+    await resetDb();
+    expect(await filenode()).toBe(before);
+    await insertUser(getTestDb());
+    await resetDb();
+    expect(await filenode()).not.toBe(before);
+  });
 });
 
 type StateRuleText = {

@@ -64,17 +64,24 @@ async function restoreStateRules(db: Db): Promise<void> {
 }
 
 /**
- * Empties this worker's database before a test: truncates every application table of schema
- * `public` not in KEEP_TABLES (extension tables such as PostGIS's `spatial_ref_sys` are not
- * application tables), deletes every pg-boss job, restarts the factory sequence and the
- * district ordinal of the fixture geometry, clears the log capture, forgets the registered scan
- * values and sources, and restores `state_rules` to the migration's rows plus the fixture state
- * `ZZ`.
+ * Empties this worker's database before a test: truncates, restarting its identity, every
+ * application table of schema `public` not in KEEP_TABLES that holds a row or whose identity has
+ * advanced (extension tables such as PostGIS's `spatial_ref_sys` are not application tables),
+ * deletes every pg-boss job, restarts the factory sequence and the district ordinal of the
+ * fixture geometry, clears the log capture, forgets the registered scan values and sources, and
+ * restores `state_rules` to the migration's rows plus the fixture state `ZZ`.
  */
 export async function resetDb(): Promise<void> {
   const db = getTestDb();
-  const tables = await db.execute<{ name: string }>(
-    sql`select c.relname as name
+  const tables = await db.execute<{ name: string; sequenceUsed: boolean }>(
+    sql`select c.relname as name,
+               exists (
+                 select 1 from pg_depend d
+                 join pg_class s on s.oid = d.objid
+                 where d.classid = 'pg_class'::regclass and d.refobjid = c.oid
+                   and d.deptype in ('a', 'i')
+                   and case when s.relkind = 'S' then pg_sequence_last_value(s.oid) end is not null
+               ) as "sequenceUsed"
         from pg_class c
         join pg_namespace n on n.oid = c.relnamespace
         where n.nspname = 'public'
@@ -88,7 +95,29 @@ export async function resetDb(): Promise<void> {
     'objects',
   );
   const keep = new Set(KEEP_TABLES);
-  const truncated = tables.map((table) => table.name).filter((name) => !keep.has(name));
+  const candidates = tables.filter((table) => !keep.has(table.name));
+  // A truncate gives every table, index and sequence it names a new file, which the next
+  // checkpoint must sync, and every DROP DATABASE waits for an immediate checkpoint. Only a table
+  // that holds a row or whose identity has advanced is truncated; the rest are already as a
+  // truncate would leave them.
+  const unknown = candidates.filter((table) => !table.sequenceUsed);
+  const holding =
+    unknown.length === 0
+      ? []
+      : await db.execute<{ name: string }>(
+          sql.join(
+            unknown.map(
+              (table) =>
+                sql`select ${table.name}::text as name where exists (select 1 from ${sql.identifier('public')}.${sql.identifier(table.name)})`,
+            ),
+            sql` union all `,
+          ),
+          'objects',
+        );
+  const holdingNames = new Set(holding.map((row) => row.name));
+  const truncated = candidates
+    .filter((table) => table.sequenceUsed || holdingNames.has(table.name))
+    .map((table) => table.name);
   if (truncated.length > 0) {
     const list = sql.join(
       truncated.map((name) => sql`${sql.identifier('public')}.${sql.identifier(name)}`),
