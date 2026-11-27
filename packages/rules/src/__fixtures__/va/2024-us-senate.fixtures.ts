@@ -37,6 +37,7 @@ export const fixture: RulesFixture = {
         officeTypeId: 'us-senate',
         schedule: 'va_june_primary',
         trackSet: 'va_partisan',
+        partisan: true,
       },
       contest: { date: '2024-11-05', kind: 'general', party: null },
       expect: [{ track: 'independent', closesOn: '2024-06-18', closesTime: '19:00' }],
