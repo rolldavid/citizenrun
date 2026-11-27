@@ -1,0 +1,5 @@
+{
+  "url": "https://example.test/zz/code?cite=24.050&pdf=true",
+  "fixture": true,
+  "synthetic": "Hand-written stand-in for a saved statute PDF. The statute host's robots.txt refuses automated clients, so no PDF is saved (D-876)."
+}
