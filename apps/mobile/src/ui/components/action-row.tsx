@@ -118,11 +118,19 @@ type RunControlProps = {
   testID: string;
 };
 
+/**
+ * The name of a Run button whose words are not in the long form ("Running", or why it cannot be
+ * taken): the words it shows, then the long form, so what a person sees is in what is read out.
+ */
+function namedWith(shown: string, name: string): string {
+  return `${shown}. ${name}`;
+}
+
 /** Run: the accent button, its ink done state, or a disabled button that says why. Never an icon. */
 function RunControl({ run, layout, onRun, testID }: RunControlProps): JSX.Element {
   const { t } = useTranslation('common');
   const { isTight } = useBreakpoint();
-  // The name is the long form whatever the button shows.
+  // The name holds the long form whatever the button shows.
   const name = t('ui.actions.runLong');
   const short = t('ui.actions.run');
 
@@ -131,8 +139,7 @@ function RunControl({ run, layout, onRun, testID }: RunControlProps): JSX.Elemen
       <Button
         variant="run"
         label={run.label}
-        accessibilityLabel={name}
-        accessibilityHint={run.label}
+        accessibilityLabel={namedWith(run.label, name)}
         disabled={true}
         fullWidth={true}
         testID={testID}
@@ -148,7 +155,7 @@ function RunControl({ run, layout, onRun, testID }: RunControlProps): JSX.Elemen
       variant="primary"
       label={runningLabel}
       done={true}
-      accessibilityLabel={name}
+      accessibilityLabel={namedWith(runningLabel, name)}
       selected={true}
       fullWidth={true}
       onPress={onRun}

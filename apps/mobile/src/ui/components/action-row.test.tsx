@@ -136,6 +136,16 @@ function wordsOf(button: HTMLElement): string {
   return button.textContent;
 }
 
+/** The words of a text as a name is compared with a label: lower case, without punctuation. */
+function wordsIn(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim()
+    .split(' ')
+    .filter((word) => word !== '');
+}
+
 /** The zero-height copy of a control's other state, found from the control. */
 function twinOf(control: HTMLElement, root: HTMLElement): HTMLElement | null {
   for (
@@ -431,11 +441,21 @@ describe('ActionRow', () => {
   });
 
   it('Run is named in full', () => {
+    // The long form alone where the button shows "Run" or the long form; where it shows another
+    // word, that word and then the long form.
+    const names = {
+      rowIdle: RUN_LONG,
+      sticky: RUN_LONG,
+      stacked: RUN_LONG,
+      rowRunning: `Running. ${RUN_LONG}`,
+      rowUnavailable: `Filing closed. ${RUN_LONG}`,
+    } as const;
     for (const state of ['rowIdle', 'sticky', 'stacked', 'rowRunning', 'rowUnavailable'] as const) {
       draw(STATES[state]);
       const run = screen.getByTestId(ids(STATES[state]).run);
-      expect(run.getAttribute('aria-label'), state).toBe(RUN_LONG);
-      expect(screen.getByRole('button', { name: RUN_LONG }), state).toBe(run);
+      expect(run.getAttribute('aria-label'), state).toBe(names[state]);
+      expect(run.getAttribute('aria-label'), state).toContain(RUN_LONG);
+      expect(screen.getByRole('button', { name: names[state] }), state).toBe(run);
       // Never an icon on Run, but the check of its done state.
       expect(run.querySelectorAll('path'), state).toHaveLength(state === 'rowRunning' ? 1 : 0);
     }
@@ -482,7 +502,11 @@ describe('ActionRow', () => {
     const closedBox = closed.querySelector<HTMLElement>('[style*="min-height"]');
     expect(closedBox?.style.backgroundColor).toBe(written(color.light.disabledBg));
     expect(closedBox?.style.borderStyle).not.toBe('dashed');
-    expect(nativeProps(ids(STATES.rowUnavailable).run)['accessibilityHint']).toBe('Filing closed');
+    // The reason is read once, in the name, on the web and on a phone alike.
+    expect(nativeProps(ids(STATES.rowUnavailable).run)['aria-label']).toBe(
+      `Filing closed. ${RUN_LONG}`,
+    );
+    expect(nativeProps(ids(STATES.rowUnavailable).run)['accessibilityHint']).toBeUndefined();
     fireEvent.click(closed);
     expect(onRun).not.toHaveBeenCalled();
     // A press on Run reaches the caller, with no haptic of the row's.
@@ -491,6 +515,39 @@ describe('ActionRow', () => {
     fireEvent.click(screen.getByTestId(ids(STATES.rowIdle).run));
     expect(pressed).toHaveBeenCalledTimes(1);
     expect(hapticsFake.calls).toEqual([]);
+  });
+
+  it('what Run shows is in its name', () => {
+    // Every state of Run in every layout, at both widths of the bar's label.
+    const runs = [
+      { state: 'idle' },
+      { state: 'running' },
+      { state: 'unavailable', label: 'Filing closed' },
+    ] as const;
+    for (const rowLayout of ['row', 'sticky', 'stacked'] as const) {
+      for (const run of runs) {
+        for (const isTight of [false, true]) {
+          layout.isTight = isTight;
+          const fixture: ActionRowProps = { ...STATES.rowIdle, layout: rowLayout, run };
+          draw(fixture);
+          const button = screen.getByTestId(ids(fixture).run);
+          const where = `${rowLayout} ${run.state} ${isTight ? 'tight' : 'wide'}`;
+          const shown = wordsIn(wordsOf(button));
+          const named = wordsIn(button.getAttribute('aria-label') ?? '');
+          expect(shown.length, where).toBeGreaterThan(0);
+          // The words a person sees stand together in the name a screen reader says.
+          const starts = named.map((_, at) => at).filter((at) => at + shown.length <= named.length);
+          expect(
+            starts.some((at) => shown.every((word, offset) => word === named[at + offset])),
+            `${where}: "${shown.join(' ')}" in "${named.join(' ')}"`,
+          ).toBe(true);
+          // What it shows leads the name, and the long form is always in it.
+          expect(named.slice(0, shown.length), where).toEqual(shown);
+          expect(button.getAttribute('aria-label'), where).toContain(RUN_LONG);
+        }
+      }
+    }
+    layout.isTight = false;
   });
 
   it('Follow and Bookmark names and states', () => {
