@@ -25,4 +25,17 @@ export type { OfficeArtSvgProps } from './art/office-art.tsx';
 export { OfficeGlyphSvg } from './art/office-glyph.tsx';
 export type { OfficeGlyphSvgProps } from './art/office-glyph.tsx';
 export { OFFICE_ART_IDS } from './generated/index.ts';
-export type { CardContext } from './feed.ts';
+export type { CanvasPage, CardContext, FeedCanvasOptions } from './feed.ts';
+export { CardCanvas } from './templates/card-canvas.tsx';
+export { OfficeHeroCanvas, officeHeroHeight } from './templates/office-hero.tsx';
+export {
+  altText as runAgainstAltText,
+  altTextSentences as runAgainstAltTextSentences,
+  buildRunAgainstModel,
+} from './model/run-against.ts';
+export type { RunAgainstData, RunAgainstModel } from './model/run-against.ts';
+export { buildOfficeHeroModel, heroAltText } from './model/office-hero.ts';
+export type { OfficeTopModel } from './model/region-models.ts';
+export { issueMatchLine } from './model/header.ts';
+export { DistrictShapeSvg, validOutline } from './art/district-shape.tsx';
+export type { DistrictShapeSvgProps } from './art/district-shape.tsx';
