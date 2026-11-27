@@ -142,6 +142,9 @@ export async function prepareLoad(
     return reject(db, bundleId, withCounts(base, report, gates));
   }
   const files = manifest.files.map((file) => file.name);
+  // Freshly staged rows have no planner statistics; without them the reference gates' anti-joins
+  // over staging run as nested loops that scan a staged file once per row of another.
+  await db.execute(sql`analyze staging.bundle_rows, staging.district_geometry`);
   gates.push(...(await sqlGates(db, bundleId, files, report)));
   gates.push(personalDataGate(report));
   gates.push(await geometryGate(db, bundleId));

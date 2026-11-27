@@ -406,6 +406,18 @@ describe('the gates', () => {
       expect(failedDetail(stats)).toBe('offices:1 district_key');
     });
 
+    it('analyzes the staged rows before the reference gates run', async () => {
+      const db = getTestDb();
+      const [start] = await db.execute<{ now: string }>(sql`select now()::text as now`, 'objects');
+      await expectRejected(fault('missing-district').build(await baseInput()), 'references');
+      const [stat] = await db.execute<{ analyzed: boolean }>(
+        sql`select coalesce(last_analyze > ${start?.now ?? ''}::timestamptz, false) as analyzed
+            from pg_stat_user_tables where schemaname = 'staging' and relname = 'bundle_rows'`,
+        'objects',
+      );
+      expect(stat?.analyzed).toBe(true);
+    });
+
     it('rejects a fallback through an approximate district', async () => {
       const input = await baseInput();
       row(input, 'district_fallbacks').via_district_key = 'county_approx:census:990004';
