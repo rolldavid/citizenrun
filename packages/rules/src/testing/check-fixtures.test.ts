@@ -1,11 +1,12 @@
 import { eachZone } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { daysBefore, roll } from '../dates.ts';
-import type { RulesFixture, StateRules, TrackOut } from '../types.ts';
+import type { Citation, RulesFixture, StateRules, TrackOut } from '../types.ts';
 import {
   checkCitesStatute,
   checkCyclesPresent,
   checkMatchesCalendar,
+  checkNeverRolls,
   checkOfficialSource,
   checkPartyAndIndependent,
   checkThreeYearsAndRoll,
@@ -14,7 +15,13 @@ import {
   fixtureOffice,
   runStateRulesSuite,
 } from './check-fixtures.ts';
-import type { StateSuiteInput, SuiteCheck, SuiteProblem } from './check-fixtures.ts';
+import type {
+  NeverRolls,
+  RuleDeclaration,
+  StateSuiteInput,
+  SuiteCheck,
+  SuiteProblem,
+} from './check-fixtures.ts';
 import { zzFixtures, zzRules, zzSuiteInput } from './zz.fixtures.ts';
 
 const SYNC_CHECKS = [
@@ -368,6 +375,174 @@ describe('the suite checker', () => {
       expect(office.payAnnualCents).toBeNull();
       expect(() => office.population).toThrow('zz-case does not state population');
       expect(() => ({ ...office })).toThrow('zz-case does not state');
+    });
+  });
+});
+
+/** A closing day with one citation in force for every fixture year. */
+const FIXED_CLOSE: Citation = {
+  citation: 'Fixture Code zz-2-202b',
+  sourceUrl: 'https://example.test/fixture-code/zz-2-202b',
+  quote: 'Fixture rule: the filing period closes on the 56th day before the election.',
+  validFrom: '2000-01-01',
+  validTo: null,
+};
+
+/** zzRules whose filing track closes `days` before the election, with no roll. */
+function closingOn(days: number): StateRules {
+  return withTracks((track, date) => ({
+    ...track,
+    closesOn: { value: daysBefore(date, days), citation: FIXED_CLOSE },
+  }));
+}
+
+/** 56 days before each fixture election, worked by hand: a Tuesday in September. */
+const TUESDAY_CLOSES: Readonly<Record<string, string>> = {
+  '2024-11-05': '2024-09-10',
+  '2026-11-03': '2026-09-08',
+  '2027-11-02': '2027-09-07',
+};
+
+const neverFixtures: readonly RulesFixture[] = zzFixtures.map((fixture) => ({
+  ...fixture,
+  cases: fixture.cases.map((fixtureCase) => ({
+    ...fixtureCase,
+    expect: fixtureCase.expect.map((expected) => ({
+      ...expected,
+      closesOn: TUESDAY_CLOSES[fixtureCase.contest.date] ?? fail(),
+    })),
+  })),
+}));
+
+const NEVER: NeverRolls = {
+  never: true,
+  fields: ['closesOn'],
+  reason: 'Fixture rule: the closing day is always a Tuesday in September.',
+};
+
+function neverDeclaration(rolled: NeverRolls = NEVER): RuleDeclaration & { rolled: NeverRolls } {
+  return { id: 'zz.nonpartisan', trackSet: 'zz_filing', track: 'nonpartisan', rolled };
+}
+
+function neverInput(rules: StateRules, rolled: NeverRolls = NEVER): StateSuiteInput {
+  return {
+    ...zzSuiteInput,
+    rules,
+    fixtures: neverFixtures,
+    declaredRules: [neverDeclaration(rolled)],
+  };
+}
+
+describe('a never-roll state passes every suite case', () => {
+  runStateRulesSuite(neverInput(closingOn(56)));
+});
+
+describe('the never-roll declaration', () => {
+  it('a never-roll rule passes when every date is a business day', async () => {
+    await eachZone(async () => {
+      const input = neverInput(closingOn(56));
+      expect(checkThreeYearsAndRoll(input)).toEqual([]);
+      expect(checkNeverRolls(input, neverDeclaration())).toEqual([]);
+      expect(await allProblems(input)).toEqual([]);
+    });
+  });
+
+  it('a never-roll rule that lands on a holiday fails', async () => {
+    await eachZone(() => {
+      const input = neverInput(closingOn(57));
+      const problems = checkNeverRolls(input, neverDeclaration());
+      expect(problems).toContainEqual({
+        check: 'three_years_and_roll',
+        where: 'zz.nonpartisan',
+        detail:
+          'rule zz.nonpartisan declared never to roll gives closesOn 2026-09-07, which is not a business day',
+      });
+      expect(problems.every((problem) => problem.check === 'three_years_and_roll')).toBe(true);
+      // The suite case reaches the proof through checkThreeYearsAndRoll.
+      expect(checkThreeYearsAndRoll(input)).toEqual(problems);
+    });
+  });
+
+  it('a never-roll declaration needs a reason and fields', async () => {
+    await eachZone(() => {
+      const rules = closingOn(56);
+      const short = checkNeverRolls(
+        neverInput(rules, { ...NEVER, reason: 'short' }),
+        neverDeclaration({ ...NEVER, reason: 'short' }),
+      );
+      expect(short).toEqual([
+        expect.objectContaining({ check: 'three_years_and_roll', where: 'zz.nonpartisan' }),
+      ]);
+      const noFields = checkNeverRolls(
+        neverInput(rules, { ...NEVER, fields: [] }),
+        neverDeclaration({ ...NEVER, fields: [] }),
+      );
+      expect(noFields).toEqual([
+        expect.objectContaining({ check: 'three_years_and_roll', where: 'zz.nonpartisan' }),
+      ]);
+      expect(noFields[0]?.detail).toContain('zz.nonpartisan');
+    });
+  });
+
+  it('a never-roll rule with no date fails', async () => {
+    await eachZone(() => {
+      const silent: StateRules = { ...zzRules, filingTracks: () => [] };
+      const input: StateSuiteInput = { ...zzSuiteInput, rules: silent };
+      expect(checkNeverRolls(input, neverDeclaration())).toEqual([
+        {
+          check: 'three_years_and_roll',
+          where: 'zz.nonpartisan',
+          detail: 'rule zz.nonpartisan declared never to roll produced no date to check',
+        },
+      ]);
+    });
+  });
+
+  it('a never-roll rule whose field is always null fails', async () => {
+    await eachZone(() => {
+      const input = neverInput(closingOn(56), { ...NEVER, fields: ['petitionDue'] });
+      expect(
+        checkNeverRolls(input, neverDeclaration({ ...NEVER, fields: ['petitionDue'] })),
+      ).toEqual([
+        expect.objectContaining({
+          detail: expect.stringContaining('produced no date to check') as unknown,
+        }),
+      ]);
+    });
+  });
+
+  it('a module that throws for a year is reported', async () => {
+    await eachZone(() => {
+      const base = closingOn(56);
+      const throwing: StateRules = {
+        ...base,
+        contests: (args) => {
+          if (args.year === 2031) {
+            throw new RangeError('Fixture rule: no version is in force for 2031');
+          }
+          return base.contests(args);
+        },
+      };
+      const problems = checkNeverRolls(neverInput(throwing), neverDeclaration());
+      expect(problems).toHaveLength(1);
+      expect(problems[0]).toMatchObject({ check: 'three_years_and_roll', where: 'zz.nonpartisan' });
+      expect(problems[0]?.detail).toContain('2031');
+    });
+  });
+
+  it('a never-roll rule still needs three years', async () => {
+    await eachZone(() => {
+      const twoYears: StateSuiteInput = {
+        ...neverInput(closingOn(56)),
+        fixtures: neverFixtures.filter((fixture) => fixture.contests[0]?.year !== 2027),
+      };
+      expect(checkThreeYearsAndRoll(twoYears)).toEqual([
+        expect.objectContaining({
+          check: 'three_years_and_roll',
+          where: 'zz.nonpartisan',
+          detail: expect.stringContaining('at least three are needed') as unknown,
+        }),
+      ]);
     });
   });
 });

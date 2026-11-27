@@ -3,6 +3,7 @@
 import { eachZone } from '@citizenrun/shared/testing';
 import { describe, expect, it } from 'vitest';
 import { isBusinessDay, roll, toDayNumber } from '../dates.ts';
+import type { HolidayCalendar } from '../dates.ts';
 import type {
   Citation,
   Computed,
@@ -16,18 +17,31 @@ import type {
   TrackOut,
 } from '../types.ts';
 
+export type RollField = 'opensOn' | 'closesOn' | 'petitionDue';
+/** One published case whose date moved for a weekend or holiday (D-330). */
+export type RolledCase = {
+  readonly caseId: string;
+  readonly field: RollField;
+  readonly unrolled: IsoDate; // the date the statute's arithmetic gives before the roll
+  readonly direction: 'next_business_day' | 'previous_business_day';
+};
+/** The statute fixes these fields on days that are always business days, so no published year can show a roll. */
+export type NeverRolls = {
+  readonly never: true;
+  readonly fields: readonly RollField[];
+  readonly reason: string;
+};
 export type RuleDeclaration = {
   readonly id: string; // the state's name for the rule, for messages ('nc.party_primary')
   readonly trackSet: string; // the OfficeRef.trackSet the rule serves
   readonly track: TrackKind;
-  readonly rolled: {
-    // one published case whose date moved for a weekend or holiday (D-330)
-    readonly caseId: string;
-    readonly field: 'opensOn' | 'closesOn' | 'petitionDue';
-    readonly unrolled: IsoDate; // the date the statute's arithmetic gives before the roll
-    readonly direction: 'next_business_day' | 'previous_business_day';
-  };
+  readonly rolled: RolledCase | NeverRolls;
 };
+
+/** The last year a never-roll declaration is proved on the module (D-669). */
+export const NEVER_ROLLS_LAST_YEAR = 2060;
+/** The shortest `reason` a never-roll declaration may give. */
+const NEVER_ROLLS_REASON_MIN = 20;
 
 export type StateSuiteInput = {
   readonly state: string;
@@ -350,6 +364,10 @@ export function checkThreeYearsAndRoll(input: StateSuiteInput): readonly SuitePr
         `cases in ${String(years.length)} contest years (${years.sort((a, b) => a - b).join(', ')}); at least three are needed`,
       );
     }
+    if ('never' in rule.rolled) {
+      problems.push(...checkNeverRolls(input, { ...rule, rolled: rule.rolled }));
+      continue;
+    }
     const { caseId, field, unrolled, direction } = rule.rolled;
     const rolledCase = ruleCases.find((fixtureCase) => fixtureCase.id === caseId);
     if (rolledCase === undefined) {
@@ -382,6 +400,99 @@ export function checkThreeYearsAndRoll(input: StateSuiteInput): readonly SuitePr
     if (expected === unrolled) {
       fail(rule.id, `${caseId} publishes ${field} ${expected}, the unrolled date: it did not move`);
     }
+  }
+  return problems;
+}
+
+/** The year before, the year and the year after, as one calendar of `year`. */
+function mergedCalendar(rules: StateRules, state: string, year: number): HolidayCalendar {
+  return {
+    state,
+    year,
+    holidays: [year - 1, year, year + 1].flatMap((y) => rules.holidays(y).holidays),
+  };
+}
+
+function rollFieldValue(track: TrackOut, field: RollField): IsoDate | null {
+  switch (field) {
+    case 'opensOn':
+      return track.opensOn?.value ?? null;
+    case 'closesOn':
+      return track.closesOn.value;
+    case 'petitionDue':
+      return track.petitionDue?.value ?? null;
+  }
+}
+
+/**
+ * [`three years per rule, one with a roll`, never-roll part] Proves a never-roll declaration on the
+ * module: from the contest year of the rule's earliest case to NEVER_ROLLS_LAST_YEAR, every named
+ * field of the declared track is a business day under the module's calendars of the year before,
+ * the year and the year after (PIPE-rules-fixtures rule 5, D-669).
+ */
+export function checkNeverRolls(
+  input: StateSuiteInput,
+  decl: RuleDeclaration & { readonly rolled: NeverRolls },
+): readonly SuiteProblem[] {
+  const problems: SuiteProblem[] = [];
+  const fail = (detail: string): void => {
+    problems.push({ check: 'three_years_and_roll', where: decl.id, detail });
+  };
+  const { fields, reason } = decl.rolled;
+  if (reason.trim().length < NEVER_ROLLS_REASON_MIN || fields.length === 0) {
+    fail(
+      `rule ${decl.id} declared never to roll needs at least one field and a reason of ${String(NEVER_ROLLS_REASON_MIN)} characters`,
+    );
+    return problems;
+  }
+  const [first] = input.fixtures
+    .flatMap((fixture) => fixture.cases)
+    .filter(
+      (fixtureCase) =>
+        fixtureCase.office.trackSet === decl.trackSet && expectsTrack(fixtureCase, decl.track),
+    )
+    .sort((a, b) => toDayNumber(a.contest.date) - toDayNumber(b.contest.date));
+  let checked = 0;
+  if (first !== undefined) {
+    const office = fixtureOffice(input.state, first.office, first.id);
+    for (let year = yearOf(first.contest.date); year <= NEVER_ROLLS_LAST_YEAR; year++) {
+      try {
+        const contests = input.rules
+          .contests({ office, year })
+          .filter(
+            (contest) =>
+              contest.kind === first.contest.kind &&
+              (first.contest.party === null || contest.party === first.contest.party),
+          );
+        for (const { date, kind, party } of contests) {
+          const tracks = input.rules
+            .filingTracks({ office, contest: { date, kind, party } })
+            .filter((track) => track.track === decl.track);
+          for (const track of tracks) {
+            for (const field of fields) {
+              const d = rollFieldValue(track, field);
+              if (d === null) {
+                continue;
+              }
+              checked += 1;
+              if (!isBusinessDay(d, mergedCalendar(input.rules, input.state, yearOf(d)))) {
+                fail(
+                  `rule ${decl.id} declared never to roll gives ${field} ${d}, which is not a business day`,
+                );
+              }
+            }
+          }
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        fail(
+          `rule ${decl.id} declared never to roll: the module throws for ${String(year)}: ${message}`,
+        );
+      }
+    }
+  }
+  if (checked === 0) {
+    fail(`rule ${decl.id} declared never to roll produced no date to check`);
   }
   return problems;
 }
