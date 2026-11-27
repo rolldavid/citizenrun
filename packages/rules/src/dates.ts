@@ -148,6 +148,31 @@ export function novemberElectionDay(year: number): IsoDate {
   return firstWeekdayAfter(nthWeekdayOfMonth(year, 11, MONDAY, 1), TUESDAY);
 }
 
+const FIRST_EASTER_YEAR = 1900;
+const LAST_EASTER_YEAR = 2100;
+
+/** Gregorian Easter Sunday (the anonymous Gregorian algorithm). Throws RangeError outside 1900 to 2100. */
+export function easterSunday(year: number): IsoDate {
+  if (!Number.isInteger(year) || year < FIRST_EASTER_YEAR || year > LAST_EASTER_YEAR) {
+    throw new RangeError(`No Easter date for ${String(year)}`);
+  }
+  const a = year % 19;
+  const b = Math.floor(year / 100);
+  const c = year % 100;
+  const d = Math.floor(b / 4);
+  const e = b % 4;
+  const f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3);
+  const h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4);
+  const k = c % 4;
+  const l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  const month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return `${pad(year, 4)}-${pad(month, 2)}-${pad(day, 2)}`;
+}
+
 export type Holiday = {
   readonly date: IsoDate;
   readonly name: string;

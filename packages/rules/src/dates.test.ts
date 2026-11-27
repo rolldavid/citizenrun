@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addDays,
   daysBefore,
+  easterSunday,
   federalHolidays,
   FRIDAY,
   firstWeekdayAfter,
@@ -270,6 +271,48 @@ describe('the date library', () => {
       ];
       expect(() => selectVersion(overlapping, '2027-11-02')).toThrow(RangeError);
       expect(selectVersion(overlapping, '2026-11-03')).toBe(57);
+    });
+  });
+
+  it('Easter Sunday', async () => {
+    await eachZone(() => {
+      const published: [number, string][] = [
+        [1900, '1900-04-15'],
+        [2000, '2000-04-23'],
+        [2019, '2019-04-21'],
+        [2023, '2023-04-09'],
+        [2024, '2024-03-31'],
+        [2025, '2025-04-20'],
+        [2026, '2026-04-05'],
+        [2027, '2027-03-28'],
+        [2028, '2028-04-16'],
+        [2100, '2100-03-28'],
+      ];
+      for (const [year, date] of published) {
+        expect(easterSunday(year)).toBe(date);
+        expect(weekdayOf(easterSunday(year))).toBe(SUNDAY);
+      }
+      expect(() => easterSunday(1899)).toThrow(RangeError);
+      expect(() => easterSunday(2101)).toThrow(RangeError);
+      expect(() => easterSunday(2026.5)).toThrow(RangeError);
+    });
+  });
+
+  it('Good Friday by subtraction', async () => {
+    await eachZone(() => {
+      const goodFriday = daysBefore(easterSunday(2026), 2);
+      expect(goodFriday).toBe('2026-04-03');
+      expect(weekdayOf(goodFriday)).toBe(FRIDAY);
+    });
+  });
+
+  it('Easter falls between 22 March and 25 April in every year it answers', async () => {
+    await eachZone(() => {
+      for (let year = 1900; year <= 2100; year++) {
+        const easter = easterSunday(year);
+        expect(weekdayOf(easter)).toBe(SUNDAY);
+        expect(easter >= `${String(year)}-03-22` && easter <= `${String(year)}-04-25`).toBe(true);
+      }
     });
   });
 });
