@@ -1,0 +1,24 @@
+{
+  "state": "VA",
+  "counties": [
+    "51087",
+    "51760"
+  ],
+  "captured_at": "2026-11-27T23:36:01.472Z",
+  "stage1_finished_at": "2026-11-26T20:19:33.769Z",
+  "stage2_finished_at": "2026-11-27T18:08:21.111Z",
+  "census_gus_edition": "2026",
+  "rows": {
+    "jurisdictions": 12,
+    "districts": 13,
+    "district_fallbacks": 7,
+    "geometry": 13,
+    "listing": 11,
+    "known_refs": 153
+  },
+  "transformations": [
+    "Kept the rows of the counties 51087, 51760 and the state's own jurisdiction and district.",
+    "Replaced lookup_wkb by display_wkb on every geometry row that has both.",
+    "Kept every stage 2 office ref of the state."
+  ]
+}
