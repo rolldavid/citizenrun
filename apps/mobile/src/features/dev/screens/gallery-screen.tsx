@@ -11,12 +11,15 @@ import {
   Checkbox,
   CodeField,
   CompactShell,
+  ConfidenceBadge,
   CountBadge,
   Dialog,
   EmptyChair,
   EmptyState,
   ExpandedShell,
+  FactRow,
   FeedRule,
+  Flag,
   FormField,
   HandleField,
   Icon,
@@ -30,6 +33,7 @@ import {
   ListRow,
   MediumShell,
   Notice,
+  PhotoCredit,
   Popover,
   Pressable,
   Progress,
@@ -44,10 +48,14 @@ import {
   Select,
   Sheet,
   Skeleton,
+  SourceLink,
+  SourcesSheet,
   StickyFooter,
   Switch,
   SystemScreen,
   TabBar,
+  Table,
+  Tag,
   Text,
   TextField,
   ToastOutlet,
@@ -73,6 +81,8 @@ import type {
   RightColumnProps,
   SelectProps,
   SheetProps,
+  SourcesSheetProps,
+  TableProps,
   StickyFooterProps,
   SwitchProps,
   TextFieldProps,
@@ -82,11 +92,14 @@ import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
 import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
+import * as confidenceBadgeFixtures from '@/ui/components/confidence-badge.fixtures';
 import * as countBadgeFixtures from '@/ui/components/count-badge.fixtures';
 import * as dialogFixtures from '@/ui/components/dialog.fixtures';
 import * as emptyChairFixtures from '@/ui/components/empty-chair.fixtures';
 import * as emptyStateFixtures from '@/ui/components/empty-state.fixtures';
+import * as factRowFixtures from '@/ui/components/fact-row.fixtures';
 import * as feedRuleFixtures from '@/ui/components/feed-rule.fixtures';
+import * as flagFixtures from '@/ui/components/flag.fixtures';
 import * as formFieldFixtures from '@/ui/components/form-field.fixtures';
 import * as handleFieldFixtures from '@/ui/components/handle-field.fixtures';
 import * as iconButtonFixtures from '@/ui/components/icon-button.fixtures';
@@ -98,6 +111,7 @@ import * as linkFixtures from '@/ui/components/link.fixtures';
 import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
 import * as popoverFixtures from '@/ui/components/popover.fixtures';
 import * as pressableFixtures from '@/ui/components/pressable.fixtures';
 import * as progressFixtures from '@/ui/components/progress.fixtures';
@@ -110,9 +124,13 @@ import * as sectionHeaderFixtures from '@/ui/components/section-header.fixtures'
 import * as selectFixtures from '@/ui/components/select.fixtures';
 import * as sheetFixtures from '@/ui/components/sheet.fixtures';
 import * as skeletonFixtures from '@/ui/components/skeleton.fixtures';
+import * as sourceLinkFixtures from '@/ui/components/source-link.fixtures';
+import * as sourcesSheetFixtures from '@/ui/components/sources-sheet.fixtures';
 import * as stickyFooterFixtures from '@/ui/components/sticky-footer.fixtures';
 import * as switchFixtures from '@/ui/components/switch.fixtures';
 import * as systemScreenFixtures from '@/ui/components/system-screen.fixtures';
+import * as tableFixtures from '@/ui/components/table.fixtures';
+import * as tagFixtures from '@/ui/components/tag.fixtures';
 import * as textFieldFixtures from '@/ui/components/text-field.fixtures';
 import * as textFixtures from '@/ui/components/text.fixtures';
 import * as toastFixtures from '@/ui/components/toast.fixtures';
@@ -304,6 +322,42 @@ function SheetSpecimen({ state, fixture }: { state: string; fixture: SheetProps 
         }}
       />
       <Sheet
+        {...props}
+        open={open}
+        onClose={close}
+        {...(footer === undefined ? {} : { footer: closingFooter(footer, close) })}
+      />
+    </>
+  );
+}
+
+/**
+ * One state of C-SourcesSheet: the button that opens it, and the sheet, closed until then. The
+ * button of its footer closes it.
+ */
+function SourcesSheetSpecimen({
+  state,
+  fixture,
+}: {
+  state: string;
+  fixture: SourcesSheetProps;
+}): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const close = (): void => {
+    setOpen(false);
+  };
+  const { footer, ...props } = fixture;
+  return (
+    <>
+      <Button
+        variant="secondary"
+        label={`Open ${state}`}
+        testID={`gallery.open-sources-sheet-${kebab(state)}`}
+        onPress={() => {
+          setOpen(true);
+        }}
+      />
+      <SourcesSheet
         {...props}
         open={open}
         onClose={close}
@@ -697,6 +751,8 @@ const SHEET_STATES: Readonly<Record<string, SheetProps>> = sheetFixtures.STATES;
 const DIALOG_STATES: Readonly<Record<string, DialogProps>> = dialogFixtures.STATES;
 const TOAST_STATES: Readonly<Record<string, Parameters<typeof showToast>[0]>> =
   toastFixtures.STATES;
+const SOURCES_SHEET_STATES: Readonly<Record<string, SourcesSheetProps>> =
+  sourcesSheetFixtures.STATES;
 
 /** Every component built so far, in the order of the design system (DS-gallery). */
 const GALLERY_SECTIONS: readonly GallerySection[] = [
@@ -812,7 +868,29 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   ),
   section('C-SectionHeader', 'section-header', 'wide', SectionHeader, sectionHeaderFixtures),
   section('C-ListRow', 'list-row', 'wide', ListRow, listRowFixtures),
+  section('C-FactRow', 'fact-row', 'wide', FactRow, factRowFixtures),
+  // In the column a screen gives it, so a wide window shows every column and a phone scrolls.
+  fixtureSection<TableProps>('C-Table', 'table', 'full', tableFixtures, (fixture) => (
+    <WindowFrame width={COLUMN_WINDOW}>
+      <Table {...fixture} />
+    </WindowFrame>
+  )),
+  section('C-Tag', 'tag', 'narrow', Tag, tagFixtures),
+  section('C-Flag', 'flag', 'narrow', Flag, flagFixtures),
+  section(
+    'C-ConfidenceBadge',
+    'confidence-badge',
+    'narrow',
+    ConfidenceBadge,
+    confidenceBadgeFixtures,
+  ),
+  section('C-SourceLink', 'source-link', 'wide', SourceLink, sourceLinkFixtures),
+  specimenSection('C-SourcesSheet', 'sources-sheet', Object.keys(SOURCES_SHEET_STATES), (state) => {
+    const fixture = SOURCES_SHEET_STATES[state];
+    return fixture === undefined ? null : <SourcesSheetSpecimen state={state} fixture={fixture} />;
+  }),
   section('C-Prose', 'prose', 'full', Prose, proseFixtures),
+  section('C-PhotoCredit', 'photo-credit', 'narrow', PhotoCredit, photoCreditFixtures),
   {
     id: 'C-IssueTile',
     slug: 'issue-tile',

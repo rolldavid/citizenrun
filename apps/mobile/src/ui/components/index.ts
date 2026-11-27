@@ -42,7 +42,15 @@ export * from './progress';
 export * from './sticky-footer';
 export * from './section-header';
 export * from './list-row';
+export * from './fact-row';
+export * from './table';
+export * from './tag';
+export * from './flag';
+export * from './confidence-badge';
+export * from './source-link';
+export * from './sources-sheet';
 export * from './prose';
+export * from './photo-credit';
 export * from './issue-tile';
 // C-IssueChip's file also exports the chip as C-IssueGrid lays it out; `@/ui` takes the chip alone.
 export { IssueChip } from './issue-chip';
