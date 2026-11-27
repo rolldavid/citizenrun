@@ -1,0 +1,1700 @@
+schema_version: 1
+state: WA
+name: Washington
+rules_module: wa
+county_pay: local
+calendar_pages:
+  - url: 'https://www.sos.wa.gov/elections/calendar'
+    scope: state
+    notes: 'Candidate filing week, withdrawal deadline, primary, general and certification dates'
+parties_with_primaries: []
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes:
+      - 1
+    school_levels: null
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+      quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+      citation: RCW 36.16.030
+    offices:
+      - key: county-commissioner
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam|Thurston) County$)'
+          population_min: null
+          population_max: 399999
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+            quote: The board of county commissioners of each county shall divide their county into three commissioner districts so that each district shall comprise as nearly as possible one-third of the population of the county
+            citation: RCW 36.32.020
+          label_pattern: 'District {n}'
+        body_size:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+          quote: 'Except as provided in RCW 36.32.055 and 36.32.0552, each board of county commissioners shall consist of three qualified electors, two of whom shall constitute a quorum to do business.'
+          citation: RCW 36.32.010
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+          quote: the terms of office of county commissioners shall be four years and shall extend until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280.
+          citation: RCW 36.32.030
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner-five
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: 400000
+          population_max: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 5
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+            quote: 'Beginning in 2022, any noncharter county with a population of four hundred thousand or more must have a board of commissioners with five members, and must use district nominations and district elections for its commissioner positions'
+            citation: RCW 36.32.052
+          label_pattern: 'District {n}'
+        body_size:
+          value: 5
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+          quote: 'Beginning in 2022, any noncharter county with a population of four hundred thousand or more must have a board of commissioners with five members, and must use district nominations and district elections for its commissioner positions'
+          citation: RCW 36.32.052
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.32&full=true'
+          quote: the terms of office of county commissioners shall be four years and shall extend until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280.
+          citation: RCW 36.32.030
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: thurston-county-commissioner
+        office_type: county-commission
+        applies_to:
+          name_pattern: ^Thurston County$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 5
+            source_url: 'https://www.thurstoncountywa.gov/departments/board-county-commissioners'
+            quote: The five commissioners are elected to four-year terms and serve as the chief administrators for several important county operations
+            citation: Thurston County Board of County Commissioners
+          label_pattern: 'District {n}'
+        body_size:
+          value: 5
+          source_url: 'https://www.thurstoncountywa.gov/departments/board-county-commissioners'
+          quote: The five commissioners are elected to four-year terms and serve as the chief administrators for several important county operations
+          citation: Thurston County Board of County Commissioners
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.thurstoncountywa.gov/departments/board-county-commissioners'
+          quote: The five commissioners are elected to four-year terms and serve as the chief administrators for several important county operations
+          citation: Thurston County Board of County Commissioners
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-assessor
+        office_type: county-assessor
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Assessor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-auditor
+        office_type: county-row-other
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Auditor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-clerk
+        office_type: county-clerk
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Clerk'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-coroner
+        office_type: county-row-other
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: 40000
+          population_max: 249999
+        title: '{jurisdiction} Coroner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-prosecuting-attorney
+        office_type: district-attorney
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Prosecuting Attorney'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-sheriff
+        office_type: sheriff
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-treasurer
+        office_type: county-treasurer
+        applies_to:
+          name_pattern: '^(?!(King|Pierce|Snohomish|Whatcom|Clark|San Juan|Clallam) County$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Treasurer'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+            quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+            citation: RCW 36.16.030
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: 'in every county there shall be elected from among the qualified voters of the county a county assessor, a county auditor, a county clerk, a county coroner, three county commissioners, a county prosecuting attorney, a county sheriff, and a county treasurer'
+          citation: RCW 36.16.030
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2022
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.16&full=true'
+          quote: The term of office of all county and precinct officers shall be four years and until their successors are elected and qualified and assume office in accordance with RCW 29A.60.280
+          citation: RCW 36.16.020
+        term_limit_terms: null
+        schedule: wa_county_general
+        track_set: wa_filing_week
+        partisan:
+          value: true
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+          quote: (3) All county offices except (a) judicial offices and (b) those offices for which a county home rule charter provides otherwise.
+          citation: RCW 29A.04.110
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: municipality
+    kind: city
+    unit_type_codes:
+      - 2
+    school_levels: null
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+      quote: 'The government of a town shall be vested in a mayor and a council consisting of five members and a treasurer, all elective'
+      citation: RCW 35.27.070
+    offices:
+      - key: town-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ' town$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+            quote: 'The government of a town shall be vested in a mayor and a council consisting of five members and a treasurer, all elective'
+            citation: RCW 35.27.070
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+          quote: The term of office of the mayor and treasurer shall be four years and until their successors are elected and qualified
+          citation: RCW 35.27.090
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: town-treasurer
+        office_type: city-officer
+        applies_to:
+          name_pattern: ' town$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Treasurer'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+            quote: 'The government of a town shall be vested in a mayor and a council consisting of five members and a treasurer, all elective'
+            citation: RCW 35.27.070
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+          quote: The term of office of the mayor and treasurer shall be four years and until their successors are elected and qualified
+          citation: RCW 35.27.090
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: town-council
+        office_type: city-council
+        applies_to:
+          name_pattern: ' town$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member'
+        seats:
+          arrangement: at_large
+          count:
+            value: 5
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+            quote: 'The government of a town shall be vested in a mayor and a council consisting of five members and a treasurer, all elective'
+            citation: RCW 35.27.070
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 5
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+          quote: 'The government of a town shall be vested in a mayor and a council consisting of five members and a treasurer, all elective'
+          citation: RCW 35.27.070
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.27&full=true'
+          quote: Councilmembers shall be elected for four year terms
+          citation: RCW 35.27.090
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: spokane-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ^Spokane city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+            quote: 'The elective offices of the City shall be the mayor, council president, six council members, and three judges of the Spokane Municipal Court.'
+            citation: 'Spokane City Charter, Article II, Section 5'
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+          quote: They shall be elected to a term of four years each by the qualified electors of the City in the manner provided in this Charter and by the general laws of the state.
+          citation: 'Spokane City Charter, Article II, Section 5'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: spokane-council-president
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Spokane city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council President'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+            quote: 'The elective offices of the City shall be the mayor, council president, six council members, and three judges of the Spokane Municipal Court.'
+            citation: 'Spokane City Charter, Article II, Section 5'
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+          quote: They shall be elected to a term of four years each by the qualified electors of the City in the manner provided in this Charter and by the general laws of the state.
+          citation: 'Spokane City Charter, Article II, Section 5'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: spokane-council-position-1
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Spokane city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}, Position 1'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+            quote: 'The City shall be apportioned into three council districts of generally equal population, numbered one through three. Each district shall have two city council positions, numbered one and two.'
+            citation: 'Spokane City Charter, Article II, Section 5'
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+          quote: They shall be elected to a term of four years each by the qualified electors of the City in the manner provided in this Charter and by the general laws of the state.
+          citation: 'Spokane City Charter, Article II, Section 5'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: spokane-council-position-2
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Spokane city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}, Position 2'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+            quote: 'The City shall be apportioned into three council districts of generally equal population, numbered one through three. Each district shall have two city council positions, numbered one and two.'
+            citation: 'Spokane City Charter, Article II, Section 5'
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://my.spokanecity.org/opendata/charter/article-02/'
+          quote: They shall be elected to a term of four years each by the qualified electors of the City in the manner provided in this Charter and by the general laws of the state.
+          citation: 'Spokane City Charter, Article II, Section 5'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: tacoma-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ^Tacoma city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://tacoma.gov/government/departments/city-council/'
+            quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+            citation: 'City of Tacoma, City Council'
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://tacoma.gov/government/departments/city-council/'
+          quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+          citation: 'City of Tacoma, City Council'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: tacoma-council
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Tacoma city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: mixed
+          count:
+            value: 3
+            source_url: 'https://tacoma.gov/government/departments/city-council/'
+            quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+            citation: 'City of Tacoma, City Council'
+          district_count:
+            value: 5
+            source_url: 'https://tacoma.gov/government/departments/city-council/'
+            quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+            citation: 'City of Tacoma, City Council'
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://tacoma.gov/government/departments/city-council/'
+          quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+          citation: 'City of Tacoma, City Council'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: school-district
+    kind: school_district
+    unit_type_codes: null
+    school_levels: null
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+      quote: each member of a board of directors shall be elected by ballot by the registered voters of the school district and shall hold office for a term of four years
+      citation: RCW 28A.343.300
+    offices:
+      - key: school-director
+        office_type: school-board
+        applies_to:
+          name_pattern: '^(?!Seattle Public Schools$)'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 5
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+            quote: the board of directors of every school district of the first class or school district of the second class shall consist of five members.
+            citation: RCW 28A.343.300
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 5
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: the board of directors of every school district of the first class or school district of the second class shall consist of five members.
+          citation: RCW 28A.343.300
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: each member of a board of directors shall be elected by ballot by the registered voters of the school district and shall hold office for a term of four years
+          citation: RCW 28A.343.300
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: the positions of school directors and the candidates therefor shall appear separately on the nonpartisan ballot
+          citation: RCW 28A.343.330
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: seattle-school-director
+        office_type: school-board
+        applies_to:
+          name_pattern: ^Seattle Public Schools$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 7
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+            quote: Except for a school district of the first class having within its boundaries a city with a population of four hundred thousand people or more which shall have a board of directors of seven members
+            citation: RCW 28A.343.300
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 7
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: Except for a school district of the first class having within its boundaries a city with a population of four hundred thousand people or more which shall have a board of directors of seven members
+          citation: RCW 28A.343.300
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: each member of a board of directors shall be elected by ballot by the registered voters of the school district and shall hold office for a term of four years
+          citation: RCW 28A.343.300
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=28A.343&full=true'
+          quote: the positions of school directors and the candidates therefor shall appear separately on the nonpartisan ballot
+          citation: RCW 28A.343.330
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+        quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+        citation: 'Wash. Const. art. III, sec. 1'
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+      citation: 'Wash. Const. art. III, sec. 1'
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2024
+    term_years:
+      value: 4
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=43.01.010'
+      quote: 'The governor, lieutenant governor, secretary of state, treasurer, auditor, attorney general, superintendent of public instruction, commissioner of public lands, and insurance commissioner, shall hold office for the term of four years'
+      citation: RCW 43.01.010
+    term_limit_terms: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: lieutenant-governor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Lieutenant Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+        quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+        citation: 'Wash. Const. art. III, sec. 1'
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+      citation: 'Wash. Const. art. III, sec. 1'
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2024
+    term_years:
+      value: 4
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=43.01.010'
+      quote: 'The governor, lieutenant governor, secretary of state, treasurer, auditor, attorney general, superintendent of public instruction, commissioner of public lands, and insurance commissioner, shall hold office for the term of four years'
+      citation: RCW 43.01.010
+    term_limit_terms: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: secretary-of-state
+    office_type: secretary-of-state
+    applies_to: null
+    title: Secretary of State
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+        quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+        citation: 'Wash. Const. art. III, sec. 1'
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+      citation: 'Wash. Const. art. III, sec. 1'
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2024
+    term_years:
+      value: 4
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=43.01.010'
+      quote: 'The governor, lieutenant governor, secretary of state, treasurer, auditor, attorney general, superintendent of public instruction, commissioner of public lands, and insurance commissioner, shall hold office for the term of four years'
+      citation: RCW 43.01.010
+    term_limit_terms: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: attorney-general
+    office_type: attorney-general
+    applies_to: null
+    title: Attorney General
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+        quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+        citation: 'Wash. Const. art. III, sec. 1'
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: 'The executive department shall consist of a governor, lieutenant governor, secretary of state,'
+      citation: 'Wash. Const. art. III, sec. 1'
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2024
+    term_years:
+      value: 4
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=43.01.010'
+      quote: 'The governor, lieutenant governor, secretary of state, treasurer, auditor, attorney general, superintendent of public instruction, commissioner of public lands, and insurance commissioner, shall hold office for the term of four years'
+      citation: RCW 43.01.010
+    term_limit_terms: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+legislature:
+  - office_type: state-senate
+    title: 'State Senator, District {label}'
+    seats_per_district: null
+    district_groups:
+      - group: A
+        districts: all
+        every: 2
+        first: 2024
+    term_years:
+      value: 4
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: 'They shall be elected for the term of four years, one-half of their number retiring every two years.'
+      citation: 'Wash. Const. art. II, sec. 6'
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    pay: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: 'State Representative, District {label}'
+    seats_per_district:
+      count:
+        value: 2
+        source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=44.05.090'
+        quote: 'The house of representatives shall consist of ninety-eight members, two of whom shall be elected from and run at large within each legislative district.'
+        citation: RCW 44.05.090
+      arrangement: together
+      position_label_pattern: null
+    district_groups:
+      - group: A
+        districts: all
+        every: 2
+        first: 2024
+    term_years:
+      value: 2
+      source_url: 'https://leg.wa.gov/media/o3fg0ey1/washington-state-constitution.pdf'
+      quote: members of the house of representatives shall be elected biennially and their term of office shall be two years
+      citation: 'Wash. Const. art. II, sec. 5'
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: '(2) All state offices, including legislative, except (a) judicial offices and (b) the office of superintendent of public instruction;'
+      citation: RCW 29A.04.110
+    pay: null
+    schedule: wa_state_general
+    track_set: wa_filing_week
+    powers: []
+    eligibility: []
+    job_restrictions: []
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: (1) United States senator and United States representative;
+      citation: RCW 29A.04.110
+    schedule: wa_state_general
+    track_set: wa_filing_week
+  us_senate:
+    partisan:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.110'
+      quote: (1) United States senator and United States representative;
+      citation: RCW 29A.04.110
+    schedule: wa_state_general
+    track_set: wa_filing_week
+county_sets: []
+special_districts:
+  - key: fire-protection-district
+    enabling_statute:
+      value: Title 52 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=52.14&full=true'
+      quote: The affairs of the district shall be managed by a board of fire commissioners composed initially of three registered voters residing in the district
+      citation: RCW 52.14.010
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=52.14&full=true'
+      quote: The initial three members of the board of fire commissioners shall be elected at the same election as when the ballot proposition is submitted to the voters authorizing the creation of the fire protection district.
+      citation: RCW 52.14.060
+    classifier:
+      function_names:
+        - 24 - LOCAL FIRE PROTECTION
+        - 96 - FIRE PROTECTION AND WATER SUPPLY
+      name_patterns:
+        - \bfire protection district\b
+    offices:
+      - key: fire-commissioner
+        office_type: fire-district-board
+        applies_to: null
+        title: '{jurisdiction} Commissioner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=52.14&full=true'
+            quote: The affairs of the district shall be managed by a board of fire commissioners composed initially of three registered voters residing in the district
+            citation: RCW 52.14.010
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=52.14&full=true'
+          quote: The affairs of the district shall be managed by a board of fire commissioners composed initially of three registered voters residing in the district
+          citation: RCW 52.14.010
+        stagger: []
+        term_years:
+          value: 6
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=52.14&full=true'
+          quote: The term of office of each subsequent commissioner shall be six years.
+          citation: RCW 52.14.060
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: water-sewer-district
+    enabling_statute:
+      value: Title 57 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=57.12&full=true'
+      quote: 'The governing body of a district shall be a board of commissioners consisting of three members, or five or seven members as provided in RCW 57.12.015.'
+      citation: RCW 57.12.010
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=57.12&full=true'
+      quote: Three initial district commissioners shall be elected at the same election at which the proposition is submitted to the voters as to whether such district shall be formed.
+      citation: RCW 57.12.030
+    classifier:
+      function_names:
+        - 91 - WATER SUPPLY UTILITY
+        - 98 - SEWERAGE AND WATER SUPPLY
+        - 80 - SEWERAGE
+      name_patterns:
+        - \bwater district\b
+        - \bwater-sewer district\b
+        - \bsewer district\b
+    offices:
+      - key: water-sewer-commissioner
+        office_type: water-district-board
+        applies_to: null
+        title: '{jurisdiction} Commissioner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=57.12&full=true'
+            quote: 'The governing body of a district shall be a board of commissioners consisting of three members, or five or seven members as provided in RCW 57.12.015.'
+            citation: RCW 57.12.010
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=57.12&full=true'
+          quote: 'The governing body of a district shall be a board of commissioners consisting of three members, or five or seven members as provided in RCW 57.12.015.'
+          citation: RCW 57.12.010
+        stagger: []
+        term_years:
+          value: 6
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=57.12&full=true'
+          quote: 'Except as in this section otherwise provided, the term of office of each district commissioner shall be six years'
+          citation: RCW 57.12.030
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: public-hospital-district
+    enabling_statute:
+      value: Chapter 70.44 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=70.44&full=true'
+      quote: 'A public hospital district initially may be created with three, five, or seven commissioner districts.'
+      citation: RCW 70.44.040
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=70.44&full=true'
+      quote: 'three, five, or seven commissioners shall be elected from either three, five, or seven commissioner districts, or at large positions, or both'
+      citation: RCW 70.44.040
+    classifier:
+      function_names:
+        - 40 - HOSPITALS
+      name_patterns:
+        - \bhospital district\b
+    offices: []
+  - key: conservation-district
+    enabling_statute:
+      value: Chapter 89.08 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=89.08&full=true'
+      quote: 'They, with the three elected supervisors, two of whom shall be landowners or operators of a farm, shall constitute the governing board of the district.'
+      citation: RCW 89.08.160
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=89.08&full=true'
+      quote: 'Each year after the creation of the first board of supervisors, the board shall by resolution and by giving due notice, set a date during the first quarter of each calendar year at which time it shall conduct an election'
+      citation: RCW 89.08.190
+    classifier:
+      function_names:
+        - 59 - OTHER NATURAL RESOURCES
+        - 97 - NATURAL RESOURCES AND WATER SUPPLY
+      name_patterns:
+        - \bconservation district\b
+    offices:
+      - key: conservation-supervisor
+        office_type: soil-water-conservation-board
+        applies_to: null
+        title: '{jurisdiction} Supervisor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=89.08&full=true'
+            quote: 'They, with the three elected supervisors, two of whom shall be landowners or operators of a farm, shall constitute the governing board of the district.'
+            citation: RCW 89.08.160
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=89.08&full=true'
+          quote: 'In the case of elected supervisors, the term of office of each supervisor shall be three years and until his or her successor is elected and qualified'
+          citation: RCW 89.08.200
+        term_limit_terms: null
+        schedule: wa_conservation_district
+        track_set: wa_no_filing
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: port-district
+    enabling_statute:
+      value: Title 53 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=53.12&full=true'
+      quote: 'The powers of the port district shall be exercised through a port commission consisting of three or, when permitted by this title, five members.'
+      citation: RCW 53.12.010
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=53.12&full=true'
+      quote: The initial port commissioners shall be elected at the same election as when the ballot proposition is submitted to voters authorizing the creation of the port district.
+      citation: RCW 53.12.172
+    classifier:
+      function_names:
+        - 87 - SEA AND INLAND PORT FACILITIES
+        - 99 - OTHER MULTI-FUNCTION DISTRICTS
+        - 61 - PARKS AND RECREATION
+        - 01 - AIR TRANSPORTATION
+      name_patterns:
+        - ^port of\b
+    offices:
+      - key: port-commissioner
+        office_type: special-district-other
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=53.12&full=true'
+            quote: 'Every port district that is not coextensive with a county having a population of five hundred thousand or more shall be divided into the same number of commissioner districts as there are commissioner positions, each having approximately equal population'
+            citation: RCW 53.12.010
+          label_pattern: 'District {n}'
+        body_size:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=53.12&full=true'
+          quote: 'The powers of the port district shall be exercised through a port commission consisting of three or, when permitted by this title, five members.'
+          citation: RCW 53.12.010
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: park-and-recreation-district
+    enabling_statute:
+      value: Chapter 36.69 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.69&full=true'
+      quote: A park and recreation district shall be governed by a board of five commissioners.
+      citation: RCW 36.69.090
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.69&full=true'
+      quote: Elections for park and recreation district commissioners shall be held biennially in conjunction with the general election in each odd-numbered year.
+      citation: RCW 36.69.090
+    classifier:
+      function_names:
+        - 61 - PARKS AND RECREATION
+      name_patterns:
+        - \bpark and recreation district\b
+    offices:
+      - key: park-commissioner
+        office_type: special-district-other
+        applies_to: null
+        title: '{jurisdiction} Commissioner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 5
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.69&full=true'
+            quote: A park and recreation district shall be governed by a board of five commissioners.
+            citation: RCW 36.69.090
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 5
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.69&full=true'
+          quote: A park and recreation district shall be governed by a board of five commissioners.
+          citation: RCW 36.69.090
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=36.69&full=true'
+          quote: 'Except for the initial commissioners, all commissioners shall be elected to staggered four-year terms of office'
+          citation: RCW 36.69.090
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: cemetery-district
+    enabling_statute:
+      value: Chapter 68.52 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=68.52&full=true'
+      quote: The affairs of the cemetery district must be managed by a board of cemetery district commissioners composed of three members.
+      citation: RCW 68.52.220
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=68.52&full=true'
+      quote: 'Thereafter, commissioners are elected to six-year terms of office.'
+      citation: RCW 68.52.220
+    classifier:
+      function_names:
+        - 02 - CEMETERIES
+      name_patterns:
+        - \bcemetery district\b
+    offices:
+      - key: cemetery-commissioner
+        office_type: special-district-other
+        applies_to: null
+        title: '{jurisdiction} Commissioner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=68.52&full=true'
+            quote: The affairs of the cemetery district must be managed by a board of cemetery district commissioners composed of three members.
+            citation: RCW 68.52.220
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 3
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=68.52&full=true'
+          quote: The affairs of the cemetery district must be managed by a board of cemetery district commissioners composed of three members.
+          citation: RCW 68.52.220
+        stagger: []
+        term_years:
+          value: 6
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=68.52&full=true'
+          quote: 'Thereafter, commissioners are elected to six-year terms of office.'
+          citation: RCW 68.52.220
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: library-district
+    enabling_statute:
+      value: Chapter 27.12 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=27.12.190'
+      quote: The management and control of a library shall be vested in a board of either five or seven trustees as hereinafter in this section provided.
+      citation: RCW 27.12.190
+    elected:
+      value: false
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=27.12.190'
+      quote: In intercounty rural library districts a board of either five or seven trustees shall be appointed by the joint action of the boards of county commissioners of each of the counties included in a district.
+      citation: RCW 27.12.190
+    classifier:
+      function_names:
+        - 52 - LIBRARIES
+      name_patterns:
+        - "^(?!.*\\bisland\\b).*\\blibrary district\\b"
+    offices: []
+  - key: housing-authority
+    enabling_statute:
+      value: Chapter 35.82 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.82.040'
+      quote: 'When the governing body of a county adopts a resolution declaring that there is a need for a housing authority, it shall appoint five persons as commissioners of the authority created for the county.'
+      citation: RCW 35.82.040
+    elected:
+      value: false
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=35.82.040'
+      quote: 'Upon receiving such notice, the mayor shall appoint five persons as commissioners of the authority created for the city.'
+      citation: RCW 35.82.040
+    classifier:
+      function_names:
+        - 50 - HOUSING AND COMMUNITY DEVELOPMENT
+      name_patterns:
+        - \bhousing authority\b
+    offices: []
+party_committee:
+  selection:
+    value: primary_ballot
+    source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+    quote: 'The office must be voted upon at the primaries, and the names of all candidates in contested races must appear under the proper party and office designations on the ballot for the primary for each even-numbered year.'
+    citation: RCW 29A.80.051
+  unit: precinct
+  seats_rule:
+    value: one per precinct per party
+    source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+    quote: may file his or her declaration of candidacy as prescribed under RCW 29A.24.031 with the county auditor for the office of precinct committee officer of his or her party in that precinct.
+    citation: RCW 29A.80.041
+  term_years:
+    value: 2
+    source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+    quote: 'The term of office of precinct committee officer is two years, commencing the first day of December following the primary.'
+    citation: RCW 29A.80.051
+  parties:
+    - democratic
+    - republican
+  offices:
+    - key: precinct-committee-officer
+      office_type: party-precinct-committee
+      applies_to: null
+      title: '{jurisdiction} Precinct Committee Officer'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+          quote: may file his or her declaration of candidacy as prescribed under RCW 29A.24.031 with the county auditor for the office of precinct committee officer of his or her party in that precinct.
+          citation: RCW 29A.80.041
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years:
+        value: 2
+        source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+        quote: 'The term of office of precinct committee officer is two years, commencing the first day of December following the primary.'
+        citation: RCW 29A.80.051
+      term_limit_terms: null
+      schedule: wa_state_primary
+      track_set: wa_filing_week
+      partisan:
+        value: true
+        source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.80&full=true'
+        quote: the names of all candidates in contested races must appear under the proper party and office designations on the ballot for the primary for each even-numbered year.
+        citation: RCW 29A.80.051
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+eligibility_common: []
+notes: 'Each house and senate district is listed as electing at every even-year general: the constitution retires one half of the senators every two years, and which districts are up in which year is not yet written here. Precinct committee officer contests appear on the ballot only when contested (RCW 29A.80.051).'
