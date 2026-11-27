@@ -326,6 +326,10 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
       if (response.status >= 300 && response.status < 400 && location !== null) {
         return { status: response.status, body: '', location };
       }
+      // A status outside HTTP's 100 to 599 is no answer: the host's robots.txt is unavailable.
+      if (response.status < 100 || response.status > 599) {
+        return { status: null, body: '', location: null };
+      }
       const { bytes } = await readLimited(response.body, ROBOTS_MAX_BYTES);
       return { status: response.status, body: Buffer.from(bytes).toString('utf8'), location: null };
     } catch {

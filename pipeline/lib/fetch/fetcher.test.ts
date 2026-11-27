@@ -95,6 +95,17 @@ describe('obeys robots.txt', () => {
     expect(transport.pages()).toHaveLength(0);
   });
 
+  it('a robots.txt status outside 100 to 599 makes robots.txt unavailable', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(() => ok(), { [HOST]: { status: 999, body: 'odd' } }),
+    });
+    expect(await fetcher.fetch({ url: PAGE, class: 'crawl' })).toEqual({
+      kind: 'disallowed',
+      reason: 'robots_unavailable',
+    });
+    expect(transport.pages()).toHaveLength(0);
+  });
+
   it('robots.txt behind a challenge is treated as a blocked host', async () => {
     const { fetcher, transport } = await makeFetcher({
       handler: site(() => ok(), { [HOST]: { status: 403, body: CHALLENGE_BODY } }),
