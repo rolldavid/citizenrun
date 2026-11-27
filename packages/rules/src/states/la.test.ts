@@ -3,13 +3,29 @@ import { describe, expect, it } from 'vitest';
 import { LA_FIXTURES } from '../__fixtures__/la/index.ts';
 import { addDays, isBusinessDay, roll, weekdayOf, SATURDAY, SUNDAY, TUESDAY } from '../dates.ts';
 import { runStateRulesSuite } from '../testing/check-fixtures.ts';
-import type { RuleDeclaration } from '../testing/check-fixtures.ts';
+import type { FilerDeclaration, NewRegime, RuleDeclaration } from '../testing/check-fixtures.ts';
 import { classifyTurnout } from '../turnout.ts';
 import type { IsoDate, OfficeRef } from '../types.ts';
 import { laRules } from './la.ts';
 
 const NEVER_REASON =
   'R.S. 18:468 closes qualifying at 4:30 p.m. on the Thursday or Friday after the opening day R.S. 18:467 fixes; no Louisiana legal holiday falls on those days';
+
+/** Acts 2024, 1st Ex. Sess., No. 1 enacted the closed party primaries (R.S. 18:410.1 to 410.10). */
+const CLOSED_PRIMARIES: NewRegime = {
+  newRegime: true,
+  since: '2026-01-01',
+  statute: {
+    citation: 'Acts 2024, 1st Ex. Sess., No. 1, Section 2 (R.S. 18:410.1 to 410.10)',
+    sourceUrl: 'https://legis.la.gov/legis/ViewDocument.aspx?d=1341043',
+    quote: 'Section 2. This Act shall become effective on January 1, 2026.',
+    validFrom: '2026-01-01',
+    validTo: null,
+  },
+  fields: ['closesOn'],
+  reason:
+    'The closed party primaries of R.S. 18:410.1 to 410.10 first apply to the elections of 2026, so no earlier year publishes their qualifying',
+};
 
 const declaredRules: readonly RuleDeclaration[] = [
   {
@@ -29,12 +45,14 @@ const declaredRules: readonly RuleDeclaration[] = [
     trackSet: 'la_party_primary',
     track: 'party_primary',
     rolled: { never: true, fields: ['closesOn'], reason: NEVER_REASON },
+    years: CLOSED_PRIMARIES,
   },
   {
     id: 'la.la_party_primary.independent',
     trackSet: 'la_party_primary',
     track: 'independent',
     rolled: { never: true, fields: ['closesOn'], reason: NEVER_REASON },
+    years: CLOSED_PRIMARIES,
   },
 ];
 
@@ -47,6 +65,21 @@ const PARTISAN_OFFICE_TYPES = [
   'utility-commission',
 ] as const;
 
+/**
+ * The filer cases the closed primaries cannot have yet: Acts 2026, No. 7 held the 2026 U.S. House
+ * contests as an open primary, and the first party primary for the Board of Elementary and
+ * Secondary Education is in 2027 (D-888).
+ */
+const newRegimeFilers: readonly FilerDeclaration[] = (
+  ['us-house', 'state-education-board'] as const
+).flatMap((officeTypeId) =>
+  (['party_primary', 'independent'] as const).map((track): FilerDeclaration => ({
+    officeTypeId,
+    track,
+    years: CLOSED_PRIMARIES,
+  })),
+);
+
 runStateRulesSuite({
   state: 'LA',
   rules: laRules,
@@ -55,6 +88,7 @@ runStateRulesSuite({
   officialHosts: ['sos.la.gov', 'legis.la.gov', 'ethics.la.gov', 'calcasieuclerk.gov'],
   partisanOfficeTypes: PARTISAN_OFFICE_TYPES,
   partyPrimaryExempt: false,
+  newRegimeFilers,
 });
 
 function office(
