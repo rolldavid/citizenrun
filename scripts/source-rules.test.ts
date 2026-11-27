@@ -555,3 +555,51 @@ describe('office art and data', () => {
     }
   });
 });
+
+/** A translated string joined with `+`, either side of it. */
+const PLUS_JOIN = /\bt\([^)]*\)\s*\+|\+\s*t\(/;
+/** A `t()` call inside a template literal's placeholder. */
+const TEMPLATE_JOIN = /\$\{[^}]*\bt\(/;
+
+/** The line numbers (from 1) of `source` that join a translated string to another string (D-277). */
+function altTextJoins(source: string): number[] {
+  return source
+    .split('\n')
+    .flatMap((line, index) =>
+      PLUS_JOIN.test(line) || TEMPLATE_JOIN.test(line) ? [index + 1] : [],
+    );
+}
+
+/** The card model files: every `.ts` file under the model folder that is not a test. */
+function cardModelFiles(): string[] {
+  return filesUnder(`${CARDS_SRC}/model`).filter(
+    (file) => file.endsWith('.ts') && !file.endsWith('.test.ts'),
+  );
+}
+
+describe('alt text joins', () => {
+  it('finds a translated string joined with a plus', () => {
+    expect(altTextJoins("const a = t('x') + ' ' + t('y');")).toEqual([1]);
+  });
+
+  it('finds a translated string inside a template literal', () => {
+    expect(altTextJoins("const a = `${t('x')} ${t('y')}`;")).toEqual([1]);
+  });
+
+  it('accepts a key built inside the argument', () => {
+    expect(altTextJoins('t(`common:issueShort.${key}`)')).toEqual([]);
+  });
+
+  it('accepts sentences joined as a list', () => {
+    expect(altTextJoins("sentences.join(' ')")).toEqual([]);
+  });
+
+  it('no card model joins a translated string', () => {
+    const files = cardModelFiles();
+    expect(files).toContain(`${CARDS_SRC}/model/run-against.ts`);
+    const offenders = files.flatMap((file) =>
+      altTextJoins(readFileSync(join(ROOT, file), 'utf8')).map((line) => `${file}:${String(line)}`),
+    );
+    expect(offenders).toEqual([]);
+  });
+});

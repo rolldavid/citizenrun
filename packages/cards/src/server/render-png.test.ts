@@ -1,39 +1,45 @@
 import { createHash } from 'node:crypto';
-import {
-  cpSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readdirSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { env } from 'node:process';
 import { color, issue } from '@citizenrun/shared';
+import type { TFunction } from '@citizenrun/shared';
 import { createElement } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import sharp from 'sharp';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import {
+  FIXTURE_CTX,
+  NO_PHOTO_OPTIONS,
+  OFFICE_HERO_FIXTURES,
+  RUN_AGAINST_FIXTURES,
+} from '../__fixtures__/office.fixtures.ts';
 import { canvasColorsFrom } from '../colors.ts';
 import type { CanvasColors } from '../colors.ts';
+import { setStrictGlyphs } from '../layout-text.ts';
+import { buildOfficeHeroModel } from '../model/office-hero.ts';
+import { altText, buildRunAgainstModel } from '../model/run-against.ts';
+import { CardCanvas } from '../templates/card-canvas.tsx';
 import { HelloCard } from '../templates/hello-card.tsx';
+import { OfficeHeroCanvas } from '../templates/office-hero.tsx';
 import {
   assertFontFiles,
   CardMarkupError,
   CardRenderSizeError,
   renderCardPng,
 } from './render-png.ts';
+import {
+  cardT,
+  FONT_DIR,
+  goldenBytes,
+  goldenText,
+  pixelDiffRatio,
+  plainCanvasProblems,
+  scanTags,
+} from './testing/golden.ts';
 
-const FONT_DIR = join(import.meta.dirname, '../../assets/fonts');
-const GOLDEN_DIR = join(import.meta.dirname, '../__golden__');
 const PHOTO_PATH = join(import.meta.dirname, '../__fixtures__/photo.jpg');
-
-/** Golden files are rewritten only when the run sets UPDATE_GOLDEN=1; the difference is read before it is committed. */
-const updateGolden = env.UPDATE_GOLDEN === '1';
 
 /** The fixture photograph as the JPEG data URI the server embeds (D-273). */
 function photoDataUri(): string {
@@ -48,67 +54,6 @@ function helloElement(width?: number): ReactElement {
     photoHref: photoDataUri(),
     ...(width === undefined ? {} : { width }),
   });
-}
-
-function missingGolden(name: string): Error {
-  return new Error(
-    `Golden file ${name} is missing; run the test once with UPDATE_GOLDEN=1 and read the result before committing`,
-  );
-}
-
-/** The golden text `name`: written from `actual` under UPDATE_GOLDEN=1, read otherwise. */
-function goldenText(name: string, actual: string): string {
-  const path = join(GOLDEN_DIR, name);
-  if (updateGolden) {
-    mkdirSync(GOLDEN_DIR, { recursive: true });
-    writeFileSync(path, actual);
-    return actual;
-  }
-  if (!existsSync(path)) {
-    throw missingGolden(name);
-  }
-  return readFileSync(path, 'utf8');
-}
-
-/** The golden bytes `name`: written from `actual` under UPDATE_GOLDEN=1, read otherwise. */
-function goldenBytes(name: string, actual: Uint8Array): Uint8Array {
-  const path = join(GOLDEN_DIR, name);
-  if (updateGolden) {
-    mkdirSync(GOLDEN_DIR, { recursive: true });
-    writeFileSync(path, actual);
-    return actual;
-  }
-  if (!existsSync(path)) {
-    throw missingGolden(name);
-  }
-  return new Uint8Array(readFileSync(path));
-}
-
-/** The share of pixels where any of the four RGBA channels differs by more than 8 of 255 (D-100). */
-async function pixelDiffRatio(a: Uint8Array, b: Uint8Array): Promise<number> {
-  const [left, right] = await Promise.all(
-    [a, b].map((bytes) => sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true })),
-  );
-  if (left === undefined || right === undefined) {
-    throw new Error('an image did not decode');
-  }
-  if (left.info.width !== right.info.width || left.info.height !== right.info.height) {
-    throw new Error(
-      `the images differ in size: ${String(left.info.width)}x${String(left.info.height)} and ${String(right.info.width)}x${String(right.info.height)}`,
-    );
-  }
-  const pixels = left.info.width * left.info.height;
-  let differing = 0;
-  for (let pixel = 0; pixel < pixels; pixel += 1) {
-    for (let channel = 0; channel < 4; channel += 1) {
-      const index = pixel * 4 + channel;
-      if (Math.abs((left.data[index] ?? 0) - (right.data[index] ?? 0)) > 8) {
-        differing += 1;
-        break;
-      }
-    }
-  }
-  return differing / pixels;
 }
 
 const FONT_FILES = [
@@ -412,27 +357,6 @@ describe('renderCardPng', () => {
   });
 });
 
-// React escapes `<`, `>` and `"` inside attribute values and text, so in its markup every `<` opens a
-// tag and every attribute value is double-quoted.
-const OPENING_TAG = /<([a-zA-Z]+)\b([^>]*)>/g;
-const ATTRIBUTE = /([^\s=/]+)(?:="([^"]*)")?/g;
-
-type ScannedTag = { name: string; attributes: Map<string, string> };
-
-/** Every opening tag of `markup`, with its attributes. */
-function scanTags(markup: string): ScannedTag[] {
-  return [...markup.matchAll(OPENING_TAG)].map((tag) => {
-    const attributes = new Map<string, string>();
-    for (const attribute of (tag[2] ?? '').matchAll(ATTRIBUTE)) {
-      const name = attribute[1];
-      if (name !== undefined) {
-        attributes.set(name, attribute[2] ?? '');
-      }
-    }
-    return { name: tag[1] ?? '', attributes };
-  });
-}
-
 function countOf(haystack: string, needle: string): number {
   return haystack.split(needle).length - 1;
 }
@@ -499,68 +423,127 @@ describe('hello card', () => {
 describe('plain canvas markup', () => {
   type CardFixture = {
     name: string;
-    element: ReactElement;
+    /** The fixture's markup, drawn once the glyph check is on and the catalog is loaded. */
+    markup: () => string;
     colors: CanvasColors;
     /** The spike card: the four spike elements, `clip-path` and its gradient fill are admitted. */
     spike: boolean;
   };
 
+  let tEn: TFunction | undefined;
+
+  beforeAll(async () => {
+    setStrictGlyphs(true);
+    tEn = await cardT('en');
+  });
+
+  function english(): TFunction {
+    if (tEn === undefined) {
+      throw new Error('the catalog is not loaded');
+    }
+    return tEn;
+  }
+
+  /** The run-against canvas of a fixture, drawn as its golden test draws it. */
+  function runAgainstMarkup(name: keyof typeof RUN_AGAINST_FIXTURES): string {
+    const data = RUN_AGAINST_FIXTURES[name];
+    const t = english();
+    const page = {
+      key: data.office.id,
+      officeId: data.office.id,
+      template: 'run_against' as const,
+      model: buildRunAgainstModel(data, t, FIXTURE_CTX, NO_PHOTO_OPTIONS),
+      alt: altText(data, t, FIXTURE_CTX),
+    };
+    return renderToStaticMarkup(createElement(CardCanvas, { page, colors: LIGHT, width: 540 }));
+  }
+
+  /** The office hero of a fixture, drawn as its golden test draws it. */
+  function heroMarkup(name: keyof typeof OFFICE_HERO_FIXTURES): string {
+    const model = buildOfficeHeroModel(
+      OFFICE_HERO_FIXTURES[name],
+      english(),
+      FIXTURE_CTX,
+      NO_PHOTO_OPTIONS,
+    );
+    return renderToStaticMarkup(
+      createElement(OfficeHeroCanvas, { model, colors: LIGHT, width: 540 }),
+    );
+  }
+
   const CARD_FIXTURES: CardFixture[] = [
-    { name: 'hello', element: helloElement(), colors: LIGHT, spike: true },
+    {
+      name: 'hello',
+      markup: () => renderToStaticMarkup(helloElement()),
+      colors: LIGHT,
+      spike: true,
+    },
+    ...(Object.keys(RUN_AGAINST_FIXTURES) as (keyof typeof RUN_AGAINST_FIXTURES)[]).map(
+      (name): CardFixture => ({
+        name: `run-against ${name}`,
+        markup: () => runAgainstMarkup(name),
+        colors: LIGHT,
+        spike: false,
+      }),
+    ),
+    ...(Object.keys(OFFICE_HERO_FIXTURES) as (keyof typeof OFFICE_HERO_FIXTURES)[]).map(
+      (name): CardFixture => ({
+        name: `office-hero ${name}`,
+        markup: () => heroMarkup(name),
+        colors: LIGHT,
+        spike: false,
+      }),
+    ),
   ];
 
-  const PLAIN_ELEMENTS = ['svg', 'g', 'rect', 'circle', 'path', 'text', 'image'];
-  const SPIKE_ELEMENTS = ['defs', 'linearGradient', 'stop', 'clipPath'];
-  const FORBIDDEN_ATTRIBUTES = ['style', 'class', 'opacity', 'filter', 'mask'];
-  const PAINT_ATTRIBUTES = ['fill', 'stroke', 'stop-color'];
-  const SPIKE_PAINTS = ['url(#hello-gradient)'];
-
-  function canvasColorValues(colors: CanvasColors): Set<string> {
-    const { theme: _theme, issue: issues, ...core } = colors;
-    const values = new Set<string>(Object.values(core));
-    for (const value of Object.values(issues)) {
-      values.add(value.fill);
-      values.add(value.poster);
-      values.add(value.on);
-    }
-    return values;
+  /** The problems of one rule of the plain-canvas scan. */
+  function problemsOf(fixture: CardFixture, rule: 'element' | 'attribute' | 'paint'): string[] {
+    return plainCanvasProblems(fixture.markup(), fixture.colors, fixture.spike).filter((problem) =>
+      problem.startsWith(`${rule}: `),
+    );
   }
+
+  it('covers the hello card and the seven office fixtures', () => {
+    expect(CARD_FIXTURES.map((fixture) => fixture.name)).toEqual([
+      'hello',
+      'run-against known',
+      'run-against allUnknown',
+      'run-against lowConfidence',
+      'run-against longTitle',
+      'run-against titleNotDrawable',
+      'office-hero twoLineTitle',
+      'office-hero growsWithHolder',
+    ]);
+  });
 
   for (const fixture of CARD_FIXTURES) {
     it(`the ${fixture.name} fixture uses only the plain canvas elements`, () => {
-      const allowed = new Set([...PLAIN_ELEMENTS, ...(fixture.spike ? SPIKE_ELEMENTS : [])]);
-      const tags = scanTags(renderToStaticMarkup(fixture.element));
-      expect(tags.length).toBeGreaterThan(0);
-      const offenders = tags.map((tag) => tag.name).filter((name) => !allowed.has(name));
-      expect(offenders).toEqual([]);
+      expect(problemsOf(fixture, 'element')).toEqual([]);
     });
 
     it(`the ${fixture.name} fixture carries no forbidden attribute`, () => {
-      const forbidden = new Set([...FORBIDDEN_ATTRIBUTES, ...(fixture.spike ? [] : ['clip-path'])]);
-      const offenders = scanTags(renderToStaticMarkup(fixture.element)).flatMap((tag) =>
-        [...tag.attributes.keys()]
-          .filter((name) => forbidden.has(name))
-          .map((name) => `<${tag.name}> ${name}`),
-      );
-      expect(offenders).toEqual([]);
+      expect(problemsOf(fixture, 'attribute')).toEqual([]);
     });
 
     it(`the ${fixture.name} fixture paints only with its canvas colors`, () => {
-      const allowed = new Set([
-        'none',
-        ...canvasColorValues(fixture.colors),
-        ...(fixture.spike ? SPIKE_PAINTS : []),
-      ]);
-      const paints = scanTags(renderToStaticMarkup(fixture.element)).flatMap((tag) =>
-        PAINT_ATTRIBUTES.filter((name) => tag.attributes.has(name)).map(
-          (name) => `<${tag.name}> ${name}=${tag.attributes.get(name) ?? ''}`,
-        ),
-      );
-      expect(paints.length).toBeGreaterThan(0);
-      const offenders = paints.filter((paint) => !allowed.has(paint.slice(paint.indexOf('=') + 1)));
-      expect(offenders).toEqual([]);
+      expect(problemsOf(fixture, 'paint')).toEqual([]);
     });
   }
+
+  it('the scan names each break of the rules', () => {
+    const markup =
+      '<svg viewBox="0 0 10 10"><defs></defs><rect style="x" clip-path="url(#a)" fill="#123456"></rect></svg>';
+    expect(plainCanvasProblems(markup, LIGHT, false)).toEqual([
+      'element: <defs>',
+      'attribute: <rect> style',
+      'attribute: <rect> clip-path',
+      'paint: <rect> fill=#123456',
+    ]);
+    expect(plainCanvasProblems('', LIGHT, false)).toEqual([
+      'element: the markup has no element',
+      'paint: the markup paints nothing',
+    ]);
+  });
 });
 
 describe('renderer guards', () => {
