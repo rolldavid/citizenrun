@@ -14,7 +14,15 @@ import {
 } from '../sources/eia861.fixtures.ts';
 import { parseCoopReturn } from '../sources/irs990.ts';
 import type { CoopBoard } from '../sources/irs990.ts';
-import { assignState, buildCoops, matchEin, matchPublicPower, selectCoops } from './s02-coops.ts';
+import {
+  assignState,
+  buildCoops,
+  capConfidence,
+  matchEin,
+  matchPublicPower,
+  selectCoops,
+  wantedEins,
+} from './s02-coops.ts';
 import type { CoopFacts, CoopReturn, CoopsInput, ServedCounty } from './s02-coops.ts';
 import { fallbackGeomHash } from './base/geometry.ts';
 import { fallbackRow } from './shared/geometry-rows.ts';
@@ -197,6 +205,46 @@ describe('the co-op core', () => {
       }),
     ]);
     expect(out.counts['matched']).toBe(1);
+  });
+
+  it('a name-only match is counted apart and its return facts are at most medium', async () => {
+    const out = await buildCoops(
+      input([await empire({ kind: 'return', ret: returnOf(savedBoard), nameOnly: true })]),
+    );
+    expect(out.counts['matched']).toBe(1);
+    expect(out.counts['ein_name_only']).toBe(1);
+    expect(out.people).toHaveLength(9);
+    const meta = out.offices[0]?.field_meta ?? {};
+    const fromReturn = Object.entries(meta).filter(([field]) => field !== 'electorate');
+    expect(fromReturn.map(([field]) => field).sort()).toEqual(
+      [
+        'body_size',
+        'hours_per_week',
+        'pay_amount_cents',
+        'pay_annual_cents',
+        'pay_kind',
+        'pay_period',
+        'seats',
+      ].sort(),
+    );
+    expect(fromReturn.every(([, m]) => m.confidence === 'medium' || m.confidence === 'low')).toBe(
+      true,
+    );
+    const matched = await buildCoops(
+      input([await empire({ kind: 'return', ret: returnOf(savedBoard) })]),
+    );
+    expect(matched.counts['ein_name_only']).toBe(0);
+  });
+
+  it('the cap lowers high to medium and leaves medium and low', () => {
+    const base = {
+      source_url: 'https://apps.irs.gov/pub/epostcard/990/xml/2026/2026_TEOS_XML_01A.zip',
+      quote: '<VotingMembersGoverningBodyCnt>9</VotingMembersGoverningBodyCnt>',
+      checked_at: '2026-11-26T22:18:03.304Z',
+    };
+    expect(capConfidence({ ...base, confidence: 'high' }, 'medium').confidence).toBe('medium');
+    expect(capConfidence({ ...base, confidence: 'medium' }, 'medium').confidence).toBe('medium');
+    expect(capConfidence({ ...base, confidence: 'low' }, 'medium').confidence).toBe('low');
   });
 
   it('two directors with one name key on one board are one person and one officeholder', async () => {
@@ -402,7 +450,7 @@ describe('the EIN match', () => {
         override: undefined,
         websiteOf: () => null,
       }),
-    ).toEqual({ kind: 'ein', ein: '990000001' });
+    ).toEqual({ kind: 'ein', ein: '990000001', nameOnly: false });
     expect(
       matchEin({
         utility: { ...utility, city: null },
@@ -410,7 +458,7 @@ describe('the EIN match', () => {
         override: undefined,
         websiteOf: () => 'WWW.FIXTURE-COOP.EXAMPLE.TEST',
       }),
-    ).toEqual({ kind: 'ein', ein: '990000001' });
+    ).toEqual({ kind: 'ein', ein: '990000001', nameOnly: false });
   });
 
   it('two accepted candidates are ambiguous', () => {
@@ -427,15 +475,77 @@ describe('the EIN match', () => {
     ).toEqual({ kind: 'unmatched', reason: 'ein_ambiguous' });
   });
 
-  it('with no EIA city or website nothing is accepted', () => {
-    expect(
-      matchEin({
-        utility: { city: null, website: null },
-        candidates: [candidate('990000001', 'FIXTURE CITY')],
-        override: undefined,
-        websiteOf: () => 'www.fixture-coop.example.test',
-      }),
-    ).toEqual({ kind: 'unmatched', reason: 'ein_unmatched' });
+  it('with no EIA city or website one candidate is the match by name and state', () => {
+    const args = {
+      utility: { city: null, website: null },
+      candidates: [candidate('990000001', 'OTHER CITY')],
+      override: undefined,
+    };
+    expect(matchEin({ ...args, websiteOf: () => null })).toEqual({
+      kind: 'ein',
+      ein: '990000001',
+      nameOnly: true,
+    });
+    expect(wantedEins(args)).toEqual(['990000001']);
+  });
+
+  it('with no EIA city or website two candidates are ambiguous and none is unmatched', () => {
+    const two = {
+      utility: { city: null, website: null },
+      candidates: [candidate('990000001', 'FIXTURE CITY'), candidate('990000002', 'OTHER CITY')],
+      override: undefined,
+    };
+    expect(matchEin({ ...two, websiteOf: () => null })).toEqual({
+      kind: 'unmatched',
+      reason: 'ein_ambiguous',
+    });
+    expect(wantedEins(two)).toEqual([]);
+    const none = { ...two, candidates: [] };
+    expect(matchEin({ ...none, websiteOf: () => null })).toEqual({
+      kind: 'unmatched',
+      reason: 'ein_unmatched',
+    });
+    expect(wantedEins(none)).toEqual([]);
+  });
+
+  it('a known city keeps the city rule', () => {
+    const args = {
+      utility: { city: 'Fixture City', website: null },
+      candidates: [candidate('990000001', 'OTHER CITY')],
+      override: undefined,
+    };
+    expect(matchEin({ ...args, websiteOf: () => null })).toEqual({
+      kind: 'unmatched',
+      reason: 'ein_unmatched',
+    });
+    expect(wantedEins(args)).toEqual([]);
+    const agreeing = { ...args, candidates: [candidate('990000001', 'FIXTURE CITY')] };
+    expect(matchEin({ ...agreeing, websiteOf: () => null })).toEqual({
+      kind: 'ein',
+      ein: '990000001',
+      nameOnly: false,
+    });
+    expect(wantedEins(agreeing)).toEqual(['990000001']);
+  });
+
+  it('an override wins over the name-only rule', () => {
+    const args = {
+      utility: { city: null, website: null },
+      candidates: [candidate('990000001', 'FIXTURE CITY')],
+    };
+    const override = { eia_utility_number: 99999, ein: '990000009', reason: 'Fixture reason' };
+    expect(matchEin({ ...args, override, websiteOf: () => null })).toEqual({
+      kind: 'ein',
+      ein: '990000009',
+      nameOnly: false,
+    });
+    expect(wantedEins({ ...args, override })).toEqual(['990000009']);
+    const none = { eia_utility_number: 99999, ein: 'none' as const, reason: 'Fixture reason' };
+    expect(matchEin({ ...args, override: none, websiteOf: () => null })).toEqual({
+      kind: 'unmatched',
+      reason: 'ein_unmatched',
+    });
+    expect(wantedEins({ ...args, override: none })).toEqual([]);
   });
 
   it('an override of none leaves the co-op unmatched', () => {
@@ -454,7 +564,7 @@ describe('the EIN match', () => {
         override: { eia_utility_number: 99999, ein: '990000009', reason: 'Fixture reason' },
         websiteOf: () => null,
       }),
-    ).toEqual({ kind: 'ein', ein: '990000009' });
+    ).toEqual({ kind: 'ein', ein: '990000009', nameOnly: false });
   });
 });
 

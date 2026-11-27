@@ -123,7 +123,12 @@ export type CoopReturn = {
 };
 
 export type CoopMatch =
-  | { readonly kind: 'return'; readonly ret: CoopReturn }
+  | {
+      readonly kind: 'return';
+      readonly ret: CoopReturn;
+      /** The EIN came from the name and state alone (D-879): its facts carry at most `medium`. */
+      readonly nameOnly?: boolean;
+    }
   | {
       readonly kind: 'unmatched';
       readonly reason: 'ein_unmatched' | 'ein_ambiguous' | 'no_return' | 'batch_unavailable';
@@ -247,22 +252,38 @@ function cityAgrees(eo: string, eia: string | null): boolean {
   return eia !== null && eo.trim().toLowerCase() === eia.trim().toLowerCase();
 }
 
+/** Whether EIA gives the utility neither a city nor a website host (D-879). */
+function nameOnlyRule(utility: Pick<EiaUtility, 'city' | 'website'>): boolean {
+  return (utility.city ?? '').trim() === '' && websiteHost(utility.website) === null;
+}
+
+export type EinMatch =
+  | { readonly kind: 'ein'; readonly ein: string; readonly nameOnly: boolean }
+  | { readonly kind: 'unmatched'; readonly reason: 'ein_unmatched' | 'ein_ambiguous' };
+
 /**
- * The co-op's EIN (steps 2 and 3): the override entry wins (`none`: unmatched); otherwise exactly
- * one candidate accepted, a candidate being accepted when its city equals EIA's city or its
- * return's website host equals EIA's website host.
+ * The co-op's EIN (steps 2 and 3): the override entry wins (`none`: unmatched). When EIA gives a
+ * city or a website, exactly one candidate accepted, a candidate being accepted when its city
+ * equals EIA's city or its return's website host equals EIA's website host. When EIA gives
+ * neither, the candidates decide alone (D-879): exactly one is the match (`nameOnly`), several
+ * are ambiguous, none is unmatched.
  */
 export function matchEin(input: {
   readonly utility: Pick<EiaUtility, 'city' | 'website'>;
   readonly candidates: readonly EoRow[];
   readonly override: CoopEinOverride | undefined;
   readonly websiteOf: (ein: string) => string | null;
-}):
-  { kind: 'ein'; ein: string } | { kind: 'unmatched'; reason: 'ein_unmatched' | 'ein_ambiguous' } {
+}): EinMatch {
   if (input.override !== undefined) {
     return input.override.ein === 'none'
       ? { kind: 'unmatched', reason: 'ein_unmatched' }
-      : { kind: 'ein', ein: input.override.ein };
+      : { kind: 'ein', ein: input.override.ein, nameOnly: false };
+  }
+  if (nameOnlyRule(input.utility)) {
+    const [only, ...rest] = [...new Set(input.candidates.map((row) => row.ein))];
+    if (only === undefined) return { kind: 'unmatched', reason: 'ein_unmatched' };
+    if (rest.length > 0) return { kind: 'unmatched', reason: 'ein_ambiguous' };
+    return { kind: 'ein', ein: only, nameOnly: true };
   }
   const host = websiteHost(input.utility.website);
   const accepted = new Set<string>();
@@ -274,10 +295,13 @@ export function matchEin(input: {
   const [only, ...rest] = [...accepted];
   if (only === undefined) return { kind: 'unmatched', reason: 'ein_unmatched' };
   if (rest.length > 0) return { kind: 'unmatched', reason: 'ein_ambiguous' };
-  return { kind: 'ein', ein: only };
+  return { kind: 'ein', ein: only, nameOnly: false };
 }
 
-/** The EINs whose returns the match may need: an override's, or a candidate the city accepts or a website may. */
+/**
+ * The EINs whose returns the match may need: an override's; with neither EIA city nor website, the
+ * single candidate's (D-879); otherwise a candidate the city accepts or a website may.
+ */
 export function wantedEins(input: {
   readonly utility: Pick<EiaUtility, 'city' | 'website'>;
   readonly candidates: readonly EoRow[];
@@ -285,6 +309,10 @@ export function wantedEins(input: {
 }): readonly string[] {
   if (input.override !== undefined) {
     return input.override.ein === 'none' ? [] : [input.override.ein];
+  }
+  if (nameOnlyRule(input.utility)) {
+    const eins = [...new Set(input.candidates.map((row) => row.ein))];
+    return eins.length === 1 ? eins : [];
   }
   const withWebsite = websiteHost(input.utility.website) !== null;
   return input.candidates
@@ -390,6 +418,12 @@ function meta(sourceUrl: string, quote: string | null, checkedAt: string): Field
     : { source_url: sourceUrl, quote, confidence: 'medium', checked_at: checkedAt };
 }
 
+/** The field meta with its confidence lowered to `cap` when it is higher. */
+export function capConfidence(m: FieldMetaRow, cap: 'medium' | 'low'): FieldMetaRow {
+  const rank = { low: 0, medium: 1, high: 2 } as const;
+  return rank[m.confidence] > rank[cap] ? { ...m, confidence: cap } : m;
+}
+
 class Counts {
   private readonly values = new Map<string, number>();
   add(name: string, n = 1): void {
@@ -405,6 +439,7 @@ class Counts {
 const COUNT_NAMES = [
   'coops',
   'matched',
+  'ein_name_only',
   'ein_unmatched',
   'ein_ambiguous',
   'no_return',
@@ -421,6 +456,7 @@ const COUNT_NAMES = [
 type Board = {
   readonly ret: CoopReturn;
   readonly board: CoopBoard;
+  readonly nameOnly: boolean;
 };
 
 function officeRow(input: {
@@ -580,8 +616,10 @@ export async function buildCoops(input: CoopsInput): Promise<CoopsOutput> {
     } else if (!coop.match.ret.board.is501c12) {
       counts.add('not_501c12');
     } else {
-      board = { ret: coop.match.ret, board: coop.match.ret.board };
+      const nameOnly = coop.match.nameOnly === true;
+      board = { ret: coop.match.ret, board: coop.match.ret.board, nameOnly };
       counts.add('matched');
+      if (nameOnly) counts.add('ein_name_only');
       if (board.board.membersElect === false) {
         counts.add('board_not_member_elected');
         continue;
@@ -616,12 +654,17 @@ export async function buildCoops(input: CoopsInput): Promise<CoopsOutput> {
     let pay: number | null = null;
     let hours: number | null = null;
     if (p.board !== null) {
-      const { ret, board } = p.board;
+      const { ret, board, nameOnly } = p.board;
       const source = returnSourceUrl(ret);
+      // A name-only EIN (D-879) gives facts of at most medium confidence.
+      const fromReturn = (quote: string | null): FieldMetaRow => {
+        const m = meta(source, quote, ret.retrievedAt);
+        return nameOnly ? capConfidence(m, 'medium') : m;
+      };
       if (board.boardSize !== null && board.boardSize >= 1 && board.boardSize <= MAX_SEATS) {
         seats = board.boardSize;
         bodySize = board.boardSize;
-        const m = meta(source, board.boardSizeQuote, ret.retrievedAt);
+        const m = fromReturn(board.boardSizeQuote);
         fieldMeta['seats'] = m;
         fieldMeta['body_size'] = m;
       }
@@ -632,7 +675,7 @@ export async function buildCoops(input: CoopsInput): Promise<CoopsOutput> {
           .flatMap((d) => [d.quotes.comp, d.quotes.other])
           .filter((q): q is string => q !== null)
           .join(' ');
-        const m = meta(source, quote, ret.retrievedAt);
+        const m = fromReturn(quote);
         for (const field of ['pay_annual_cents', 'pay_amount_cents', 'pay_kind', 'pay_period']) {
           fieldMeta[field] = m;
         }
@@ -644,7 +687,7 @@ export async function buildCoops(input: CoopsInput): Promise<CoopsOutput> {
           .map((d) => d.quotes.hours)
           .filter((q): q is string => q !== null)
           .join(' ');
-        fieldMeta['hours_per_week'] = meta(source, quote, ret.retrievedAt);
+        fieldMeta['hours_per_week'] = fromReturn(quote);
       }
     }
     if (p.coop.customers !== null) {
@@ -1229,7 +1272,7 @@ export function makeS02Coops(deps: S02CoopsDeps): StageModule {
           const entry = found.rows.get(ein.ein);
           match =
             ret !== null
-              ? { kind: 'return', ret }
+              ? { kind: 'return', ret, nameOnly: ein.nameOnly }
               : {
                   kind: 'unmatched',
                   reason:
