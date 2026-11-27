@@ -72,7 +72,7 @@ function events(lines: readonly { parsed: Record<string, unknown> }[], event: st
 }
 
 describe('the command line', () => {
-  it('every milestone 2 command is registered', () => {
+  it('registers exactly the listed commands', () => {
     expect([...commandNames()].sort()).toEqual(
       [
         'base',
