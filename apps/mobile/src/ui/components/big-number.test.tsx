@@ -1,10 +1,11 @@
+import { measureText } from '@citizenrun/cards';
 import { act, cleanup, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
 import { clearOncePerItem, motion } from '@/ui/motion';
-import { color, space } from '@/ui/tokens';
+import { color, gutter, space } from '@/ui/tokens';
 import { typography } from '@/ui/typography';
 import type { TypeRole } from '@/ui/typography';
 
@@ -28,6 +29,10 @@ const ALL: Readonly<Record<StateName, BigNumberProps>> = STATES;
 
 const TEST_ID = /^[a-z0-9-]+\.[a-z0-9-]+$/;
 const UNKNOWN = 'not known yet';
+/** The narrowest window a screen is drawn in, and the largest text the design review reads it at. */
+const NARROWEST_WINDOW = 360;
+const LARGE_TEXT = 1.3;
+const BODY_STRONG = typography.bodyStrong.style.fontSize ?? 0;
 /** Longer than a frame, so the frame after the first one has been drawn. */
 const A_FRAME_MS = 40;
 
@@ -127,7 +132,8 @@ describe('BigNumber', () => {
     }
     expect(STATES.hero.value).toEqual({ text: '$52,900', about: false });
     expect(STATES.hero.label).toBe('a year');
-    expect(STATES.display.value.text).toBe('$84,000,000');
+    expect(STATES.display.value.text).toBe('$84M');
+    expect(STATES.display.accessibilityLabel).toBe('The 2026 budget is $84,000,000.');
     expect(STATES.title.value.text).toBe('85');
     expect(STATES.heading.value.text).toBe('12');
     expect(STATES.about.value).toEqual({ text: '2,100', about: true });
@@ -135,6 +141,24 @@ describe('BigNumber', () => {
     expect(STATES.withMotion.itemKey).toBe('fixture-big-number');
     expect(PREVIEW).toEqual({});
     expect(GROUND).toEqual({});
+  });
+
+  it('every specimen figure fits one line of the narrowest phone at 130% text', () => {
+    // The figure never shrinks and never wraps, so a caller passes one that fits: a long one compact.
+    const measure = NARROWEST_WINDOW - 2 * gutter.narrow;
+    const numeralSize = (size: BigNumberProps['size']): number =>
+      (typography[NUMERAL[size]].style.fontSize ?? 0) * LARGE_TEXT;
+    const about =
+      measureText('about', { face: 'medium', size: BODY_STRONG * LARGE_TEXT }) + space.x2;
+    for (const state of STATE_NAMES) {
+      const { value, size } = ALL[state];
+      if (value.text === null) continue;
+      const figure = measureText(value.text, { face: 'bold', size: numeralSize(size) });
+      expect((value.about ? about : 0) + figure, state).toBeLessThanOrEqual(measure);
+    }
+    // The whole sum the display specimen stands for is too wide, which is why it arrives compact.
+    const whole = measureText('$84,000,000', { face: 'bold', size: numeralSize('display') });
+    expect(whole).toBeGreaterThan(measure);
   });
 
   it('has a label and a role', () => {

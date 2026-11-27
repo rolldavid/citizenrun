@@ -11,8 +11,9 @@ export const STATES = {
     accessibilityLabel: 'Pays $52,900 a year.',
     testID: 'gallery.big-number-hero',
   },
+  // A figure too long for the narrowest measure arrives compact; the sentence still says it whole.
   display: {
-    value: { text: '$84,000,000', about: false },
+    value: { text: '$84M', about: false },
     label: 'Budget, 2026',
     size: 'display',
     accessibilityLabel: 'The 2026 budget is $84,000,000.',
