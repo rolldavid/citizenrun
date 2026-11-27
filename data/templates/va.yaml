@@ -1,0 +1,953 @@
+schema_version: 1
+state: VA
+name: Virginia
+rules_module: va
+county_pay: mixed
+calendar_pages:
+  - url: https://www.elections.virginia.gov/candidatepac-info/candidate-bulletins/
+    scope: state
+    notes: 'Candidate bulletins of each cycle: filing windows and deadlines for every office'
+  - url: https://www.elections.virginia.gov/casting-a-ballot/calendars-schedules/
+    scope: state
+    notes: Five-year schedule of general elections and the local election-year calendars
+  - url: https://www.elections.virginia.gov/candidatepac-info/candidate-bulletins/archive/
+    scope: state
+    notes: Bulletins of past cycles
+parties_with_primaries:
+  - democratic
+  - republican
+
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes:
+      - 1
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+      quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+      citation: Constitution of Virginia, Art. VII, § 4
+    offices:
+      - key: county-sheriff
+        office_type: sheriff
+        applies_to: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commonwealths-attorney
+        office_type: district-attorney
+        applies_to: null
+        title: "{jurisdiction} Commonwealth's Attorney"
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-treasurer
+        office_type: county-treasurer
+        applies_to:
+          name_pattern: ^(?!(Albemarle County|Fairfax County|Henrico County|Prince William County)$)
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Treasurer'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner-of-revenue
+        office_type: county-assessor
+        applies_to:
+          name_pattern: ^(?!(Albemarle County|Fairfax County|Henrico County|Prince William County)$)
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Commissioner of the Revenue'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-clerk-of-circuit-court
+        office_type: county-row-other
+        applies_to: null
+        title: '{jurisdiction} Clerk of the Circuit Court'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+          citation: Constitution of Virginia, Art. VII, § 4
+        stagger:
+          - group: A
+            seats: 1
+            every: 8
+            first: 2023
+        term_years:
+          value: 8
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: city
+    kind: city
+    unit_type_codes:
+      - 2
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+      quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+      citation: Constitution of Virginia, Art. VII, § 4
+    offices:
+      - key: city-sheriff
+        office_type: sheriff
+        applies_to:
+          name_pattern: ' city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: city-commonwealths-attorney
+        office_type: district-attorney
+        applies_to:
+          name_pattern: ' city$'
+          population_min: null
+          population_max: null
+        title: "{jurisdiction} Commonwealth's Attorney"
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: city-treasurer
+        office_type: county-treasurer
+        applies_to:
+          name_pattern: ' city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Treasurer'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: city-commissioner-of-revenue
+        office_type: county-assessor
+        applies_to:
+          name_pattern: ' city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Commissioner of the Revenue'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: city-clerk-of-circuit-court
+        office_type: county-row-other
+        applies_to:
+          name_pattern: ' city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Clerk of the Circuit Court'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+            quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+            citation: Constitution of Virginia, Art. VII, § 4
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: There shall be elected by the qualified voters of each county and city a treasurer, a sheriff, an attorney for the Commonwealth, a clerk, who shall be clerk of the court in the office of which deeds are recorded, and a commissioner of revenue.
+          citation: Constitution of Virginia, Art. VII, § 4
+        stagger:
+          - group: A
+            seats: 1
+            every: 8
+            first: 2027
+        term_years:
+          value: 8
+          source_url: https://www.scb.virginia.gov/faqsmenu.cfm
+          quote: The Clerk of the Circuit Court serves an eight year term. All other officers serve four year terms.
+          citation: Constitution of Virginia, Art. VII, § 4
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        powers: []
+        pay:
+          rule: county_pay
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: school-division
+    kind: school_district
+    unit_type_codes: null
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: As a result of legislation adopted by the General Assembly in 1992, counties were authorized to establish, by referendum, a process whereby School Board members would be elected by the voters.
+      citation: Senate of Virginia, Virginia Government in Brief, County School Board and School Superintendent
+    offices: []
+
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/Five_year_election_day_calendar-2026_2030.pdf
+        quote: Governor Lieutenant Governor Attorney General (4-year term)
+        citation: Department of Elections, Schedule of General Elections 2026 – 2030
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: The four-year term runs concurrently with that of the Governor and Lieutenant Governor and no restriction is placed on successive terms.
+      citation: Senate of Virginia, Virginia Government in Brief, Attorney General
+    term_limit_terms: null
+    schedule: va_june_primary
+    track_set: va_partisan
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Gov_LtGov_AttGen_rev_1-28-25.pdf
+      quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+      citation: Department of Elections, June and November 2025 Governor, Lieutenant Governor and Attorney General Candidate Bulletin
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: lieutenant-governor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Lieutenant Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/Five_year_election_day_calendar-2026_2030.pdf
+        quote: Governor Lieutenant Governor Attorney General (4-year term)
+        citation: Department of Elections, Schedule of General Elections 2026 – 2030
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: The four-year term runs concurrently with that of the Governor and Lieutenant Governor and no restriction is placed on successive terms.
+      citation: Senate of Virginia, Virginia Government in Brief, Attorney General
+    term_limit_terms: null
+    schedule: va_june_primary
+    track_set: va_partisan
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Gov_LtGov_AttGen_rev_1-28-25.pdf
+      quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+      citation: Department of Elections, June and November 2025 Governor, Lieutenant Governor and Attorney General Candidate Bulletin
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: attorney-general
+    office_type: attorney-general
+    applies_to: null
+    title: Attorney General
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/Five_year_election_day_calendar-2026_2030.pdf
+        quote: Governor Lieutenant Governor Attorney General (4-year term)
+        citation: Department of Elections, Schedule of General Elections 2026 – 2030
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: The four-year term runs concurrently with that of the Governor and Lieutenant Governor and no restriction is placed on successive terms.
+      citation: Senate of Virginia, Virginia Government in Brief, Attorney General
+    term_limit_terms: null
+    schedule: va_june_primary
+    track_set: va_partisan
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Gov_LtGov_AttGen_rev_1-28-25.pdf
+      quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+      citation: Department of Elections, June and November 2025 Governor, Lieutenant Governor and Attorney General Candidate Bulletin
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+
+legislature:
+  - office_type: state-senate
+    title: State Senator, District {label}
+    seats_per_district: null
+    district_groups:
+      - group: A
+        districts: all
+        every: 4
+        first: 2027
+    term_years:
+      value: 4
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: The Senate of Virginia consists of 40 members. Each member is elected for a term of four years
+      citation: Senate of Virginia, Virginia Government in Brief, Organization of the Senate
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2023-candidate-bulletins/2023-11-07_Gen_Bulletin_HoD_SoV.pdf
+      quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+      citation: Department of Elections, June and November 2023 House of Delegates and Senate of Virginia Candidate Bulletin
+    pay: null
+    schedule: va_june_primary
+    track_set: va_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: Delegate, District {label}
+    seats_per_district: null
+    district_groups:
+      - group: A
+        districts: all
+        every: 2
+        first: 2025
+    term_years:
+      value: 2
+      source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
+      quote: The term of office for a member of the House of Delegates is two years.
+      citation: Senate of Virginia, Virginia Government in Brief, Organization of the House
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_House_of_Del_rev_1-28-25.pdf
+      quote: Primary candidate – an individual who is seeking the nomination of a political party by running in a primary
+      citation: Department of Elections, June and November 2025 House of Delegates Candidate Bulletin
+    pay: null
+    schedule: va_june_primary
+    track_set: va_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2026-candidate-bulletins/2026-11-03_US_House_Gen_Bulletin_(2-23-26).pdf
+      quote: Ballot Access Requirements for the August 4, 2026, US House of Representatives Primary Elections and November 3, 2026, US House of Representatives General Elections
+      citation: Department of Elections, August and November 2026 US House of Representatives Candidate Bulletin
+    schedule: va_june_primary
+    track_set: va_partisan
+  us_senate:
+    partisan:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2026-candidate-bulletins/2026-11-03_US_Sen_Gen_Bulletin_(2-23-26).pdf
+      quote: Ballot Access Requirements for the August 4, 2026, US Senate Primary Elections and November 3, 2026, US Senate General Elections
+      citation: Department of Elections, August and November 2026 US Senate Candidate Bulletin
+    schedule: va_june_primary
+    track_set: va_partisan
+
+county_sets: []
+
+special_districts:
+  - key: soil-water-conservation-district
+    enabling_statute:
+      value: Soil and water conservation districts created by the Virginia Soil and Water Conservation Board
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: Soil and water conservation districts are created by the Virginia Soil and Water Conservation Board upon petition of local governing bodies or voters after a public hearing.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: true
+      source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+      quote: The legislation required that quadrennial elections be held in the counties and cities by electing Soil and Water Directors beginning in November 2007.
+      citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+    classifier:
+      function_names:
+        - 88 - SOIL AND WATER CONSERVATION
+      name_patterns: []
+    offices:
+      - key: northern-virginia-swcd-director
+        office_type: soil-water-conservation-board
+        applies_to:
+          name_pattern: ^Northern Virginia Soil and Water Conservation District$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+            quote: Fairfax 3 3 3 3 Northern Virginia
+            citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+          quote: At its 2002 Session, the General Assembly enacted legislation establishing uniform four-year terms for Soil and Water Conservation District Directors.
+          citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: prince-william-swcd-director
+        office_type: soil-water-conservation-board
+        applies_to:
+          name_pattern: ^Prince William Soil and Water Conservation District$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+            quote: Prince William 3 3 3 3 Prince William
+            citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+          quote: At its 2002 Session, the General Assembly enacted legislation establishing uniform four-year terms for Soil and Water Conservation District Directors.
+          citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: loudoun-swcd-director
+        office_type: soil-water-conservation-board
+        applies_to:
+          name_pattern: ^Loudoun Soil and Water Conservation District$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+            quote: Loudoun 3 3 3 3 Loudoun
+            citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+          quote: At its 2002 Session, the General Assembly enacted legislation establishing uniform four-year terms for Soil and Water Conservation District Directors.
+          citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henricopolis-swcd-director
+        office_type: soil-water-conservation-board
+        applies_to:
+          name_pattern: ^Henricopolis Soil and Water Conservation District$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Director'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+            quote: Henrico 3 3 3 3 Henricopolis
+            citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+          quote: At its 2002 Session, the General Assembly enacted legislation establishing uniform four-year terms for Soil and Water Conservation District Directors.
+          citation: Department of Elections, Election Schedule, Soil and Water Conservation District Directors, 2027 – 2039
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: water-and-waste-authority
+    enabling_statute:
+      value: Water and waste authorities established by ordinance or resolution
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: They are established by ordinance or resolution of any one or more counties or municipalities after public hearing.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: false
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: Each authority is governed by a board consisting of one or more members representing each locality, as determined by the articles of incorporation.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    classifier:
+      function_names:
+        - 91 - WATER SUPPLY UTILITY
+        - 98 - SEWERAGE AND WATER SUPPLY
+        - 80 - SEWERAGE
+        - 81 - SOLID WASTE MANAGEMENT
+      name_patterns:
+        - \bauthority\b
+    offices: []
+  - key: hospital-authority
+    enabling_statute:
+      value: Hospital authorities established by a city council or county governing body
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: A city council or county governing body may, on its own initiative or upon voter petition, establish a hospital authority to provide and operate hospitals.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: false
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: A board of commissioners (appointed by the mayor or county governing body) governs each authority.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    classifier:
+      function_names:
+        - 40 - HOSPITALS
+      name_patterns:
+        - \bhospital authority\b
+    offices: []
+  - key: airport-authority
+    enabling_statute:
+      value: Airport authorities and commissions established by special act
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: Airport authorities and commissions may be established by special act.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: false
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: A board appointed by the participating local governments governs each of the airport authorities, except for the Blue Ridge Airport Authority’s board which is appointed by the circuit judge.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    classifier:
+      function_names:
+        - 01 - AIR TRANSPORTATION
+      name_patterns: []
+    offices: []
+  - key: regional-jail-authority
+    enabling_statute:
+      value: Jail authorities created by concurrent resolutions (1990 law)
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: They may be created by concurrent resolutions of the governing bodies of two or more counties, cities, or combinations of both.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: false
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: A board (consisting of appointed representatives and the sheriff of the member governments) governs each authority.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    classifier:
+      function_names:
+        - 04 - CORRECTIONAL INSTITUTIONS
+      name_patterns:
+        - \bjail authority\b
+    offices: []
+  - key: richmond-metropolitan-transportation-authority
+    enabling_statute:
+      value: The 1966 special act of the Richmond Metropolitan Transportation Authority
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: It was established by a 1966 special act.
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    elected:
+      value: false
+      source_url: https://www.census.gov/content/dam/Census/library/publications/2024/econ/2022ISD.pdf
+      quote: 'A 16-member board of directors governs the authority: five members appointed by the boards of county supervisors of the counties of Chesterfield and Henrico; four members appointed by the mayor of the city of Richmond'
+      citation: 'U.S. Census Bureau, Individual State Descriptions: 2022, Virginia'
+    classifier:
+      function_names:
+        - 45 - TOLL HIGHWAYS
+      name_patterns:
+        - ^Richmond Metropolitan Transportation Authority$
+    offices: []
+
+party_committee:
+  selection:
+    value: party_meeting
+    source_url: https://www.elections.virginia.gov/candidatepac-info/political-committees/political-party-committees/
+    quote: 'A political party committee can be any of the following types of organizations: State Committee City Party Committee County Party Committee'
+    citation: Department of Elections, Political Party Committees
+  unit: county
+  seats_rule:
+    value: one chair of each county or city committee per party
+    source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+    quote: 'Primary candidates: The political party chair of your locality of residence.'
+    citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+  term_years: null
+  parties:
+    - democratic
+    - republican
+  offices:
+    - key: party-chair
+      office_type: party-committee
+      applies_to: null
+      title: '{jurisdiction} Chair'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf
+          quote: 'Primary candidates: The political party chair of your locality of residence.'
+          citation: Department of Elections, June and November 2025 Local Offices Candidate Bulletin
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years: null
+      term_limit_terms: null
+      schedule: va_no_public_election
+      track_set: va_partisan
+      partisan: null
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+
+eligibility_common: []
+notes: null
