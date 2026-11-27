@@ -122,7 +122,7 @@ describe('SourceLink', () => {
           expect(target.textContent, name).toBe(saidOf(ALL[state]));
           const level = ALL[state].confidence;
           if (level !== null) {
-            const words = target.textContent ?? '';
+            const words = target.textContent;
             expect(words.split(WORDS[level]), name).toHaveLength(2);
             const pip = [...line.querySelectorAll<HTMLElement>('*')].find(
               (part) => part.style.width === `${String(size.confidencePip.width)}px`,
