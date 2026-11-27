@@ -177,6 +177,13 @@ async function streamBytes(body: AsyncIterable<unknown>): Promise<Buffer> {
 
 const HTML = /^text\/html\b/i;
 
+/** The zip reader's refusal of an entry it cannot decompress, such as Deflate64 (method 9). */
+const UNSUPPORTED_METHOD = /^unsupported compression method\b/;
+
+function isUnsupportedMethod(error: unknown): boolean {
+  return error instanceof Error && UNSUPPORTED_METHOD.test(error.message);
+}
+
 /**
  * The returns of `wanted`, keyed by OBJECT_ID. A return already kept under
  * `datasets/irs990/<year>/` is read and not fetched. For the rest each named batch is downloaded
@@ -242,13 +249,23 @@ export async function fetchReturns(
         byBase.set(name.slice(name.lastIndexOf('/') + 1), name);
       }
       const retrievedAt = ctx.now.toISOString();
+      let unreadable = false;
       for (const objectId of [...objectIds].sort()) {
         const entry = byBase.get(returnFileName(objectId));
         if (entry === undefined) continue;
-        const bytes = await streamBytes(await openZipEntry(temp.path, entry));
+        let bytes: Buffer;
+        try {
+          bytes = await streamBytes(await openZipEntry(temp.path, entry));
+        } catch (error) {
+          // An entry the reader cannot decompress leaves its return missing, as a batch that cannot be opened.
+          if (!isUnsupportedMethod(error)) throw error;
+          unreadable = true;
+          continue;
+        }
         await ctx.bucket.putBytes(returnKey(year, objectId), bytes, 'application/xml');
         returns.set(objectId, { objectId, batch, year, xml: bytes.toString('utf8'), retrievedAt });
       }
+      if (unreadable) unavailable.push(batch);
     } finally {
       if (temp !== null) await temp.remove();
       await ctx.bucket.delete([key]);

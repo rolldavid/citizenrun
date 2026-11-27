@@ -187,16 +187,17 @@ async function writeBase(bucket: DataBucket): Promise<void> {
 }
 
 /** The made-up national files of one `ZZ` co-op, under the real URLs, and the saved return's batch. */
-async function answers(): Promise<Map<string, Answer>> {
+async function answers(opts: { city: boolean } = { city: true }): Promise<Map<string, Answer>> {
   const xlsx = (rows: (string | number | null)[][]) => writeXlsx([{ name: 'States', rows }]);
+  const utilityRows: (string | number | null)[][] = [
+    ['Utility Characteristics', null, null, null, null, null],
+    ['Data Year', 'Utility Number', 'Utility Name', 'State', 'Ownership Type', 'City'],
+    [2025, 99999, 'Fixture Electric Cooperative', 'ZZ', 'Cooperative', 'Fixture City'],
+  ];
   const eia = storedZip([
     {
       name: 'Utility_Data_2025.xlsx',
-      data: await xlsx([
-        ['Utility Characteristics', null, null, null, null, null],
-        ['Data Year', 'Utility Number', 'Utility Name', 'State', 'Ownership Type', 'City'],
-        [2025, 99999, 'Fixture Electric Cooperative', 'ZZ', 'Cooperative', 'Fixture City'],
-      ]),
+      data: await xlsx(opts.city ? utilityRows : utilityRows.map((row) => row.slice(0, 5))),
     },
     {
       name: 'Service_Territory_2025.xlsx',
@@ -348,6 +349,60 @@ describe('stage 2, co-ops', () => {
     expect(second.requests.map((r) => r.url)).not.toContain(batchUrl(2026, BATCH));
     expect(second.requests.length).toBeGreaterThan(0);
     expect((await rows(bucket, 'offices', BOfficeSchema))[0]?.body_size).toBe(9);
+  });
+
+  it('with no EIA city column the single candidate is matched by name and its return fetched', async () => {
+    const { bucket } = await getTestBucket('data');
+    await writeBase(bucket);
+    const fetcher = recordingFetcher(bucket, await answers({ city: false }));
+    const module = makeS02Coops({ countyAttributes: () => Promise.resolve(COUNTIES) });
+    const ctx = fixtureContext({ bucket, fetcher, now: NOW, runId: testRunId() });
+    const result = await runStage(module, ctx, ['ZZ'], { dryRun: false });
+    expect(result.summaries.map((s) => [s.state, s.status])).toEqual([['ZZ', 'done']]);
+    const meta = await readStageMeta(bucket, 's02-coops', 'ZZ');
+    const detail = meta?.checks.find((c) => c.name === 'coops')?.detail;
+    expect(detail).toContain('matched=1');
+    expect(detail).toContain('ein_name_only=1');
+    expect(Object.keys(meta?.datasets ?? {}).sort()).toEqual(['eia861', 'irs-eobmf', 'irs990']);
+    expect(fetcher.requests.filter((r) => r.url === batchUrl(2026, BATCH))).toHaveLength(1);
+    const office = (await rows(bucket, 'offices', BOfficeSchema))[0];
+    expect(office?.body_size).toBe(9);
+    expect(
+      Object.entries(office?.field_meta ?? {}).every(
+        ([, m]) => m.confidence === 'medium' || m.confidence === 'low',
+      ),
+    ).toBe(true);
+    expect(await rows(bucket, 'people', BPersonSchema)).toHaveLength(9);
+  });
+
+  it('a batch whose return the zip reader cannot decompress counts batch_unavailable', async () => {
+    const { bucket } = await getTestBucket('data');
+    await writeBase(bucket);
+    const table = await answers({ city: false });
+    // The same archive with its entry marked Deflate64 (method 9) in both headers.
+    const zip = storedZip([{ name: SAVED, data: await coopsSample(SAVED) }]);
+    zip.writeUInt16LE(9, 8);
+    zip.writeUInt16LE(9, zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 10);
+    table.set(batchUrl(2026, BATCH), { body: zip, contentType: 'application/zip' });
+    const module = makeS02Coops({ countyAttributes: () => Promise.resolve(COUNTIES) });
+    const ctx = fixtureContext({
+      bucket,
+      fetcher: recordingFetcher(bucket, table),
+      now: NOW,
+      runId: testRunId(),
+    });
+    const result = await runStage(module, ctx, ['ZZ'], { dryRun: false });
+    expect(result.summaries.map((s) => [s.state, s.status])).toEqual([['ZZ', 'done']]);
+    const detail = (await readStageMeta(bucket, 's02-coops', 'ZZ'))?.checks.find(
+      (c) => c.name === 'coops',
+    )?.detail;
+    expect(detail).toContain('batch_unavailable=1');
+    expect(detail).toContain('matched=0');
+    expect(await rows(bucket, 'people', BPersonSchema)).toEqual([]);
+    expect(await keysUnder(bucket, 'datasets/irs990/2026/')).toEqual([
+      'datasets/irs990/2026/_edition.json',
+      'datasets/irs990/2026/index_2026.csv',
+    ]);
   });
 
   it('a state whose EO BMF file is unavailable keeps its last good output', async () => {
