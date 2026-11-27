@@ -6,7 +6,7 @@ packages:
 # One version of each shared dependency (D-110). A manifest refers to an entry as "catalog:".
 catalog:
   typescript: ~6.0.3
-  '@types/node': ^24.0.0
+  '@types/node': ^26.6.6
   zod: ^4.6.7
   react: 19.3.0
   react-dom: 19.3.0
