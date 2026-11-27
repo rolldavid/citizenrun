@@ -23,6 +23,7 @@ import { storedZip } from '../lib/zip.fixtures.ts';
 import { EIA_URL } from '../sources/eia861.ts';
 import { coopsSample } from '../sources/eia861.fixtures.ts';
 import { eoBmfUrl } from '../sources/irs-eobmf.ts';
+import { deflate64Zip } from '../sources/irs990.fixtures.ts';
 import { batchUrl, indexUrl } from '../sources/irs990.ts';
 import { fixtureContext } from '../templates/__fixtures__/zz-fake-fetcher.ts';
 import { getTestBucket, resetStorage, testRunId } from '../testing/setup.ts';
@@ -375,11 +376,43 @@ describe('stage 2, co-ops', () => {
     expect(await rows(bucket, 'people', BPersonSchema)).toHaveLength(9);
   });
 
-  it('a batch whose return the zip reader cannot decompress counts batch_unavailable', async () => {
+  it('a batch whose return is packed with Deflate64 is read with the system unzip', async () => {
     const { bucket } = await getTestBucket('data');
     await writeBase(bucket);
     const table = await answers({ city: false });
-    // The same archive with its entry marked Deflate64 (method 9) in both headers.
+    table.set(batchUrl(2026, BATCH), {
+      body: deflate64Zip(`${BATCH}/${SAVED}`, await coopsSample(SAVED)),
+      contentType: 'application/zip',
+    });
+    const module = makeS02Coops({ countyAttributes: () => Promise.resolve(COUNTIES) });
+    const ctx = fixtureContext({
+      bucket,
+      fetcher: recordingFetcher(bucket, table),
+      now: NOW,
+      runId: testRunId(),
+    });
+    const result = await runStage(module, ctx, ['ZZ'], { dryRun: false });
+    expect(result.summaries.map((s) => [s.state, s.status])).toEqual([['ZZ', 'done']]);
+    const detail = (await readStageMeta(bucket, 's02-coops', 'ZZ'))?.checks.find(
+      (c) => c.name === 'coops',
+    )?.detail;
+    expect(detail).toContain('matched=1');
+    expect(detail).toContain('batch_unavailable=0');
+    expect((await rows(bucket, 'offices', BOfficeSchema))[0]?.body_size).toBe(9);
+    expect(await rows(bucket, 'people', BPersonSchema)).toHaveLength(9);
+    expect(await keysUnder(bucket, 'datasets/irs990/2026/')).toEqual([
+      'datasets/irs990/2026/202640159349301609_public.xml',
+      'datasets/irs990/2026/_edition.json',
+      'datasets/irs990/2026/index_2026.csv',
+    ]);
+  });
+
+  it('a batch whose return neither yauzl nor unzip can decompress counts batch_unavailable', async () => {
+    const { bucket } = await getTestBucket('data');
+    await writeBase(bucket);
+    const table = await answers({ city: false });
+    // The same archive with its entry marked Deflate64 (method 9) in both headers, though its bytes
+    // are stored: yauzl refuses the method and unzip exits non-zero on the invalid stream.
     const zip = storedZip([{ name: SAVED, data: await coopsSample(SAVED) }]);
     zip.writeUInt16LE(9, 8);
     zip.writeUInt16LE(9, zip.indexOf(Buffer.from([0x50, 0x4b, 0x01, 0x02])) + 10);

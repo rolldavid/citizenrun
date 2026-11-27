@@ -1,19 +1,28 @@
+import { Readable } from 'node:stream';
 import { describe, expect, it } from 'vitest';
+import { openZipEntry, toTempFile } from '../lib/zip.ts';
 import { loadRelevanceDefaults } from '../stages/shared/reference.ts';
 import { repoRoot } from '../stages/shared/repo.ts';
 import { buildCoops } from '../stages/s02-coops.ts';
 import type { CoopsInput } from '../stages/s02-coops.ts';
 import { scriptedRun } from './dataset.fixtures.ts';
 import { coopsSample, coopsText } from './eia861.fixtures.ts';
+import { deflate64Zip } from './irs990.fixtures.ts';
 import {
   IrsIndexHeaderError,
+  RETURN_MAX_BYTES,
+  UNZIP_TIMEOUT_MS,
+  batchUrl,
+  fetchReturns,
   indexUrl,
   latestReturns,
   loadIndex,
   parseCoopReturn,
+  returnKey,
   returnSourceUrl,
+  unzipMember,
 } from './irs990.ts';
-import type { IndexRow } from './irs990.ts';
+import type { FileRunner, IndexRow } from './irs990.ts';
 
 const SAVED = '202640159349301609_public.xml';
 
@@ -208,5 +217,130 @@ describe('the index', () => {
     );
     const index = await loadIndex(ctx, 2026);
     await expect(index.rows(new Set(['990000001']))).rejects.toBeInstanceOf(IrsIndexHeaderError);
+  });
+});
+
+const SAVED_ID = '202640159349301609';
+const BATCH = '2026_TEOS_XML_01A';
+
+/** The saved return packed with Deflate64 in a batch folder, as the IRS batches hold it. */
+async function deflate64Batch(): Promise<Buffer> {
+  return deflate64Zip(`${BATCH}/${SAVED}`, await coopsSample(SAVED));
+}
+
+function batchRun(zip: Buffer): ReturnType<typeof scriptedRun> {
+  return scriptedRun((url) =>
+    url === batchUrl(2026, BATCH)
+      ? { kind: 'body', contentType: 'application/zip', body: zip }
+      : undefined,
+  );
+}
+
+/** A runner that records its calls and answers with `answer`. */
+function recordingRunner(answer: () => Promise<Buffer>): {
+  run: FileRunner;
+  calls: { file: string; args: readonly string[]; maxBuffer: number; timeout: number }[];
+} {
+  const calls: { file: string; args: readonly string[]; maxBuffer: number; timeout: number }[] = [];
+  return {
+    calls,
+    run: (file, args, options) => {
+      calls.push({ file, args, maxBuffer: options.maxBuffer, timeout: options.timeout });
+      return answer();
+    },
+  };
+}
+
+function exitError(code: number): Error {
+  return Object.assign(new Error(`Command failed: unzip (exit ${String(code)})`), { code });
+}
+
+describe('Deflate64 batches', () => {
+  it('yauzl refuses the fixture entry as method 9', async () => {
+    const temp = await toTempFile(Readable.from([await deflate64Batch()]), '.zip');
+    try {
+      await expect(openZipEntry(temp.path, `${BATCH}/${SAVED}`)).rejects.toThrow(
+        'unsupported compression method: 9',
+      );
+    } finally {
+      await temp.remove();
+    }
+  });
+
+  it('the system unzip reads a Deflate64 member', async () => {
+    const temp = await toTempFile(Readable.from([await deflate64Batch()]), '.zip');
+    try {
+      const bytes = await unzipMember(temp.path, `${BATCH}/${SAVED}`);
+      expect(bytes?.toString('utf8')).toBe(await coopsText(SAVED));
+    } finally {
+      await temp.remove();
+    }
+  });
+
+  it('a Deflate64 return is extracted with unzip, kept, and its batch is not unavailable', async () => {
+    const { ctx, bucket } = batchRun(await deflate64Batch());
+    const fetched = await fetchReturns(ctx, 2026, [indexRow('202506', SAVED_ID)]);
+    expect(fetched.batchUnavailable).toEqual([]);
+    const saved = await coopsText(SAVED);
+    expect(fetched.returns.get(SAVED_ID)?.xml).toBe(saved);
+    const kept = await bucket.getStream(returnKey(2026, SAVED_ID));
+    expect(kept).not.toBeNull();
+    const board = parseCoopReturn(fetched.returns.get(SAVED_ID)?.xml ?? '');
+    expect(board === 'not_990' ? null : board.boardSize).toBe(9);
+  });
+
+  it('unzip runs with the batch path and the member as arguments, capped and timed', async () => {
+    const { run, calls } = recordingRunner(() => Promise.resolve(Buffer.from('<Return/>')));
+    const out = await unzipMember('/tmp/batch.zip', `${BATCH}/${SAVED}`, run);
+    expect(out?.toString('utf8')).toBe('<Return/>');
+    expect(calls).toEqual([
+      {
+        file: 'unzip',
+        args: ['-p', '/tmp/batch.zip', `${BATCH}/${SAVED}`],
+        maxBuffer: RETURN_MAX_BYTES,
+        timeout: UNZIP_TIMEOUT_MS,
+      },
+    ]);
+  });
+
+  it('a non-zero exit, an overrun, a timeout or a missing unzip gives no bytes', async () => {
+    const failures: (() => Promise<Buffer>)[] = [
+      () => Promise.reject(exitError(2)),
+      () => Promise.reject(exitError(11)),
+      () =>
+        Promise.reject(
+          Object.assign(new RangeError('stdout maxBuffer length exceeded'), {
+            code: 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER',
+          }),
+        ),
+      () =>
+        Promise.reject(
+          Object.assign(new Error('Command failed: unzip'), { killed: true, signal: 'SIGKILL' }),
+        ),
+      () => Promise.reject(Object.assign(new Error('spawn unzip ENOENT'), { code: 'ENOENT' })),
+      () => Promise.resolve(Buffer.alloc(RETURN_MAX_BYTES + 1)),
+    ];
+    for (const answer of failures) {
+      const { run } = recordingRunner(answer);
+      expect(await unzipMember('/tmp/batch.zip', `${BATCH}/${SAVED}`, run)).toBeNull();
+    }
+  });
+
+  it('a member name unzip would read as a pattern or an option is never passed to it', async () => {
+    const { run, calls } = recordingRunner(() => Promise.resolve(Buffer.from('x')));
+    for (const name of ['-x', '*_public.xml', 'a?.xml', '[a].xml', 'a b.xml', 'a/../b.xml']) {
+      expect(await unzipMember('/tmp/batch.zip', name, run)).toBeNull();
+    }
+    expect(calls).toEqual([]);
+  });
+
+  it('a Deflate64 return unzip cannot extract leaves it missing and counts its batch', async () => {
+    const { ctx, bucket } = batchRun(await deflate64Batch());
+    const { run, calls } = recordingRunner(() => Promise.reject(exitError(2)));
+    const fetched = await fetchReturns(ctx, 2026, [indexRow('202506', SAVED_ID)], { run });
+    expect(calls).toHaveLength(1);
+    expect(fetched.batchUnavailable).toEqual([BATCH]);
+    expect(fetched.returns.size).toBe(0);
+    expect(await bucket.getStream(returnKey(2026, SAVED_ID))).toBeNull();
   });
 });

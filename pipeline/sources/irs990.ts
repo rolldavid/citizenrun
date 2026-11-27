@@ -1,5 +1,6 @@
 // Form 990 e-file returns (PIPE-coops steps 3 to 5): the yearly index, the monthly batches named in
 // it (of which only the matched returns are kept, D-316) and the board facts of a co-op's return.
+import { execFile } from 'node:child_process';
 import { bucketKeys } from '../lib/bucket.ts';
 import { readDelimited } from '../lib/csv.ts';
 import type { RunContext } from '../lib/runner.ts';
@@ -13,6 +14,10 @@ export const IRS990_DATASET = 'irs990';
 export const IRS990_ROOT = 'https://apps.irs.gov/pub/epostcard/990/xml/';
 /** Form 990 batches are 71 to 521 MB; the fetcher's default limit for datasets is 200 MB. */
 const BATCH_MAX_BYTES = 1_000_000_000;
+/** The most bytes one return may hold when the system unzip extracts it. */
+export const RETURN_MAX_BYTES = 64 * 1024 * 1024;
+/** How long the system unzip may take to extract one return. */
+export const UNZIP_TIMEOUT_MS = 120_000;
 
 export type IndexYear = 2026 | 2025;
 
@@ -179,22 +184,94 @@ const HTML = /^text\/html\b/i;
 
 /** The zip reader's refusal of an entry it cannot decompress, such as Deflate64 (method 9). */
 const UNSUPPORTED_METHOD = /^unsupported compression method\b/;
+/** The same refusal for Deflate64, which the system unzip reads (D-880). */
+const DEFLATE64_METHOD = /^unsupported compression method: 9$/;
 
 function isUnsupportedMethod(error: unknown): boolean {
   return error instanceof Error && UNSUPPORTED_METHOD.test(error.message);
 }
 
+function isDeflate64(error: unknown): boolean {
+  return error instanceof Error && DEFLATE64_METHOD.test(error.message);
+}
+
+/** Runs a program with its arguments as an array and no shell, resolving with its stdout. */
+export type FileRunner = (
+  file: string,
+  args: readonly string[],
+  options: { readonly maxBuffer: number; readonly timeout: number },
+) => Promise<Buffer>;
+
+const execFileRunner: FileRunner = (file, args, options) =>
+  new Promise((resolvePromise, reject) => {
+    execFile(
+      file,
+      [...args],
+      {
+        encoding: 'buffer',
+        maxBuffer: options.maxBuffer,
+        timeout: options.timeout,
+        killSignal: 'SIGKILL',
+        windowsHide: true,
+      },
+      (error, stdout) => {
+        if (error !== null) {
+          reject(error instanceof Error ? error : new Error('unzip failed'));
+          return;
+        }
+        resolvePromise(stdout);
+      },
+    );
+  });
+
+/**
+ * A member name passed to unzip as written: no wildcard (`*`, `?`, `[`), no leading dash that unzip
+ * would read as an option, no space or backslash.
+ */
+const UNZIP_MEMBER = /^[A-Za-z0-9_][A-Za-z0-9_./-]{0,255}$/;
+
+/**
+ * The bytes of `member` in the archive at `batchPath`, extracted with the system `unzip -p`, or null
+ * when unzip fails, runs past `UNZIP_TIMEOUT_MS` or writes more than `RETURN_MAX_BYTES`. It is the
+ * reader of Deflate64 (zip method 9) members, which yauzl refuses (D-880). macOS's UnZip 6.00 lists
+ * USE_DEFLATE64 in `unzip -v`, and the ubuntu-24.04 runners ship Info-ZIP unzip with Deflate64.
+ */
+export async function unzipMember(
+  batchPath: string,
+  member: string,
+  run: FileRunner = execFileRunner,
+): Promise<Buffer | null> {
+  if (!UNZIP_MEMBER.test(member) || member.includes('..')) return null;
+  try {
+    const out = await run('unzip', ['-p', batchPath, member], {
+      maxBuffer: RETURN_MAX_BYTES,
+      timeout: UNZIP_TIMEOUT_MS,
+    });
+    return out.length > RETURN_MAX_BYTES ? null : out;
+  } catch {
+    return null;
+  }
+}
+
+export type FetchReturnsOptions = {
+  /** Runs the system unzip for Deflate64 members; the default is `execFile`. */
+  readonly run?: FileRunner;
+};
+
 /**
  * The returns of `wanted`, keyed by OBJECT_ID. A return already kept under
  * `datasets/irs990/<year>/` is read and not fetched. For the rest each named batch is downloaded
  * once through the fetcher, copied to a temporary file, and only the wanted returns are written to
- * their kept keys; the temporary file and the batch object are deleted in every case. A batch that
- * cannot be fetched or opened leaves its returns missing and is counted.
+ * their kept keys; the temporary file and the batch object are deleted in every case. An entry
+ * packed with Deflate64 is extracted by the system unzip (D-880). A batch that cannot be fetched or
+ * opened, or one with a return neither reader can decompress, leaves those returns missing and is
+ * counted.
  */
 export async function fetchReturns(
   ctx: RunContext,
   year: IndexYear,
   wanted: readonly IndexRow[],
+  opts: FetchReturnsOptions = {},
 ): Promise<{ returns: ReadonlyMap<string, ReturnFile>; batchUnavailable: readonly string[] }> {
   const returns = new Map<string, ReturnFile>();
   const missing = new Map<string, Set<string>>();
@@ -259,8 +336,16 @@ export async function fetchReturns(
         } catch (error) {
           // An entry the reader cannot decompress leaves its return missing, as a batch that cannot be opened.
           if (!isUnsupportedMethod(error)) throw error;
-          unreadable = true;
-          continue;
+          // A Deflate64 entry is read from the same temporary file by the system unzip (D-880).
+          const extracted = isDeflate64(error)
+            ? await unzipMember(temp.path, entry, opts.run)
+            : null;
+          if (extracted === null) {
+            ctx.log.warn('irs990.entry_unreadable', { year, batch });
+            unreadable = true;
+            continue;
+          }
+          bytes = extracted;
         }
         await ctx.bucket.putBytes(returnKey(year, objectId), bytes, 'application/xml');
         returns.set(objectId, { objectId, batch, year, xml: bytes.toString('utf8'), retrievedAt });
