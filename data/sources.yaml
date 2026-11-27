@@ -141,7 +141,7 @@
   attribution: U.S. Energy Information Administration
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: EIA asks for an acknowledgment that names EIA and the publication date. robots.txt of www.eia.gov allows the file.
+  notes: EIA asks for an acknowledgment that names EIA and the publication date. robots.txt of www.eia.gov allows the file. No 2025 file carries a City or a Website column, so every utility's city and website are null.
 
 - id: irs-eobmf
   kind: dataset
