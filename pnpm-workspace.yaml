@@ -23,7 +23,7 @@ catalog:
   '@aws-sdk/s3-presigned-post': ^3.1169.0 # same line as @aws-sdk/client-s3 (D-248)
   '@aws-sdk/s3-request-presigner': ^3.1169.0
   jose: ~6.2.18 # D-241
-  resend: ~6.38.1 # D-246
+  resend: ~6.39.0 # D-246
   sharp: ~0.35.5 # D-250
   drizzle-orm: 1.0.0-rc.5 # exact, no caret (D-235); both lines change together under C1
   drizzle-kit: 1.0.0-rc.5
