@@ -175,6 +175,10 @@ describe('altText', () => {
     expect(sentences({ filingDeadline: deadlineOn('2026-11-14') }).at(-1)).toBe(
       'Filing is closed.',
     );
+    // The last day after the closing hour: the status is closed while the date is still today.
+    expect(
+      sentences({ filingDeadline: deadlineOn('2026-11-15'), filingStatus: 'closed' }).at(-1),
+    ).toBe('Filing is closed.');
     expect(sentences({ filingDeadline: null, filingStatus: 'no_election' }).at(-1)).toBe(
       'No election is scheduled.',
     );

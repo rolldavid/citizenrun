@@ -95,6 +95,19 @@ describe('officeFigures', () => {
       { kind: 'phrase', phrase: 'not known yet', label: 'Votes to win', dateLine: null },
       { kind: 'phrase', phrase: 'not known yet', label: 'Days to file', dateLine: null },
     ]);
+
+    // Filing that closed earlier today is not a count for the big slot.
+    const closedToday = figures({
+      ...NO_PAY,
+      ...NO_VOTES,
+      filingDeadline: deadlineOn('2026-11-15'),
+      filingStatus: 'closed',
+    });
+    expect(closedToday.big).toEqual({ kind: 'unknown', phrase: 'not known yet', caption: 'pay' });
+    expect(closedToday.facts).toEqual([
+      { kind: 'phrase', phrase: 'not known yet', label: 'Votes to win', dateLine: null },
+      { kind: 'phrase', phrase: 'closed', label: 'Filing', dateLine: null },
+    ]);
   });
 
   it('pay captions', () => {
@@ -190,6 +203,19 @@ describe('officeFigures', () => {
     expect(days({ filingDeadline: null, filingStatus: 'closed' })).toMatchObject({
       phrase: 'closed',
       label: 'Filing',
+    });
+    // The last day after the closing hour: the status is closed while the date is still today.
+    expect(days({ filingDeadline: deadlineOn('2026-11-15'), filingStatus: 'closed' })).toEqual({
+      kind: 'phrase',
+      phrase: 'closed',
+      label: 'Filing',
+      dateLine: null,
+    });
+    expect(days({ filingDeadline: deadlineOn('2026-11-20'), filingStatus: 'closed' })).toEqual({
+      kind: 'phrase',
+      phrase: 'closed',
+      label: 'Filing',
+      dateLine: null,
     });
     expect(days({ filingDeadline: null, filingStatus: 'no_election' })).toEqual({
       kind: 'phrase',

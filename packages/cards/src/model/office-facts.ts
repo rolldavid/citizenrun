@@ -64,17 +64,18 @@ export type FilingCount =
   | { kind: 'unknown' };
 
 /**
- * The days left to file: countable when there is a deadline today or later; closed when filing has
- * closed or the deadline has passed; otherwise no election, or not known.
+ * The days left to file: closed when filing has closed, whatever the date says, since the last day
+ * is closed after its closing hour, or when the deadline has passed; countable when there is a
+ * deadline today or later; otherwise no election, or not known.
  */
 export function filingCount(office: OfficeSummary, ctx: CardContext): FilingCount {
+  if (office.filingStatus === 'closed') {
+    return { kind: 'closed' };
+  }
   const deadline = office.filingDeadline;
   if (deadline !== null) {
     const days = daysUntil(deadline.date, deadline.timezone, ctx.now);
     return days >= 0 ? { kind: 'countable', days, date: deadline.date } : { kind: 'closed' };
-  }
-  if (office.filingStatus === 'closed') {
-    return { kind: 'closed' };
   }
   return office.filingStatus === 'no_election' ? { kind: 'noElection' } : { kind: 'unknown' };
 }
