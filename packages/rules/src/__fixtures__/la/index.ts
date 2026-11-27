@@ -1,6 +1,7 @@
 import type { RulesFixture } from '../../types.ts';
 import { fixture as la2023General } from './2023-general.fixtures.ts';
 import { fixture as la2023GubernatorialParishCalendar } from './2023-gubernatorial-parish-calendar.fixtures.ts';
+import { fixture as la2024GeneralParishFeeSchedule } from './2024-general-parish-fee-schedule.fixtures.ts';
 import { fixture as la2024General } from './2024-general.fixtures.ts';
 import { fixture as la2026GeneralParishQualifying } from './2026-general-parish-qualifying.fixtures.ts';
 import { fixture as la2026GeneralUsHouse } from './2026-general-us-house.fixtures.ts';
@@ -11,6 +12,7 @@ import { fixture as la2027General } from './2027-general.fixtures.ts';
 export const LA_FIXTURES: readonly RulesFixture[] = [
   la2023General,
   la2023GubernatorialParishCalendar,
+  la2024GeneralParishFeeSchedule,
   la2024General,
   la2026GeneralParishQualifying,
   la2026GeneralUsHouse,
