@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
-import { color, opacity, rule, size, space } from '@/ui/tokens';
+import { color, opacity, radius, rule, size, space } from '@/ui/tokens';
 
 import { FieldFrame } from './field-frame';
 import type { FieldFrameProps } from './field-frame';
@@ -327,6 +327,39 @@ describe('FieldFrame', () => {
     );
     // A frame that is not asked to be clear stands on the surface.
     expect(drawFrame({ clear: false }).style.backgroundColor).toBe(written(color.light.surface));
+  });
+
+  it('a squared frame keeps its top corners', () => {
+    const control = `${String(radius.control)}px`;
+    const none = `${String(radius.none)}px`;
+    const corners = (frame: HTMLElement): string[] => [
+      frame.style.borderTopLeftRadius,
+      frame.style.borderTopRightRadius,
+      frame.style.borderBottomRightRadius,
+      frame.style.borderBottomLeftRadius,
+    ];
+    // A list joined to the frame stands under it: the bottom corners square off, the top ones stay.
+    expect(corners(drawFrame({ squareBottom: true }))).toEqual([control, control, none, none]);
+    expect(corners(drawFrame({ squareBottom: true, focused: true }))).toEqual([
+      control,
+      control,
+      none,
+      none,
+    ]);
+    expect(corners(drawFrame({ squareBottom: true, status: 'error' }))).toEqual([
+      control,
+      control,
+      none,
+      none,
+    ]);
+    // Without it, and when it is false, all four corners are the control's.
+    expect(corners(drawFrame())).toEqual([control, control, control, control]);
+    expect(corners(drawFrame({ squareBottom: false }))).toEqual([
+      control,
+      control,
+      control,
+      control,
+    ]);
   });
 
   it('the ring is drawn round the frame when it is focused', () => {

@@ -18,6 +18,8 @@ export type FieldFrameProps = {
    * it.
    */
   clear?: boolean;
+  /** Squares the bottom corners off: a list joined to the frame stands under it. Default false. */
+  squareBottom?: boolean;
   /** Before the text, `space.x2` from it. */
   leading?: ReactNode;
   /** After the text, `space.x2` from it. */
@@ -77,6 +79,7 @@ export function FieldFrame({
   focused,
   disabled = false,
   clear = false,
+  squareBottom = false,
   leading,
   trailing,
   onPress,
@@ -105,6 +108,9 @@ export function FieldFrame({
     paddingHorizontal: space.x4 - extra,
     paddingVertical: space.x1 - extra,
     ...(focused ? focusRingStyle(theme, radius.control) : {}),
+    ...(squareBottom
+      ? { borderBottomLeftRadius: radius.none, borderBottomRightRadius: radius.none }
+      : {}),
   };
   const content = (
     <>

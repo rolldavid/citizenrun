@@ -5,11 +5,13 @@ import type { HostInstance, TextInstance, ViewStyle } from 'react-native';
 
 import {
   ActionRow,
+  AddressField,
   AgeGate,
   AppBar,
   Avatar,
   BigNumber,
   Button,
+  CardShell,
   Checkbox,
   CodeField,
   CompactShell,
@@ -41,7 +43,9 @@ import {
   MediumShell,
   Meter,
   MeterInputs,
+  MiniMapStill,
   Notice,
+  OfficeCard,
   OfficeTile,
   PersonRow,
   PhotoCredit,
@@ -78,7 +82,9 @@ import {
 } from '@/ui';
 import type {
   ActionRowProps,
+  AddressFieldProps,
   AgeGateProps,
+  CardShellProps,
   CheckboxProps,
   CodeFieldProps,
   DialogProps,
@@ -89,6 +95,7 @@ import type {
   IssueGridProps,
   IssueTileProps,
   ListProps,
+  OfficeCardProps,
   PopoverProps,
   RadioGroupProps,
   RadioProps,
@@ -102,10 +109,12 @@ import type {
   TextFieldProps,
 } from '@/ui';
 import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
+import * as addressFieldFixtures from '@/ui/components/address-field.fixtures';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as cardShellFixtures from '@/ui/components/card-shell.fixtures';
 import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as confidenceBadgeFixtures from '@/ui/components/confidence-badge.fixtures';
@@ -133,7 +142,9 @@ import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
 import * as meterFixtures from '@/ui/components/meter.fixtures';
+import * as miniMapStillFixtures from '@/ui/components/mini-map-still.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as officeCardFixtures from '@/ui/components/office-card.fixtures';
 import * as officeTileFixtures from '@/ui/components/office-tile.fixtures';
 import * as personRowFixtures from '@/ui/components/person-row.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
@@ -535,6 +546,15 @@ function TextFieldSpecimen({ fixture }: { fixture: TextFieldProps }): JSX.Elemen
   );
 }
 
+/**
+ * One state of C-AddressField, holding what is typed into it. The suggestions stay the fixture's:
+ * they are the caller's to fetch, and the gallery fetches nothing.
+ */
+function AddressFieldSpecimen({ fixture }: { fixture: AddressFieldProps }): JSX.Element {
+  const [value, setValue] = useState(fixture.value);
+  return <AddressField {...fixture} value={value} onChangeText={setValue} />;
+}
+
 /** One state of C-HandleField, holding what is typed into it; the answer of its check stays the fixture's. */
 function HandleFieldSpecimen({ fixture }: { fixture: HandleFieldProps }): JSX.Element {
   const [value, setValue] = useState(fixture.value);
@@ -686,6 +706,48 @@ function ActionRowSpecimen({ fixture }: { fixture: ActionRowProps }): JSX.Elemen
         }}
       />
     </View>
+  );
+}
+
+/**
+ * A card at the width the feed gives it. At compact the gallery's own column is the window: the
+ * card takes back the room around its cell, so its box runs from edge to edge as it does in the
+ * feed. From medium up the card is as wide as its canvas, at the start of its cell.
+ */
+function CardSpecimen({ children }: { children: ReactNode }): JSX.Element {
+  const layout = useBreakpoint();
+  return (
+    <View
+      style={
+        layout.breakpoint === 'compact' ? { marginHorizontal: -(space.x3 + layout.gutter) } : null
+      }
+    >
+      {children}
+    </View>
+  );
+}
+
+/** One state of C-OfficeCard, followed and bookmarked by its own presses. */
+function OfficeCardSpecimen({ fixture }: { fixture: OfficeCardProps }): JSX.Element {
+  const [following, setFollowing] = useState(fixture.actions.following);
+  const [bookmarked, setBookmarked] = useState(fixture.actions.bookmarked);
+  return (
+    <CardSpecimen>
+      <OfficeCard
+        {...fixture}
+        actions={{
+          ...fixture.actions,
+          following,
+          bookmarked,
+          onToggleFollow: () => {
+            setFollowing(!following);
+          },
+          onToggleBookmark: () => {
+            setBookmarked(!bookmarked);
+          },
+        }}
+      />
+    </CardSpecimen>
   );
 }
 
@@ -896,6 +958,13 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     textFieldFixtures,
     (fixture) => <TextFieldSpecimen fixture={fixture} />,
   ),
+  fixtureSection<AddressFieldProps>(
+    'C-AddressField',
+    'address-field',
+    'wide',
+    addressFieldFixtures,
+    (fixture) => <AddressFieldSpecimen fixture={fixture} />,
+  ),
   fixtureSection<HandleFieldProps>(
     'C-HandleField',
     'handle-field',
@@ -1019,6 +1088,18 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   },
   section('C-OfficeTile', 'office-tile', 'narrow', OfficeTile, officeTileFixtures),
   section('C-ProfileHeader', 'profile-header', 'wide', ProfileHeader, profileHeaderFixtures),
+  // A card is as wide as its canvas, which a cell of a column's width cannot hold.
+  fixtureSection<CardShellProps>(
+    'C-CardShell',
+    'card-shell',
+    'full',
+    cardShellFixtures,
+    (fixture) => (
+      <CardSpecimen>
+        <CardShell {...fixture} />
+      </CardSpecimen>
+    ),
+  ),
   fixtureSection<ActionRowProps>(
     'C-ActionRow',
     'action-row',
@@ -1033,6 +1114,14 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
     followButtonFixtures,
     (fixture) => <FollowButtonSpecimen fixture={fixture} />,
   ),
+  fixtureSection<OfficeCardProps>(
+    'C-OfficeCard',
+    'office-card',
+    'full',
+    officeCardFixtures,
+    (fixture) => <OfficeCardSpecimen fixture={fixture} />,
+  ),
+  section('MiniMapStill', 'mini-map-still', 'wide', MiniMapStill, miniMapStillFixtures),
 ];
 
 type ControlOption<T> = { value: T; label: string; testID: string };

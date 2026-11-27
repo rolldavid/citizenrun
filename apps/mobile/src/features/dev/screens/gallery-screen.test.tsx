@@ -9,10 +9,12 @@ import { sessionFake } from '@/test/platform/session';
 import { renderWithProviders, setViewport } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
 import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
+import * as addressFieldFixtures from '@/ui/components/address-field.fixtures';
 import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
+import * as cardShellFixtures from '@/ui/components/card-shell.fixtures';
 import * as checkboxFixtures from '@/ui/components/checkbox.fixtures';
 import * as codeFieldFixtures from '@/ui/components/code-field.fixtures';
 import * as confidenceBadgeFixtures from '@/ui/components/confidence-badge.fixtures';
@@ -40,7 +42,9 @@ import * as listRowFixtures from '@/ui/components/list-row.fixtures';
 import * as listFixtures from '@/ui/components/list.fixtures';
 import * as meterInputsFixtures from '@/ui/components/meter-inputs.fixtures';
 import * as meterFixtures from '@/ui/components/meter.fixtures';
+import * as miniMapStillFixtures from '@/ui/components/mini-map-still.fixtures';
 import * as noticeFixtures from '@/ui/components/notice.fixtures';
+import * as officeCardFixtures from '@/ui/components/office-card.fixtures';
 import * as officeTileFixtures from '@/ui/components/office-tile.fixtures';
 import * as personRowFixtures from '@/ui/components/person-row.fixtures';
 import * as photoCreditFixtures from '@/ui/components/photo-credit.fixtures';
@@ -146,6 +150,7 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-Toast', slug: 'toast', states: Object.keys(toastFixtures.STATES) },
   { id: 'C-FormField', slug: 'form-field', states: Object.keys(formFieldFixtures.STATES) },
   { id: 'C-TextField', slug: 'text-field', states: Object.keys(textFieldFixtures.STATES) },
+  { id: 'C-AddressField', slug: 'address-field', states: Object.keys(addressFieldFixtures.STATES) },
   { id: 'C-HandleField', slug: 'handle-field', states: Object.keys(handleFieldFixtures.STATES) },
   { id: 'C-CodeField', slug: 'code-field', states: Object.keys(codeFieldFixtures.STATES) },
   { id: 'C-Select', slug: 'select', states: Object.keys(selectFixtures.STATES) },
@@ -206,9 +211,40 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
     slug: 'profile-header',
     states: Object.keys(profileHeaderFixtures.STATES),
   },
+  { id: 'C-CardShell', slug: 'card-shell', states: Object.keys(cardShellFixtures.STATES) },
   { id: 'C-ActionRow', slug: 'action-row', states: Object.keys(actionRowFixtures.STATES) },
   { id: 'C-FollowButton', slug: 'follow-button', states: Object.keys(followButtonFixtures.STATES) },
+  { id: 'C-OfficeCard', slug: 'office-card', states: Object.keys(officeCardFixtures.STATES) },
+  { id: 'MiniMapStill', slug: 'mini-map-still', states: Object.keys(miniMapStillFixtures.STATES) },
 ];
+
+/** The civic components, in the order of the design system, and the still of the mini map after them. */
+const CIVIC_SLUGS = [
+  'address-field',
+  'person-row',
+  'fact-row',
+  'table',
+  'tag',
+  'flag',
+  'confidence-badge',
+  'source-link',
+  'sources-sheet',
+  'photo-credit',
+  'big-number',
+  'deal-line',
+  'meter',
+  'meter-inputs',
+  'deadline-ring',
+  'deadline-block',
+  'deadline-line',
+  'office-tile',
+  'profile-header',
+  'card-shell',
+  'action-row',
+  'follow-button',
+  'office-card',
+  'mini-map-still',
+] as const;
 
 const DEFAULTS: GalleryScreenProps = {
   initialTheme: 'system',
@@ -346,6 +382,7 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-Toast',
       'C-FormField',
       'C-TextField',
+      'C-AddressField',
       'C-HandleField',
       'C-CodeField',
       'C-Select',
@@ -380,8 +417,11 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-IssueGrid',
       'C-OfficeTile',
       'C-ProfileHeader',
+      'C-CardShell',
       'C-ActionRow',
       'C-FollowButton',
+      'C-OfficeCard',
+      'MiniMapStill',
     ]);
     expect(COMPONENTS.map((component) => component.id)).toEqual(sectionHeadings());
     // The gallery's own heading is the page's, and the page has one main landmark of its own, which
@@ -417,6 +457,31 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
     expect(warnings).not.toHaveBeenCalled();
     errors.mockRestore();
     warnings.mockRestore();
+  });
+
+  it('every civic component has its section', () => {
+    expect(CIVIC_SLUGS).toHaveLength(24);
+    // Each has exactly one section, and the 24 stand in this order among the others.
+    const slugs = COMPONENTS.map((component) => component.slug);
+    for (const slug of CIVIC_SLUGS) {
+      expect(
+        slugs.filter((name) => name === slug),
+        slug,
+      ).toHaveLength(1);
+    }
+    expect(slugs.filter((slug) => (CIVIC_SLUGS as readonly string[]).includes(slug))).toEqual([
+      ...CIVIC_SLUGS,
+    ]);
+    // Drawn alone, each shows its heading and a cell for every state of its fixtures.
+    for (const slug of CIVIC_SLUGS) {
+      const component = COMPONENTS.find((entry) => entry.slug === slug);
+      draw({ only: slug });
+      expect(sectionHeadings(), slug).toEqual([component?.id]);
+      expect(
+        cells().map((cell) => cell.getAttribute('data-testid')),
+        slug,
+      ).toEqual((component?.states ?? []).map((state) => `gallery.cell-${slug}-${kebab(state)}`));
+    }
   });
 
   it('says how many states each component has', () => {
