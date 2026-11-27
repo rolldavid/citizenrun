@@ -376,6 +376,11 @@ export function workerRunArgs(): string[] {
     MEDIA_REGION: 'us-east-1',
     MEDIA_ACCESS_KEY_ID: STORE_KEY_ID,
     MEDIA_SECRET_ACCESS_KEY: STORE_SECRET,
+    DATA_BUCKET: 'data',
+    DATA_ENDPOINT: 'http://seaweedfs:8333',
+    DATA_REGION: 'us-east-1',
+    DATA_ACCESS_KEY_ID: STORE_KEY_ID,
+    DATA_SECRET_ACCESS_KEY: STORE_SECRET,
     S3_FORCE_PATH_STYLE: 'true',
     APP_SECRET: LOCAL_APP_SECRET,
   };

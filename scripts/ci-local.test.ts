@@ -556,6 +556,8 @@ describe('the worker smoke', () => {
       'DATABASE_URL=postgresql://citizenrun:citizenrun@postgres:5432/citizenrun_ci',
     );
     expect(args).toContain('BACKUPS_ENDPOINT=http://seaweedfs:8333');
+    expect(args).toContain('DATA_ENDPOINT=http://seaweedfs:8333');
+    expect(args).toContain('DATA_BUCKET=data');
   });
 
   it('reads the JSON log lines and skips any other line', () => {
