@@ -1,0 +1,1032 @@
+# Texas office template (PIPE-template-schema), D-080's scope: counties, cities, school districts,
+# the legislature, statewide offices and the party offices on the primary ballot. Every special
+# district gets its placeholder (R-012). County pay is set by each commissioners court
+# (Tex. Local Gov't Code § 152.013).
+schema_version: 1
+state: TX
+name: Texas
+rules_module: tx
+county_pay: local
+calendar_pages:
+  - url: https://www.sos.texas.gov/elections/voter/important-election-dates.shtml
+    scope: state
+    notes: Primary, runoff primary and uniform election dates with the candidate filing periods of the current and next two years
+  - url: https://www.sos.texas.gov/elections/candidates/guide/2026/dates2026.shtml
+    scope: state
+    notes: Primary and general election calendar of the 2026 cycle, with filing, independent candidate and canvass dates
+  - url: https://www.sos.texas.gov/elections/candidates/guide/2024/dates2024.shtml
+    scope: state
+    notes: Primary and general election calendar of the 2024 cycle
+parties_with_primaries:
+  - democratic
+  - republican
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes:
+      - 1
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/LG/htm/LG.81.htm
+      quote: The members of the commissioners court are the county judge and the county commissioners.
+      citation: Tex. Local Gov't Code § 81.001(a)
+    offices:
+      - key: county-judge
+        office_type: county-executive
+        applies_to: null
+        title: '{jurisdiction} Judge'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: there shall be elected in each county, by the qualified voters, a County Judge, who shall be well informed in the law of the State; shall be a conservator of the peace, and shall hold his office for four years
+            citation: Tex. Const. art. 5, § 15
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: there shall be elected in each county, by the qualified voters, a County Judge, who shall be well informed in the law of the State; shall be a conservator of the peace, and shall hold his office for four years
+          citation: Tex. Const. art. 5, § 15
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2026
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: there shall be elected in each county, by the qualified voters, a County Judge, who shall be well informed in the law of the State; shall be a conservator of the peace, and shall hold his office for four years
+          citation: Tex. Const. art. 5, § 15
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner
+        office_type: county-commission
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 4
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 18(b)
+          label_pattern: Precinct {n}
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 18(b)
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-clerk
+        office_type: county-clerk
+        applies_to: null
+        title: '{jurisdiction} Clerk'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: There shall be elected for each county, by the qualified voters, a County Clerk, who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 20
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be elected for each county, by the qualified voters, a County Clerk, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 20
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2026
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be elected for each county, by the qualified voters, a County Clerk, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 20
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: district-clerk
+        office_type: county-row-other
+        applies_to: null
+        title: '{jurisdiction} District Clerk'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: There shall be a Clerk for the District Court of each county, who shall be elected by the qualified voters and who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 9
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be a Clerk for the District Court of each county, who shall be elected by the qualified voters and who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 9
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2026
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be a Clerk for the District Court of each county, who shall be elected by the qualified voters and who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 9
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: sheriff
+        office_type: sheriff
+        applies_to: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: There shall be elected by the qualified voters of each county a Sheriff, who shall hold his office for the term of four years
+            citation: Tex. Const. art. 5, § 23
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be elected by the qualified voters of each county a Sheriff, who shall hold his office for the term of four years
+          citation: Tex. Const. art. 5, § 23
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2024
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: There shall be elected by the qualified voters of each county a Sheriff, who shall hold his office for the term of four years
+          citation: Tex. Const. art. 5, § 23
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: tax-assessor-collector
+        office_type: county-assessor
+        applies_to:
+          name_pattern: null
+          population_min: 10000
+          population_max: null
+        title: '{jurisdiction} Tax Assessor-Collector'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.8.htm
+            quote: The qualified voters of each county shall elect an assessor-collector of taxes for the county, except as otherwise provided by this section.
+            citation: Tex. Const. art. 8, § 14(a)
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.8.htm
+          quote: The qualified voters of each county shall elect an assessor-collector of taxes for the county, except as otherwise provided by this section.
+          citation: Tex. Const. art. 8, § 14(a)
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2024
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.8.htm
+          quote: An assessor-collector of taxes shall hold office for four years
+          citation: Tex. Const. art. 8, § 14(c)
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: city
+    kind: city
+    unit_type_codes:
+      - 2
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+      quote: This chapter applies to a candidate for a city office.
+      citation: Tex. Elec. Code § 143.001
+    offices:
+      - key: dallas-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ^Dallas city$
+          population_min: null
+          population_max: null
+        title: Mayor of Dallas
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf
+            quote: One member of the city council, Place 15, shall be elected by the qualified voters of the entire city
+            citation: Dallas City Charter ch. III, § 1
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf
+          quote: One member of the city council, Place 15, shall be elected by the qualified voters of the entire city
+          citation: Dallas City Charter ch. III, § 1
+        stagger:
+          - group: A
+            seats: 1
+            every: 2
+            first: 2025
+        term_years:
+          value: 4
+          source_url: https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf
+          quote: member of council, Place 15, shall be elected for a term of four years
+          citation: Dallas City Charter ch. III, § 1
+        term_limit_terms: null
+        schedule: tx_uniform_may
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: dallas-council
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Dallas city$
+          population_min: null
+          population_max: null
+        title: Dallas City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 14
+            source_url: https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf
+            quote: The city shall be divided into 14 districts, known as Districts 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, and 14.
+            citation: Dallas City Charter ch. IV, § 5(a)
+          label_pattern: District {n}
+        body_size: null
+        stagger: []
+        term_years:
+          value: 2
+          source_url: https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf
+          quote: Members of council, Places 1 through 14, shall each be elected for a term of two years
+          citation: Dallas City Charter ch. III, § 1
+        term_limit_terms: null
+        schedule: tx_uniform_may
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Mayor of Austin
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: a mayor elected from the city at-large; and
+            citation: Austin City Charter art. II, § 1(A)(1)
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: a mayor elected from the city at-large; and
+          citation: Austin City Charter art. II, § 1(A)(1)
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 10
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District {n}
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: Mayor of El Paso
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: Each Representative shall be elected from a district and the Mayor and other officers shall be elected from the City at large.
+            citation: El Paso City Charter § 2.1
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: Each Representative shall be elected from a district and the Mayor and other officers shall be elected from the City at large.
+          citation: El Paso City Charter § 2.1
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2024
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: in November 2020, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 8
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District {n}
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: independent-school-district
+    kind: school_district
+    unit_type_codes: null
+    school_levels:
+      - 03 - ELEMENTARY AND SECONDARY
+      - 01 - ELEMENTARY ONLY
+    elected:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/ED/htm/ED.11.htm
+      quote: the board of trustees of an independent school district, on its own motion, may order that trustees of the district are to be elected from single-member trustee districts
+      citation: Tex. Educ. Code § 11.052(a)
+    offices: []
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+        quote: The Executive Department of the State shall consist of a Governor, who shall be the Chief Executive Officer of the State, a Lieutenant Governor, Secretary of State, Comptroller of Public Accounts, Commissioner of the General Land Office, and Attorney General.
+        citation: Tex. Const. art. 4, § 1
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Executive Department of the State shall consist of a Governor, who shall be the Chief Executive Officer of the State, a Lieutenant Governor, Secretary of State, Comptroller of Public Accounts, Commissioner of the General Land Office, and Attorney General.
+      citation: Tex. Const. art. 4, § 1
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Governor elected at the general election in 1974, and thereafter, shall be installed on the first Tuesday after the organization of the Legislature, or as soon thereafter as practicable, and shall hold his office for the term of four years, or until his successor shall be duly installed.
+      citation: Tex. Const. art. 4, § 4
+    term_limit_terms: null
+    schedule: tx_state_general
+    track_set: tx_partisan
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: lieutenant-governor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Lieutenant Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+        quote: The Executive Department of the State shall consist of a Governor, who shall be the Chief Executive Officer of the State, a Lieutenant Governor, Secretary of State, Comptroller of Public Accounts, Commissioner of the General Land Office, and Attorney General.
+        citation: Tex. Const. art. 4, § 1
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Executive Department of the State shall consist of a Governor, who shall be the Chief Executive Officer of the State, a Lieutenant Governor, Secretary of State, Comptroller of Public Accounts, Commissioner of the General Land Office, and Attorney General.
+      citation: Tex. Const. art. 4, § 1
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: There shall also be a Lieutenant Governor, who shall be chosen at every election for Governor by the same voters, in the same manner, continue in office for the same time, and possess the same qualifications.
+      citation: Tex. Const. art. 4, § 16(a)
+    term_limit_terms: null
+    schedule: tx_state_general
+    track_set: tx_partisan
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: attorney-general
+    office_type: attorney-general
+    applies_to: null
+    title: Attorney General
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+        quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+        citation: Tex. Const. art. 4, § 2
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+      citation: Tex. Const. art. 4, § 2
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Comptroller of Public Accounts, the Commissioner of the General Land Office, the Attorney General, and any statutory State officer who is elected by the electorate of Texas at large, unless a term of office is otherwise specifically provided in this Constitution, shall each hold office for the term of four years.
+      citation: Tex. Const. art. 4, § 23
+    term_limit_terms: null
+    schedule: tx_state_general
+    track_set: tx_partisan
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: comptroller
+    office_type: state-treasurer
+    applies_to: null
+    title: Comptroller of Public Accounts
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+        quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+        citation: Tex. Const. art. 4, § 2
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+      citation: Tex. Const. art. 4, § 2
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Comptroller of Public Accounts, the Commissioner of the General Land Office, the Attorney General, and any statutory State officer who is elected by the electorate of Texas at large, unless a term of office is otherwise specifically provided in this Constitution, shall each hold office for the term of four years.
+      citation: Tex. Const. art. 4, § 23
+    term_limit_terms: null
+    schedule: tx_state_general
+    track_set: tx_partisan
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q8350359
+    roster_url: null
+  - key: land-commissioner
+    office_type: oil-gas-land-commission
+    applies_to: null
+    title: Commissioner of the General Land Office
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+        quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+        citation: Tex. Const. art. 4, § 2
+      district_count: null
+      label_pattern: null
+    body_size:
+      value: 1
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: All the above officers of the Executive Department (except Secretary of State) shall be elected by the qualified voters of the State at the time and places of election for members of the Legislature.
+      citation: Tex. Const. art. 4, § 2
+    stagger:
+      - group: A
+        seats: 1
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.4.htm
+      quote: The Comptroller of Public Accounts, the Commissioner of the General Land Office, the Attorney General, and any statutory State officer who is elected by the electorate of Texas at large, unless a term of office is otherwise specifically provided in this Constitution, shall each hold office for the term of four years.
+      citation: Tex. Const. art. 4, § 23
+    term_limit_terms: null
+    schedule: tx_state_general
+    track_set: tx_partisan
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q124518473
+    roster_url: null
+legislature:
+  - office_type: state-senate
+    title: State Senator, District {label}
+    seats_per_district: null
+    district_groups:
+      - group: A
+        districts:
+          - '6'
+          - '7'
+          - '8'
+          - '10'
+          - '12'
+          - '14'
+          - '15'
+          - '16'
+          - '17'
+          - '20'
+          - '23'
+          - '25'
+          - '27'
+          - '29'
+          - '30'
+        every: 4
+        first: 2024
+      - group: B
+        districts:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '5'
+          - '9'
+          - '11'
+          - '13'
+          - '18'
+          - '19'
+          - '21'
+          - '22'
+          - '24'
+          - '26'
+          - '28'
+          - '31'
+        every: 4
+        first: 2026
+    term_years:
+      value: 4
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.3.htm
+      quote: The Senators shall be chosen by the qualified voters for the term of four years
+      citation: Tex. Const. art. 3, § 3
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    pay:
+      kind: salary
+      amount_cents: 60000
+      period: month
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.3.htm
+      quote: Members of the Legislature shall receive from the Public Treasury a salary of Six Hundred Dollars ($600) per month
+      citation: Tex. Const. art. 3, § 24(a)
+    schedule: tx_state_general
+    track_set: tx_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: State Representative, District {label}
+    seats_per_district: null
+    district_groups:
+      - group: A
+        districts: all
+        every: 2
+        first: 2024
+    term_years:
+      value: 2
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.3.htm
+      quote: The Members of the House of Representatives shall be chosen by the qualified voters for the term of two years.
+      citation: Tex. Const. art. 3, § 4
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    pay:
+      kind: salary
+      amount_cents: 60000
+      period: month
+      source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.3.htm
+      quote: Members of the Legislature shall receive from the Public Treasury a salary of Six Hundred Dollars ($600) per month
+      citation: Tex. Const. art. 3, § 24(a)
+    schedule: tx_state_general
+    track_set: tx_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    schedule: tx_state_general
+    track_set: tx_partisan
+  us_senate:
+    partisan:
+      value: true
+      source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+      quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+      citation: Tex. Elec. Code § 172.001
+    schedule: tx_state_general
+    track_set: tx_partisan
+county_sets: []
+special_districts: []
+party_committee:
+  selection:
+    value: primary_ballot
+    source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+    quote: a precinct chair from each county election precinct, elected at the general primary by majority vote of the qualified voters of the precinct who vote in the primary on that office
+    citation: Tex. Elec. Code § 171.022(a)(2)
+  unit: precinct
+  seats_rule:
+    value: one precinct chair per county election precinct per party
+    source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+    quote: a precinct chair from each county election precinct
+    citation: Tex. Elec. Code § 171.022(a)(2)
+  term_years:
+    value: 2
+    source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+    quote: Each committee member serves for a term of two years beginning the 20th day after runoff primary election day.
+    citation: Tex. Elec. Code § 171.022(c)
+  parties:
+    - democratic
+    - republican
+  offices:
+    - key: precinct-chair
+      office_type: party-precinct-committee
+      applies_to: null
+      title: '{jurisdiction} Precinct Chair'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+          quote: a precinct chair from each county election precinct
+          citation: Tex. Elec. Code § 171.022(a)(2)
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years:
+        value: 2
+        source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+        quote: Each committee member serves for a term of two years beginning the 20th day after runoff primary election day.
+        citation: Tex. Elec. Code § 171.022(c)
+      term_limit_terms: null
+      schedule: tx_party_primary
+      track_set: tx_party_office
+      partisan:
+        value: true
+        source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+        quote: elected at the general primary by majority vote of the qualified voters of the precinct who vote in the primary on that office
+        citation: Tex. Elec. Code § 171.022(a)(2)
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+    - key: county-chair
+      office_type: party-committee
+      applies_to: null
+      title: '{jurisdiction} County Chair'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+          quote: a county chair, who is the presiding officer, elected at the general primary election by majority vote of the qualified voters of the county who vote in the primary on that office
+          citation: Tex. Elec. Code § 171.022(a)(1)
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years:
+        value: 2
+        source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+        quote: Each committee member serves for a term of two years beginning the 20th day after runoff primary election day.
+        citation: Tex. Elec. Code § 171.022(c)
+      term_limit_terms: null
+      schedule: tx_party_primary
+      track_set: tx_party_office
+      partisan:
+        value: true
+        source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.171.htm
+        quote: a county chair, who is the presiding officer, elected at the general primary election by majority vote of the qualified voters of the county who vote in the primary on that office
+        citation: Tex. Elec. Code § 171.022(a)(1)
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+eligibility_common: []
+notes: null
