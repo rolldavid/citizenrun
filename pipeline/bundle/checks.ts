@@ -170,9 +170,11 @@ function matches(name: string, check: string): boolean {
 }
 
 /**
- * Stage 1's checks for the manifest: for each state, the newer of its `_meta.json` and its newest
- * failure record decides; `listing_header`, `unit_counts` and `join_rate` pass when every state's
- * newest result passed, and each state of the bundle gets `geometry_valid:<ST>`.
+ * Stage 1's checks for the manifest: for each state of the bundle, the newer of its `_meta.json`
+ * and its newest failure record decides; `listing_header`, `unit_counts` and `join_rate` pass when
+ * every such state's newest result passed, and each gets `geometry_valid:<ST>`. A state with no
+ * complete output is left out of the bundle and listed in the coverage's `missing_states`, so its
+ * failure does not stop the bundle.
  */
 export function copyStage1Checks(inputs: BundleInputs): readonly ManifestCheck[] {
   const failing = new Map<string, readonly string[]>();
@@ -184,9 +186,6 @@ export function copyStage1Checks(inputs: BundleInputs): readonly ManifestCheck[]
         ? failure.failedChecks
         : meta.checks.filter((check) => !check.passed).map((check) => check.name),
     );
-  }
-  for (const { state, failure } of inputs.missing) {
-    failing.set(state, failure.failedChecks);
   }
   const states = [...failing.keys()].sort();
   const national = ['listing_header', 'unit_counts', 'join_rate'].map((name): ManifestCheck => {

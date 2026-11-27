@@ -313,4 +313,32 @@ describe('copyStage1Checks', () => {
     });
     expect(copyStage1Checks(older).every((c) => c.passed)).toBe(true);
   });
+
+  it('a state left out of the bundle does not fail its checks', () => {
+    const inputs = bundleInputs({
+      states: [stateInputs()],
+      missing: [
+        {
+          state: 'ZY',
+          failure: {
+            runId: 'r3',
+            finishedAt: '2026-11-02T00:00:00.000Z',
+            failedChecks: ['join_rate'],
+            error: null,
+          },
+        },
+      ],
+    });
+    const checks = copyStage1Checks(inputs);
+    expect(checks.find((c) => c.name === 'join_rate')).toMatchObject({
+      passed: true,
+      detail: 'states=1 failing=',
+    });
+    expect(checks.map((c) => c.name)).toEqual([
+      'listing_header',
+      'unit_counts',
+      'join_rate',
+      'geometry_valid:ZZ',
+    ]);
+  });
 });
