@@ -1,0 +1,986 @@
+schema_version: 1
+state: NC
+name: North Carolina
+rules_module: nc
+county_pay: local
+calendar_pages:
+  - url: https://www.ncsbe.gov/candidates/running-office
+    scope: state
+    notes: 'Upcoming filing periods: municipal, soil and water'
+  - url: https://dl.ncsbe.gov/Candidate%20Filing/2025-26%20Statewide%20Candidate%20Guide.pdf
+    scope: state
+    notes: '2026 primary and general: filing period, withdrawal, election and canvass dates'
+  - url: https://dl.ncsbe.gov/Candidate%20Filing/2026_Municipal_Candidate_Guide.pdf
+    scope: city
+    notes: 2026 municipal filing dates
+  - url: https://dl.ncsbe.gov/Candidate%20Filing/2026_Fact_Sheet_Unaffiliated_Candidate.pdf
+    scope: state
+    notes: 2026 unaffiliated petition deadlines
+parties_with_primaries: [democratic, green, libertarian, republican]
+
+government_types:
+  - key: county
+    kind: county
+    unit_type_codes: null
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_153A/GS_153A-34.html
+      quote: 'Each county is governed by a board of commissioners. The structure and manner of election of the board of commissioners in each county shall remain as it is on February 1, 1974, until changed in accordance with law.'
+      citation: G.S. 153A-34
+    offices:
+      # N.C. Const. art. VII, sec. 2: a sheriff in every county.
+      - key: sheriff
+        office_type: sheriff
+        applies_to: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+            quote: 'In each county a Sheriff shall be elected by the qualified voters thereof at the same time and places as members of the General Assembly are elected and shall hold his office for a period of four years'
+            citation: N.C. Const. art. VII, sec. 2
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+          quote: 'In each county a Sheriff shall be elected by the qualified voters thereof at the same time and places as members of the General Assembly are elected and shall hold his office for a period of four years'
+          citation: N.C. Const. art. VII, sec. 2
+        term_limit_terms: null
+        schedule: nc_state_general
+        track_set: nc_partisan
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+          quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the county board of elections no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: State Senators Members of the State House of Representatives All county offices.'
+          citation: G.S. 163-106.2(b)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      # G.S. 161-1 and the tabulation of G.S. 163-1(a): a register of deeds in every county.
+      - key: register-of-deeds
+        office_type: county-row-other
+        applies_to: null
+        title: '{jurisdiction} Register of Deeds'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_161/GS_161-1.html
+            quote: 'In each county there shall be elected biennially by the qualified voters thereof, as provided for the election of members of the General Assembly, a register of deeds.'
+            citation: G.S. 161-1
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-1.html
+          quote: 'Register of County At the regular election Four years, from the Deeds for members of the General first Monday in'
+          citation: G.S. 163-1(a)
+        term_limit_terms: null
+        schedule: nc_state_general
+        track_set: nc_partisan
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+          quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the county board of elections no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: State Senators Members of the State House of Representatives All county offices.'
+          citation: G.S. 163-106.2(b)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      # N.C. Const. art. IV, sec. 9(3): a clerk of the superior court for each county.
+      - key: clerk-of-superior-court
+        office_type: county-row-other
+        applies_to: null
+        title: '{jurisdiction} Clerk of Superior Court'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+            quote: 'A Clerk of the Superior Court for each county shall be elected for a term of four years by the qualified voters thereof, at the same time and places as members of the General Assembly are elected.'
+            citation: N.C. Const. art. IV, sec. 9(3)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+          quote: 'A Clerk of the Superior Court for each county shall be elected for a term of four years by the qualified voters thereof, at the same time and places as members of the General Assembly are elected.'
+          citation: N.C. Const. art. IV, sec. 9(3)
+        term_limit_terms: null
+        schedule: nc_state_general
+        track_set: nc_partisan
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+          quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the county board of elections no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: State Senators Members of the State House of Representatives All county offices.'
+          citation: G.S. 163-106.2(b)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      # Each county's board is set by local act (G.S. 153A-34); only the researched counties are written.
+      - key: durham-county-board-of-commissioners
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Durham County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Board of Commissioners'
+        seats:
+          arrangement: at_large
+          count:
+            value: 5
+            source_url: https://dconc.gov/Public-Information1/Documents/Publications/DCo-AtAGlance-071425.pdf
+            quote: 'A five-member Board of Commissioners governs Durham County. Members are elected at-large, on a partisan basis by a countywide vote.'
+            citation: Durham County, Durham County at a Glance
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 5
+          source_url: https://dconc.gov/Public-Information1/Documents/Publications/DCo-AtAGlance-071425.pdf
+          quote: 'A five-member Board of Commissioners governs Durham County.'
+          citation: Durham County, Durham County at a Glance
+        # Elected together in November of presidential election years.
+        stagger:
+          - { group: A, seats: 5, every: 4, first: 2024 }
+        term_years:
+          value: 4
+          source_url: https://dconc.gov/Public-Information1/Documents/Publications/DCo-AtAGlance-071425.pdf
+          quote: 'Commissioners serve four-year terms and elections are held in November of presidential election years.'
+          citation: Durham County, Durham County at a Glance
+        term_limit_terms: null
+        schedule: nc_state_general
+        track_set: nc_partisan
+        partisan:
+          value: true
+          source_url: https://dconc.gov/Public-Information1/Documents/Publications/DCo-AtAGlance-071425.pdf
+          quote: 'Members are elected at-large, on a partisan basis by a countywide vote.'
+          citation: Durham County, Durham County at a Glance
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: city
+    kind: city
+    unit_type_codes: null
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_160A/GS_160A-66.html
+      quote: 'Unless otherwise provided by its charter, each city shall be governed by a mayor and a council of three members, who shall be elected from the city at large for terms of two years.'
+      citation: G.S. 160A-66
+    offices:
+      # Charter of the City of Charlotte, S.L. 2000-26, secs. 2.01 to 2.03.
+      - key: charlotte-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: '^Charlotte city$'
+          population_min: null
+          population_max: null
+        title: 'Mayor of Charlotte'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+            quote: 'The Mayor shall be elected by the qualified voters of the City voting at large.'
+            citation: Charlotte Charter sec. 2.02 (S.L. 2000-26)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 2
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Mayor shall be elected to serve a term of two years.'
+          citation: Charlotte Charter sec. 2.02 (S.L. 2000-26)
+        term_limit_terms: null
+        schedule: nc_municipal_partisan
+        track_set: nc_municipal
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Mayor and members of the Council shall be elected according to the partisan election method authorized for municipalities.'
+          citation: Charlotte Charter sec. 2.01 (S.L. 2000-26)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: charlotte-city-council-at-large
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Charlotte city$'
+          population_min: null
+          population_max: null
+        title: 'Charlotte City Council, At Large'
+        seats:
+          arrangement: at_large
+          count:
+            value: 4
+            source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+            quote: 'There shall be four at-large members of the City Council.'
+            citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 11
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Council shall consist of 11 members.'
+          citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+        stagger: []
+        term_years:
+          value: 2
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'All members of the Council shall serve a term of two years.'
+          citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+        term_limit_terms: null
+        schedule: nc_municipal_partisan
+        track_set: nc_municipal
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Mayor and members of the Council shall be elected according to the partisan election method authorized for municipalities.'
+          citation: Charlotte Charter sec. 2.01 (S.L. 2000-26)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: charlotte-city-council-district
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Charlotte city$'
+          population_min: null
+          population_max: null
+        title: 'Charlotte City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 7
+            source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+            quote: 'The City shall be divided into seven single-member electoral districts'
+            citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+          label_pattern: 'District {n}'
+        body_size:
+          value: 11
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Council shall consist of 11 members.'
+          citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+        stagger: []
+        term_years:
+          value: 2
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'All members of the Council shall serve a term of two years.'
+          citation: Charlotte Charter sec. 2.03 (S.L. 2000-26)
+        term_limit_terms: null
+        schedule: nc_municipal_partisan
+        track_set: nc_municipal
+        partisan:
+          value: true
+          source_url: https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/1999-2000/SL2000-26.html
+          quote: 'The Mayor and members of the Council shall be elected according to the partisan election method authorized for municipalities.'
+          citation: Charlotte Charter sec. 2.01 (S.L. 2000-26)
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  # County and city administrative units (elementary and secondary): each board is set by G.S. 115C-37
+  # or a local act; no unit's local act is written yet, so each unit has its placeholder.
+  - key: school-administrative-unit
+    kind: school_district
+    unit_type_codes: null
+    school_levels: ['03 - ELEMENTARY AND SECONDARY', '02 - SECONDARY ONLY']
+    elected:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_115C/GS_115C-37.html
+      quote: 'The county boards of education shall be elected on a nonpartisan basis at the time of the primary election in 1970 and biennially thereafter.'
+      citation: G.S. 115C-37(a)
+    offices: []
+  # Community colleges: trustees appointed, G.S. 115D-12.
+  - key: community-college
+    kind: school_district
+    unit_type_codes: null
+    school_levels: ['04 - POST-SECONDARY']
+    elected:
+      value: false
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_115D/GS_115D-12.html
+      quote: 'Eight trustees appointed by the General Assembly under G.S. 120-121.'
+      citation: G.S. 115D-12(a)(1)
+    offices: []
+
+statewide:
+  # The Council of State: N.C. Const. art. III, secs. 2 and 7.
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'The Governor and Lieutenant Governor shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 2(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 2(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: lieutenant-governor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Lieutenant Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'The Governor and Lieutenant Governor shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 2(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 2(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: secretary-of-state
+    office_type: secretary-of-state
+    applies_to: null
+    title: Secretary of State
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: auditor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: State Auditor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q16986488
+    roster_url: null
+  - key: treasurer
+    office_type: state-treasurer
+    applies_to: null
+    title: State Treasurer
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q7054613
+    roster_url: null
+  - key: superintendent-of-public-instruction
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Superintendent of Public Instruction
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q7054623
+    roster_url: null
+  - key: attorney-general
+    office_type: attorney-general
+    applies_to: null
+    title: Attorney General
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: commissioner-of-agriculture
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Commissioner of Agriculture
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q7054450
+    roster_url: null
+  - key: commissioner-of-labor
+    office_type: labor-commissioner
+    applies_to: null
+    title: Commissioner of Labor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q7054455
+    roster_url: null
+  - key: commissioner-of-insurance
+    office_type: insurance-commissioner
+    applies_to: null
+    title: Commissioner of Insurance
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+        quote: 'A Secretary of State, an Auditor, a Treasurer, a Superintendent of Public Instruction, an Attorney General, a Commissioner of Agriculture, a Commissioner of Labor, and a Commissioner of Insurance shall be elected by the qualified voters of the State in 1972 and every four years thereafter'
+        citation: N.C. Const. art. III, sec. 7(1)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'Their term of office shall be four years and shall commence on the first day of January next after their election and continue until their successors are elected and qualified.'
+      citation: N.C. Const. art. III, sec. 7(1)
+    term_limit_terms: null
+    schedule: nc_state_general_quadrennial
+    track_set: nc_partisan
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: Governor Lieutenant Governor All State executive officers'
+      citation: G.S. 163-106.2(a)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q7054452
+    roster_url: null
+
+legislature:
+  - office_type: state-senate
+    title: 'State Senator, District {label}'
+    seats_per_district: null
+    district_groups:
+      - { group: A, districts: all, every: 2, first: 2026 }
+    term_years:
+      value: 2
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'The Senate shall be composed of 50 Senators, biennially chosen by ballot.'
+      citation: N.C. Const. art. II, sec. 2
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the county board of elections no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: State Senators Members of the State House of Representatives All county offices.'
+      citation: G.S. 163-106.2(b)
+    pay:
+      kind: salary
+      amount_cents: 1395100
+      period: year
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_120/GS_120-3.html
+      quote: 'every other member of the General Assembly shall be paid an annual salary of thirteen thousand nine hundred fifty-one dollars ($13,951) payable monthly'
+      citation: G.S. 120-3(b)
+    schedule: nc_state_general
+    track_set: nc_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: 'State Representative, District {label}'
+    seats_per_district: null
+    district_groups:
+      - { group: A, districts: all, every: 2, first: 2026 }
+    term_years:
+      value: 2
+      source_url: https://www.ncleg.gov/EnactedLegislation/Constitution/NCConstitution.html
+      quote: 'The House of Representatives shall be composed of 120 Representatives, biennially chosen by ballot.'
+      citation: N.C. Const. art. II, sec. 4
+    term_limit_terms: null
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the county board of elections no earlier than 12:00 noon on the first Monday in December and no later than 12:00 noon on the third Friday in December preceding the primary: State Senators Members of the State House of Representatives All county offices.'
+      citation: G.S. 163-106.2(b)
+    pay:
+      kind: salary
+      amount_cents: 1395100
+      period: year
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_120/GS_120-3.html
+      quote: 'every other member of the General Assembly shall be paid an annual salary of thirteen thousand nine hundred fifty-one dollars ($13,951) payable monthly'
+      citation: G.S. 120-3(b)
+    schedule: nc_state_general
+    track_set: nc_partisan
+    powers: []
+    eligibility: []
+    job_restrictions: []
+
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board'
+      citation: G.S. 163-106.2(a)
+    schedule: nc_state_general
+    track_set: nc_partisan
+  us_senate:
+    partisan:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-106.2.html
+      quote: 'Candidates seeking party primary nominations for the following offices shall file their notice of candidacy with the State Board'
+      citation: G.S. 163-106.2(a)
+    schedule: nc_state_general
+    track_set: nc_partisan
+
+county_sets: []
+
+special_districts:
+  # Chapter 139: three elective supervisors in each county of the district, two appointive (G.S. 139-7).
+  - key: soil-water-conservation-district
+    enabling_statute:
+      value: G.S. Chapter 139 (Soil and Water Conservation Districts)
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+      quote: 'After the issuance of the certificate of organization of the soil and water conservation district by the Secretary of State, an election shall be held in each county of the district to elect the members of the soil and water conservation district board of supervisors as herein provided.'
+      citation: G.S. 139-6
+    elected:
+      value: true
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+      quote: 'The district board of supervisors shall consist of three elective members to be elected in each county of the district, and that number of appointive members as provided in G.S. 139-7.'
+      citation: G.S. 139-6
+    classifier:
+      function_names: ['88 - SOIL AND WATER CONSERVATION']
+      name_patterns: []
+    offices:
+      - key: soil-water-supervisor
+        office_type: soil-water-conservation-board
+        applies_to: null
+        title: '{jurisdiction} Board of Supervisors'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+            quote: 'The district board of supervisors shall consist of three elective members to be elected in each county of the district'
+            citation: G.S. 139-6
+          district_count: null
+          label_pattern: null
+        # The three elective seats; the two appointive members of G.S. 139-7 are not elected.
+        body_size:
+          value: 3
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+          quote: 'The district board of supervisors shall consist of three elective members to be elected in each county of the district'
+          citation: G.S. 139-6
+        # From November 1974 two seats for four years and one for two years, then four-year terms.
+        stagger:
+          - { group: A, seats: 2, every: 4, first: 1990 }
+          - { group: B, seats: 1, every: 4, first: 1992 }
+        term_years:
+          value: 4
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+          quote: 'Beginning with the election to be held in November 1974, the two candidates receiving the highest number of votes shall be elected for a term of four years, and the candidate receiving the next highest number of votes shall be elected for a term of two years; thereafter, as their terms expire, their successors shall be elected for terms of four years.'
+          citation: G.S. 139-6
+        term_limit_terms: null
+        schedule: nc_soil_water
+        track_set: nc_soil_water
+        partisan:
+          value: false
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_139/GS_139-6.html
+          quote: 'The election shall be nonpartisan and no primary election shall be held.'
+          citation: G.S. 139-6
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  # Water and sewer authorities (Chapter 162A, Article 1): members appointed by the member governments.
+  - key: water-sewer-authority
+    enabling_statute:
+      value: G.S. Chapter 162A, Article 1 (Water and Sewer Authorities)
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_162A/GS_162A-5.html
+      quote: 'Each authority organized under this Article shall consist of the number of members as may be agreed upon by the participating political subdivisions, such members to be selected by the respective political subdivision.'
+      citation: G.S. 162A-5(a)
+    elected:
+      value: false
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_162A/GS_162A-5.html
+      quote: 'Appointments of successor members shall, in each instance, be made by the governing body of the political subdivision appointing the member whose successor is to be appointed.'
+      citation: G.S. 162A-5(a)
+    classifier:
+      function_names:
+        ['91 - WATER SUPPLY UTILITY', '98 - SEWERAGE AND WATER SUPPLY', '80 - SEWERAGE']
+      name_patterns: ['\bauthority\b']
+    offices: []
+  # Hospital authorities (Chapter 131E, Article 2): commissioners appointed.
+  - key: hospital-authority
+    enabling_statute:
+      value: G.S. Chapter 131E, Article 2 (Hospital Authorities Act)
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_131E/GS_131E-17.html
+      quote: 'A hospital authority may be created whenever a city council or a county board of commissioners finds and adopts a resolution finding that it is in the interest of the public health and welfare to create a hospital authority.'
+      citation: G.S. 131E-17(a)
+    elected:
+      value: false
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_131E/GS_131E-17.html
+      quote: 'After the adoption of a resolution creating a hospital authority, the mayor or the chairman of the county board of commissioners shall appoint commissioners in accordance with G.S. 131E-18.'
+      citation: G.S. 131E-17(b)
+    classifier:
+      function_names: ['40 - HOSPITALS']
+      name_patterns: ['\bauthority\b']
+    offices: []
+  # Housing authorities (Chapter 157): commissioners appointed by the mayor.
+  - key: housing-authority
+    enabling_statute:
+      value: G.S. Chapter 157 (Housing Authorities and Projects)
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_157/GS_157-5.html
+      quote: 'An authority shall consist of not less than five nor more than eleven commissioners appointed by the mayor and the mayor shall designate the first chair.'
+      citation: G.S. 157-5(a)
+    elected:
+      value: false
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_157/GS_157-5.html
+      quote: 'An authority shall consist of not less than five nor more than eleven commissioners appointed by the mayor and the mayor shall designate the first chair.'
+      citation: G.S. 157-5(a)
+    classifier:
+      function_names: ['50 - HOUSING AND COMMUNITY DEVELOPMENT']
+      name_patterns: ['housing authority']
+    offices: []
+  # Area authorities for mental health services (Chapter 122C, Article 4): boards appointed by the counties.
+  - key: area-authority
+    enabling_statute:
+      value: G.S. Chapter 122C, Article 4 (area authorities)
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_122C/GS_122C-118.1.html
+      quote: 'An area board shall have no fewer than 11 and no more than 21 voting members.'
+      citation: G.S. 122C-118.1(a)
+    elected:
+      value: false
+      source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_122C/GS_122C-118.1.html
+      quote: 'The board of county commissioners, or the boards of county commissioners within the area, shall appoint members consistent with the requirements provided in subsection (b) of this section.'
+      citation: G.S. 122C-118.1(a)
+    classifier:
+      function_names: ['32 - HEALTH']
+      name_patterns: []
+    offices: []
+
+# Party officers are chosen at the parties' meetings and conventions, not on the primary ballot.
+party_committee:
+  selection:
+    value: party_meeting
+    source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-99.html
+    quote: 'by political parties, as defined in G.S. 163-96, for the express purpose of annual or biennial precinct meetings and county and district conventions'
+    citation: G.S. 163-99
+  unit: county
+  seats_rule:
+    value: one county executive committee per party in each county
+    source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_115C/GS_115C-37.html
+    quote: 'such vacancy caused thereby may be filled by the actions of the county executive committee of the political party of such candidate'
+    citation: G.S. 115C-37(e)
+  term_years: null
+  parties: [democratic, green, libertarian, republican]
+  offices:
+    - key: county-executive-committee
+      office_type: party-committee
+      applies_to: null
+      title: '{jurisdiction} County Executive Committee'
+      seats:
+        arrangement: at_large
+        count:
+          value: 1
+          source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_115C/GS_115C-37.html
+          quote: 'such vacancy caused thereby may be filled by the actions of the county executive committee of the political party of such candidate'
+          citation: G.S. 115C-37(e)
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years: null
+      term_limit_terms: null
+      schedule: nc_no_public_election
+      track_set: nc_partisan
+      partisan:
+        value: true
+        source_url: https://www.ncleg.gov/EnactedLegislation/Statutes/HTML/BySection/Chapter_163/GS_163-99.html
+        quote: 'by political parties, as defined in G.S. 163-96, for the express purpose of annual or biennial precinct meetings and county and district conventions'
+        citation: G.S. 163-99
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+
+eligibility_common: []
+notes: null
