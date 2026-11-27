@@ -1,0 +1,10 @@
+{
+  "url": "https://www.archives.gov/founding-docs/constitution-transcript",
+  "fetchedAt": "2026-11-27T04:10:02.217Z",
+  "sha256": "9f7e8896c7d3061fbbd5e10f445fc018cb7002b5235efeb36cc030c73c40b7ea",
+  "contentType": "text/html; charset=utf-8",
+  "originalSha256": "407341faf4cf2b061aacc2b3f252ce21d16dff74a07dc49bbb732de2b1fc1044",
+  "transformations": [
+    "line endings written as LF: the page mixes CRLF and LF, and the repository stores text files with LF"
+  ]
+}

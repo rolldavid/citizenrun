@@ -1,0 +1,10 @@
+{
+  "url": "https://www.archives.gov/founding-docs/amendments-11-27",
+  "fetchedAt": "2026-11-27T04:10:04.360Z",
+  "sha256": "4c447d59f37ba0a1546dc27c39afb0111dc89c942949def2e03a405bd56bb532",
+  "contentType": "text/html; charset=utf-8",
+  "originalSha256": "648135360f4c198eec97b41335ccfe43adf4845ee27705dcde9d3a6c245bd520",
+  "transformations": [
+    "line endings written as LF: the page mixes CRLF and LF, and the repository stores text files with LF"
+  ]
+}

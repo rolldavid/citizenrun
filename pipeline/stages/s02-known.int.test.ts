@@ -1,5 +1,4 @@
 import { createHash } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { BJurisdictionSchema, BOfficeSchema } from '@citizenrun/shared';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -12,6 +11,7 @@ import { CONGRESS_REQUIRED, LEGISLATORS_URL } from '../sources/congress.ts';
 import { OPENSTATES_HEADER } from '../sources/openstates.ts';
 import { fakeFetcher, fixtureContext } from '../templates/__fixtures__/zz-fake-fetcher.ts';
 import type { FakeAnswer } from '../templates/__fixtures__/zz-fake-fetcher.ts';
+import { readSavedSample } from '../testing/saved-sample.ts';
 import { getTestBucket, resetStorage, testRunId } from '../testing/setup.ts';
 import { HOUSE_TERM, SENATE_TERM } from './federal.ts';
 import { S02_KNOWN_FILES, makeS02Known } from './s02-known.ts';
@@ -73,11 +73,16 @@ const fixtureBase: StageModule = {
   },
 };
 
-/** Both constitution URLs answered with the hand-written page that holds the two quotes. */
+/** Each constitution URL answered with its saved page. */
 async function constitutionPages(): Promise<Record<string, FakeAnswer>> {
-  const body = await readFile(join(KNOWN_FIXTURES, 'zz-federal-terms.html'), 'utf8');
-  const page = { body, contentType: 'text/html; charset=utf-8' };
-  return { [HOUSE_TERM.source_url]: page, [SENATE_TERM.source_url]: page };
+  const page = async (name: string): Promise<FakeAnswer> => {
+    const { bytes, meta } = await readSavedSample(join(KNOWN_FIXTURES, name));
+    return { body: new TextDecoder('utf-8').decode(bytes), contentType: meta.contentType };
+  };
+  return {
+    [HOUSE_TERM.source_url]: await page('constitution-transcript.html'),
+    [SENATE_TERM.source_url]: await page('amendments-11-27.html'),
+  };
 }
 
 /** The template test fetcher for pages, with downloads of the two files written to their key. */
