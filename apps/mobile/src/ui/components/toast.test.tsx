@@ -1,9 +1,10 @@
-import { typeRoles } from '@citizenrun/shared';
+import { createI18n, typeRoles } from '@citizenrun/shared';
 import { act, cleanup, screen, within } from '@testing-library/react';
 import type { JSX } from 'react';
 import { View } from 'react-native';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { reportOptimisticFailure } from '@/lib/optimistic-failures';
 import { hapticsFake } from '@/test/platform/haptics';
 import { renderWithProviders, setViewport } from '@/test/render';
 import type { RenderWithProvidersOptions } from '@/test/render';
@@ -555,5 +556,87 @@ describe('Toast', () => {
     expect(screen.queryByTestId(OVERLAY)?.contains(toast()) ?? false).toBe(false);
     expect(toast().parentElement?.style.bottom).toBe(`${String(space.x4)}px`);
     expect(toast().parentElement?.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
+  });
+});
+
+describe('the toast of a failed toggle', () => {
+  type Failure = Parameters<typeof reportOptimisticFailure>[0];
+
+  const { t } = createI18n();
+
+  function fail(failure: Failure): void {
+    act(() => {
+      reportOptimisticFailure(failure);
+    });
+  }
+
+  it('a failed follow shows its sentence and the warning haptic', () => {
+    mount();
+    fail({ action: 'follow', code: 'internal' });
+    expect(toasts()).toHaveLength(1);
+    expect(within(toast()).getByText('Follow did not go through. Try again.')).toBeDefined();
+    // An error: it interrupts, and it is felt once.
+    expect(toast().getAttribute('role')).toBe('alert');
+    expect(hapticsFake.calls).toEqual([WARNING_HAPTIC]);
+
+    // Each action has its own sentence, and a later failure replaces the one showing.
+    const sentences = [
+      ['unfollow', 'Unfollow did not go through. Try again.'],
+      ['bookmark', 'Bookmark was not saved. Try again.'],
+      ['unbookmark', 'Bookmark was not removed. Try again.'],
+    ] as const;
+    for (const [action, sentence] of sentences) {
+      fail({ action, code: 'unavailable' });
+      expect(toasts(), action).toHaveLength(1);
+      expect(within(toast()).getByText(sentence), action).toBeDefined();
+    }
+    // It leaves as every toast does.
+    wait(motion.duration.toastHold + motion.duration.fade);
+    expect(toasts()).toHaveLength(0);
+  });
+
+  it("a limit shows the code's sentence", () => {
+    mount();
+    fail({ action: 'follow', code: 'daily_limit_reached' });
+    expect(t('errors:daily_limit_reached')).toBe(
+      "You've reached today's limit for this. Try again later.",
+    );
+    expect(within(toast()).getByText(t('errors:daily_limit_reached'))).toBeDefined();
+    expect(screen.queryByText('Follow did not go through. Try again.')).toBeNull();
+
+    // The other codes that say what to do read their own sentence too, whatever the action.
+    fail({ action: 'bookmark', code: 'rate_limited' });
+    expect(within(toast()).getByText(t('errors:rate_limited'))).toBeDefined();
+    fail({ action: 'unfollow', code: 'office_retired' });
+    expect(within(toast()).getByText(t('errors:office_retired'))).toBeDefined();
+    fail({ action: 'unbookmark', code: 'onboarding_incomplete' });
+    expect(within(toast()).getByText(t('errors:onboarding_incomplete'))).toBeDefined();
+    fail({ action: 'follow', code: 'account_suspended' });
+    expect(within(toast()).getByText(t('errors:account_suspended'))).toBeDefined();
+    // Any other code names the action that did not go through.
+    fail({ action: 'bookmark', code: 'not_found' });
+    expect(within(toast()).getByText('Bookmark was not saved. Try again.')).toBeDefined();
+  });
+
+  it('unsubscribes on unmount', () => {
+    mount();
+    cleanup();
+    reportOptimisticFailure({ action: 'follow', code: 'internal' });
+    expect(toasts()).toHaveLength(0);
+    expect(hapticsFake.calls).toEqual([]);
+    expect(vi.getTimerCount()).toBe(0);
+
+    // A host mounted afterwards is the only one listening: one failure is one toast, felt once.
+    // The clock moves a second at each reading, so a second toast would be felt as well.
+    let reading = Date.now();
+    const now = vi.spyOn(Date, 'now').mockImplementation(() => {
+      reading += 1000;
+      return reading;
+    });
+    mount();
+    fail({ action: 'follow', code: 'internal' });
+    now.mockRestore();
+    expect(toasts()).toHaveLength(1);
+    expect(hapticsFake.calls).toEqual([WARNING_HAPTIC]);
   });
 });

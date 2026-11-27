@@ -1,11 +1,14 @@
 import { assertNever } from '@citizenrun/shared';
 import { useEffect, useId, useSyncExternalStore } from 'react';
 import type { JSX, ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { subscribeOptimisticFailures } from '@/lib/optimistic-failures';
+import type { OptimisticFailure } from '@/lib/optimistic-failures';
 import { playHaptic } from '@/ui/haptic';
 import type { IconName } from '@/ui/icons';
 import { motion, useFade } from '@/ui/motion';
@@ -273,6 +276,47 @@ export function ToastOutlet({
 }
 
 /**
+ * Shows the error toast of an optimistic toggle that was put back, wherever it was pressed. A code
+ * that says what to do reads its own sentence; any other failure names the action that did not go
+ * through. The toast plays the warning haptic, as every error toast does.
+ */
+function useOptimisticFailureToast(): void {
+  const { t } = useTranslation(['common', 'errors']);
+  useEffect(() => {
+    // One literal call per code, so the catalog check can read every key.
+    const codeText = (code: OptimisticFailure['code']): string | null => {
+      if (code === 'daily_limit_reached') return t('errors:daily_limit_reached');
+      if (code === 'rate_limited') return t('errors:rate_limited');
+      if (code === 'office_retired') return t('errors:office_retired');
+      if (code === 'onboarding_incomplete') return t('errors:onboarding_incomplete');
+      if (code === 'account_suspended') return t('errors:account_suspended');
+      return null;
+    };
+    const actionText = (action: OptimisticFailure['action']): string => {
+      switch (action) {
+        case 'follow':
+          return t('ui.optimistic.follow');
+        case 'unfollow':
+          return t('ui.optimistic.unfollow');
+        case 'bookmark':
+          return t('ui.optimistic.bookmark');
+        case 'unbookmark':
+          return t('ui.optimistic.unbookmark');
+        default:
+          return assertNever(action);
+      }
+    };
+    return subscribeOptimisticFailures((failure) => {
+      showToast({
+        kind: 'error',
+        text: codeText(failure.code) ?? actionText(failure.action),
+        testID: 'toast',
+      });
+    });
+  }, [t]);
+}
+
+/**
  * The home of C-Toast: the root layout renders it once, around the app. It draws its children and,
  * above them, the one toast `showToast` asked for: ink, with one icon that carries the kind, never
  * a color and never a button. While a dialog or a sheet is open the toast is drawn inside it.
@@ -289,6 +333,7 @@ export function ToastHost(props: { children: ReactNode }): JSX.Element {
       }
     };
   }, []);
+  useOptimisticFailureToast();
 
   return (
     <>

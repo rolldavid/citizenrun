@@ -7,6 +7,42 @@ export const common = {
   ok: 'OK',
   save: 'Save',
   cancel: 'Cancel',
+  confirmBeforeFiling: 'Confirm with your election office.',
+  list: {
+    pair: '{{first}} and {{second}}',
+    joiner: '{{head}}, {{next}}',
+    series: '{{head}}, and {{last}}',
+  },
+  source: {
+    line: '{{domain}}. Checked {{date}}.',
+    lineRule: '{{citation}}. Checked {{date}}.',
+    lineNoLink: 'No link to the source. Checked {{date}}.',
+  },
+  deadline: {
+    flag_one: '{{count}} day to file',
+    flag_other: '{{count}} days to file',
+    closesOn: 'Closes {{date}}.',
+    closesOnAt: 'Closes {{date}} at {{time}}.',
+    opensOn: 'Opens {{date}}.',
+    closedOn: 'Closed {{date}}.',
+    conflict:
+      'Two sources give different dates: {{computed}} under {{citation}}, and {{scraped}} from {{domain}}. The earlier date is shown.',
+    conflictNoCitation:
+      'Two sources give different dates: {{computed}} by the rule, and {{scraped}} from {{domain}}. The earlier date is shown.',
+    conflictPlain:
+      'Two sources give different dates: {{computed}} and {{scraped}}. The earlier date is shown.',
+  },
+  candidacy: {
+    committeeRegistered: 'Committee registered',
+    filed: 'Filed',
+    qualified: 'Qualified',
+    onBallot: 'On the ballot',
+    advanced: 'Advanced',
+    withdrawn: 'Withdrew',
+    disqualified: 'Disqualified',
+    won: 'Won',
+    lost: 'Lost',
+  },
   notFound: { title: 'Page not found | {{appName}}' },
   legalPages: {
     documentTitle: '{{title}} | {{appName}}',
@@ -205,6 +241,12 @@ export const common = {
       unfollowHint: 'Press to stop following',
       bookmark: 'Bookmark',
       bookmarked: 'Bookmarked',
+    },
+    optimistic: {
+      follow: 'Follow did not go through. Try again.',
+      unfollow: 'Unfollow did not go through. Try again.',
+      bookmark: 'Bookmark was not saved. Try again.',
+      unbookmark: 'Bookmark was not removed. Try again.',
     },
     nav: {
       main: 'Main',

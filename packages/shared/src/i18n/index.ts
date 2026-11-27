@@ -9,6 +9,7 @@ import { explore } from './en/explore.ts';
 import { feed } from './en/feed.ts';
 import { native } from './en/native.ts';
 import { notifications } from './en/notifications.ts';
+import { office } from './en/office.ts';
 import { system } from './en/system.ts';
 import { onboarding } from './en/onboarding.ts';
 import { profile } from './en/profile.ts';
@@ -27,6 +28,7 @@ export const RESOURCES = {
     onboarding,
     settings,
     profile,
+    office,
     feed,
     explore,
     cards,
@@ -43,6 +45,7 @@ export const NAMESPACES = [
   'onboarding',
   'settings',
   'profile',
+  'office',
   'feed',
   'explore',
   'cards',
