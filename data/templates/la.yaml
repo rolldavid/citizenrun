@@ -1,0 +1,1057 @@
+schema_version: 1
+state: LA
+name: Louisiana
+rules_module: la
+county_pay: mixed
+calendar_pages:
+  - url: https://ethics.la.gov/Pub/CampFinan/Sched/20231014.pdf
+    scope: state
+    notes: Board of Ethics schedule for the October 14, 2023 primary and November 18, 2023 general elections
+  - url: https://ethics.la.gov/Pub/CampFinan/Sched/20241105.pdf
+    scope: state
+    notes: Board of Ethics schedule for the November 5, 2024 elections
+  - url: https://ethics.la.gov/Pub/CampFinan/Sched/20261103.pdf
+    scope: state
+    notes: Board of Ethics schedule for the November 3, 2026 elections
+  - url: https://ethics.la.gov/Pub/CampFinan/Sched/20271009.pdf
+    scope: state
+    notes: Board of Ethics schedule for the October 9, 2027 primary and November 20, 2027 general elections
+  - url: https://www.calcasieuclerk.gov/election-calendars
+    scope: county
+    notes: Calcasieu Parish Clerk of Court, parish election calendars; the qualifying weeks they show are statewide
+  - url: https://calcasieuclerk.gov/qualifying-and-candidate-info
+    scope: county
+    notes: Calcasieu Parish Clerk of Court, 2026 fall qualifying; the dates are statewide
+  - url: https://legis.la.gov/legis/LawPrint.aspx?d=1432545
+    scope: state
+    notes: R.S. 18:419.2, the 2026 spring election dates and qualifying
+  - url: https://legis.la.gov/legis/ViewDocument.aspx?d=1473830
+    scope: state
+    notes: Act No. 7 of the 2026 Regular Session, the 2026 U.S. House elections and fall qualifying
+parties_with_primaries: [democratic, republican]
+
+government_types:
+  - key: parish
+    kind: county
+    unit_type_codes: [1]
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206482
+      quote: 'The electors of each local governmental subdivision shall have the exclusive right to elect their governing authority.'
+      citation: La. Const. art. VI, §11
+    offices:
+      - key: sheriff
+        office_type: sheriff
+        applies_to: null
+        title: '{jurisdiction} Sheriff'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+            quote: 'In each parish a sheriff shall be elected for a term of four years.'
+            citation: La. Const. art. V, §27
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+          quote: 'In each parish a sheriff shall be elected for a term of four years.'
+          citation: La. Const. art. V, §27
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: clerk-of-court
+        office_type: county-clerk
+        applies_to: null
+        title: '{jurisdiction} Clerk of Court'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+            quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+            citation: La. Const. art. V, §28(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+          quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+          citation: La. Const. art. V, §28(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: assessor
+        office_type: county-assessor
+        applies_to: null
+        title: '{jurisdiction} Assessor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+            quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+            citation: La. Const. art. VII, §24(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+          quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+          citation: La. Const. art. VII, §24(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: coroner
+        office_type: county-row-other
+        applies_to: null
+        title: '{jurisdiction} Coroner'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+            quote: 'In each parish a coroner shall be elected for a term of four years.'
+            citation: La. Const. art. V, §29
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+          quote: 'In each parish a coroner shall be elected for a term of four years.'
+          citation: La. Const. art. V, §29
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+  - key: municipality
+    kind: city
+    unit_type_codes: [2]
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206482
+      quote: 'The electors of each local governmental subdivision shall have the exclusive right to elect their governing authority.'
+      citation: La. Const. art. VI, §11
+    offices:
+      # The consolidated government of the City of Baton Rouge and the Parish of East Baton Rouge.
+      - key: ebr-mayor-president
+        office_type: mayor
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: Mayor-President of the City of Baton Rouge and Parish of East Baton Rouge
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://www.brla.gov/1266/Chapter-4-Mayor-President
+            quote: 'The Chief Executive Officer of the City and Parish shall be a Mayor-President who shall be elected by the qualified voters of the Parish at the same time and for the same terms as the members of the Metropolitan Council'
+            citation: East Baton Rouge Plan of Government, §4.01
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.brla.gov/1266/Chapter-4-Mayor-President
+          quote: 'Thereafter the Mayor-President shall hold office for a term of four years beginning on the first day of January following his election.'
+          citation: East Baton Rouge Plan of Government, §4.01
+        term_limit_terms:
+          value: 3
+          source_url: https://www.brla.gov/1266/Chapter-4-Mayor-President
+          quote: 'A person who has been elected to serve as Mayor-President of the Consolidated Government of the City of Baton Rouge and Parish of East Baton Rouge for three (3) consecutive full terms of office, such service being during a term of office that began on or after January 1, 1997, shall not be eligible for election as Mayor-President'
+          citation: East Baton Rouge Plan of Government, §4.01
+        schedule: la_congressional
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: ebr-metropolitan-council
+        office_type: city-council
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: 'Metropolitan Council of the Parish of East Baton Rouge and the City of Baton Rouge, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 12
+            source_url: https://www.brla.gov/1264/Chapter-2-Governing-Bodies
+            quote: 'On and after January l, l985, the Metropolitan Council shall consist of twelve (l2) persons elected from l2 single member districts within the Parish of East Baton Rouge'
+            citation: East Baton Rouge Plan of Government, §2.01(b)
+          label_pattern: 'District {n}'
+        body_size:
+          value: 12
+          source_url: https://www.brla.gov/1264/Chapter-2-Governing-Bodies
+          quote: 'On and after January l, l985, the Metropolitan Council shall consist of twelve (l2) persons elected from l2 single member districts within the Parish of East Baton Rouge'
+          citation: East Baton Rouge Plan of Government, §2.01(b)
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www.brla.gov/1264/Chapter-2-Governing-Bodies
+          quote: 'The members of the Metropolitan Council shall thereafter be nominated and elected in l984 and every fourth year thereafter at the same time as representatives in Congress of the United States and shall hold office for terms of four years from the first day of January following their election'
+          citation: East Baton Rouge Plan of Government, §2.02
+        term_limit_terms:
+          value: 3
+          source_url: https://www.brla.gov/1264/Chapter-2-Governing-Bodies
+          quote: 'A person who has been elected to serve as a member of the Metropolitan Council of the Parish of East Baton Rouge and City of Baton Rouge, the governing authority of the Parish of East Baton Rouge and City of Baton Rouge, for three (3) consecutive full terms of office, such service being during a term of office that began on or after January 1, 1997, shall not be eligible for election to the Metropolitan Council'
+          citation: East Baton Rouge Plan of Government, §2.02
+        schedule: la_congressional
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay:
+          kind: salary
+          amount_cents: 100000
+          period: month
+          source_url: https://www.brla.gov/1264/Chapter-2-Governing-Bodies
+          quote: 'The salary of each councilman shall be $1,000.00 per month effective January 1, 2009.'
+          citation: East Baton Rouge Plan of Government, §2.05
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: ebr-sheriff
+        office_type: sheriff
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: East Baton Rouge Parish Sheriff
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+            quote: 'In each parish a sheriff shall be elected for a term of four years.'
+            citation: La. Const. art. V, §27
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+          quote: 'In each parish a sheriff shall be elected for a term of four years.'
+          citation: La. Const. art. V, §27
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: ebr-clerk-of-court
+        office_type: county-clerk
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: East Baton Rouge Parish Clerk of Court
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+            quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+            citation: La. Const. art. V, §28(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+          quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+          citation: La. Const. art. V, §28(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: ebr-assessor
+        office_type: county-assessor
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: East Baton Rouge Parish Assessor
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+            quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+            citation: La. Const. art. VII, §24(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+          quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+          citation: La. Const. art. VII, §24(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: ebr-coroner
+        office_type: county-row-other
+        applies_to:
+          { name_pattern: '^Baton Rouge city$', population_min: null, population_max: null }
+        title: East Baton Rouge Parish Coroner
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+            quote: 'In each parish a coroner shall be elected for a term of four years.'
+            citation: La. Const. art. V, §29
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+          quote: 'In each parish a coroner shall be elected for a term of four years.'
+          citation: La. Const. art. V, §29
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: east-baton-rouge-parish }
+        wikidata_position: null
+        roster_url: null
+      # The consolidated government of Lafayette Parish.
+      - key: lafayette-sheriff
+        office_type: sheriff
+        applies_to: { name_pattern: '^Lafayette city$', population_min: null, population_max: null }
+        title: Lafayette Parish Sheriff
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+            quote: 'In each parish a sheriff shall be elected for a term of four years.'
+            citation: La. Const. art. V, §27
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+          quote: 'In each parish a sheriff shall be elected for a term of four years.'
+          citation: La. Const. art. V, §27
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: lafayette-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: lafayette-clerk-of-court
+        office_type: county-clerk
+        applies_to: { name_pattern: '^Lafayette city$', population_min: null, population_max: null }
+        title: Lafayette Parish Clerk of Court
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+            quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+            citation: La. Const. art. V, §28(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206466
+          quote: 'In each parish a clerk of the district court shall be elected for a term of four years.'
+          citation: La. Const. art. V, §28(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: lafayette-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: lafayette-assessor
+        office_type: county-assessor
+        applies_to: { name_pattern: '^Lafayette city$', population_min: null, population_max: null }
+        title: Lafayette Parish Assessor
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+            quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+            citation: La. Const. art. VII, §24(A)
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206554
+          quote: 'A tax assessor shall be elected by the electors of each parish. His term of office shall be four years.'
+          citation: La. Const. art. VII, §24(A)
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: lafayette-parish }
+        wikidata_position: null
+        roster_url: null
+      - key: lafayette-coroner
+        office_type: county-row-other
+        applies_to: { name_pattern: '^Lafayette city$', population_min: null, population_max: null }
+        title: Lafayette Parish Coroner
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+            quote: 'In each parish a coroner shall be elected for a term of four years.'
+            citation: La. Const. art. V, §29
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206467
+          quote: 'In each parish a coroner shall be elected for a term of four years.'
+          citation: La. Const. art. V, §29
+        term_limit_terms: null
+        schedule: la_gubernatorial
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: { rule: county_pay }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: { county_union: lafayette-parish }
+        wikidata_position: null
+        roster_url: null
+  - key: school-board
+    kind: school_district
+    unit_type_codes: null
+    school_levels: null
+    elected:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206581
+      quote: 'The legislature shall create parish school boards and provide for the election of their members.'
+      citation: La. Const. art. VIII, §9(A)
+    offices: []
+
+statewide:
+  - key: governor
+    office_type: governor
+    applies_to: null
+    title: Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: lieutenant-governor
+    office_type: statewide-executive-other
+    applies_to: null
+    title: Lieutenant Governor
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: secretary-of-state
+    office_type: secretary-of-state
+    applies_to: null
+    title: Secretary of State
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: attorney-general
+    office_type: attorney-general
+    applies_to: null
+    title: Attorney General
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: null
+    roster_url: null
+  - key: treasurer
+    office_type: state-treasurer
+    applies_to: null
+    title: State Treasurer
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q60752476
+    roster_url: null
+  - key: commissioner-of-insurance
+    office_type: insurance-commissioner
+    applies_to: null
+    title: Commissioner of Insurance
+    seats:
+      arrangement: at_large
+      count:
+        value: 1
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+        quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+        citation: La. Const. art. IV, §3(A)
+      district_count: null
+      label_pattern: null
+    body_size: null
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206439
+      quote: 'Except as provided in Section 20 of this Article, the governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, commissioner of insurance, superintendent of education, and commissioner of elections1 each shall be elected for a term of four years by the electors of the state'
+      citation: La. Const. art. IV, §3(A)
+    term_limit_terms: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    partisan: null
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q60789519
+    roster_url: null
+  - key: public-service-commission
+    office_type: utility-commission
+    applies_to: null
+    title: 'Public Service Commission, {label}'
+    seats:
+      arrangement: by_district
+      count: null
+      district_count:
+        value: 5
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206438
+        quote: 'It shall consist of five members, who shall be elected for overlapping terms of six years at the time fixed for congressional elections from single member districts established by law.'
+        citation: La. Const. art. IV, §21(A)(1)
+      label_pattern: 'District {n}'
+    body_size:
+      value: 5
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206438
+      quote: 'It shall consist of five members, who shall be elected for overlapping terms of six years at the time fixed for congressional elections from single member districts established by law.'
+      citation: La. Const. art. IV, §21(A)(1)
+    stagger: []
+    term_years:
+      value: 6
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206438
+      quote: 'It shall consist of five members, who shall be elected for overlapping terms of six years at the time fixed for congressional elections from single member districts established by law.'
+      citation: La. Const. art. IV, §21(A)(1)
+    term_limit_terms: null
+    schedule: la_party_primary_congressional
+    track_set: la_party_primary
+    partisan:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81529
+      quote: '"Party primary office" means an office of senator or representative in the United States Congress, justice of the supreme court, the State Board of Elementary and Secondary Education, and the Public Service Commission.'
+      citation: R.S. 18:2(9)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q6689250
+    roster_url: null
+  - key: elementary-secondary-education-board
+    office_type: state-education-board
+    applies_to: null
+    title: 'State Board of Elementary and Secondary Education, {label}'
+    seats:
+      arrangement: by_district
+      count: null
+      district_count:
+        value: 8
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206574
+        quote: 'The board shall consist of eleven members, eight of whom shall be elected from single-member districts, which shall be determined as provided by law, and three of whom shall be appointed by the governor from the state at large, with consent of the Senate.'
+        citation: La. Const. art. VIII, §3(B)(1)
+      label_pattern: 'District {n}'
+    body_size:
+      value: 11
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206574
+      quote: 'The board shall consist of eleven members, eight of whom shall be elected from single-member districts, which shall be determined as provided by law, and three of whom shall be appointed by the governor from the state at large, with consent of the Senate.'
+      citation: La. Const. art. VIII, §3(B)(1)
+    stagger: []
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206574
+      quote: 'Members shall serve terms of four years, which shall be concurrent with the term of the governor.'
+      citation: La. Const. art. VIII, §3(B)(1)
+    term_limit_terms: null
+    schedule: la_party_primary_gubernatorial
+    track_set: la_party_primary
+    partisan:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81529
+      quote: '"Party primary office" means an office of senator or representative in the United States Congress, justice of the supreme court, the State Board of Elementary and Secondary Education, and the Public Service Commission.'
+      citation: R.S. 18:2(9)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q6689077
+    roster_url: null
+  - key: supreme-court
+    office_type: state-appellate-judge
+    applies_to: null
+    title: 'Justice of the Supreme Court, {label}'
+    seats:
+      arrangement: by_district
+      count: null
+      district_count:
+        value: 7
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=1387456
+        quote: 'The state shall be divided into seven supreme court districts. The supreme court shall be composed of one justice elected from each of the seven districts as set forth below:'
+        citation: R.S. 13:101.2
+      label_pattern: 'District {n}'
+    body_size:
+      value: 7
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=1387456
+      quote: 'The state shall be divided into seven supreme court districts. The supreme court shall be composed of one justice elected from each of the seven districts as set forth below:'
+      citation: R.S. 13:101.2
+    stagger: []
+    term_years:
+      value: 10
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206468
+      quote: 'The term of a supreme court judge shall be ten years.'
+      citation: La. Const. art. V, §3
+    term_limit_terms: null
+    schedule: la_party_primary_congressional
+    track_set: la_party_primary
+    partisan:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81529
+      quote: '"Party primary office" means an office of senator or representative in the United States Congress, justice of the supreme court, the State Board of Elementary and Secondary Education, and the Public Service Commission.'
+      citation: R.S. 18:2(9)
+    powers: []
+    pay: null
+    pay_range: null
+    benefits: null
+    eligibility: []
+    job_restrictions: []
+    district: null
+    wikidata_position: Q19693389
+    roster_url: null
+
+legislature:
+  - office_type: state-senate
+    title: 'State Senator, District {label}'
+    seats_per_district: null
+    district_groups:
+      - { group: A, districts: all, every: 4, first: 2027 }
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206419
+      quote: '(C) Term. A member of the legislature shall be elected for a four-year term.'
+      citation: La. Const. art. III, §4(C)
+    term_limit_terms: null
+    partisan: null
+    pay: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    powers: []
+    eligibility: []
+    job_restrictions: []
+  - office_type: state-house
+    title: 'State Representative, District {label}'
+    seats_per_district: null
+    district_groups:
+      - { group: A, districts: all, every: 4, first: 2027 }
+    term_years:
+      value: 4
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206419
+      quote: '(C) Term. A member of the legislature shall be elected for a four-year term.'
+      citation: La. Const. art. III, §4(C)
+    term_limit_terms: null
+    partisan: null
+    pay: null
+    schedule: la_gubernatorial
+    track_set: la_qualifying
+    powers: []
+    eligibility: []
+    job_restrictions: []
+
+federal:
+  us_house:
+    partisan:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81529
+      quote: '"Party primary office" means an office of senator or representative in the United States Congress, justice of the supreme court, the State Board of Elementary and Secondary Education, and the Public Service Commission.'
+      citation: R.S. 18:2(9)
+    schedule: la_party_primary_congressional
+    track_set: la_party_primary
+  us_senate:
+    partisan:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81529
+      quote: '"Party primary office" means an office of senator or representative in the United States Congress, justice of the supreme court, the State Board of Elementary and Secondary Education, and the Public Service Commission.'
+      citation: R.S. 18:2(9)
+    schedule: la_party_primary_congressional
+    track_set: la_party_primary
+
+county_sets:
+  - id: east-baton-rouge-parish
+    name: East Baton Rouge Parish
+    counties: ['22033']
+    source_url: https://www.brla.gov/1266/Chapter-4-Mayor-President
+    quote: 'The Chief Executive Officer of the City and Parish shall be a Mayor-President who shall be elected by the qualified voters of the Parish at the same time and for the same terms as the members of the Metropolitan Council'
+    citation: East Baton Rouge Plan of Government, §4.01
+  - id: lafayette-parish
+    name: Lafayette Parish
+    counties: ['22055']
+    source_url: https://legis.la.gov/legis/LawPrint.aspx?d=206465
+    quote: 'In each parish a sheriff shall be elected for a term of four years.'
+    citation: La. Const. art. V, §27
+
+special_districts:
+  - key: fire-protection-district
+    enabling_statute:
+      value: R.S. 40:1496
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=97583
+      quote: 'The board of commissioners shall consist of five members, except as provided in Paragraph (B)(5) of this Section.'
+      citation: R.S. 40:1496(A)
+    elected:
+      value: false
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=97583
+      quote: 'In the case where no municipality is included within the boundaries of a district lying within a single parish, the parish governing authority shall appoint the five members.'
+      citation: R.S. 40:1496(B)(1)
+    classifier:
+      function_names: ['24 - LOCAL FIRE PROTECTION']
+      name_patterns: []
+    offices: []
+  - key: hospital-service-district
+    enabling_statute:
+      value: R.S. 46:1053
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=100180
+      quote: 'Any hospital service district formed or created under the provisions of this Chapter shall be governed by a board of five commissioners, hereafter referred to as commission, who shall be qualified voters and residents of the district.'
+      citation: R.S. 46:1053(A)
+    elected:
+      value: false
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=100180
+      quote: 'The commission shall be appointed by the police jury of the parish.'
+      citation: R.S. 46:1053(A)
+    classifier:
+      function_names: ['40 - HOSPITALS']
+      name_patterns: ['\bhospital service district\b']
+    offices: []
+  - key: waterworks-district
+    enabling_statute:
+      value: R.S. 33:3813
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=90352
+      quote: 'In the ordinance creating a waterworks district under this Chapter, the police jury shall appoint five commissioners recommended in the petition for the creation of the district.'
+      citation: R.S. 33:3813(A)
+    elected:
+      value: false
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=90352
+      quote: 'In the ordinance creating a waterworks district under this Chapter, the police jury shall appoint five commissioners recommended in the petition for the creation of the district.'
+      citation: R.S. 33:3813(A)
+    classifier:
+      function_names: ['91 - WATER SUPPLY UTILITY']
+      name_patterns: ['\bwaterworks district\b']
+    offices: []
+
+party_committee:
+  selection:
+    value: primary_ballot
+    source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+    quote: 'Members of a parish executive committee of a recognized political party shall be elected every four years at the same time as the presidential preference primary election.'
+    citation: R.S. 18:444(B)(1)
+  unit: county
+  seats_rule:
+    value: five members at large in each parish, and as many members as the parish governing authority has
+    source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+    quote: 'in each parish the parish executive committee of a recognized political party shall be composed of five members-at-large and as many members as there are members of the parish governing authority.'
+    citation: R.S. 18:444(G)(1)
+  term_years:
+    value: 4
+    source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+    quote: 'Members of a parish executive committee of a recognized political party shall be elected every four years at the same time as the presidential preference primary election.'
+    citation: R.S. 18:444(B)(1)
+  parties: [democratic, republican]
+  offices:
+    - key: parish-executive-committee-at-large
+      office_type: party-committee
+      # R.S. 18:444(G)(2) sets other numbers for Orleans, Jefferson and Lafayette parishes and for the Democratic Party in Caddo Parish.
+      applies_to:
+        {
+          name_pattern: '^(?!(Orleans|Jefferson|Lafayette) Parish |Caddo Parish Democratic ).*$',
+          population_min: null,
+          population_max: null,
+        }
+      title: '{jurisdiction} Executive Committee, Member at Large'
+      seats:
+        arrangement: at_large
+        count:
+          value: 5
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+          quote: 'in each parish the parish executive committee of a recognized political party shall be composed of five members-at-large and as many members as there are members of the parish governing authority.'
+          citation: R.S. 18:444(G)(1)
+        district_count: null
+        label_pattern: null
+      body_size: null
+      stagger: []
+      term_years:
+        value: 4
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+        quote: 'Members of a parish executive committee of a recognized political party shall be elected every four years at the same time as the presidential preference primary election.'
+        citation: R.S. 18:444(B)(1)
+      term_limit_terms: null
+      schedule: la_party_committee
+      track_set: la_party_committee
+      partisan:
+        value: true
+        source_url: https://legis.la.gov/legis/LawPrint.aspx?d=81580
+        quote: 'Members of a parish executive committee of a recognized political party shall be elected every four years at the same time as the presidential preference primary election.'
+        citation: R.S. 18:444(B)(1)
+      powers: []
+      pay: null
+      pay_range: null
+      benefits: null
+      eligibility: []
+      job_restrictions: []
+      district: null
+      wikidata_position: null
+      roster_url: null
+
+eligibility_common: []
+notes: null
