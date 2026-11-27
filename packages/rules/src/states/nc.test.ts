@@ -523,3 +523,147 @@ describe('NC deadline rules: the cases of the state', () => {
     });
   });
 });
+
+/**
+ * Raleigh's election years, read by hand from S.L. 2021-56 § 1.8(b) (every seat in even years from
+ * 2022, two-year terms) and its charter's section 9(d) as Ordinance (2024) 627 left it: the Mayor, Districts A and B and one at-large seat for four years
+ * from November 2026; Districts C, D and E and the other at-large seat for two years in 2026, then
+ * for four years from November 2028.
+ */
+const RALEIGH_YEARS: readonly {
+  readonly keys: readonly string[];
+  readonly years: readonly number[];
+}[] = [
+  {
+    keys: ['raleigh-mayor', 'raleigh-city-council-district-a', 'raleigh-city-council-district-b'],
+    years: [2022, 2024, 2026, 2030],
+  },
+  {
+    keys: [
+      'raleigh-city-council-district-c',
+      'raleigh-city-council-district-d',
+      'raleigh-city-council-district-e',
+    ],
+    years: [2022, 2024, 2026, 2028, 2032],
+  },
+  { keys: ['raleigh-city-council-at-large'], years: [2022, 2024, 2026, 2028, 2030, 2032] },
+];
+const MUNICIPAL_SCHEDULES = [
+  'nc_municipal',
+  'nc_municipal_partisan',
+  'nc_municipal_primary',
+  'nc_municipal_runoff',
+] as const;
+
+function generalYears(entry: OfficeRef, from: number, to: number): number[] {
+  const years: number[] = [];
+  for (let year = from; year <= to; year++) {
+    const contests = ncRules.contests({ office: entry, year });
+    if (contests.some((c) => c.kind === 'general' || c.kind === 'general_runoff')) {
+      years.push(year);
+    }
+  }
+  return years;
+}
+
+describe('NC municipal offices by template key (D-894, D-895)', () => {
+  it('each Raleigh key has contests only in its charter years', async () => {
+    await eachZone(() => {
+      for (const group of RALEIGH_YEARS) {
+        for (const templateKey of group.keys) {
+          for (const schedule of MUNICIPAL_SCHEDULES) {
+            const entry = office({ templateKey, schedule, trackSet: 'nc_municipal' });
+            expect(generalYears(entry, 2022, 2033)).toEqual(group.years);
+          }
+        }
+      }
+    });
+  });
+
+  it('a keyed even-year election is on the November date of G.S. 163-279', async () => {
+    await eachZone(() => {
+      const entry = office({
+        templateKey: 'raleigh-city-council-district-a',
+        schedule: 'nc_municipal_primary',
+        trackSet: 'nc_municipal',
+      });
+      const contests = ncRules.contests({ office: entry, year: 2026 });
+      expect(contests.map((c) => [c.date, c.kind])).toEqual([
+        ['2026-10-06', 'primary'],
+        ['2026-11-03', 'general'],
+      ]);
+    });
+  });
+
+  it('a key with no cycle keeps the odd years of G.S. 163-279', async () => {
+    await eachZone(() => {
+      for (const templateKey of ['fixture-office', 'greensboro-city-council']) {
+        for (const schedule of MUNICIPAL_SCHEDULES) {
+          const entry = office({ templateKey, schedule, trackSet: 'nc_municipal' });
+          expect(generalYears(entry, 2024, 2031)).toEqual([2025, 2027, 2029, 2031]);
+        }
+      }
+      // Before a key's first cited year the statute's odd years stand.
+      const raleigh = office({
+        templateKey: 'raleigh-city-council-district-c',
+        schedule: 'nc_municipal',
+        trackSet: 'nc_municipal',
+      });
+      expect(generalYears(raleigh, 2017, 2021)).toEqual([2017, 2019, 2021]);
+    });
+  });
+
+  it('each keyed general cites the charter with an https link and a quote', async () => {
+    await eachZone(() => {
+      for (const group of RALEIGH_YEARS) {
+        for (const templateKey of group.keys) {
+          for (const year of group.years) {
+            const entry = office({
+              templateKey,
+              schedule: 'nc_municipal',
+              trackSet: 'nc_municipal',
+            });
+            const general = only(ncRules.contests({ office: entry, year }));
+            const citation = general.dateCitation;
+            expect(citation.sourceUrl).toMatch(/^https:\/\//);
+            expect(citation.citation).toBe(
+              year >= 2026
+                ? 'Raleigh Charter § 9(d), Ordinance (2024) 627'
+                : 'S.L. 2021-56, § 1.8(b)',
+            );
+            expect(citation.quote).toContain(
+              year >= 2026
+                ? 'In November 2026'
+                : 'Regular municipal elections shall be conducted in 2022',
+            );
+          }
+        }
+      }
+    });
+  });
+
+  it('a keyed even-year office files in the window the 2026 municipal guide publishes', async () => {
+    // The State Board's 2026 Municipal Candidate Guide: "Candidate filing for municipalities with
+    // even-numbered year elections begins ... on Monday, July 6, 2026, and ends at noon on Friday,
+    // July 17, 2026." Copied by hand; not a fixture.
+    await eachZone(() => {
+      const entry = office({
+        templateKey: 'raleigh-city-council-district-a',
+        schedule: 'nc_municipal_primary',
+        trackSet: 'nc_municipal',
+      });
+      const primary = ncRules
+        .contests({ office: entry, year: 2026 })
+        .find((c) => c.kind === 'primary');
+      expect(primary).toBeDefined();
+      if (primary === undefined) {
+        return;
+      }
+      const track = only(ncRules.filingTracks({ office: entry, contest: primary }));
+      expect(track.track).toBe('nonpartisan');
+      expect(track.opensOn?.value).toBe('2026-07-06');
+      expect(track.closesOn.value).toBe('2026-07-17');
+      expect(track.closesTime?.value).toBe('12:00');
+    });
+  });
+});
