@@ -12,7 +12,7 @@
     "build:web": "pnpm --filter @citizenrun/mobile run build:web",
     "build:api": "pnpm --filter @citizenrun/db run build && pnpm --filter @citizenrun/api run build",
     "build:worker": "pnpm --filter @citizenrun/db run build && pnpm --filter @citizenrun/worker run build",
-    "lint": "NODE_OPTIONS=--max-old-space-size=8192 eslint . --max-warnings 0 && prettier --check .",
+    "lint": "export NODE_OPTIONS=\"$NODE_OPTIONS --max-old-space-size=4096\" && eslint apps/mobile --max-warnings 0 && eslint apps/api apps/worker --max-warnings 0 && eslint packages --max-warnings 0 && eslint . --ignore-pattern 'apps/mobile/**' --ignore-pattern 'apps/api/**' --ignore-pattern 'apps/worker/**' --ignore-pattern 'packages/**' --max-warnings 0 && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "pnpm -r --if-present run typecheck && tsc -p tsconfig.json",
     "test": "vitest run --project 'unit:*' --project 'dom:*'",

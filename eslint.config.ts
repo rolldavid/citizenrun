@@ -46,6 +46,8 @@ export default defineConfig([
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {
+    // Every tsconfig's Program stays in memory until the process exits, so the lint script
+    // lints the workspaces in separate runs instead of holding all of them at once.
     languageOptions: {
       parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
     },
