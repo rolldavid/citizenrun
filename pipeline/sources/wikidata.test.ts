@@ -1,23 +1,28 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryBucket } from '../testing/memory-bucket.ts';
-import { s09Context, scriptFetcher, zzText } from '../__fixtures__/s09/zz-s09.ts';
+import { s09Context, saved, scriptFetcher } from '../__fixtures__/s09/zz-s09.ts';
 import { WikidataQidError, WikidataQueryError, currentHolders, holdersQuery } from './wikidata.ts';
 
 describe('currentHolders', () => {
   it('the saved response gives the holders', async () => {
     const bucket = createMemoryBucket();
-    const body = await zzText('zz-wikidata-holders.json');
+    // North Carolina State Treasurer (Q7054613). Wikidata gives six items whose P39 statement has
+    // no end time; one has no English label (its label is its id), so it names no one.
+    const body = (await saved('wikidata-holders.json')).bytes;
     const fetcher = scriptFetcher(bucket, () => ({
       body,
       contentType: 'application/sparql-results+json',
     }));
-    const holders = await currentHolders(s09Context(bucket, fetcher), 'Q4115189');
-    // The second binding has no English label (its label is its id), so it names no one.
+    const holders = await currentHolders(s09Context(bucket, fetcher), 'Q7054613');
     expect(holders).toEqual([
+      { personQid: 'Q4889151', label: 'Benjamin R. Lacy', enwikiTitle: 'Benjamin R. Lacy' },
+      { personQid: 'Q5210439', label: 'Dale Folwell', enwikiTitle: 'Dale Folwell' },
+      { personQid: 'Q7326170', label: 'Richard H. Moore', enwikiTitle: 'Richard H. Moore' },
+      { personQid: 'Q7411349', label: 'Samuel F. Patterson', enwikiTitle: 'Samuel F. Patterson' },
       {
-        personQid: 'Q99999002',
-        label: 'Fixture Pat Treasurer',
-        enwikiTitle: 'Fixture Pat Treasurer',
+        personQid: 'Q109517089',
+        label: 'Samuel McDowell Tate',
+        enwikiTitle: 'Samuel McDowell Tate',
       },
     ]);
     const req = fetcher.requests[0]?.req;
@@ -26,7 +31,7 @@ describe('currentHolders', () => {
     const url = new URL(req?.url ?? '');
     expect(url.origin + url.pathname).toBe('https://query.wikidata.org/sparql');
     expect(url.searchParams.get('format')).toBe('json');
-    expect(url.searchParams.get('query')).toBe(holdersQuery('Q4115189'));
+    expect(url.searchParams.get('query')).toBe(holdersQuery('Q7054613'));
     expect(holdersQuery('Q4115189')).toContain('?st ps:P39 wd:Q4115189 .');
     expect(holdersQuery('Q4115189')).toContain('FILTER NOT EXISTS { ?st pq:P582 ?end }');
   });

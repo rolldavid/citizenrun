@@ -1,0 +1,6 @@
+{
+  "url": "https://en.wikipedia.org/w/api.php?action=query&prop=pageprops|pageimages&piprop=name&redirects=1&format=json&formatversion=2&titles=Thom%20Tillis",
+  "fetchedAt": "2026-11-27T01:02:03.962Z",
+  "sha256": "e43e1083913eddd31155c0011b45936f8e2a4f616ff58e8d86380705ebd99cca",
+  "contentType": "application/json; charset=utf-8"
+}

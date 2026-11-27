@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryBucket } from '../testing/memory-bucket.ts';
-import { s09Context, scriptFetcher, zzText } from '../__fixtures__/s09/zz-s09.ts';
+import { s09Context, saved, scriptFetcher, zzText } from '../__fixtures__/s09/zz-s09.ts';
 import {
   CC0_URL,
   COMMONS_LICENSING_URL,
@@ -13,17 +13,19 @@ import {
 import type { CommonsInfo } from './wikimedia.ts';
 
 const FILE = 'Fixture_Senator_official_portrait.jpg';
+// The page image of the saved Wikipedia response, and the file of the saved Commons response.
+const SAVED_FILE = 'Sen._Thom_Tillis_(R-NC),_Official_Portrait,_117th_Congress_(cropped).jpg';
 
 async function savedInfo(): Promise<CommonsInfo> {
-  const body = await zzText('zz-commons-senate-portrait.json');
+  const body = (await saved('commons-senate-portrait.json')).bytes;
   const bucket = createMemoryBucket();
   const fetcher = scriptFetcher(bucket, (req) =>
     req.url.startsWith('https://commons.wikimedia.org/')
       ? { body, contentType: 'application/json' }
       : undefined,
   );
-  const infos = await commonsFileInfo(s09Context(bucket, fetcher), [FILE]);
-  const info = infos.get(FILE);
+  const infos = await commonsFileInfo(s09Context(bucket, fetcher), [SAVED_FILE]);
+  const info = infos.get(SAVED_FILE);
   if (info === undefined || info === 'missing') {
     throw new Error('the saved response gives no file');
   }
@@ -36,7 +38,7 @@ describe('commonsRecord', () => {
     expect(result).toEqual({
       ok: true,
       record: {
-        source_url: 'https://commons.wikimedia.org/wiki/File:Fixture_Senator_official_portrait.jpg',
+        source_url: `https://commons.wikimedia.org/wiki/File:${SAVED_FILE}`,
         author: 'United States Senate',
         license: 'LicenseRef-PD',
         license_url: COMMONS_LICENSING_URL,
@@ -161,11 +163,16 @@ describe('commonsFileInfo', () => {
     const info = await savedInfo();
     expect(info).toMatchObject({
       mime: 'image/jpeg',
-      width: 450,
-      height: 550,
+      width: 2834,
+      height: 3589,
       license: 'pd',
       licenseShortName: 'Public domain',
-      thumbUrl: expect.stringContaining('640px-') as unknown,
+      licenseUrl: null,
+      artistHtml: 'United States Senate',
+      descriptionUrl: `https://commons.wikimedia.org/wiki/File:${SAVED_FILE}`,
+      thumbUrl: expect.stringMatching(
+        /^https:\/\/thumb\.wikimedia\.org\/wikipedia\/commons\/thumb\/b\/bc\/.+px-Sen\._Thom_Tillis_/,
+      ) as unknown,
     });
   });
 });
@@ -181,6 +188,16 @@ describe('wikipediaPageImages', () => {
     expect(url.searchParams.get('titles')).toBe('Fixture Senator');
     expect(url.searchParams.get('prop')).toBe('pageprops|pageimages');
     expect(fetcher.requests[0]?.req.class).toBe('api');
+  });
+
+  it('reads the saved response for a senator page', async () => {
+    const bucket = createMemoryBucket();
+    const body = (await saved('wikipedia-pageimages.json')).bytes;
+    const fetcher = scriptFetcher(bucket, () => ({ body, contentType: 'application/json' }));
+    const pages = await wikipediaPageImages(s09Context(bucket, fetcher), ['Thom Tillis']);
+    expect(pages.get('Thom Tillis')).toEqual({ pageImage: SAVED_FILE, wikidataQid: 'Q7786750' });
+    const url = new URL(fetcher.requests[0]?.req.url ?? '');
+    expect(url.searchParams.get('titles')).toBe('Thom Tillis');
   });
 
   it('titles are batched by 50', async () => {

@@ -1,0 +1,6 @@
+{
+  "url": "https://commons.wikimedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url|extmetadata|size|mime&iiurlwidth=640&format=json&formatversion=2&titles=File%3ASen._Thom_Tillis_(R-NC)%2C_Official_Portrait%2C_117th_Congress_(cropped).jpg",
+  "fetchedAt": "2026-11-27T01:02:13.433Z",
+  "sha256": "ea36ca894df9b610161548777512ffb511581510be557f711ea39f418cdd101b",
+  "contentType": "application/json; charset=utf-8"
+}

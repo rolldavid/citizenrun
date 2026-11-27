@@ -1,0 +1,6 @@
+{
+  "url": "https://query.wikidata.org/sparql?format=json&query=SELECT%20%3Fperson%20%3FpersonLabel%20%3Farticle%20WHERE%20%7B%0A%20%20%3Fperson%20p%3AP39%20%3Fst%20.%20%3Fst%20ps%3AP39%20wd%3AQ7054613%20.%0A%20%20FILTER%20NOT%20EXISTS%20%7B%20%3Fst%20pq%3AP582%20%3Fend%20%7D%0A%20%20OPTIONAL%20%7B%20%3Farticle%20schema%3Aabout%20%3Fperson%20%3B%20schema%3AisPartOf%20%3Chttps%3A%2F%2Fen.wikipedia.org%2F%3E%20.%20%7D%0A%20%20SERVICE%20wikibase%3Alabel%20%7B%20bd%3AserviceParam%20wikibase%3Alanguage%20%22en%22.%20%7D%0A%7D",
+  "fetchedAt": "2026-11-27T01:02:33.461Z",
+  "sha256": "73909510a37a2ca54bd3e255ef5df0d45d0d510e35e97e3baf33aa39fd5de924",
+  "contentType": "application/sparql-results+json;charset=utf-8"
+}
