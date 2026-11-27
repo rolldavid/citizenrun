@@ -51,6 +51,7 @@ const URL_18_1280_21 = RS(81288);
 const URL_1_55 = RS(74097);
 const URL_1_55_1 = RS(1238710);
 const URL_ACT_7_2026 = 'https://legis.la.gov/legis/ViewDocument.aspx?d=1473830';
+const URL_ACT_640_2024 = 'https://legis.la.gov/legis/ViewDocument.aspx?d=1382369';
 const URL_ACT_640_2024_DIGEST = 'https://legis.la.gov/legis/ViewDocument.aspx?d=1388759';
 
 /** Contests from this date are held under the Election Code as Acts 2024, No. 640 left it (its Section 5). */
@@ -260,6 +261,28 @@ const QUAL_INDEPENDENT = cite(
   URL_18_467,
   'The qualifying period for candidates qualifying for the general election for a party primary office in the manner provided in R.S. 18:410.8 shall be the qualifying period for candidates qualifying for a party primary office as provided in Subsection A of this Section.',
   NEW_CODE_FROM,
+);
+/** R.S. 18:467 before Acts 2024, No. 640: the act prints the section with its changes, and its digest states the prior law. */
+const OLD_QUAL_GUB_FALL = cite(
+  'R.S. 18:467(1) (before Acts 2024, No. 640)',
+  URL_ACT_640_2024,
+  'and those in any special primary election to be held at the same time, 16 on the first Tuesday after the first Monday in August of the year of the election.',
+  '2023-08-08', // earliest published application (the 2023 gubernatorial qualifying period)
+  OLD_CODE_TO,
+);
+const OLD_QUAL_CONG_FALL = cite(
+  'R.S. 18:467(2) (before Acts 2024, No. 640)',
+  URL_ACT_640_2024_DIGEST,
+  'New law changes the opening of qualifying for the fall primary election in a congressional election year from the third Wednesday in July to the last Wednesday in July.',
+  '2020-07-15', // earliest published application (the 2020 congressional qualifying period)
+  OLD_CODE_TO,
+);
+const OLD_QUAL_ADVANCED = cite(
+  'R.S. 18:467 (before Acts 2024, No. 640)',
+  URL_ACT_640_2024_DIGEST,
+  'Prior law provided that if the date of a primary election was advanced pursuant to existing law the qualifying period for candidates in the primary election was advanced the same number of weeks as the primary election.',
+  '2020-07-15',
+  OLD_CODE_TO,
 );
 const QUAL_SPRING_2026 = cite(
   'R.S. 18:419.2(B)(1)',
@@ -838,8 +861,36 @@ function requireNewCode(contest: ContestRef): void {
   }
 }
 
+/**
+ * The qualifying period of a fall open primary before 2026 (R.S. 18:467(1), (2) before Acts 2024,
+ * No. 640): advanced as many weeks as the primary was advanced from its regular day.
+ */
+function oldFallPeriod(contest: ContestRef): Period {
+  const year = Number(contest.date.slice(0, 4));
+  const gubernatorial = cycleOf(year) === 'gubernatorial';
+  const opening: Computed<IsoDate> = gubernatorial
+    ? {
+        value: firstWeekdayAfter(nthWeekdayOfMonth(year, 8, MONDAY, 1), TUESDAY),
+        citation: OLD_QUAL_GUB_FALL,
+      }
+    : { value: nthWeekdayOfMonth(year, 7, WEDNESDAY, 3), citation: OLD_QUAL_CONG_FALL };
+  if (contest.date < opening.citation.validFrom) {
+    throw new RangeError(`la: no cited qualifying rule for a contest on ${contest.date}`);
+  }
+  const regular = gubernatorial ? thirdToLastSaturdayInOctober(year) : novemberElectionDay(year);
+  const weeks = (toDayNumber(regular) - toDayNumber(contest.date)) / 7;
+  const opens =
+    Number.isInteger(weeks) && weeks > 0
+      ? { value: daysBefore(opening.value, 7 * weeks), citation: OLD_QUAL_ADVANCED }
+      : opening;
+  return closedWeekPeriod(opens, gubernatorial);
+}
+
 /** The qualifying period of a fall open primary on `schedule` (R.S. 18:467(A)(1), (2), (4)). */
 function fallPeriod(schedule: string, contest: ContestRef): Period {
+  if (contest.date < NEW_CODE_FROM && schedule !== S_ORLEANS) {
+    return oldFallPeriod(contest);
+  }
   requireNewCode(contest);
   const year = Number(contest.date.slice(0, 4));
   const byAct = QUALIFYING_BY_ACT.find((entry) => entry.year === year && entry.season === 'fall');
@@ -1080,6 +1131,7 @@ function qualifyingTracks(office: OfficeRef, contest: ContestRef): readonly Trac
   switch (office.schedule) {
     case S_GUB:
     case S_CONG:
+      return [openPrimaryTrack(office, contest, office.schedule)];
     case S_SPRING:
     case S_ORLEANS:
       requireNewCode(contest);
@@ -1098,7 +1150,6 @@ function partyPrimaryTracks(office: OfficeRef, contest: ContestRef): readonly Tr
     if (contest.kind !== 'primary' || contest.party !== null) {
       return [];
     }
-    requireNewCode(contest);
     const cycleSchedule = office.schedule === S_PARTY_GUB ? S_GUB : S_CONG;
     return [openPrimaryTrack(office, contest, cycleSchedule)];
   }
