@@ -164,6 +164,26 @@ describe('LA rules cases', () => {
     });
   });
 
+  it('the holidays struck in 2022 are holidays until July 31, 2022 only', async () => {
+    await eachZone(() => {
+      const struck = (year: number): string[] =>
+        laRules
+          .holidays(year)
+          .holidays.filter(
+            (holiday) =>
+              holiday.name === 'Robert E. Lee Day' || holiday.name === 'Confederate Memorial Day',
+          )
+          .map((holiday) => holiday.date);
+      expect(struck(2021)).toEqual(['2021-01-19', '2021-06-03']);
+      expect(struck(2022)).toEqual(['2022-01-19', '2022-06-03']);
+      for (const year of [2023, 2024, 2025, 2026]) {
+        expect(struck(year)).toEqual([]);
+      }
+      const lee = laRules.holidays(2022).holidays.find((holiday) => holiday.date === '2022-01-19');
+      expect(lee?.citation.validTo).toBe('2022-07-31');
+    });
+  });
+
   it('each holiday the rules can meet rolls', async () => {
     await eachZone(() => {
       for (let year = 2026; year <= 2028; year += 1) {

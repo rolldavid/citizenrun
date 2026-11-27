@@ -398,6 +398,26 @@ const HOLIDAYS_SUNDAY_RULE = cite(
   'Whenever December 25, January 1, or July 4 falls on a Sunday, the next day is a holiday.',
   '2021-01-01',
 );
+/**
+ * Two days R.S. 1:55(A)(1) listed until Acts 2022, No. 452 struck them, effective August 1, 2022
+ * (the act's résumé digest); the enrolled act prints them as deletions.
+ */
+const URL_ACT_452_2022 = 'https://legis.la.gov/legis/ViewDocument.aspx?d=1289512';
+const ACT_452_FROM: IsoDate = '2022-08-01';
+const ROBERT_E_LEE_DAY = cite(
+  'R.S. 1:55(A)(1) (before Acts 2022, No. 452)',
+  URL_ACT_452_2022,
+  'January 19, Robert E. Lee Day',
+  '2021-01-01',
+  '2022-07-31',
+);
+const CONFEDERATE_MEMORIAL_DAY = cite(
+  'R.S. 1:55(A)(1) (before Acts 2022, No. 452)',
+  URL_ACT_452_2022,
+  'June 3, 16 Confederate Memorial Day',
+  '2021-01-01',
+  '2022-07-31',
+);
 const JUNETEENTH = cite(
   'R.S. 1:55.1',
   URL_1_55_1,
@@ -1255,6 +1275,14 @@ function holidayList(year: number): readonly Holiday[] {
     },
     { date: day(12, 25), name: 'Christmas Day', citation: HOLIDAYS_1_55 },
   ];
+  for (const [month, d, name, citation] of [
+    [1, 19, 'Robert E. Lee Day', ROBERT_E_LEE_DAY],
+    [6, 3, 'Confederate Memorial Day', CONFEDERATE_MEMORIAL_DAY],
+  ] as const) {
+    if (day(month, d) < ACT_452_FROM) {
+      listed.push({ date: day(month, d), name, citation });
+    }
+  }
   for (const [month, d, name] of [
     [1, 1, "New Year's Day"],
     [7, 4, 'Independence Day'],
