@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import type { Logger } from '@citizenrun/shared';
 import { afterEach, describe, expect, it } from 'vitest';
 import { captureLogger } from '../../testing/capture-log.ts';
 import { createMemoryBucket } from '../../testing/memory-bucket.ts';
@@ -237,6 +238,73 @@ describe('the documented public API exception', () => {
       'api.github.com/repos/openstates/people/tarball/main',
       'codeload.github.com/robots.txt',
     ]);
+  });
+});
+
+describe('the Washington code exception', () => {
+  const SECTION = 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050';
+  const STAR_ALL = { status: 200, body: 'User-agent: *\nDisallow: /\n' };
+  const make = (at: string, robots: Scripted = STAR_ALL, log?: Logger) =>
+    makeFetcher({
+      clock: new TestClock(at),
+      ...(log === undefined ? {} : { log }),
+      handler: site(
+        (url) =>
+          url.search.includes('pdf=true')
+            ? { status: 200, headers: { 'content-type': 'application/pdf' }, body: '%PDF-1.7' }
+            : ok(),
+        { 'app.leg.wa.gov': robots },
+      ),
+      zoneForState: (state) => (state === 'WA' ? 'America/Los_Angeles' : null),
+    });
+  // Tuesday 2027-03-02, 19:00 in Los Angeles.
+  const EVENING = '2027-03-03T03:00:00.000Z';
+
+  it('the section page and its PDF copy pass a star-group disallow of the whole host', async () => {
+    const { log, lines } = captureLogger();
+    const { fetcher, transport } = await make(EVENING, STAR_ALL, log);
+    expect((await fetcher.fetch({ url: SECTION, class: 'crawl', state: 'WA' })).kind).toBe('ok');
+    expect(
+      (await fetcher.fetch({ url: `${SECTION}&pdf=true`, class: 'crawl', state: 'WA' })).kind,
+    ).toBe('ok');
+    expect(transport.requests.map((req) => req.url)).toEqual([
+      'https://app.leg.wa.gov/robots.txt',
+      SECTION,
+      `${SECTION}&pdf=true`,
+    ]);
+    expectGaps(starts(transport, 'app.leg.wa.gov'));
+    const done = lines.filter((line) => line.parsed.event === 'fetch.done');
+    expect(done.map((line) => line.parsed.robots)).toEqual(['excepted', 'excepted']);
+  });
+
+  it('a sibling path on that host still follows the star group', async () => {
+    const { fetcher, transport } = await make(EVENING);
+    expect(
+      await fetcher.fetch({ url: 'https://app.leg.wa.gov/other/', class: 'crawl', state: 'WA' }),
+    ).toEqual({ kind: 'disallowed', reason: 'robots' });
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
+  });
+
+  it('a group naming our token still refuses it', async () => {
+    const { fetcher, transport } = await make(EVENING, {
+      status: 200,
+      body: `User-agent: ${productToken()}\nDisallow: /\n\nUser-agent: *\nAllow: /\n`,
+    });
+    expect(await fetcher.fetch({ url: SECTION, class: 'crawl', state: 'WA' })).toEqual({
+      kind: 'disallowed',
+      reason: 'robots',
+    });
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
+  });
+
+  it('a crawl request in Washington business hours is still refused', async () => {
+    // Tuesday 2027-03-02, 10:00 in Los Angeles.
+    const { fetcher, transport } = await make('2027-03-02T18:00:00.000Z');
+    expect(await fetcher.fetch({ url: SECTION, class: 'crawl', state: 'WA' })).toEqual({
+      kind: 'disallowed',
+      reason: 'business_hours',
+    });
+    expect(transport.requests).toHaveLength(0);
   });
 });
 

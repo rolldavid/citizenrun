@@ -152,7 +152,7 @@ export function robotsDecision(
   return bestLength === -1 || bestAllow ? 'allowed' : 'disallowed';
 }
 
-/** One documented public API endpoint excepted from the `*` group of its host's robots.txt. */
+/** One named endpoint excepted from the `*` group of its host's robots.txt. */
 export type RobotsExceptedEndpoint = {
   /** The lower-case host, matched exactly: no subdomain, no port. */
   readonly host: string;
@@ -161,8 +161,9 @@ export type RobotsExceptedEndpoint = {
 };
 
 /**
- * The documented public APIs fetched even where the host's `*` group disallows the path (D-871).
- * A robots.txt group that names our product token still applies to them in full.
+ * The named endpoints fetched even where the host's `*` group disallows the path: documented
+ * public APIs (D-871) and the Revised Code of Washington's pages (D-877). A robots.txt group that
+ * names our product token still applies to them in full.
  */
 export const ROBOTS_EXCEPTED_ENDPOINTS: readonly RobotsExceptedEndpoint[] = [
   { host: 'en.wikipedia.org', path: '/w/api.php' },
@@ -170,6 +171,7 @@ export const ROBOTS_EXCEPTED_ENDPOINTS: readonly RobotsExceptedEndpoint[] = [
   { host: 'query.wikidata.org', path: '/sparql' },
   { host: 'api.github.com', path: '/repos/openstates/people/tarball/' },
   { host: 'codeload.github.com', path: '/openstates/people/legacy.tar.gz/' },
+  { host: 'app.leg.wa.gov', path: '/RCW/' },
 ];
 
 /** Whether `url` is one of ROBOTS_EXCEPTED_ENDPOINTS: https, the exact host, no port, the path. */
@@ -193,8 +195,8 @@ export function namesToken(rules: RobotsRules, token: string): boolean {
 }
 
 /**
- * robotsDecision for a URL, with the endpoint exception (D-871): a path the `*` group disallows
- * is `excepted` when the URL is an excepted endpoint and no group names `token`.
+ * robotsDecision for a URL, with the endpoint exception (D-871, D-877): a path the `*` group
+ * disallows is `excepted` when the URL is an excepted endpoint and no group names `token`.
  */
 export function robotsDecisionForUrl(
   rules: RobotsRules,

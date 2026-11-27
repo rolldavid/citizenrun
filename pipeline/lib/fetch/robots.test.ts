@@ -161,13 +161,14 @@ describe('the documented public API exception', () => {
   const decideUrl = (text: string, href: string) =>
     robotsDecisionForUrl(parseRobots(text), TOKEN, new URL(href));
 
-  it('lists exactly the five endpoints', () => {
+  it('lists exactly the six endpoints', () => {
     expect(ROBOTS_EXCEPTED_ENDPOINTS).toEqual([
       { host: 'en.wikipedia.org', path: '/w/api.php' },
       { host: 'commons.wikimedia.org', path: '/w/api.php' },
       { host: 'query.wikidata.org', path: '/sparql' },
       { host: 'api.github.com', path: '/repos/openstates/people/tarball/' },
       { host: 'codeload.github.com', path: '/openstates/people/legacy.tar.gz/' },
+      { host: 'app.leg.wa.gov', path: '/RCW/' },
     ]);
   });
 
@@ -240,6 +241,52 @@ describe('the documented public API exception', () => {
     expect(decideUrl(oursPath, 'https://query.wikidata.org/sparql?query=x')).toBe('disallowed');
     expect(namesToken(parseRobots(ours), TOKEN)).toBe(true);
     expect(namesToken(parseRobots(STAR_DISALLOWS), TOKEN)).toBe(false);
+  });
+
+  it('matches every page under the Washington code, the PDF copies included', () => {
+    expect(excepted('https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(true);
+    expect(excepted('https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050&pdf=true')).toBe(true);
+    expect(excepted('https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24')).toBe(true);
+    expect(excepted('https://APP.LEG.WA.GOV/RCW/default.aspx?cite=29A.24.050')).toBe(true);
+    expect(excepted('https://app.leg.wa.gov/RCW/')).toBe(true);
+  });
+
+  it('does not match other paths or hosts beside the Washington code', () => {
+    expect(excepted('https://app.leg.wa.gov/')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/other/')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/RCW')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/rcw/default.aspx?cite=29A.24.050')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/RCWx/default.aspx')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/WAC/default.aspx?cite=434-215')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov/billsummary?BillNumber=1')).toBe(false);
+    expect(excepted('https://leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(false);
+    expect(excepted('https://lawfilesext.leg.wa.gov/RCW/default.aspx')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov.example.test/RCW/default.aspx')).toBe(false);
+    expect(excepted('https://app.leg.wa.gov:8443/RCW/default.aspx')).toBe(false);
+    expect(excepted('http://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(false);
+  });
+
+  it('a star-group disallow of the whole host is passed only for the Washington code', () => {
+    const all = 'User-agent: *\nDisallow: /\n';
+    expect(decideUrl(all, 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(
+      'excepted',
+    );
+    expect(decideUrl(all, 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050&pdf=true')).toBe(
+      'excepted',
+    );
+    expect(decideUrl(all, 'https://app.leg.wa.gov/')).toBe('disallowed');
+    expect(decideUrl(all, 'https://app.leg.wa.gov/other/')).toBe('disallowed');
+  });
+
+  it('a group naming our token still refuses the Washington code', () => {
+    const ours = `User-agent: ${TOKEN}\nDisallow: /\n\nUser-agent: *\nDisallow: /\n`;
+    expect(decideUrl(ours, 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(
+      'disallowed',
+    );
+    const oursPath = `User-agent: ${TOKEN}\nDisallow: /RCW/\n`;
+    expect(decideUrl(oursPath, 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.24.050')).toBe(
+      'disallowed',
+    );
   });
 
   it('a group naming our token that allows the path allows it', () => {

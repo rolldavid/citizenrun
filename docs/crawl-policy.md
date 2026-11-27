@@ -31,16 +31,17 @@ User-agent: CitizenRunBot
 Disallow: /
 ```
 
-### Documented public APIs
+### Named exceptions
 
-We make one exception to robots.txt, for a short list of documented public APIs whose operators publish them for programs to use. We call these endpoints even where the `*` group of the host's robots.txt disallows their path:
+We make one exception to robots.txt, for a short list of named endpoints: documented public APIs whose operators publish them for programs to use, and the pages of one state's code of laws, which we quote when we describe that state's rules. We call these endpoints even where the `*` group of the host's robots.txt disallows their path:
 
 - The MediaWiki Action API on English Wikipedia: `https://en.wikipedia.org/w/api.php`
 - The MediaWiki Action API on Wikimedia Commons: `https://commons.wikimedia.org/w/api.php`
 - The Wikidata Query Service: `https://query.wikidata.org/sparql`
 - GitHub's repository archive endpoint, for the Open States people repository only: `https://api.github.com/repos/openstates/people/tarball/`, and the address it redirects to, `https://codeload.github.com/openstates/people/legacy.tar.gz/`
+- The Revised Code of Washington on the Washington State Legislature's site: `https://app.leg.wa.gov/RCW/`, every page under it, the section pages and their PDF copies included
 
-The list is exact. Every other path on these hosts, and every other host, follows robots.txt as described above. Every pace rule below still applies to these endpoints, we still stop when one of them blocks us or shows a challenge page, and a robots.txt group that names `CitizenRunBot` still stops us there.
+The list is exact. Every other path on these hosts, and every other host, follows robots.txt as described above. Every pace rule below still applies to these endpoints, including the business-hours rule for website pages. We still stop when one of them blocks us or shows a challenge page, and a robots.txt group that names `CitizenRunBot` still stops us there.
 
 ## Pace
 
