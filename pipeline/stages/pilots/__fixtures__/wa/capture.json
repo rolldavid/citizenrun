@@ -1,0 +1,24 @@
+{
+  "state": "WA",
+  "counties": [
+    "53067",
+    "53045"
+  ],
+  "captured_at": "2026-11-27T23:37:05.657Z",
+  "stage1_finished_at": "2026-11-26T20:14:46.761Z",
+  "stage2_finished_at": "2026-11-27T18:08:25.613Z",
+  "census_gus_edition": "2026",
+  "rows": {
+    "jurisdictions": 89,
+    "districts": 89,
+    "district_fallbacks": 63,
+    "geometry": 89,
+    "listing": 88,
+    "known_refs": 110
+  },
+  "transformations": [
+    "Kept the rows of the counties 53067, 53045 and the state's own jurisdiction and district.",
+    "Replaced lookup_wkb by display_wkb on every geometry row that has both.",
+    "Kept every stage 2 office ref of the state."
+  ]
+}
