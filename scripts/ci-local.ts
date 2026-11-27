@@ -455,6 +455,9 @@ export function productQueues(rows: readonly QueueRow[]): QueueRow[] {
   return rows.filter((row) => !row.name.startsWith(PG_BOSS_QUEUE_PREFIX));
 }
 
+/** Scheduled queues that are `standard` by 04's policy table, whose tick cannot overlap itself (D-873). */
+export const STANDARD_SCHEDULED_QUEUES: readonly string[] = ['score.issues'];
+
 /**
  * Why the worker's queues are wrong, or null: pg-boss's own queues aside, the created queues are
  * exactly the registry's, each with its `JOB_POLICIES` policy (D-827), at least one holds a
@@ -483,7 +486,9 @@ export function workerQueuesFailure(
   if (scheduled.length === 0) {
     return 'worker smoke: no queue holds a schedule';
   }
-  const piling = scheduled.find((row) => row.policy === 'standard');
+  const piling = scheduled.find(
+    (row) => row.policy === 'standard' && !STANDARD_SCHEDULED_QUEUES.includes(row.name),
+  );
   if (piling !== undefined) {
     return `worker smoke: scheduled queue ${piling.name} is standard`;
   }

@@ -619,6 +619,11 @@ describe('the worker smoke', () => {
     expect(
       workerQueuesFailure([{ name: 'a', policy: 'standard', scheduled: true }], { a: 'standard' }),
     ).toBe('worker smoke: scheduled queue a is standard');
+    expect(
+      workerQueuesFailure([{ name: 'score.issues', policy: 'standard', scheduled: true }], {
+        'score.issues': 'standard',
+      }),
+    ).toBeNull();
   });
 
   it('passes the stop only on exit 0 with worker.stopping for SIGTERM, then worker.stopped', () => {
