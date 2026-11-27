@@ -152,6 +152,62 @@ export function robotsDecision(
   return bestLength === -1 || bestAllow ? 'allowed' : 'disallowed';
 }
 
+/** One documented public API endpoint excepted from the `*` group of its host's robots.txt. */
+export type RobotsExceptedEndpoint = {
+  /** The lower-case host, matched exactly: no subdomain, no port. */
+  readonly host: string;
+  /** A path ending in `/` matches every path under it; any other path matches only itself. */
+  readonly path: string;
+};
+
+/**
+ * The documented public APIs fetched even where the host's `*` group disallows the path (D-871).
+ * A robots.txt group that names our product token still applies to them in full.
+ */
+export const ROBOTS_EXCEPTED_ENDPOINTS: readonly RobotsExceptedEndpoint[] = [
+  { host: 'en.wikipedia.org', path: '/w/api.php' },
+  { host: 'commons.wikimedia.org', path: '/w/api.php' },
+  { host: 'query.wikidata.org', path: '/sparql' },
+  { host: 'api.github.com', path: '/repos/openstates/people/tarball/' },
+  { host: 'codeload.github.com', path: '/openstates/people/legacy.tar.gz/' },
+];
+
+/** Whether `url` is one of ROBOTS_EXCEPTED_ENDPOINTS: https, the exact host, no port, the path. */
+export function isRobotsExcepted(url: URL): boolean {
+  if (url.protocol !== 'https:' || url.port !== '') {
+    return false;
+  }
+  const host = url.hostname.toLowerCase();
+  const path = url.pathname;
+  return ROBOTS_EXCEPTED_ENDPOINTS.some(
+    (endpoint) =>
+      endpoint.host === host &&
+      (endpoint.path.endsWith('/') ? path.startsWith(endpoint.path) : path === endpoint.path),
+  );
+}
+
+/** Whether a group of `rules` names `token` (case-insensitive), so that group applies, not `*`. */
+export function namesToken(rules: RobotsRules, token: string): boolean {
+  const wanted = token.toLowerCase();
+  return rules.groups.some((group) => group.agents.some((agent) => agent.toLowerCase() === wanted));
+}
+
+/**
+ * robotsDecision for a URL, with the endpoint exception (D-871): a path the `*` group disallows
+ * is `excepted` when the URL is an excepted endpoint and no group names `token`.
+ */
+export function robotsDecisionForUrl(
+  rules: RobotsRules,
+  token: string,
+  url: URL,
+): 'allowed' | 'disallowed' | 'excepted' {
+  const decision = robotsDecision(rules, token, `${url.pathname}${url.search}`);
+  if (decision === 'disallowed' && isRobotsExcepted(url) && !namesToken(rules, token)) {
+    return 'excepted';
+  }
+  return decision;
+}
+
 /** `cache/robots/<host>.json`: the last robots.txt answer; `status` is null for a network error. */
 export const RobotsRecordSchema = z.strictObject({
   fetched_at: IsoInstantSchema,

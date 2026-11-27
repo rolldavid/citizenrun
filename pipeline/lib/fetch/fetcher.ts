@@ -11,7 +11,7 @@ import { FALLBACK_ZONE, isBusinessHours, isElectionNight } from './hours.ts';
 import { HostRegistry, hostIsOrUnder, isForbiddenHost, queueForLocalFetch } from './hosts.ts';
 import type { BlockReason, SourceHostRules } from './hosts.ts';
 import { DailyCapError, HostLimiter } from './rate.ts';
-import { ROBOTS_MAX_BYTES, RobotsCache, robotsDecision } from './robots.ts';
+import { ROBOTS_MAX_BYTES, RobotsCache, robotsDecision, robotsDecisionForUrl } from './robots.ts';
 import type { RobotsRecord, RobotsVerdict } from './robots.ts';
 import type { Transport, TransportResponse } from './transport.ts';
 import type { FetchClass, FetchRequest, FetchResult, Fetcher } from './types.ts';
@@ -106,7 +106,7 @@ type Attempt =
 type Trace = {
   host: string | null;
   status: number | null;
-  robots: 'allowed' | 'disallowed' | 'absent' | null;
+  robots: 'allowed' | 'disallowed' | 'absent' | 'excepted' | null;
   bytes: number;
   cached: boolean;
 };
@@ -575,11 +575,8 @@ export function createFetcher(deps: FetcherDeps): PipelineFetcher {
           trace.robots = 'absent';
           break;
         case 'rules': {
-          const decision = robotsDecision(
-            verdict.rules ?? { groups: [] },
-            token,
-            `${target.url.pathname}${target.url.search}`,
-          );
+          // An excepted endpoint (D-871) passes a `*`-group disallow, never one for our token.
+          const decision = robotsDecisionForUrl(verdict.rules ?? { groups: [] }, token, target.url);
           trace.robots = decision;
           if (decision === 'disallowed') {
             return { kind: 'disallowed', reason: 'robots' };

@@ -1,11 +1,18 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { createMemoryBucket } from '../../testing/memory-bucket.ts';
 import { bucketKeys } from '../bucket.ts';
+import { repoRoot } from '../paths.ts';
 import {
+  ROBOTS_EXCEPTED_ENDPOINTS,
   RobotsCache,
   RobotsRecordSchema,
+  isRobotsExcepted,
+  namesToken,
   parseRobots,
   robotsDecision,
+  robotsDecisionForUrl,
   verdictOf,
 } from './robots.ts';
 import type { RobotsRecord } from './robots.ts';
@@ -145,5 +152,105 @@ describe('obeys robots.txt', () => {
     });
     expect((await other.verdict('a.example.test')).kind).toBe('rules');
     expect(otherCalls).toBe(0);
+  });
+});
+
+describe('the documented public API exception', () => {
+  const excepted = (href: string) => isRobotsExcepted(new URL(href));
+  const STAR_DISALLOWS = 'User-agent: *\nDisallow: /w/\nDisallow: /sparql\nDisallow: /repos/\n';
+  const decideUrl = (text: string, href: string) =>
+    robotsDecisionForUrl(parseRobots(text), TOKEN, new URL(href));
+
+  it('lists exactly the five endpoints', () => {
+    expect(ROBOTS_EXCEPTED_ENDPOINTS).toEqual([
+      { host: 'en.wikipedia.org', path: '/w/api.php' },
+      { host: 'commons.wikimedia.org', path: '/w/api.php' },
+      { host: 'query.wikidata.org', path: '/sparql' },
+      { host: 'api.github.com', path: '/repos/openstates/people/tarball/' },
+      { host: 'codeload.github.com', path: '/openstates/people/legacy.tar.gz/' },
+    ]);
+  });
+
+  it('matches the listed hosts and paths, with any query', () => {
+    expect(excepted('https://en.wikipedia.org/w/api.php?action=query&titles=A')).toBe(true);
+    expect(excepted('https://EN.Wikipedia.org/w/api.php')).toBe(true);
+    expect(excepted('https://commons.wikimedia.org/w/api.php?action=query')).toBe(true);
+    expect(excepted('https://query.wikidata.org/sparql?format=json&query=x')).toBe(true);
+    expect(excepted('https://api.github.com/repos/openstates/people/tarball/main')).toBe(true);
+    expect(
+      excepted('https://codeload.github.com/openstates/people/legacy.tar.gz/refs/heads/main'),
+    ).toBe(true);
+  });
+
+  it('does not match other paths on the listed hosts', () => {
+    expect(excepted('https://en.wikipedia.org/w/index.php?title=A')).toBe(false);
+    expect(excepted('https://en.wikipedia.org/wiki/A')).toBe(false);
+    expect(excepted('https://en.wikipedia.org/w/api.php5')).toBe(false);
+    expect(excepted('https://en.wikipedia.org/w/api.php/extra')).toBe(false);
+    expect(excepted('https://en.wikipedia.org/W/api.php')).toBe(false);
+    expect(excepted('https://en.wikipedia.org/w/api%2Ephp')).toBe(false);
+    expect(excepted('https://commons.wikimedia.org/wiki/File:A.jpg')).toBe(false);
+    expect(excepted('https://query.wikidata.org/sparqlx')).toBe(false);
+    expect(excepted('https://query.wikidata.org/bigdata/namespace/wdq/sparql')).toBe(false);
+    expect(excepted('https://api.github.com/repos/openstates/people/tarball')).toBe(false);
+    expect(excepted('https://api.github.com/repos/openstates/people/zipball/main')).toBe(false);
+    expect(excepted('https://api.github.com/repos/openstates/other/tarball/main')).toBe(false);
+    expect(excepted('https://api.github.com/repos/someone/people/tarball/main')).toBe(false);
+    expect(excepted('https://codeload.github.com/openstates/other/legacy.tar.gz/main')).toBe(false);
+    expect(excepted('https://codeload.github.com/openstates/people/tar.gz/main')).toBe(false);
+  });
+
+  it('does not match other hosts, lookalikes, ports or http', () => {
+    expect(excepted('https://en.wikipedia.org.evil.test/w/api.php')).toBe(false);
+    expect(excepted('https://xen.wikipedia.org/w/api.php')).toBe(false);
+    expect(excepted('https://de.wikipedia.org/w/api.php')).toBe(false);
+    expect(excepted('https://en.m.wikipedia.org/w/api.php')).toBe(false);
+    expect(excepted('https://wikipedia.org/w/api.php')).toBe(false);
+    expect(excepted('https://query.wikidata.org.example.test/sparql')).toBe(false);
+    expect(excepted('https://www.wikidata.org/sparql')).toBe(false);
+    expect(excepted('https://github.com/repos/openstates/people/tarball/main')).toBe(false);
+    expect(excepted('https://en.wikipedia.org:8443/w/api.php')).toBe(false);
+    expect(excepted('http://en.wikipedia.org/w/api.php')).toBe(false);
+  });
+
+  it('a star-group disallow is passed only for a listed endpoint', () => {
+    expect(decideUrl(STAR_DISALLOWS, 'https://en.wikipedia.org/w/api.php?action=query')).toBe(
+      'excepted',
+    );
+    expect(decideUrl(STAR_DISALLOWS, 'https://query.wikidata.org/sparql?query=x')).toBe('excepted');
+    expect(decideUrl(STAR_DISALLOWS, 'https://en.wikipedia.org/w/index.php?title=A')).toBe(
+      'disallowed',
+    );
+    expect(decideUrl(STAR_DISALLOWS, 'https://en.wikipedia.org.evil.test/w/api.php')).toBe(
+      'disallowed',
+    );
+    expect(decideUrl(STAR_DISALLOWS, 'https://xen.wikipedia.org/w/api.php')).toBe('disallowed');
+  });
+
+  it('an allowed endpoint stays allowed, not excepted', () => {
+    expect(
+      decideUrl('User-agent: *\nDisallow: /wiki/\n', 'https://en.wikipedia.org/w/api.php'),
+    ).toBe('allowed');
+  });
+
+  it('a group naming our token still refuses a listed endpoint', () => {
+    const ours = `User-agent: ${TOKEN}\nDisallow: /\n\nUser-agent: *\nAllow: /\n`;
+    expect(decideUrl(ours, 'https://en.wikipedia.org/w/api.php?action=query')).toBe('disallowed');
+    const oursPath = `User-agent: ${TOKEN.toLowerCase()}\nDisallow: /sparql\n`;
+    expect(decideUrl(oursPath, 'https://query.wikidata.org/sparql?query=x')).toBe('disallowed');
+    expect(namesToken(parseRobots(ours), TOKEN)).toBe(true);
+    expect(namesToken(parseRobots(STAR_DISALLOWS), TOKEN)).toBe(false);
+  });
+
+  it('a group naming our token that allows the path allows it', () => {
+    const ours = `User-agent: ${TOKEN}\nDisallow: /wiki/\n\nUser-agent: *\nDisallow: /\n`;
+    expect(decideUrl(ours, 'https://en.wikipedia.org/w/api.php')).toBe('allowed');
+  });
+
+  it('the crawl policy lists every excepted endpoint', () => {
+    const policy = readFileSync(join(repoRoot(), 'docs/crawl-policy.md'), 'utf8');
+    for (const endpoint of ROBOTS_EXCEPTED_ENDPOINTS) {
+      expect(policy).toContain(`\`https://${endpoint.host}${endpoint.path}\``);
+    }
   });
 });

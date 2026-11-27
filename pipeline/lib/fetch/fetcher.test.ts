@@ -17,7 +17,7 @@ import {
   tempStateDir,
 } from './test-fakes.ts';
 import type { Handler, Scripted } from './test-fakes.ts';
-import { userAgent } from './user-agent.ts';
+import { productToken, userAgent } from './user-agent.ts';
 
 const HOST = 'a.example.test';
 const PAGE = `https://${HOST}/page`;
@@ -104,6 +104,139 @@ describe('obeys robots.txt', () => {
     });
     expect(fetcher.stoppedHosts()).toEqual([HOST]);
     expect(transport.pages()).toHaveLength(0);
+  });
+});
+
+describe('the documented public API exception', () => {
+  const API = 'https://en.wikipedia.org/w/api.php?action=query&format=json';
+  const STAR = { status: 200, body: 'User-agent: *\nDisallow: /w/\n' };
+
+  it('a star-group disallow is passed for a listed endpoint and logged as excepted', async () => {
+    const { log, lines } = captureLogger();
+    const { fetcher, transport } = await makeFetcher({
+      log,
+      handler: site(() => ok('{}', { 'content-type': 'application/json' }), {
+        'en.wikipedia.org': STAR,
+      }),
+    });
+    const result = await fetcher.fetch({ url: API, class: 'api' });
+    expect(result.kind).toBe('ok');
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt', '/w/api.php']);
+    expect(transport.requests[1]?.headers['User-Agent']).toBe(userAgent('0.0.0'));
+    const done = lines.find((line) => line.parsed.event === 'fetch.done');
+    expect(done?.parsed).toMatchObject({
+      host: 'en.wikipedia.org',
+      result: 'ok',
+      robots: 'excepted',
+    });
+  });
+
+  it('other paths on that host still follow the star group', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(() => ok(), { 'en.wikipedia.org': STAR }),
+    });
+    const result = await fetcher.fetch({
+      url: 'https://en.wikipedia.org/w/index.php?title=A',
+      class: 'api',
+    });
+    expect(result).toEqual({ kind: 'disallowed', reason: 'robots' });
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
+  });
+
+  it('a group naming our token still refuses a listed endpoint', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(() => ok(), {
+        'en.wikipedia.org': {
+          status: 200,
+          body: `User-agent: ${productToken()}\nDisallow: /\n\nUser-agent: *\nAllow: /\n`,
+        },
+      }),
+    });
+    expect(await fetcher.fetch({ url: API, class: 'api' })).toEqual({
+      kind: 'disallowed',
+      reason: 'robots',
+    });
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
+  });
+
+  it('robots_unavailable still refuses a listed endpoint', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(() => ok(), { 'en.wikipedia.org': { status: 503, body: 'down' } }),
+    });
+    expect(await fetcher.fetch({ url: API, class: 'api' })).toEqual({
+      kind: 'disallowed',
+      reason: 'robots_unavailable',
+    });
+    expect(transport.requests.map((req) => req.path)).toEqual(['/robots.txt']);
+  });
+
+  it('listed endpoints keep the two-second pace', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(() => ok('{}', { 'content-type': 'application/json' }), {
+        'en.wikipedia.org': STAR,
+      }),
+    });
+    await fetcher.fetch({ url: API, class: 'api' });
+    await fetcher.fetch({ url: `${API}&titles=B`, class: 'api' });
+    expectGaps(starts(transport, 'en.wikipedia.org'));
+    expect(starts(transport, 'en.wikipedia.org')).toHaveLength(3);
+  });
+
+  it('the archive endpoint follows its codeload redirect, robots checked on each host', async () => {
+    const tarball = 'https://api.github.com/repos/openstates/people/tarball/main';
+    const codeload = 'https://codeload.github.com/openstates/people/legacy.tar.gz/refs/heads/main';
+    const { fetcher, transport, bucket } = await makeFetcher({
+      handler: site(
+        (url) =>
+          url.hostname === 'api.github.com'
+            ? { status: 302, headers: { location: codeload } }
+            : { status: 200, headers: { 'content-type': 'application/x-gzip' }, body: 'tar' },
+        {
+          'api.github.com': { status: 200, body: 'User-agent: *\nDisallow: /\n' },
+          'codeload.github.com': { status: 200, body: 'User-agent: *\nDisallow: /\n' },
+        },
+      ),
+    });
+    const result = await fetcher.download(
+      { url: tarball, class: 'dataset' },
+      'datasets/x/main.tar.gz',
+    );
+    expect(result).toMatchObject({ kind: 'ok', finalUrl: codeload, bytes: 3 });
+    expect(transport.requests.map((req) => `${req.host}${req.path}`)).toEqual([
+      'api.github.com/robots.txt',
+      'api.github.com/repos/openstates/people/tarball/main',
+      'codeload.github.com/robots.txt',
+      'codeload.github.com/openstates/people/legacy.tar.gz/refs/heads/main',
+    ]);
+    expect(await bucket.getBytes('datasets/x/main.tar.gz')).not.toBeNull();
+  });
+
+  it('a redirect off the listed path is refused by the star group', async () => {
+    const { fetcher, transport } = await makeFetcher({
+      handler: site(
+        (url) =>
+          url.hostname === 'api.github.com'
+            ? {
+                status: 302,
+                headers: {
+                  location: 'https://codeload.github.com/someone/else/legacy.tar.gz/main',
+                },
+              }
+            : ok(),
+        { 'codeload.github.com': { status: 200, body: 'User-agent: *\nDisallow: /\n' } },
+      ),
+    });
+    expect(
+      await fetcher.fetch({
+        url: 'https://api.github.com/repos/openstates/people/tarball/main',
+        class: 'dataset',
+      }),
+    ).toEqual({ kind: 'disallowed', reason: 'robots' });
+    expect(transport.requests.map((req) => `${req.host}${req.path}`)).toEqual([
+      'api.github.com/robots.txt',
+      'api.github.com/repos/openstates/people/tarball/main',
+      'codeload.github.com/robots.txt',
+    ]);
   });
 });
 

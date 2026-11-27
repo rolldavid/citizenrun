@@ -183,7 +183,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of github.com disallows /openstates/people/archive/refs/heads/main.tar.gz for every user agent it does not name; codeload.github.com and api.github.com have no robots.txt (404).
+  notes: robots.txt of github.com disallows /openstates/people/archive/refs/heads/main.tar.gz for every user agent it does not name; codeload.github.com and api.github.com have no robots.txt (404). The tarball is read from GitHub's documented archive endpoint on api.github.com, which redirects to codeload.github.com, under the crawl policy's exception for documented public APIs.
   hosts: [github.com, codeload.github.com, api.github.com]
 
 - id: wikidata
@@ -198,7 +198,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of query.wikidata.org disallows /sparql and /bigdata for every user agent.
+  notes: robots.txt of query.wikidata.org disallows /sparql and /bigdata for every user agent. /sparql is read under the crawl policy's exception for documented public APIs.
 
 - id: nicknames
   kind: dataset
@@ -272,7 +272,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of en.wikipedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?.
+  notes: robots.txt of en.wikipedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?. /w/api.php is read under the crawl policy's exception for documented public APIs.
 
 - id: wikimedia-commons
   kind: photo_source
@@ -286,7 +286,7 @@
   attribution: null
   robots_checked_on: 2026-11-26
   ci_status: unknown
-  notes: robots.txt of commons.wikimedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?.
+  notes: robots.txt of commons.wikimedia.org disallows /w/ for every user agent it does not name, except /w/api.php?action=mobileview& and /w/load.php?. /w/api.php is read under the crawl policy's exception for documented public APIs.
 
 # --- adapters: the candidate lists the snapshot archiver reads ---
 

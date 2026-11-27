@@ -13,8 +13,9 @@ export const SOURCE_IDS = ['openstates-people'] as const;
 export const OPENSTATES_PEOPLE_DATASET = 'openstates-people';
 export const OPENSTATES_PEOPLE_COMMIT_URL =
   'https://api.github.com/repos/openstates/people/commits/main';
+// GitHub's documented archive endpoint; it redirects to codeload.github.com (D-871).
 export const OPENSTATES_PEOPLE_TARBALL =
-  'https://github.com/openstates/people/archive/refs/heads/main.tar.gz';
+  'https://api.github.com/repos/openstates/people/tarball/main';
 const TARBALL_FILE = 'main.tar.gz';
 
 export const EXECUTIVE_PATH = /^[^/]+\/data\/([a-z]{2})\/executive\/[^/]+\.yml$/;

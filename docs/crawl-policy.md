@@ -31,6 +31,17 @@ User-agent: CitizenRunBot
 Disallow: /
 ```
 
+### Documented public APIs
+
+We make one exception to robots.txt, for a short list of documented public APIs whose operators publish them for programs to use. We call these endpoints even where the `*` group of the host's robots.txt disallows their path:
+
+- The MediaWiki Action API on English Wikipedia: `https://en.wikipedia.org/w/api.php`
+- The MediaWiki Action API on Wikimedia Commons: `https://commons.wikimedia.org/w/api.php`
+- The Wikidata Query Service: `https://query.wikidata.org/sparql`
+- GitHub's repository archive endpoint, for the Open States people repository only: `https://api.github.com/repos/openstates/people/tarball/`, and the address it redirects to, `https://codeload.github.com/openstates/people/legacy.tar.gz/`
+
+The list is exact. Every other path on these hosts, and every other host, follows robots.txt as described above. Every pace rule below still applies to these endpoints, we still stop when one of them blocks us or shows a challenge page, and a robots.txt group that names `CitizenRunBot` still stops us there.
+
 ## Pace
 
 - At most one request every two seconds to each host, over one connection.
