@@ -1,0 +1,24 @@
+{
+  "state": "NC",
+  "counties": [
+    "37063",
+    "37135"
+  ],
+  "captured_at": "2026-11-27T23:28:12.250Z",
+  "stage1_finished_at": "2026-11-26T20:13:21.041Z",
+  "stage2_finished_at": "2026-11-27T18:07:41.664Z",
+  "census_gus_edition": "2026",
+  "rows": {
+    "jurisdictions": 14,
+    "districts": 14,
+    "district_fallbacks": 4,
+    "geometry": 14,
+    "listing": 13,
+    "known_refs": 186
+  },
+  "transformations": [
+    "Kept the rows of the counties 37063, 37135 and the state's own jurisdiction and district.",
+    "Replaced lookup_wkb by display_wkb on every geometry row that has both.",
+    "Kept every stage 2 office ref of the state."
+  ]
+}
