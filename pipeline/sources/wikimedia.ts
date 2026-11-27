@@ -1,7 +1,7 @@
 // English Wikipedia page images and Wikimedia Commons file metadata, and the licence gate of a
 // Commons file (D-089, D-333). Every request is an `api`-class request through the fetcher, which
 // sends the descriptive user agent Wikimedia requires.
-import { SafeUrlSchema } from '@citizenrun/shared';
+import { SafeUrlSchema, looksPersonal } from '@citizenrun/shared';
 import type { PhotoRecord } from '@citizenrun/shared';
 import { load } from 'cheerio';
 import { z } from 'zod';
@@ -17,6 +17,7 @@ export type PhotoRejectReason =
   | 'artist_too_long' // an author credit longer than the record holds
   | 'no_licence_url' // no licence link for a licence that needs one
   | 'no_source_url' // no safe link to the file's page
+  | 'personal_data' // a record string the bundle's personal-data check would refuse (D-084)
   | 'missing' // not a Commons file (for example an English Wikipedia fair-use file)
   | 'no_page_image' // the Wikipedia page has no lead image
   | 'attribution' // a Congress.gov portrait credited to a body that is not federal
@@ -298,17 +299,21 @@ export function commonsRecord(
   const shortName = info.licenseShortName === null ? null : htmlText(info.licenseShortName) || null;
   const licenceName =
     shortName ?? (code === 'cc0' ? 'CC0' : code === 'pd' ? 'Public domain' : license);
-  return {
-    ok: true,
-    record: {
-      source_url: sourceUrl,
-      author,
-      license,
-      license_url: licenseUrl,
-      credit_text: `${author} · ${licenceName}`,
-      modified: false,
-    },
+  const record: PhotoRecordBase = {
+    source_url: sourceUrl,
+    author,
+    license,
+    license_url: licenseUrl,
+    credit_text: `${author} · ${licenceName}`,
+    modified: false,
   };
+  // The bundle refuses any people row with such a string, so the file is refused here instead.
+  if (
+    [record.source_url, record.author, record.license_url, record.credit_text].some(looksPersonal)
+  ) {
+    return { ok: false, reason: 'personal_data' };
+  }
+  return { ok: true, record };
 }
 
 /** The page title of an English Wikipedia article URL, or null for any other URL. */

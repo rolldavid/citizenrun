@@ -68,6 +68,19 @@ describe('commonsRecord', () => {
     });
   });
 
+  it('a record with a string that looks personal is rejected', async () => {
+    const info = await savedInfo();
+    expect(
+      commonsRecord({ ...info, artistHtml: 'State House, 100 Example Street, Capital City' }),
+    ).toEqual({ ok: false, reason: 'personal_data' });
+    expect(
+      commonsRecord({
+        ...info,
+        descriptionUrl: 'https://commons.wikimedia.org/wiki/File:Member_(2345678901).jpg',
+      }),
+    ).toEqual({ ok: false, reason: 'personal_data' });
+  });
+
   it('cc-by-nc and cc-by-nd are rejected', async () => {
     const info = await savedInfo();
     for (const license of [
