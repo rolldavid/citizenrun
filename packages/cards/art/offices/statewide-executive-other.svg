@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" data-crop="73.5" data-spot="14 16" data-placeholder-of="city-council">
+  <path d="M7 46V34a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V46zM24 46V34a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V46zM41 46V34a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V46zM75 46V34a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V46z" fill="#111111"/>
+  <path d="M58 46V34a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4V46z" fill="#D93A1E"/>
+  <rect x="2" y="44" width="92" height="12" fill="#111111"/>
+  <path d="M9.5 48h9v4h-9zM26.5 48h9v4h-9zM43.5 48h9v4h-9zM77.5 48h9v4h-9z" fill="#FFFFFF"/>
+  <rect x="6" y="59" width="84" height="21" fill="#7A7A7A"/>
+  <rect x="2" y="84" width="92" height="4" fill="#111111"/>
+</svg>

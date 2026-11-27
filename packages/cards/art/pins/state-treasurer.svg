@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" data-placeholder-of="county-treasurer">
+  <path fill-rule="evenodd" d="M3 3h18v16h-2v2.500h-3.500V19h-7v2.500H5V19H3zm3 3v10h12V6z" fill="#111111"/>
+  <path fill-rule="nonzero" d="M10.250 8a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM14.750 8h1.750v6h-1.750z" fill="#111111"/>
+</svg>

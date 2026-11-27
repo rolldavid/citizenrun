@@ -429,6 +429,43 @@ function officeArtParityProblems(input: {
   return problems;
 }
 
+const OFFICE_ART_FOLDER = 'packages/cards/art/offices';
+const PIN_FOLDER = 'packages/cards/art/pins';
+/** The root attribute that marks a copy, with the space before it. */
+const PLACEHOLDER_OF = / data-placeholder-of="([^"]*)"/g;
+/** Each drawn relative and the files that copy it until their own drawing exists. */
+const PLACEHOLDERS: Readonly<Record<string, readonly string[]>> = {
+  'county-treasurer': ['state-treasurer', 'county-assessor', 'board-of-review', 'pension-board'],
+  'school-board': ['state-education-board', 'community-college-board'],
+  'water-district-board': ['soil-water-conservation-board'],
+  'utility-commission': ['public-power-board', 'coop-board', 'oil-gas-land-commission'],
+  'city-council': [
+    'congress',
+    'legislature',
+    'county-commission',
+    'township-board',
+    'state-appellate-judge',
+    'trial-judge',
+    'governor',
+    'county-executive',
+    'mayor',
+    'statewide-executive-other',
+    'attorney-general',
+    'district-attorney',
+    'secretary-of-state',
+    'county-clerk',
+    'city-officer',
+    'county-row-other',
+    'insurance-commissioner',
+    'labor-commissioner',
+    'hospital-district-board',
+    'transit-board',
+    'fire-district-board',
+    'special-district-other',
+    'party-committee',
+  ],
+};
+
 describe('office art and data', () => {
   it('office art parity finds every problem', () => {
     const problems = officeArtParityProblems({
@@ -479,5 +516,42 @@ describe('office art and data', () => {
     expect(ids).toHaveLength(39);
     expect(ids).toContain('congress');
     expect(ids).toContain('city-council');
+  });
+
+  it('office and pin files are the illustration ids', () => {
+    const ids = readIllustrationIds(readFileSync(join(ROOT, 'data', 'office-types.yaml'), 'utf8'));
+    expect(ids).toHaveLength(39);
+    expect(
+      officeArtParityProblems({
+        illustrationIds: ids,
+        officeFiles: readdirSync(join(ROOT, OFFICE_ART_FOLDER)),
+        pinFiles: readdirSync(join(ROOT, PIN_FOLDER)),
+      }),
+    ).toEqual([]);
+  });
+
+  it('placeholders copy their relative', () => {
+    const expected = Object.fromEntries(
+      Object.entries(PLACEHOLDERS).flatMap(([relative, placeholders]) =>
+        placeholders.map((placeholder) => [placeholder, relative]),
+      ),
+    );
+    expect(Object.keys(expected)).toHaveLength(33);
+    for (const folder of [OFFICE_ART_FOLDER, PIN_FOLDER]) {
+      const found: Record<string, string> = {};
+      for (const file of readdirSync(join(ROOT, folder)).sort()) {
+        const text = readFileSync(join(ROOT, folder, file), 'utf8');
+        const marks = [...text.matchAll(PLACEHOLDER_OF)];
+        expect(marks.length, `${folder}/${file}`).toBeLessThanOrEqual(1);
+        const relative = marks[0]?.[1];
+        if (relative === undefined) continue;
+        found[file.replace(/\.svg$/, '')] = relative;
+        const original = readFileSync(join(ROOT, folder, `${relative}.svg`), 'utf8');
+        // The copy differs from its relative by the one attribute, and a relative is no copy.
+        expect(original, `${folder}/${relative}.svg`).not.toContain('data-placeholder-of');
+        expect(text.replace(PLACEHOLDER_OF, ''), `${folder}/${file}`).toBe(original);
+      }
+      expect(found, folder).toEqual(expected);
+    }
   });
 });

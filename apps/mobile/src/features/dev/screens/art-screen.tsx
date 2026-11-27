@@ -1,4 +1,4 @@
-import { IssueIconSvg } from '@citizenrun/cards';
+import { IssueIconSvg, OFFICE_ART_IDS, OfficeArtSvg, OfficeGlyphSvg } from '@citizenrun/cards';
 import { useState } from 'react';
 import type { JSX, ReactNode } from 'react';
 import { ScrollView, View } from 'react-native';
@@ -18,7 +18,7 @@ import { AppBarInset } from '@/ui/shells/app-bar';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 import { ThemeProvider, useTheme } from '@/ui/theme';
 import type { ThemeChoice } from '@/ui/theme';
-import { ISSUE_IDS, rule, size, space } from '@/ui/tokens';
+import { ISSUE_IDS, issue, mapStyle, radius, rule, size, space } from '@/ui/tokens';
 import type { IssueId } from '@/ui/tokens';
 
 type TextScale = 1 | 1.3;
@@ -56,6 +56,70 @@ const MARKS: readonly (Pick<WordmarkProps, 'variant' | 'capHeight'> & { name: st
   { name: 'wordmark-rail', variant: 'wordmark', capHeight: size.wordmarkCap.rail },
   { name: 'monogram-rail', variant: 'monogram', capHeight: size.monogramRail },
 ];
+
+/**
+ * The grid an office drawing is drawn on. A specimen is drawn one point to the unit, the size its
+ * acceptance reads it at, so this is the drawing's own measure and not a size of the interface.
+ */
+const ART_GRID = 96;
+
+/** The six office drawings that are drawn, with the crop line and the spot each source declares. */
+const DRAWN_OFFICES = [
+  { id: 'county-treasurer', crop: 80, spot: [8, 24] },
+  { id: 'school-board', crop: 84, spot: [12, 6] },
+  { id: 'water-district-board', crop: 80, spot: [10, 10] },
+  { id: 'city-council', crop: 73.5, spot: [14, 16] },
+  { id: 'sheriff', crop: 84, spot: [16, 7] },
+  { id: 'utility-commission', crop: 84, spot: [10, 12] },
+] as const;
+
+/** Every other drawing of the set is a copy of one of the six until its own is drawn. */
+const PLACEHOLDERS: readonly { relative: string; ids: readonly string[] }[] = [
+  {
+    relative: 'county-treasurer',
+    ids: ['state-treasurer', 'county-assessor', 'board-of-review', 'pension-board'],
+  },
+  { relative: 'school-board', ids: ['state-education-board', 'community-college-board'] },
+  { relative: 'water-district-board', ids: ['soil-water-conservation-board'] },
+  {
+    relative: 'utility-commission',
+    ids: ['public-power-board', 'coop-board', 'oil-gas-land-commission'],
+  },
+  {
+    relative: 'city-council',
+    ids: [
+      'congress',
+      'legislature',
+      'county-commission',
+      'township-board',
+      'state-appellate-judge',
+      'trial-judge',
+      'governor',
+      'county-executive',
+      'mayor',
+      'statewide-executive-other',
+      'attorney-general',
+      'district-attorney',
+      'secretary-of-state',
+      'county-clerk',
+      'city-officer',
+      'county-row-other',
+      'insurance-commissioner',
+      'labor-commissioner',
+      'hospital-district-board',
+      'transit-board',
+      'fire-district-board',
+      'special-district-other',
+      'party-committee',
+    ],
+  },
+];
+
+/** The issue a placeholder is handed, to show that it draws in the neutral tone all the same. */
+const PLACEHOLDER_ISSUE: IssueId = 'property-taxes';
+
+/** The two pins that carry a glyph, largest first. */
+const PIN_SIZES = ['large', 'medium'] as const;
 
 type ControlOption<T> = { value: T; label: string; testID: string };
 
@@ -118,6 +182,40 @@ const MARKS_ROW: ViewStyle = {
   gap: space.x6,
   padding: space.x6,
 };
+
+const OFFICE_BLOCK: ViewStyle = { marginBottom: space.x6 };
+// Three specimens stand side by side on the narrowest phone.
+const SPECIMEN_PANEL: ViewStyle = {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  gap: space.x2,
+  padding: space.x3,
+  marginTop: space.x2,
+};
+const SPECIMEN: ViewStyle = { width: ART_GRID, gap: space.x1 };
+// A copy's label names two ids, so it stands beside the drawing and not under it.
+const PLACEHOLDER: ViewStyle = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: space.x3,
+  width: size.filterPanel,
+  maxWidth: '100%',
+};
+// The drawing keeps its size beside a label of any length.
+const DRAWING: ViewStyle = { width: ART_GRID, height: ART_GRID, flexShrink: 0 };
+const PLACEHOLDER_LABEL: ViewStyle = { flexShrink: 1 };
+const GLYPH_ROWS: ViewStyle = { flexDirection: 'row', flexWrap: 'wrap', columnGap: space.x4 };
+const GLYPH_ROW: ViewStyle = {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: space.x2,
+  width: size.rightColumn,
+  maxWidth: '100%',
+  paddingVertical: space.x2,
+  borderBottomWidth: rule.hairline,
+};
+const GLYPH_ID: ViewStyle = { flexShrink: 1 };
+const CENTERED: ViewStyle = { alignItems: 'center', justifyContent: 'center' };
 
 /** One control of the header: its label and a small button for each value, the chosen one in ink. */
 function ControlRow<T>({
@@ -213,6 +311,138 @@ function IssueRow({ id }: { id: IssueId }): JSX.Element {
   );
 }
 
+/** One office drawing on the 19 issue tones and the neutral tone, on the paper or the poster ground. */
+function OfficeSpecimens({ id, ground }: { id: string; ground: 'paper' | 'poster' }): JSX.Element {
+  const theme = useTheme();
+  const colors = theme.color;
+  const poster = ground === 'poster';
+  const roles = poster
+    ? {
+        ink: colors.posterText,
+        paper: colors.posterBg,
+        spot: colors.accent,
+        neutral: colors.posterTextSecondary,
+      }
+    : {
+        ink: colors.text,
+        paper: colors.surface,
+        spot: colors.accent,
+        neutral: colors.textSecondary,
+      };
+  // On a poster the tone is the issue's dark value in both themes.
+  const tones = [
+    ...ISSUE_IDS.map((issueId) => ({
+      name: issueId,
+      label: SHORT_NAMES[issueId],
+      tone: poster ? issue[issueId].dark : issue[issueId][theme.name],
+    })),
+    { name: 'neutral' as const, label: 'neutral', tone: roles.neutral },
+  ];
+  // The poster ground is ink in the light theme and the canvas ground in the dark one, so the
+  // label takes the tone that is the poster's text color in each.
+  const labelTone = !poster || theme.name === 'dark' ? 'primary' : 'inverse';
+  return (
+    <View
+      style={[SPECIMEN_PANEL, { backgroundColor: roles.paper }]}
+      testID={`art.ground-${ground}-${id}`}
+    >
+      {tones.map(({ name, label, tone }) => (
+        <View key={name} style={SPECIMEN} testID={`art.office-${id}-${ground}-${name}`}>
+          <OfficeArtSvg id={id} size={ART_GRID} roles={{ ...roles, tone }} />
+          <Text role="caption" tone={labelTone}>
+            {label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Every copy once, handed an issue tone: each must draw grey. */
+function Placeholders(): JSX.Element {
+  const theme = useTheme();
+  const colors = theme.color;
+  const roles = {
+    ink: colors.text,
+    paper: colors.surface,
+    tone: issue[PLACEHOLDER_ISSUE][theme.name],
+    spot: colors.accent,
+    neutral: colors.textSecondary,
+  };
+  return (
+    <View style={[SPECIMEN_PANEL, { backgroundColor: colors.surface }]}>
+      {PLACEHOLDERS.flatMap(({ relative, ids }) =>
+        ids.map((id) => (
+          <View key={id} style={PLACEHOLDER} testID={`art.placeholder-${id}`}>
+            <View style={DRAWING}>
+              <OfficeArtSvg id={id} size={ART_GRID} roles={roles} />
+            </View>
+            <View style={PLACEHOLDER_LABEL}>
+              <Text role="caption">{`${id} · copy of ${relative}`}</Text>
+            </View>
+          </View>
+        )),
+      )}
+    </View>
+  );
+}
+
+/** One glyph as C-OfficeTile draws it at its row size, and as the two pins that carry a glyph. */
+function GlyphRow({ id }: { id: string }): JSX.Element {
+  const colors = useTheme().color;
+  return (
+    <View
+      style={[GLYPH_ROW, { borderBottomColor: colors.ruleSoft }]}
+      testID={`art.glyph-row-${id}`}
+    >
+      <View
+        style={[
+          CENTERED,
+          {
+            width: size.officeTile.md,
+            height: size.officeTile.md,
+            borderRadius: radius.control,
+            backgroundColor: colors.inverseBg,
+          },
+        ]}
+        testID={`art.glyph-tile-${id}`}
+      >
+        <OfficeGlyphSvg id={id} size={size.officeGlyph.md} fill={colors.inverseText} />
+      </View>
+      {PIN_SIZES.map((name) => {
+        // The keyline runs round the outside of the disc.
+        const outer = size.pin[name] + 2 * mapStyle.pinKeyline;
+        return (
+          <View
+            key={name}
+            style={[
+              CENTERED,
+              {
+                width: outer,
+                height: outer,
+                borderRadius: radius.full,
+                borderWidth: mapStyle.pinKeyline,
+                borderColor: colors.pinKeyline,
+                backgroundColor: colors.pinBg,
+              },
+            ]}
+            testID={`art.pin-${name}-${id}`}
+          >
+            <OfficeGlyphSvg
+              id={id}
+              size={Math.round(size.pin[name] * size.pinGlyphShare)}
+              fill={colors.pinGlyph}
+            />
+          </View>
+        );
+      })}
+      <View style={GLYPH_ID}>
+        <Text role="mono">{id}</Text>
+      </View>
+    </View>
+  );
+}
+
 /** The four marks in one tone, on the ground that tone is made for. */
 function Marks({ tone }: { tone: NonNullable<WordmarkProps['tone']> }): JSX.Element {
   const theme = useTheme();
@@ -303,6 +533,36 @@ function ArtPage({ theme, textScale, onTheme, onTextScale }: ArtPageProps): JSX.
           >
             <Marks tone="primary" />
             <Marks tone="inverse" />
+          </Section>
+          <Section
+            title="Office illustrations"
+            note="Each of the 6 drawn offices at 96 points on the 19 issue tones and the neutral tone: on paper in this theme, then on the poster ground."
+          >
+            {DRAWN_OFFICES.map(({ id, crop, spot }) => (
+              <View key={id} style={OFFICE_BLOCK} testID={`art.drawn-${id}`}>
+                <Text role="mono">
+                  {`${id} · crop ${String(crop)} · spot ${String(spot[0])} by ${String(spot[1])}`}
+                </Text>
+                <OfficeSpecimens id={id} ground="paper" />
+                <OfficeSpecimens id={id} ground="poster" />
+              </View>
+            ))}
+          </Section>
+          <Section
+            title="Placeholders"
+            note="The 33 offices with no drawing of their own yet. Each is handed the property taxes tone and must still draw grey."
+          >
+            <Placeholders />
+          </Section>
+          <Section
+            title="Office glyphs"
+            note="Each of the 39 glyphs as a 36 point tile and on the 36 and 28 pixel pins."
+          >
+            <View style={GLYPH_ROWS}>
+              {OFFICE_ART_IDS.map((id) => (
+                <GlyphRow key={id} id={id} />
+              ))}
+            </View>
           </Section>
         </View>
       </ScrollView>
