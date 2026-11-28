@@ -199,6 +199,43 @@ describe('the Texas pilot expansion', () => {
     }
   });
 
+  it('by-district seats are elected only in their own years (D-894)', () => {
+    // Written by hand: the window runs from 2025-10-12 to 2029-11-15. Precincts 2 and 4 are on the
+    // Secretary of State's 2026 list, Precincts 1 and 3 four years after 2024; Austin's Districts
+    // 1, 3, 5, 8 and 9 are on its 2026 ballot and the other half in 2028.
+    const generalsOf = (jurisdictionKey: string, title: string): string[] => {
+      const office = officesOf(run, jurisdictionKey).find((o) => o.title === title);
+      expect(office).toBeDefined();
+      return electionsOf(run, office?.slug ?? '')
+        .filter((e) => e.kind === 'general')
+        .map((e) => e.election_date)
+        .sort();
+    };
+    for (const county of [TRAVIS, HAYS]) {
+      const name = county === TRAVIS ? 'Travis' : 'Hays';
+      for (const n of [1, 3]) {
+        expect(generalsOf(county, `${name} County Commissioner, Precinct ${String(n)}`)).toEqual([
+          '2028-11-07',
+        ]);
+      }
+      for (const n of [2, 4]) {
+        expect(generalsOf(county, `${name} County Commissioner, Precinct ${String(n)}`)).toEqual([
+          GENERAL_2026,
+        ]);
+      }
+    }
+    for (const n of [1, 3, 5, 8, 9]) {
+      expect(generalsOf(AUSTIN, `Austin City Council Member, District ${String(n)}`)).toEqual([
+        NOVEMBER_2026,
+      ]);
+    }
+    for (const n of [2, 4, 6, 7, 10]) {
+      expect(generalsOf(AUSTIN, `Austin City Council Member, District ${String(n)}`)).toEqual([
+        '2028-11-07',
+      ]);
+    }
+  });
+
   it('rules_plausible passed', () => {
     expect(run.deadlines.checks.find((c) => c.name === 'rules_plausible')?.passed).toBe(true);
   });

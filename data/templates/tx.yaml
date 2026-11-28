@@ -78,7 +78,7 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
-      - key: county-commissioner
+      - key: county-commissioner-precinct-1
         office_type: county-commission
         applies_to: null
         title: '{jurisdiction} Commissioner, {label}'
@@ -86,11 +86,125 @@ government_types:
           arrangement: by_district
           count: null
           district_count:
-            value: 4
+            value: 1
             source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
             quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
             citation: Tex. Const. art. 5, § 18(b)
-          label_pattern: Precinct {n}
+          label_pattern: Precinct 1
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 18(b)
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner-precinct-2
+        office_type: county-commission
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 18(b)
+          label_pattern: Precinct 2
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 18(b)
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner-precinct-3
+        office_type: county-commission
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 18(b)
+          label_pattern: Precinct 3
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+          quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+          citation: Tex. Const. art. 5, § 18(b)
+        term_limit_terms: null
+        schedule: tx_county_general
+        track_set: tx_partisan
+        partisan:
+          value: true
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.172.htm
+          quote: a political party's nominees in the general election for offices of state and county government and the United States Congress must be nominated by primary election
+          citation: Tex. Elec. Code § 172.001
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: county-commissioner-precinct-4
+        office_type: county-commission
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://tcss.legis.texas.gov/resources/CN/htm/CN.5.htm
+            quote: be divided into four commissioners precincts in each of which there shall be elected by the qualified voters thereof one County Commissioner, who shall hold his office for four years
+            citation: Tex. Const. art. 5, § 18(b)
+          label_pattern: Precinct 4
         body_size: null
         stagger: []
         term_years:
@@ -450,7 +564,7 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
-      - key: austin-council
+      - key: austin-council-district-1
         office_type: city-council
         applies_to:
           name_pattern: ^Austin city$
@@ -461,11 +575,371 @@ government_types:
           arrangement: by_district
           count: null
           district_count:
-            value: 10
+            value: 1
             source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
             quote: 10 council members elected from single-member districts.
             citation: Austin City Charter art. II, § 1(A)(2)
-          label_pattern: District {n}
+          label_pattern: District 1
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-2
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 2
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-3
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 3
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-4
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 4
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-5
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 5
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-6
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 6
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-7
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 7
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-8
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 8
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-9
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 9
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+          quote: the regular term of the mayor and council members is four years
+          citation: Austin City Charter art. III, § 2(A)
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: austin-council-district-10
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Austin city$
+          population_min: null
+          population_max: null
+        title: Austin City Council Member, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://services.austintexas.gov/edims/document.cfm?id=181069
+            quote: 10 council members elected from single-member districts.
+            citation: Austin City Charter art. II, § 1(A)(2)
+          label_pattern: District 10
         body_size: null
         stagger: []
         term_years:
@@ -538,7 +1012,7 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
-      - key: el-paso-council
+      - key: el-paso-council-district-1
         office_type: city-council
         applies_to:
           name_pattern: ^El Paso city$
@@ -549,11 +1023,291 @@ government_types:
           arrangement: by_district
           count: null
           district_count:
-            value: 8
+            value: 1
             source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
             quote: There shall be eight Representative districts.
             citation: El Paso City Charter § 2.4
-          label_pattern: District {n}
+          label_pattern: District 1
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-2
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 2
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-3
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 3
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-4
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 4
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-5
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 5
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-6
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 6
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-7
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 7
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+          quote: beginning in November 2018, and they shall thereafter be elected to four-year terms
+          citation: El Paso City Charter § 2.1
+        term_limit_terms: null
+        schedule: tx_uniform_november
+        track_set: tx_local
+        partisan:
+          value: false
+          source_url: https://tcss.legis.texas.gov/resources/EL/htm/EL.143.htm
+          quote: Except as provided by Section 143.003, a candidate's name may appear on the ballot only as an independent.
+          citation: Tex. Elec. Code § 143.002
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: el-paso-council-district-8
+        office_type: city-council
+        applies_to:
+          name_pattern: ^El Paso city$
+          population_min: null
+          population_max: null
+        title: El Paso City Representative, {label}
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf
+            quote: There shall be eight Representative districts.
+            citation: El Paso City Charter § 2.4
+          label_pattern: District 8
         body_size: null
         stagger: []
         term_years:
