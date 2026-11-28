@@ -4,16 +4,16 @@
   "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/"],
   "baseline": {
     "(tabs)/index": {
-      "entry": 902736,
+      "entry": 902816,
       "common": 4030,
       "route": 377,
-      "total": 907143
+      "total": 907223
     },
     "office/[slug]/index": {
-      "entry": 902736,
+      "entry": 902816,
       "common": 4004,
       "route": 393,
-      "total": 907133
+      "total": 907213
     }
   }
 }
