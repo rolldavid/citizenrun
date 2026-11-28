@@ -266,8 +266,16 @@ test('step 1: the office page shows the deal and every act-on field', async ({
 }, testInfo) => {
   const { officeWithDeadline } = seedFacts();
   await page.goto(`/office/${officeWithDeadline}`);
+  await expect(page.getByTestId(office.dealLine)).toBeVisible();
+  // The page is shot with the office neither followed nor bookmarked, whatever ran before.
+  await resetToggles(page, officeWithDeadline);
+  await page.reload();
   const deal = page.getByTestId(office.dealLine);
   await expect(deal).toBeVisible();
+  await expect(page.getByTestId(office.followButton)).toHaveText(common.ui.actions.follow);
+  await expect(page.getByTestId(office.bookmarkButton)).toHaveAccessibleName(
+    common.ui.actions.bookmark,
+  );
   for (const field of ACT_ON_FIELDS) {
     await unknownOrSourced(page, field);
   }

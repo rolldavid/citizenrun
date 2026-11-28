@@ -460,8 +460,10 @@ describe('Screen', () => {
         expect(found?.ground.style.maxWidth, String(width)).toBe('');
         expect(found?.ground.parentElement?.getAttribute('data-testid')).toBe('probe.screen');
       }
-      // A page stands at the left, and its bar with it.
-      expect(barBoxOf('page', viewport)?.box.style.alignSelf).toBe('flex-start');
+      // A page stands at the left beside its action card, centered below it, and its bar with it.
+      expect(barBoxOf('page', viewport)?.box.style.alignSelf).toBe(
+        viewport === EXPANDED ? 'flex-start' : 'center',
+      );
       // Content that runs the width of the slot has a bar that does too.
       expect(barBoxOf('full', viewport)).toBeNull();
     }
@@ -707,6 +709,27 @@ describe('Screen', () => {
       String(COMPACT[0] - SIDE_INSETS.left - SIDE_INSETS.right),
     );
     expect(screen.getByTestId('probe.outside').textContent).toBe(String(COMPACT[0]));
+  });
+
+  it('sets a page as one centered column at medium, with its footer in that column', () => {
+    const footer = <View testID="probe.footer" />;
+    const page = boxAt('page', MEDIUM, { footer });
+    expect(page.style.alignSelf).toBe('center');
+    expect(page.style.width).toBe('100%');
+    expect(page.style.maxWidth).toBe(`${String(size.officeContent + gutter.regular * 2)}px`);
+    expect(page.style.paddingLeft).toBe(`${String(gutter.regular)}px`);
+    expect(page.style.paddingRight).toBe(`${String(gutter.regular)}px`);
+    // The sticky row's box is the content's, so their edges are the same.
+    const box = screen.getByTestId('probe.footer').parentElement;
+    expect(box?.style.alignSelf).toBe(page.style.alignSelf);
+    expect(box?.style.maxWidth).toBe(page.style.maxWidth);
+    expect(box?.style.width).toBe(page.style.width);
+    // On a phone the row runs from edge to edge.
+    boxAt('page', COMPACT, { footer });
+    expect(screen.getByTestId('probe.footer').parentElement?.style.maxWidth).toBe('');
+    // Another width keeps its footer across the slot.
+    boxAt('column', MEDIUM, { footer });
+    expect(screen.getByTestId('probe.footer').parentElement?.style.maxWidth).toBe('');
   });
 
   it('a page with an aside keeps its gutter at the left and the right column beside it', () => {

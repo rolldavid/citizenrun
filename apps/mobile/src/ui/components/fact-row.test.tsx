@@ -30,6 +30,7 @@ const STATE_NAMES = [
   'pressable',
   'pressableUnknown',
   'longValue',
+  'longPlace',
 ] as const;
 
 const ALL: Readonly<Record<StateName, FactRowProps>> = STATES;
@@ -47,6 +48,7 @@ const SHOWN: Readonly<Record<StateName, string>> = {
   pressable: '4 years',
   pressableUnknown: UNKNOWN,
   longValue: 'Likely, with evening meetings',
+  longPlace: STATES.longPlace.value.text,
 };
 
 /** A color as the page writes it back, so a token and a rendered color compare. */
@@ -112,7 +114,7 @@ describe('FactRow', () => {
     warnings.mockRestore();
   });
 
-  it('the fixtures hold the six states', () => {
+  it('the fixtures hold the seven states', () => {
     expect(Object.keys(STATES)).toEqual([...STATE_NAMES]);
     for (const state of STATE_NAMES) {
       expect(ALL[state].testID, state).toBe(`gallery.fact-row-${kebab(state)}`);
@@ -240,6 +242,28 @@ describe('FactRow', () => {
       ' ',
       SHOWN.longValue,
     ]);
+  });
+
+  it('a value too long to stand beside its label goes under it and never squeezes the label', () => {
+    setViewport(...COMPACT);
+    for (const state of ['known', 'longValue', 'longPlace'] as const) {
+      const row = draw(ALL[state]);
+      const label = within(row).getByText(ALL[state].label).parentElement;
+      const line = label?.parentElement;
+      const value = within(row).getByText(SHOWN[state]).parentElement;
+      // One line while the two fit; a value that does not wraps to a line of its own.
+      expect(line?.style.flexDirection, state).toBe('row');
+      expect(line?.style.flexWrap, state).toBe('wrap');
+      expect(line?.style.columnGap, state).toBe(`${String(space.x4)}px`);
+      expect(line?.style.rowGap, state).toBe(`${String(space.x1)}px`);
+      // The label keeps its own width: it neither grows into the value's room nor shrinks for it.
+      expect(label?.style.flexGrow, state).not.toBe('1');
+      expect(label?.style.flexShrink, state).toBe('1');
+      // The value takes the rest of its line and stands at the right of it.
+      expect(value?.style.flexGrow, state).toBe('1');
+      expect(value?.style.alignItems, state).toBe('flex-end');
+      expect(within(row).getByText(SHOWN[state]).style.textAlign, state).toBe('right');
+    }
   });
 
   it('the label and the value read as separate words, in the order of its name', () => {

@@ -124,21 +124,21 @@ function OfficePage({ vm }: { vm: ReadyOffice }): JSX.Element {
   const block = { data, t, ctx };
   const compact = layout.breakpoint === 'compact';
   // On a phone the scroll area leaves the frame's gutters, so the hero reaches both edges, and its
-  // content takes them back. Beside the rail it runs to the right edge of the window, so the page
-  // scrolls from anywhere in it.
+  // content takes them back. Beside the rail the column is centered and the scroll area runs to
+  // both edges of the window, so the page scrolls from anywhere in it.
   const spare = compact
     ? 0
-    : Math.max(0, layout.mainWidth - (size.officeContent + layout.gutter * 2));
+    : Math.max(0, (layout.mainWidth - (size.officeContent + layout.gutter * 2)) / 2);
   const area: ViewStyle = compact
     ? { marginHorizontal: -layout.gutter }
     : layout.showsRightColumn
       ? {}
-      : { marginRight: -spare };
+      : { marginHorizontal: -spare };
   const inside: ViewStyle = compact
     ? { paddingHorizontal: layout.gutter }
     : layout.showsRightColumn
       ? {}
-      : { paddingRight: spare };
+      : { paddingHorizontal: spare };
   const bleed: ViewStyle = compact ? { marginHorizontal: -layout.gutter } : {};
 
   return (

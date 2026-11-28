@@ -39,6 +39,15 @@ export const STATES = {
     value: { text: 'Likely, with evening meetings', about: false },
     testID: 'gallery.fact-row-long-value',
   },
+  // A value longer than any row is wide: it goes under its label and wraps there.
+  longPlace: {
+    label: 'Where to file',
+    value: {
+      text: 'The county board of elections office, in the county administration building on Main Street, open on weekdays during business hours and closed on public holidays',
+      about: false,
+    },
+    testID: 'gallery.fact-row-long-place',
+  },
 } as const satisfies Readonly<Record<string, FactRowProps>>;
 
 export const PREVIEW: Readonly<Partial<Record<keyof typeof STATES, InteractionPreviewState>>> = {};

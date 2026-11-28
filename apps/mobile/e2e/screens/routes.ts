@@ -202,6 +202,18 @@ function openOfficeSheet(control: string, sheet: string): (page: Page) => Promis
 const openOfficeSources = openOfficeSheet('office.sources-open-1', 'office.sources-sheet');
 const openOfficeSteps = openOfficeSheet('office.steps-open', 'office.steps-sheet');
 const openOfficeReport = openOfficeSheet('office.report-open', 'office.report-sheet');
+
+/**
+ * Opens the field-report sheet and scrolls its own list to the end, where the state a fixture is
+ * named for shows: Send busy, the error notice or the link's error under its field.
+ */
+async function openOfficeReportForm(page: Page): Promise<void> {
+  await openOfficeReport(page);
+  const send = page.getByTestId('office.report-send');
+  await send.scrollIntoViewIfNeeded();
+  await expect(send).toBeInViewport();
+}
+
 /** The add-email sheet has faded in and, on a phone, risen to where it rests. */
 async function addEmailSheetAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('auth.add-email-sheet'));
@@ -1931,7 +1943,7 @@ export const SCREENS: ScreenEntry[] = [
     id: 'office-slug-office-report-sending',
     path: '/dev/screens/office-slug/officeReportSending',
     auth: 'none',
-    prepare: openOfficeReport,
+    prepare: openOfficeReportForm,
   },
   {
     id: 'office-slug-office-report-sent',
@@ -1943,13 +1955,13 @@ export const SCREENS: ScreenEntry[] = [
     id: 'office-slug-office-report-error',
     path: '/dev/screens/office-slug/officeReportError',
     auth: 'none',
-    prepare: openOfficeReport,
+    prepare: openOfficeReportForm,
   },
   {
     id: 'office-slug-office-report-link-invalid',
     path: '/dev/screens/office-slug/officeReportLinkInvalid',
     auth: 'none',
-    prepare: openOfficeReport,
+    prepare: openOfficeReportForm,
   },
   // The officeholder page, in the app's shell with no item lit.
   { id: 'c-slug-person-loading', path: '/dev/screens/c-slug/personLoading', auth: 'none' },

@@ -24,11 +24,20 @@ export type FactRowProps = {
 
 const FRAME: ViewStyle = { borderTopWidth: rule.hairline, paddingVertical: space.x3 };
 const TARGET: ViewStyle = { minHeight: size.target, justifyContent: 'center' };
-const SIDE_BY_SIDE: ViewStyle = { flexDirection: 'row', alignItems: 'flex-start', gap: space.x4 };
+// A value too long for the room beside its label goes under it, at the right, and wraps there,
+// so the label always keeps its own words on its own line.
+const SIDE_BY_SIDE: ViewStyle = {
+  flexDirection: 'row',
+  flexWrap: 'wrap',
+  alignItems: 'flex-start',
+  columnGap: space.x4,
+  rowGap: space.x1,
+};
 const STACKED: ViewStyle = { gap: space.x1 };
-// The label keeps the room its value leaves; both give way when the two do not fit one line.
-const LABEL: ViewStyle = { flexGrow: 1, flexShrink: 1 };
-const VALUE_END: ViewStyle = { flexShrink: 1, alignItems: 'flex-end' };
+// The label takes its own width, and gives way only where it is wider than the row by itself.
+const LABEL: ViewStyle = { flexShrink: 1 };
+// The value takes the rest of its line, at the right of it.
+const VALUE_END: ViewStyle = { flexGrow: 1, flexShrink: 1, alignItems: 'flex-end' };
 const VALUE_START: ViewStyle = { alignItems: 'flex-start' };
 const WITH_CHEVRON: ViewStyle = { flexDirection: 'row', alignItems: 'center', gap: space.x2 };
 const WORDS: ViewStyle = { flex: 1, minWidth: 0 };
@@ -54,7 +63,8 @@ function WordSpace(): JSX.Element {
  * C-FactRow: a label and its value, on a soft rule. The row itself says "about" before an
  * estimate, at full contrast, and draws the unknown tag where the value is not known; it never
  * fades a value and never leaves a dash or a blank. At large text the value goes under its
- * label. With `onPress` the row is one target that opens the value's source.
+ * label, from the left; a value too long to stand beside its label goes under it at the right.
+ * With `onPress` the row is one target that opens the value's source.
  */
 export function FactRow({ label, value, onPress, testID }: FactRowProps): JSX.Element {
   const theme = useTheme();

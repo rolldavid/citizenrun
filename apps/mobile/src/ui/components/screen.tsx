@@ -125,10 +125,11 @@ function frameFor(
           line: start,
         };
       }
+      // At the left where the action card stands at the right of it; one centered column below.
       return single({
         width: '100%',
         maxWidth: size.officeContent + left + layout.gutter + insets.right,
-        alignSelf: 'flex-start',
+        alignSelf: layout.breakpoint === 'expanded' ? 'flex-start' : 'center',
         ...sides,
       });
     }
@@ -198,6 +199,8 @@ export function Screen({
 
   // A screen with no bar keeps the top inset clear in the bar's place.
   const barBox = appBar?.variant === 'screen' ? barBoxFor(frame, layout) : null;
+  // A page's sticky action row stands in the page's column, under its content.
+  const footerBox = width === 'page' ? barBoxFor(frame, layout) : null;
   const bar =
     appBar === undefined || appBar === null ? (
       <AppBarInset />
@@ -266,7 +269,7 @@ export function Screen({
                   setFooterHeight(event.nativeEvent.layout.height);
                 }}
               >
-                {footer}
+                {footerBox === null ? footer : <View style={footerBox}>{footer}</View>}
               </View>
             )}
           </View>
