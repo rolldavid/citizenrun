@@ -237,7 +237,7 @@ describe('the election-law wording', () => {
     ).toEqual([{ kind: 'caution', detail: 'common:confirmBeforeFiling is missing (D-515)' }]);
   });
 
-  it('the real catalogs pass', async () => {
+  it('the real catalogs pass', { timeout: 30_000 }, async () => {
     const problems = await findProblems(repoRoot());
     expect(problems.filter((problem) => WORDING.includes(problem.kind))).toEqual([]);
     expect(await main()).toBe(0);

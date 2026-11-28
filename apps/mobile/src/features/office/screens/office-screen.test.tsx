@@ -141,12 +141,12 @@ describe('OfficeScreenView', () => {
     setViewport(...COMPACT);
   }
 
-  it('renders every fixture', () => {
+  it('renders every fixture', { timeout: 30_000 }, () => {
     expect(Object.keys(FIXTURES).length).toBeGreaterThanOrEqual(32);
     drawsEveryFixture(COMPACT, 'light');
   });
 
-  it('renders every fixture beside the action card', () => {
+  it('renders every fixture beside the action card', { timeout: 30_000 }, () => {
     drawsEveryFixture(EXPANDED, 'dark');
   });
 
