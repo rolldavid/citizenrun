@@ -1,6 +1,6 @@
 # Data attribution
 
-CitizenRun data bundle 20261128T022949Z-full, built 2026-11-28.
+CitizenRun data bundle 20261128T035124Z-full, built 2026-11-28.
 
 The compiled data in this bundle is licensed under the Creative Commons Attribution 4.0 International licence (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/legalcode. The legal code is also in the file data/LICENSE of the source repository.
 
@@ -20,6 +20,7 @@ The compiled data in this bundle is licensed under the Creative Commons Attribut
 - Open States (Plural Policy). openstates/people repository, edition 6c96e49451833e745fb4f529bb631fa04ae1148a, downloaded 2026-11-28. Licence: CC0-1.0. Source: https://api.github.com/repos/openstates/people/tarball/main
 - Wikimedia Foundation. Wikidata Query Service, edition 2026-11-28, downloaded 2026-11-28. Licence: CC0-1.0. Source: https://query.wikidata.org/
 - Carlton Northern. carltonnorthern/nicknames, names.csv, edition ed160b3af2d17e1af8ebd570f10a10e4dade4ff4, downloaded 2026-11-27. Licence: Apache-2.0. Source: https://raw.githubusercontent.com/carltonnorthern/nicknames/ed160b3af2d17e1af8ebd570f10a10e4dade4ff4/names.csv
+- Office of the Federal Register and U.S. Government Publishing Office. 49 CFR Part 71, Standard Time Zone Boundaries. Licence: LicenseRef-PD-USGov. Source: https://www.govinfo.gov/content/pkg/CFR-2025-title49-vol1/xml/CFR-2025-title49-vol1-part71.xml
 
 ## State and local sources
 

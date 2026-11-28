@@ -79,6 +79,16 @@ describe('attribution', () => {
     );
   });
 
+  it("every credit name appears in the sample bundle's ATTRIBUTION.md", async () => {
+    const text = await readFile(
+      join(repoRoot(), 'packages', 'db', 'src', 'seed', 'sample-bundle', 'full', 'ATTRIBUTION.md'),
+      'utf8',
+    );
+    for (const credit of sourceCredits()) {
+      expect(text).toContain(credit.name);
+    }
+  });
+
   it("a jurisdiction's zone credits the time-zone register's dataset, which no manifest names", async () => {
     const sources = await loadSources();
     const register = sources.find((entry) => entry.id === TIMEZONE_DATASET);
