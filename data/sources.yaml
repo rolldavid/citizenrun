@@ -842,6 +842,118 @@
   ci_status: unknown
   notes: "Serves the 2022 Individual State Descriptions (D-321), which the Virginia template cites for special districts' elected fact."
 
+- id: nc-charlotte-council-districts
+  kind: crawl_host
+  name: 'Charlotte council district boundaries'
+  publisher: 'Mecklenburg County'
+  url: https://meckgis.mecklenburgcountync.gov/server/rest/services/CharlotteCityCouncilDistricts/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'Mecklenburg County'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Charlotte's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: wa-spokane-council-districts
+  kind: crawl_host
+  name: 'Spokane council district boundaries'
+  publisher: 'City of Spokane'
+  url: https://services.arcgis.com/3PDwyTturHqnGCu0/arcgis/rest/services/City_Council/FeatureServer/2
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Spokane'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Spokane's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: wa-tacoma-council-districts
+  kind: crawl_host
+  name: 'Tacoma council district boundaries'
+  publisher: 'City of Tacoma'
+  url: https://services3.arcgis.com/SCwJH1pD8WSn5T5y/arcgis/rest/services/City_Council_Districts/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Tacoma'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Tacoma's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: tx-dallas-council-districts
+  kind: crawl_host
+  name: 'Dallas council district boundaries'
+  publisher: 'City of Dallas'
+  url: https://services2.arcgis.com/rwnOSbfKSwyTBcwN/arcgis/rest/services/Dallas_Council_Districts_without_Lake_Ray_Hubbard/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Dallas'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Dallas's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: tx-austin-council-districts
+  kind: crawl_host
+  name: 'Austin council district boundaries'
+  publisher: 'City of Austin'
+  url: https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/BOUNDARIES_single_member_districts/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Austin'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Austin's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: la-baton-rouge-council-districts
+  kind: crawl_host
+  name: 'Baton Rouge council district boundaries'
+  publisher: 'City of Baton Rouge and Parish of East Baton Rouge'
+  url: https://maps.brla.gov/gis/rest/services/Governmental_Units/Council_District/MapServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Baton Rouge and Parish of East Baton Rouge'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Baton Rouge's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: va-virginia-beach-council-districts
+  kind: crawl_host
+  name: 'Virginia Beach council district boundaries'
+  publisher: 'City of Virginia Beach'
+  url: https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/2022_City_Council_Districts_Map/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Virginia Beach'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Virginia Beach's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
+- id: va-richmond-council-districts
+  kind: crawl_host
+  name: 'Richmond council district boundaries'
+  publisher: 'City of Richmond'
+  url: https://services1.arcgis.com/k3vhq11XkBNeeOfM/arcgis/rest/services/CouncilDistricts/FeatureServer/0
+  terms_url: null
+  terms_read_on: null
+  basis: 'A boundary layer the publisher serves on its own GIS portal; its licence text is recorded in data/boundary_sources.yaml (D-320).'
+  licence_spdx: null
+  attribution: 'City of Richmond'
+  robots_checked_on: 2026-11-28
+  ci_status: unknown
+  notes: "The ward layer of Richmond's council districts, read as GeoJSON by the base load. No terms page found on 2026-11-28 beyond the layer's own licence text."
+
 # --- never fetched ---
 
 - id: ballotpedia

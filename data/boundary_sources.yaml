@@ -1,2 +1,73 @@
 # Ward and council-district boundary layers from outside TIGER/Line, each with its licence.
-[]
+- key: nc-charlotte-council-districts
+  place_geoid: '3712000'
+  url: https://meckgis.mecklenburgcountync.gov/server/rest/services/CharlotteCityCouncilDistricts/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'Mecklenburg County'
+  licence_text: 'Although every effort has been made to ensure the accuracy of information, errors and conditions originating from physical sources used to develop the corporate database may be reflected in the data supplied. Users of this data must be aware of data conditions and bear responsibility for the appropriate use of the information with respect to possible errors, original map scale, collection methodology, currency of data, and other conditions specific to certain data. Mecklenburg County makes no warranty, either expressed or implied, as to the accuracy or completeness of any information archived and distributed. The digital information is distributed on an as is basis.'
+  retrieved_on: 2026-11-28
+  label_field: district
+  label_prefix: 'District '
+  format: geojson
+- key: wa-spokane-council-districts
+  place_geoid: '5367000'
+  url: https://services.arcgis.com/3PDwyTturHqnGCu0/arcgis/rest/services/City_Council/FeatureServer/2/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Spokane'
+  licence_text: 'THIS IS NOT A LEGAL DOCUMENT: This information is compiled from various sources and is subject to constant revision. This data should not be used to determine the location of facilities in relationship to property lines, section lines, streets, etc.'
+  retrieved_on: 2026-11-28
+  label_field: District
+  label_prefix: 'District '
+  format: geojson
+- key: wa-tacoma-council-districts
+  place_geoid: '5370000'
+  url: https://services3.arcgis.com/SCwJH1pD8WSn5T5y/arcgis/rest/services/City_Council_Districts/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Tacoma'
+  licence_text: 'Disclaimer | City of Tacoma Open Data (https://data.cityoftacoma.org/pages/disclaimer)'
+  retrieved_on: 2026-11-28
+  label_field: district
+  label_prefix: 'District '
+  format: geojson
+- key: tx-dallas-council-districts
+  place_geoid: '4819000'
+  url: https://services2.arcgis.com/rwnOSbfKSwyTBcwN/arcgis/rest/services/Dallas_Council_Districts_without_Lake_Ray_Hubbard/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Dallas'
+  licence_text: 'The accuracy is not to be taken / used as data produced by a Registered Professional Land Surveyor for the State of Texas. For this level of detail, supervision, and certification of the produced data by a Registered Land Surveyor for the State of Texas would be required. "This product is for informational purposes and may not have been prepared for or be suitable for legal, engineering, or surveying purposes. It does not represent an on-the-ground survey and represents only the approximate relative location of property boundaries. ( Texas Government Code § 2051.10 ).'
+  retrieved_on: 2026-11-28
+  label_field: DISTRICT
+  label_prefix: 'District '
+  format: geojson
+- key: tx-austin-council-districts
+  place_geoid: '4805000'
+  url: https://services.arcgis.com/0L95CJ0VTaxqcmED/arcgis/rest/services/BOUNDARIES_single_member_districts/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Austin'
+  licence_text: 'This product is for informational purposes and may not have been prepared for or be suitable for legal, engineering, or surveying purposes. It does not represent an on-the-ground survey and represents only the approximate relative location of property boundaries. This product has been produced by the Communications and Technology Management Department for the sole purpose of geographic reference. No warranty is made by the City of Austin regarding specific accuracy or completeness.'
+  retrieved_on: 2026-11-28
+  label_field: COUNCIL_DISTRICT
+  label_prefix: 'District '
+  format: geojson
+- key: la-baton-rouge-council-districts
+  place_geoid: '2205000'
+  url: https://maps.brla.gov/gis/rest/services/Governmental_Units/Council_District/MapServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Baton Rouge and Parish of East Baton Rouge'
+  licence_text: 'For public use The City of Baton Rouge – Parish of East Baton Rouge provides the information herein for general reference purposes only. The City-Parish does not assume liability for the misuse or misinterpretation of the information.'
+  retrieved_on: 2026-11-28
+  label_field: DISTRICT_NUM
+  label_prefix: 'District '
+  format: geojson
+- key: va-virginia-beach-council-districts
+  place_geoid: '5182000'
+  url: https://services2.arcgis.com/CyVvlIiUfRBmMQuu/arcgis/rest/services/2022_City_Council_Districts_Map/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Virginia Beach'
+  licence_text: 'DISCLAIMER: The data is provided “as is” and the City of Virginia Beach expressly disclaims all warranties, UCC, and otherwise, express or implied including particular purpose, and further expressly disclaims responsibility for all incidental, consequential or special damages arising out of or in connection with the use or performance of the data. The user acknowledges the disclaimer of warranty and waives all warranties expressed or implied and waives any right of claim for damages incidental, consequential or special, arising out of or in connection with the use or performance of the data. CAUTION: this map represents approximate locations and values; it is subject to mapping projection and compilation error(s). Property information is compiled from recorded plats and best fit to base mapping products using Virginia State Plane NAD 1983 coordinate system, with a minimum target accuracy of +/- 2-5 feet. This mapping product is not a legal survey and therefore cannot be used to determine private/public property locations, for engineering/construction site design or for final flood zone determinations. This map is for informational purposes only.'
+  retrieved_on: 2026-11-28
+  label_field: District
+  label_prefix: 'District '
+  format: geojson
+- key: va-richmond-council-districts
+  place_geoid: '5167000'
+  url: https://services1.arcgis.com/k3vhq11XkBNeeOfM/arcgis/rest/services/CouncilDistricts/FeatureServer/0/query?where=1%3D1&outFields=*&f=geojson
+  publisher: 'City of Richmond'
+  licence_text: 'No warranty is expressed or implied regarding the use of this data, nor does the act of distribution constitute any such warranty.'
+  retrieved_on: 2026-11-28
+  label_field: Name
+  label_prefix: 'District '
+  format: geojson
