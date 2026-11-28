@@ -4,12 +4,17 @@ import * as entry from './index.ts';
 import { STATE_MODULES } from './states/index.ts';
 
 describe('@citizenrun/rules', () => {
-  it('no state has a module yet', async () => {
+  it('the five pilot states have modules', async () => {
     await eachZone(() => {
-      expect(entry.rulesFor('NC')).toBeNull();
-      expect(entry.rulesFor('WA')).toBeNull();
+      for (const state of ['LA', 'NC', 'TX', 'VA', 'WA']) {
+        const rules = entry.rulesFor(state);
+        expect(rules).not.toBeNull();
+        expect(rules?.state).toBe(state);
+        expect(STATE_MODULES.get(state)).toBe(rules);
+      }
       expect(entry.rulesFor('ZZ')).toBeNull();
-      expect(STATE_MODULES.size).toBe(0);
+      expect(entry.rulesFor('CA')).toBeNull();
+      expect(STATE_MODULES.size).toBe(5);
     });
   });
 
