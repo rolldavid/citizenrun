@@ -13,6 +13,7 @@ import { dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { createS3Client, ensureBucket } from '@citizenrun/shared/storage';
+import { z } from 'zod';
 import { mediaCorsRules } from './lib/cors.ts';
 import { run } from './lib/exec.ts';
 import { repoRoot } from './lib/repo-root.ts';
@@ -58,10 +59,154 @@ const PASSED_THROUGH = ['PATH', 'HOME', 'TMPDIR', 'TZ', 'LANG', 'NODE_OPTIONS'] 
 const SEED_FACTS_FILE = 'apps/mobile/e2e/.stack/seed-facts.json';
 
 /**
- * The seed facts: each key's value is the one JSON value its statement returns on the seeded
- * database, read after the seed (TC-33). None is needed yet, so the file holds `{}`.
+ * The seed facts of one statement each: each key's value is the one JSON value its statement
+ * returns on the seeded database, read after the seed (TC-33). The facts below are read by
+ * `readSeedFacts` instead, because two of them take the first one's district.
  */
 export const SEED_FACTS: readonly { key: string; sql: string }[] = [];
+
+/**
+ * The statements of the Durham County facts (TC-33). `$1` of the second and third is the
+ * `district_id` the first one returns, bound as a parameter. `officeWithDeadline` derives each
+ * office's next fileable election from `elections` by L-target-election rules 1 and 2, as the API
+ * does while `offices.next_election_id` is empty: a runoff is never fileable (D-758).
+ */
+export const SEED_FACT_QUERIES = {
+  durhamPoint: `
+    select d.id as district_id, st_y(d.label_point) as lat, st_x(d.label_point) as lng
+    from districts d
+    where d.source_key = 'tiger:county:37063' and d.retired_at is null and d.label_point is not null`,
+  officeWithDeadline: `
+    select o.slug
+    from offices o
+    join districts d on d.id = o.district_id
+    join jurisdictions oj on oj.id = o.jurisdiction_id
+    cross join districts dc
+    cross join lateral (
+      select (now() at time zone coalesce(oj.timezone, 'America/New_York'))::date as today
+    ) t
+    cross join lateral (
+      select e.filing_deadline
+      from elections e
+      where e.office_id = o.id and e.retired_at is null
+        and e.kind not in ('primary_runoff', 'general_runoff')
+        and (e.filing_deadline >= t.today
+          or (e.filing_deadline is null and e.election_date > t.today))
+      order by coalesce(e.filing_deadline, e.election_date), e.election_date,
+        array_position(array['primary', 'general', 'special', 'primary_runoff', 'general_runoff'], e.kind),
+        coalesce(e.party, ''), e.id
+      limit 1
+    ) ne
+    where dc.id = $1
+      and o.retired_at is null and d.label_point is not null
+      and st_covers(dc.geom, d.label_point)
+      and ne.filing_deadline is not null
+    order by ne.filing_deadline, o.slug limit 1`,
+  officeNotKnown: `
+    select o.slug
+    from offices o join districts d on d.id = o.district_id, districts dc
+    where dc.id = $1 and o.retired_at is null and d.label_point is not null
+      and st_covers(dc.geom, d.label_point)
+      and o.pay_annual_cents is null and o.pay_amount_cents is null
+      and o.pay_kind is distinct from 'none'
+    order by o.slug limit 1`,
+} as const;
+
+export type SeedFactKey = keyof typeof SEED_FACT_QUERIES;
+
+/** What each statement needs, named when it finds no row. */
+const SEED_FACT_NEEDS: Readonly<Record<SeedFactKey, string>> = {
+  durhamPoint: 'the Durham County district with a label point',
+  officeWithDeadline:
+    'an office in Durham County whose next fileable election has a filing deadline today or later',
+  officeNotKnown: 'an office in Durham County with no pay amount and pay kind other than none',
+};
+
+/** Runs one fact's statement with its parameters; resolves with its rows as JSON objects. */
+export type SeedFactQuery = (
+  key: SeedFactKey,
+  params: readonly string[],
+) => Promise<readonly Record<string, unknown>[]>;
+
+export type DurhamSeedFacts = {
+  durhamPoint: { lat: number; lng: number };
+  officeWithDeadline: string;
+  officeNotKnown: string;
+};
+
+/** The first row of a fact's rows; a fact with no row stops the stack, naming what it needs. */
+function firstRow(
+  key: SeedFactKey,
+  rows: readonly Record<string, unknown>[],
+): Record<string, unknown> {
+  const row = rows[0];
+  if (row === undefined) {
+    throw stackError(`seed fact ${key} not found: ${SEED_FACT_NEEDS[key]}`);
+  }
+  return row;
+}
+
+function columnOf(key: SeedFactKey, row: Record<string, unknown>, column: string): unknown {
+  const value = row[column];
+  if (value === undefined || value === null) {
+    throw stackError(`seed fact ${key} has no ${column}`);
+  }
+  return value;
+}
+
+function stringColumn(key: SeedFactKey, row: Record<string, unknown>, column: string): string {
+  const value = columnOf(key, row, column);
+  if (typeof value !== 'string' || value === '') {
+    throw stackError(`seed fact ${key}: ${column} is not a string`);
+  }
+  return value;
+}
+
+function numberColumn(key: SeedFactKey, row: Record<string, unknown>, column: string): number {
+  const value = columnOf(key, row, column);
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw stackError(`seed fact ${key}: ${column} is not a number`);
+  }
+  return value;
+}
+
+/**
+ * Reads the Durham County facts: the district's label point first, then the two offices, each
+ * bound to that district. Throws `seed fact <key> not found: <what it needs>` for a fact with no
+ * row, so a journey never runs against a missing value. The district id is not a fact.
+ */
+export async function readSeedFacts(query: SeedFactQuery): Promise<DurhamSeedFacts> {
+  const district = firstRow('durhamPoint', await query('durhamPoint', []));
+  const districtId = stringColumn('durhamPoint', district, 'district_id');
+  const durhamPoint = {
+    lat: numberColumn('durhamPoint', district, 'lat'),
+    lng: numberColumn('durhamPoint', district, 'lng'),
+  };
+  const withDeadline = firstRow(
+    'officeWithDeadline',
+    await query('officeWithDeadline', [districtId]),
+  );
+  const notKnown = firstRow('officeNotKnown', await query('officeNotKnown', [districtId]));
+  return {
+    durhamPoint,
+    officeWithDeadline: stringColumn('officeWithDeadline', withDeadline, 'slug'),
+    officeNotKnown: stringColumn('officeNotKnown', notKnown, 'slug'),
+  };
+}
+
+/**
+ * The psql script of one fact: the statement prepared with its parameters as `$1` and on, then run
+ * with the values psql holds as the variables `p1` and on, which it quotes as literals itself; the
+ * rows come back as one JSON array.
+ */
+export function seedFactScript(sql: string, paramCount: number): string {
+  const args = Array.from({ length: paramCount }, (_, index) => `:'p${String(index + 1)}'`);
+  return [
+    `prepare seed_fact as select coalesce(json_agg(q), '[]'::json) from (${sql}\n) q;`,
+    `execute seed_fact${args.length === 0 ? '' : `(${args.join(', ')})`};`,
+    '',
+  ].join('\n');
+}
 
 const BUILT_FILES = [
   'apps/mobile/dist/index.html',
@@ -326,7 +471,67 @@ async function migrateAndSeed(root: string, mode: StackMode, base: Env): Promise
   }
 }
 
-/** Writes the seeded stack's facts file from SEED_FACTS, run on its database. */
+const SeedRowsSchema = z.array(z.record(z.string(), z.unknown()));
+
+/** Runs one fact's statement on the seeded database through psql, its values bound by psql. */
+function seededQuery(root: string, base: Env): SeedFactQuery {
+  return async (key, params) => {
+    const variables = params.flatMap((value, index) => ['-v', `p${String(index + 1)}=${value}`]);
+    const result = await runWithInput(
+      'psql',
+      [
+        stackDatabaseUrl('seeded', base),
+        '-X',
+        '-q',
+        '-A',
+        '-t',
+        '-v',
+        'ON_ERROR_STOP=1',
+        ...variables,
+        '-f',
+        '-',
+      ],
+      seedFactScript(SEED_FACT_QUERIES[key], params.length),
+      { cwd: root, env: passedThrough(base) },
+    );
+    if (result.code !== 0) {
+      throw stackError(`psql failed on seed fact ${key}: ${result.stderr.trim()}`);
+    }
+    return SeedRowsSchema.parse(JSON.parse(result.stdout.trim()));
+  };
+}
+
+/** Runs a command with `input` on its standard input; resolves with its exit code and output. */
+function runWithInput(
+  command: string,
+  args: readonly string[],
+  input: string,
+  options: { cwd: string; env: Readonly<Record<string, string>> },
+): Promise<{ code: number; stdout: string; stderr: string }> {
+  return new Promise((resolvePromise, reject) => {
+    const child = spawn(command, args, {
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      cwd: options.cwd,
+      env: options.env,
+    });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
+    child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      resolvePromise({
+        code: code ?? 1,
+        stdout: Buffer.concat(stdout).toString('utf8'),
+        stderr: Buffer.concat(stderr).toString('utf8'),
+      });
+    });
+    child.stdin.end(input);
+  });
+}
+
+/** Writes the seeded stack's facts file from SEED_FACTS and the Durham County facts. */
 async function writeSeedFacts(root: string, base: Env): Promise<void> {
   const facts: Record<string, unknown> = {};
   for (const fact of SEED_FACTS) {
@@ -334,6 +539,7 @@ async function writeSeedFacts(root: string, base: Env): Promise<void> {
     const value: unknown = output === '' ? null : JSON.parse(output);
     facts[fact.key] = value;
   }
+  Object.assign(facts, await readSeedFacts(seededQuery(root, base)));
   const file = join(root, SEED_FACTS_FILE);
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, `${JSON.stringify(facts, null, 2)}\n`);

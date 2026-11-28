@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  SEED_FACT_QUERIES,
   UsageError,
   makeReviewCode,
   parseStackArgs,
+  readSeedFacts,
   reviewSignInEmails,
   stackBuckets,
   stackDatabaseName,
@@ -10,7 +12,9 @@ import {
   stackEnv,
   stackServerUrl,
   stackStoreEndpoint,
+  seedFactScript,
 } from './e2e-stack.ts';
+import type { SeedFactKey, SeedFactQuery } from './e2e-stack.ts';
 
 const BASE = { PATH: '/bin' };
 
@@ -211,5 +215,111 @@ describe('stackEnv', () => {
     expect(env.SHELL).toBeUndefined();
     expect('LANG' in env).toBe(false);
     expect('TMPDIR' in env).toBe(false);
+  });
+});
+
+/** A statement with every run of whitespace collapsed to one space. */
+function collapsed(sql: string): string {
+  return sql.replace(/\s+/g, ' ').trim();
+}
+
+/** Answers each fact's statement from fixed rows, and records the parameters it was given. */
+function fakeQuery(
+  rows: Readonly<Record<SeedFactKey, readonly Record<string, unknown>[]>>,
+  asked: { key: SeedFactKey; params: readonly string[] }[] = [],
+): SeedFactQuery {
+  return (key, params) => {
+    asked.push({ key, params });
+    return Promise.resolve(rows[key]);
+  };
+}
+
+/** Rows a fixture database would give: a district id and point, and two office slugs. */
+const FIXTURE_ROWS = {
+  durhamPoint: [{ district_id: '00000000-0000-4000-8000-000000000001', lat: 36.03, lng: -78.87 }],
+  officeWithDeadline: [{ slug: 'zz-fixture-office-with-deadline' }],
+  officeNotKnown: [{ slug: 'zz-fixture-office-not-known' }],
+} as const;
+
+describe('the seed facts', () => {
+  it('seed fact queries are complete', () => {
+    expect(Object.keys(SEED_FACT_QUERIES).sort()).toEqual([
+      'durhamPoint',
+      'officeNotKnown',
+      'officeWithDeadline',
+    ]);
+    const point = collapsed(SEED_FACT_QUERIES.durhamPoint);
+    expect(point).toContain('d.id as district_id');
+    expect(point).toContain('as lat');
+    expect(point).toContain('as lng');
+    for (const key of ['officeWithDeadline', 'officeNotKnown'] as const) {
+      const sql = collapsed(SEED_FACT_QUERIES[key]);
+      expect(sql, key).toContain('o.retired_at is null');
+      expect(sql, key).toContain('dc.id = $1');
+    }
+    const notKnown = collapsed(SEED_FACT_QUERIES.officeNotKnown);
+    expect(notKnown).toContain('o.pay_annual_cents is null');
+    expect(notKnown).toContain('o.pay_amount_cents is null');
+    expect(notKnown).toContain("o.pay_kind is distinct from 'none'");
+    // Every value is bound: no statement holds a placeholder of a template or a quoted parameter.
+    for (const sql of Object.values(SEED_FACT_QUERIES)) {
+      expect(sql).not.toContain('${');
+      expect(sql).not.toMatch(/'\$\d/);
+    }
+  });
+
+  it('officeWithDeadline does not read next_filing_deadline', () => {
+    const sql = collapsed(SEED_FACT_QUERIES.officeWithDeadline);
+    expect(sql).not.toContain('next_filing_deadline');
+    expect(sql).not.toContain('next_election_id');
+    for (const part of [
+      'from elections e',
+      'e.retired_at is null',
+      "e.kind not in ('primary_runoff', 'general_runoff')",
+      'e.filing_deadline >= t.today',
+      'e.filing_deadline is null and e.election_date > t.today',
+      'coalesce(e.filing_deadline, e.election_date), e.election_date',
+      "array['primary', 'general', 'special', 'primary_runoff', 'general_runoff']",
+      'ne.filing_deadline is not null',
+      'order by ne.filing_deadline, o.slug',
+    ]) {
+      expect(sql).toContain(part);
+    }
+  });
+
+  it('reads the three facts and binds the district to the two offices', async () => {
+    const asked: { key: SeedFactKey; params: readonly string[] }[] = [];
+    expect(await readSeedFacts(fakeQuery(FIXTURE_ROWS, asked))).toEqual({
+      durhamPoint: { lat: 36.03, lng: -78.87 },
+      officeWithDeadline: 'zz-fixture-office-with-deadline',
+      officeNotKnown: 'zz-fixture-office-not-known',
+    });
+    const district = FIXTURE_ROWS.durhamPoint[0].district_id;
+    expect(asked).toEqual([
+      { key: 'durhamPoint', params: [] },
+      { key: 'officeWithDeadline', params: [district] },
+      { key: 'officeNotKnown', params: [district] },
+    ]);
+  });
+
+  it('a missing fact stops the stack', async () => {
+    await expect(readSeedFacts(fakeQuery({ ...FIXTURE_ROWS, officeNotKnown: [] }))).rejects.toThrow(
+      'seed fact officeNotKnown not found',
+    );
+    await expect(
+      readSeedFacts(fakeQuery({ ...FIXTURE_ROWS, officeWithDeadline: [] })),
+    ).rejects.toThrow(
+      'seed fact officeWithDeadline not found: an office in Durham County whose next fileable election has a filing deadline today or later',
+    );
+    await expect(readSeedFacts(fakeQuery({ ...FIXTURE_ROWS, durhamPoint: [] }))).rejects.toThrow(
+      'seed fact durhamPoint not found: the Durham County district with a label point',
+    );
+  });
+
+  it('prepares the statement and passes each value as a psql variable', () => {
+    const script = seedFactScript('select 1 where $1 = $2', 2);
+    expect(script).toContain('prepare seed_fact as select');
+    expect(script).toContain("execute seed_fact(:'p1', :'p2');");
+    expect(seedFactScript('select 1', 0)).toContain('execute seed_fact;');
   });
 });
