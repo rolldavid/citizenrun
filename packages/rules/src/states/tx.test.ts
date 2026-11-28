@@ -497,3 +497,164 @@ describe('TX deadline rules: the cases of the state', () => {
     });
   });
 });
+
+type KeyGroup = {
+  readonly keys: readonly string[];
+  readonly office: Pick<
+    OfficeRef,
+    'officeTypeId' | 'jurisdictionKind' | 'partisan' | 'schedule' | 'trackSet'
+  >;
+  readonly years: readonly number[];
+  readonly citation: string;
+};
+
+const COUNCIL_MAY = {
+  officeTypeId: 'city-council',
+  jurisdictionKind: 'city',
+  partisan: false,
+  schedule: 'tx_uniform_may',
+  trackSet: 'tx_local',
+} as const;
+const COUNCIL_NOVEMBER = { ...COUNCIL_MAY, schedule: 'tx_uniform_november' } as const;
+const COMMISSIONER = {
+  officeTypeId: 'county-commission',
+  jurisdictionKind: 'county',
+  partisan: true,
+  schedule: 'tx_county_general',
+  trackSet: 'tx_partisan',
+} as const;
+
+/**
+ * The election years of each by-district template key from 2026 to 2031, read by hand: the
+ * Secretary of State's 2026 and 2024 lists of offices up for election (commissioners), Dallas City
+ * Charter ch. IV § 3 (each odd-numbered year), Austin's November 2026 election page and charter
+ * art. III § 2(A) (the other half two years later), El Paso City Charter § 2.1.
+ */
+const TX_KEY_YEARS: readonly KeyGroup[] = [
+  {
+    keys: ['county-commissioner-precinct-2', 'county-commissioner-precinct-4'],
+    office: COMMISSIONER,
+    years: [2026, 2030],
+    citation: 'Texas Secretary of State, Offices up for election in 2026',
+  },
+  {
+    keys: ['county-commissioner-precinct-1', 'county-commissioner-precinct-3'],
+    office: COMMISSIONER,
+    years: [2028],
+    citation: 'Texas Secretary of State, Offices up for election in 2024',
+  },
+  {
+    keys: ['dallas-council'],
+    office: COUNCIL_MAY,
+    years: [2027, 2029, 2031],
+    citation: 'Dallas City Charter ch. IV, § 3',
+  },
+  {
+    keys: [1, 3, 5, 8, 9].map((n) => `austin-council-district-${String(n)}`),
+    office: COUNCIL_NOVEMBER,
+    years: [2026, 2030],
+    citation: 'City of Austin, City Clerk, November 2026 Election',
+  },
+  {
+    keys: [2, 4, 6, 7, 10].map((n) => `austin-council-district-${String(n)}`),
+    office: COUNCIL_NOVEMBER,
+    years: [2028],
+    citation: 'Austin City Charter art. III, § 2(A)',
+  },
+  {
+    keys: [1, 5, 6, 8].map((n) => `el-paso-council-district-${String(n)}`),
+    office: COUNCIL_NOVEMBER,
+    years: [2026, 2030],
+    citation: 'El Paso City Charter § 2.1',
+  },
+  {
+    keys: [2, 3, 4, 7].map((n) => `el-paso-council-district-${String(n)}`),
+    office: COUNCIL_NOVEMBER,
+    years: [2028],
+    citation: 'El Paso City Charter § 2.1',
+  },
+];
+
+function generalYears(entry: OfficeRef, from: number, to: number): number[] {
+  const years: number[] = [];
+  for (let year = from; year <= to; year++) {
+    if (txRules.contests({ office: entry, year }).some((c) => c.kind === 'general')) {
+      years.push(year);
+    }
+  }
+  return years;
+}
+
+describe('TX by-district offices by template key (D-894)', () => {
+  it('each key has contests only in its cited years', async () => {
+    await eachZone(() => {
+      for (const group of TX_KEY_YEARS) {
+        for (const templateKey of group.keys) {
+          const entry = office({ ...group.office, templateKey });
+          expect(generalYears(entry, 2026, 2031)).toEqual(group.years);
+          for (let year = 2026; year <= 2031; year++) {
+            const contests = txRules.contests({ office: entry, year });
+            if (!group.years.includes(year)) {
+              expect(contests).toEqual([]);
+            }
+          }
+        }
+      }
+    });
+  });
+
+  it('a keyed commissioner keeps the primaries and runoffs of its years', async () => {
+    await eachZone(() => {
+      const entry = office({ ...COMMISSIONER, templateKey: 'county-commissioner-precinct-2' });
+      const kinds = txRules.contests({ office: entry, year: 2026 }).map((c) => c.kind);
+      expect(kinds).toEqual(['primary', 'primary', 'primary_runoff', 'primary_runoff', 'general']);
+      // The primary keeps its statute's citation; the general cites the year's source.
+      const contests = txRules.contests({ office: entry, year: 2026 });
+      expect(contests[0]?.dateCitation.citation).toBe('Tex. Elec. Code § 41.007(a)');
+      expect(contests[4]?.date).toBe('2026-11-03');
+    });
+  });
+
+  it('a key with no cycle keeps the current behaviour', async () => {
+    await eachZone(() => {
+      expect(
+        generalYears(office({ ...COUNCIL_NOVEMBER, templateKey: 'houston-council' }), 2026, 2031),
+      ).toEqual([2026, 2027, 2028, 2029, 2030, 2031]);
+      expect(
+        generalYears(office({ ...COUNCIL_MAY, templateKey: 'fort-worth-council' }), 2026, 2031),
+      ).toEqual([2026, 2027, 2028, 2029, 2030, 2031]);
+      expect(
+        generalYears(office({ ...COMMISSIONER, templateKey: 'county-commissioner' }), 2026, 2031),
+      ).toEqual([2026, 2028, 2030]);
+    });
+  });
+
+  it('each keyed general cites its source with an https link and a quote', async () => {
+    await eachZone(() => {
+      for (const group of TX_KEY_YEARS) {
+        for (const templateKey of group.keys) {
+          for (const year of group.years) {
+            const general = txRules
+              .contests({ office: office({ ...group.office, templateKey }), year })
+              .find((c) => c.kind === 'general');
+            expect(general?.dateCitation.citation).toBe(group.citation);
+            expect(general?.dateCitation.sourceUrl).toMatch(/^https:\/\//);
+            expect(general?.dateCitation.quote.length).toBeGreaterThan(20);
+          }
+        }
+      }
+    });
+  });
+
+  it('a keyed office files on the same deadline as any other', async () => {
+    await eachZone(() => {
+      const contest: ContestRef = { date: '2027-05-01', kind: 'general', party: null };
+      expect(
+        txRules.filingTracks({
+          office: office({ ...COUNCIL_MAY, templateKey: 'dallas-council' }),
+          contest,
+        }),
+      ).toEqual(txRules.filingTracks({ office: office({ ...COUNCIL_MAY }), contest }));
+    });
+  });
+});
