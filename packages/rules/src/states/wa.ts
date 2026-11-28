@@ -150,7 +150,7 @@ function primaryDay(year: number): IsoDate {
   return nthWeekdayOfMonth(year, 8, TUESDAY, 1);
 }
 
-/** The August primary (top-two: party null, never electing outright, R-016) and the November general. */
+/** The August primary (top-two: party null, never electing outright) and the November general. */
 function primaryAndGeneral(year: number, generalCitation: Citation): readonly ContestOut[] {
   return [
     {

@@ -1,6 +1,6 @@
 # Texas office template (PIPE-template-schema), D-080's scope: counties, cities, school districts,
 # the legislature, statewide offices and the party offices on the primary ballot. Every special
-# district gets its placeholder (R-012). County pay is set by each commissioners court
+# district gets its placeholder. County pay is set by each commissioners court
 # (Tex. Local Gov't Code § 152.013).
 schema_version: 1
 state: TX
