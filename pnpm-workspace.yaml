@@ -43,5 +43,7 @@ overrides:
   # eslint-config-expo registers its own @typescript-eslint plugin; ESLint refuses two instances.
   '@typescript-eslint/eslint-plugin': 8.72.2
   '@typescript-eslint/parser': 8.72.2
+  # expo-atlas asks for an older expo-server than Expo's own; expo-doctor refuses two copies.
+  'expo-atlas>expo-server': ^58.1.0
 
 engineStrict: true
