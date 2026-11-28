@@ -258,4 +258,20 @@ describe('staging', () => {
     ]);
     expect(report.duplicateKeys).toEqual([{ file: 'elections', line: elections.length }]);
   });
+
+  it('analyzes the staged rows before it looks for duplicate keys', async () => {
+    const db = getTestDb();
+    const [start] = await db.execute<{ now: string }>(sql`select now()::text as now`, 'objects');
+    const { manifest, reader } = await written({
+      version: '20270115T060000Z-full',
+      files: zzBundle({ today: TODAY }),
+    });
+    await stageFullFiles(db, reader, manifest, BUNDLE_A);
+    const [stat] = await db.execute<{ analyzed: boolean }>(
+      sql`select coalesce(last_analyze > ${start?.now ?? ''}::timestamptz, false) as analyzed
+          from pg_stat_user_tables where schemaname = 'staging' and relname = 'bundle_rows'`,
+      'objects',
+    );
+    expect(stat?.analyzed).toBe(true);
+  });
 });

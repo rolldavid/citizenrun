@@ -136,6 +136,9 @@ async function recordDuplicates(
   if (room <= 0) {
     return;
   }
+  // A new bundle's rows have no planner statistics yet; without them this check plans as a nested
+  // loop over the whole file and runs for many minutes on a national bundle.
+  await db.execute(sql`analyze staging.bundle_rows`);
   // index: bundle_rows_key
   const rows = await db.execute<{ line: number }>(
     sql`select line from staging.bundle_rows b
