@@ -32,6 +32,23 @@ const VALUE_END: ViewStyle = { flexShrink: 1, alignItems: 'flex-end' };
 const VALUE_START: ViewStyle = { alignItems: 'flex-start' };
 const WITH_CHEVRON: ViewStyle = { flexDirection: 'row', alignItems: 'center', gap: space.x2 };
 const WORDS: ViewStyle = { flex: 1, minWidth: 0 };
+// Out of the row's layout, so a word space takes no room in it.
+const WORD_SPACE: ViewStyle = { position: 'absolute' };
+
+/**
+ * A space between the label and the value. Each stands in a box of its own with nothing between
+ * them in the page's text, where the label's last word would run into the value's first word and
+ * the row's text would not read as its name does. It draws nothing and no screen reader meets it.
+ */
+function WordSpace(): JSX.Element {
+  return (
+    <View style={WORD_SPACE}>
+      <Text role="caption" hidden={true}>
+        {' '}
+      </Text>
+    </View>
+  );
+}
 
 /**
  * C-FactRow: a label and its value, on a soft rule. The row itself says "about" before an
@@ -57,6 +74,7 @@ export function FactRow({ label, value, onPress, testID }: FactRowProps): JSX.El
           {label}
         </Text>
       </View>
+      <WordSpace />
       <View style={stacked ? VALUE_START : VALUE_END}>
         {drawn === null ? (
           <Tag variant="unknown" />

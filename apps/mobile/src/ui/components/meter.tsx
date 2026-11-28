@@ -51,6 +51,23 @@ const PAGE_ROW: ViewStyle = {
 const PAGE_PHRASE: ViewStyle = { flex: 1, minWidth: 0 };
 const PIPS: ViewStyle = { flexDirection: 'row', gap: space.pip };
 const PIP: ViewStyle = { flex: 1, borderRadius: radius.none };
+// Out of the meter's layout, so a word space takes no room in it.
+const WORD_SPACE: ViewStyle = { position: 'absolute' };
+
+/**
+ * A space between the name and the phrase. Each stands in a box of its own with nothing between
+ * them in the page's text, where the name would run into the phrase's first word and the meter's
+ * text would not read as its name does. It draws nothing and no screen reader meets it.
+ */
+function WordSpace(): JSX.Element {
+  return (
+    <View style={WORD_SPACE}>
+      <Text role="caption" hidden={true}>
+        {' '}
+      </Text>
+    </View>
+  );
+}
 
 /** The top of a score's range. */
 const SCORE_MAX = 100;
@@ -144,6 +161,7 @@ export function Meter({
             </View>
             <Icon name="chevronRight" size="small" tone="secondary" />
           </View>
+          <WordSpace />
           <Pips lit={lit} height={size.meterPipFeed} cutOn={cutOn} />
           <View style={FEED_PHRASE}>
             <Text role="label">{words}</Text>
@@ -167,6 +185,7 @@ export function Meter({
       <View style={PAGE}>
         <View style={PAGE_ROW}>
           <Text role="monoLabel">{name}</Text>
+          <WordSpace />
           <View style={PAGE_PHRASE}>
             <Text role="label" align="end">
               {words}

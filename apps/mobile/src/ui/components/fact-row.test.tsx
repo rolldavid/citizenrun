@@ -102,7 +102,7 @@ describe('FactRow', () => {
           const value = within(row).getByText(SHOWN[state]);
           expect(value.style.color, name).toBe(written(color[theme].text));
           // Never a dash and never a blank where the value is.
-          expect(row.textContent, name).toBe(`${ALL[state].label}${SHOWN[state]}`);
+          expect(row.textContent, name).toBe(`${ALL[state].label} ${SHOWN[state]}`);
         }
       }
     }
@@ -183,7 +183,7 @@ describe('FactRow', () => {
     expect(within(row).getByText('about 4 years')).toBeTruthy();
     // An unknown value is never an estimate of nothing.
     const none = draw({ ...STATES.known, value: { text: null, about: true } });
-    expect(none.textContent).toBe(`Term${UNKNOWN}`);
+    expect(none.textContent).toBe(`Term ${UNKNOWN}`);
   });
 
   it('estimate at full contrast', () => {
@@ -237,8 +237,36 @@ describe('FactRow', () => {
     expect(within(stacked).getByText(SHOWN.longValue).style.textAlign).toBe('left');
     expect([...(line?.children ?? [])].map((part) => part.textContent)).toEqual([
       STATES.longValue.label,
+      ' ',
       SHOWN.longValue,
     ]);
+  });
+
+  it('the label and the value read as separate words, in the order of its name', () => {
+    setViewport(...COMPACT);
+    // The words of a text: letters and digits, apart at anything else.
+    const words = (text: string | null): string[] =>
+      (text ?? '')
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((word) => word !== '');
+    for (const scale of [1, 1.3]) {
+      for (const state of STATE_NAMES) {
+        const name = `${state} ${String(scale)}`;
+        const row = draw(ALL[state], { textScale: scale });
+        expect(row.textContent, name).toBe(`${ALL[state].label} ${SHOWN[state]}`);
+        if (ALL[state].onPress !== undefined) {
+          // A pressable row's name holds the words it shows, one after another.
+          expect(words(row.getAttribute('aria-label')), name).toEqual(words(row.textContent));
+        }
+        // The space is out of the row's layout and hidden from a screen reader.
+        const spaces = [...row.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].filter(
+          (part) => part.textContent === ' ',
+        );
+        expect(spaces, name).toHaveLength(1);
+        expect(spaces[0]?.parentElement?.style.position, name).toBe('absolute');
+      }
+    }
   });
 
   it('a pressable row needs a testID', () => {

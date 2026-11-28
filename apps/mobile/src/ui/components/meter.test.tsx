@@ -327,7 +327,36 @@ describe('Meter', () => {
       expect(pip.style.borderTopWidth).toBe(`${String(rule.hairline)}px`);
     }
     expect(within(meter).getByText(UNKNOWN)).toBeDefined();
-    expect(meter.textContent).toBe(`Ease${UNKNOWN}`);
+    expect(meter.textContent).toBe(`Ease ${UNKNOWN}`);
+  });
+
+  it('the name and the phrase read as separate words, in the order of its label', () => {
+    // The words of a text: letters and digits, apart at anything else.
+    const words = (text: string | null): string[] =>
+      (text ?? '')
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((word) => word !== '');
+    for (const [state, props] of Object.entries(ALL)) {
+      const meter = draw(props);
+      const phrase = props.score === null || props.phrase === null ? UNKNOWN : props.phrase;
+      expect(meter.textContent, state).toBe(`${props.name} ${phrase}`);
+      // The label holds the words the meter shows, one after another, then the count.
+      const shown = words(meter.textContent);
+      const label = words(meter.getAttribute('aria-label'));
+      expect(label.slice(0, shown.length), state).toEqual(shown);
+      expect(label.slice(shown.length), state).toEqual([
+        String(pipsOf(meter).filter(isLit).length),
+        'of',
+        '10',
+      ]);
+      // The space is out of the meter's layout and hidden from a screen reader.
+      const spaces = [...meter.querySelectorAll<HTMLElement>('[aria-hidden="true"]')].filter(
+        (part) => part.textContent === ' ',
+      );
+      expect(spaces, state).toHaveLength(1);
+      expect(spaces[0]?.parentElement?.style.position, state).toBe('absolute');
+    }
   });
 
   it('page form expands', () => {
