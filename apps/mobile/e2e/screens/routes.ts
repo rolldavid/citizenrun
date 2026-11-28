@@ -1951,6 +1951,28 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
     prepare: openOfficeReport,
   },
+  // The officeholder page, in the app's shell with no item lit.
+  { id: 'c-slug-person-loading', path: '/dev/screens/c-slug/personLoading', auth: 'none' },
+  { id: 'c-slug-person-error', path: '/dev/screens/c-slug/personError', auth: 'none' },
+  { id: 'c-slug-person-offline', path: '/dev/screens/c-slug/personOffline', auth: 'none' },
+  {
+    id: 'c-slug-person-officeholder',
+    path: '/dev/screens/c-slug/personOfficeholder',
+    auth: 'none',
+  },
+  { id: 'c-slug-person-stale', path: '/dev/screens/c-slug/personStale', auth: 'none' },
+  { id: 'c-slug-person-not-found', path: '/dev/screens/c-slug/personNotFound', auth: 'none' },
+  { id: 'c-slug-person-no-photo', path: '/dev/screens/c-slug/personNoPhoto', auth: 'none' },
+  { id: 'c-slug-person-photo-credit', path: '/dev/screens/c-slug/personPhotoCredit', auth: 'none' },
+  { id: 'c-slug-person-from-filings', path: '/dev/screens/c-slug/personFromFilings', auth: 'none' },
+  { id: 'c-slug-person-retired', path: '/dev/screens/c-slug/personRetired', auth: 'none' },
+  { id: 'c-slug-person-all-unknown', path: '/dev/screens/c-slug/personAllUnknown', auth: 'none' },
+  { id: 'c-slug-person-long-name', path: '/dev/screens/c-slug/personLongName', auth: 'none' },
+  {
+    id: 'c-slug-person-text-scale',
+    path: '/dev/screens/c-slug/personTextScale?textScale=1.3',
+    auth: 'none',
+  },
   // The settings screens, in the app's shell with Profile active. A sheet or a dialog is captured
   // once it is where it rests; the issues screen's limit lines and its tight layout are drawn as
   // the sign-up step's are.

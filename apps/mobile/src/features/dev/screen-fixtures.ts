@@ -21,6 +21,7 @@ import {
   locationFixtures,
   photoFixtures,
 } from '@/features/onboarding';
+import { PersonScreenView, personFixtures } from '@/features/profile';
 import {
   SettingsAboutScreenView,
   SettingsAccountScreenView,
@@ -152,6 +153,8 @@ export const SCREEN_FIXTURES: Readonly<Record<string, ScreenRegistryEntry>> = {
     { mode: 'app', active: null },
     { now: OFFICE_FIXTURE_TIME },
   ),
+  // A pushed page too: the officeholder page keeps no navigation item lit on a direct load.
+  'c-slug': defineScreen(PersonScreenView, personFixtures, { mode: 'app', active: null }),
   welcome: defineScreen(WelcomeScreenView, welcomeFixtures, { mode: 'bare' }),
   'sign-in': defineScreen(SignInScreenView, signInFixtures, { mode: 'bare' }),
   // The re-authentication sheet is a view of its own, drawn over the route's ground.
