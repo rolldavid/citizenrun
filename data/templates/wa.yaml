@@ -1242,6 +1242,62 @@ federal:
     track_set: wa_filing_week
 county_sets: []
 special_districts:
+  - key: public-utility-district
+    enabling_statute:
+      value: Title 54 RCW
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=54.12.010'
+      quote: 'A public utility district that is created as provided in RCW 54.08.010 shall be a municipal corporation of the state of Washington'
+      citation: RCW 54.12.010
+    elected:
+      value: true
+      source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=54.12.010'
+      quote: 'Voters of the entire public utility district may vote at a general election to elect a person as a commissioner of the commissioner district.'
+      citation: RCW 54.12.010
+    classifier:
+      function_names:
+        - 92 - ELECTRIC POWER UTILITY
+        - 91 - WATER SUPPLY UTILITY
+        - 99 - OTHER MULTI-FUNCTION DISTRICTS
+      name_patterns:
+        - \bpublic utility district\b
+    offices:
+      - key: pud-commissioner
+        office_type: public-power-board
+        applies_to: null
+        title: '{jurisdiction} Commissioner, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 3
+            source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=54.12.010'
+            quote: 'The powers of the public utility district shall be exercised through a commission consisting of three members in three commissioner districts, and five members in five commissioner districts.'
+            citation: RCW 54.12.010
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 6
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=54.12.010'
+          quote: 'The term of office of each public utility district commissioner other than the commissioners at large shall be six years'
+          citation: RCW 54.12.010
+        term_limit_terms: null
+        schedule: wa_public_utility_district
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
   - key: fire-protection-district
     enabling_statute:
       value: Title 52 RCW
