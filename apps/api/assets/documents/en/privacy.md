@@ -1,5 +1,5 @@
 ---
-version: 2026-11-25
+version: 2026-11-27
 title: Privacy policy
 description: How {{appName}} collects, uses, shares and deletes your data.
 ---

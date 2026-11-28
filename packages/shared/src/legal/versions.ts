@@ -4,8 +4,8 @@
  */
 export const LEGAL_VERSIONS = {
   terms: '2026-11-25',
-  content_policy: '2026-11-25',
-  privacy_policy: '2026-11-25',
+  content_policy: '2026-11-27',
+  privacy_policy: '2026-11-27',
 } as const;
 
 export type LegalVersions = typeof LEGAL_VERSIONS;

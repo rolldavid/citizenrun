@@ -1,5 +1,5 @@
 ---
-version: 2026-11-25
+version: 2026-11-27
 title: Content policy
 description: What may be posted on {{appName}} and what is removed.
 ---
