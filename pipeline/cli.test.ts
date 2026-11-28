@@ -2,6 +2,8 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { SampleTooLarge } from './bundle/sample.ts';
+import type { SampleOptions } from './bundle/sample.ts';
 import type { BundleRunResult } from './bundle/writer.ts';
 import { commandNames, defaultCliDeps, main } from './cli.ts';
 import type { BundleOptions, CliDeps } from './cli.ts';
@@ -83,6 +85,7 @@ describe('the command line', () => {
         'deadlines',
         'people',
         'bundle',
+        'sample-bundle',
         'snapshots',
         'reachability',
         'fetch',
@@ -195,6 +198,60 @@ describe('templates --check', () => {
     expect(await main(['templates', '--check', '--state', 'NC'], deps)).toBe(2);
     expect(await main(['bundle', '--check'], deps)).toBe(2);
     expect(await main(['templates', '--check', '--check'], deps)).toBe(2);
+  });
+});
+
+describe('sample-bundle', () => {
+  it('sample-bundle without --out exits 2', async () => {
+    let calls = 0;
+    const { deps } = fixtureDeps({
+      buildSample: () => {
+        calls += 1;
+        return Promise.reject(new Error('not called without --out'));
+      },
+    });
+    expect(await main(['sample-bundle'], deps)).toBe(2);
+    expect(await main(['sample-bundle', '--out'], deps)).toBe(2);
+    expect(await main(['sample-bundle', '--out', dir, '--state', 'NC'], deps)).toBe(2);
+    expect(calls).toBe(0);
+  });
+
+  it('builds the two-state sample into --out and maps a too-large folder to 1', async () => {
+    const seen: SampleOptions[] = [];
+    const built = fixtureDeps({
+      buildSample: (_ctx, opts) => {
+        seen.push(opts);
+        return Promise.resolve({
+          fullVersion: 'sample-20261126T090700Z-full',
+          geometryVersion: 'sample-20261126T090700Z-geometry',
+          bytes: 1000,
+          stateGeometryReplaced: false,
+          rows: {},
+          photos: 0,
+        });
+      },
+    });
+    expect(await main(['sample-bundle', '--out', dir], built.deps)).toBe(0);
+    expect(seen).toEqual([
+      expect.objectContaining({
+        outDir: dir,
+        counties: ['37063', '37135', '53067', '53045'],
+        states: ['NC', 'WA'],
+        maxBytes: 25_000_000,
+      }),
+    ]);
+    expect(seen[0]?.gitSha).toMatch(/^[0-9a-f]{40}$/);
+    expect(events(built.lines, 'sample.result')).toEqual([
+      expect.objectContaining({ status: 'built', fullVersion: 'sample-20261126T090700Z-full' }),
+    ]);
+
+    const large = fixtureDeps({
+      buildSample: () => Promise.reject(new SampleTooLarge(25_000_001, 25_000_000)),
+    });
+    expect(await main(['sample-bundle', '--out', 'relative/folder'], large.deps)).toBe(1);
+    expect(events(large.lines, 'sample.result')).toEqual([
+      expect.objectContaining({ status: 'too_large', bytes: 25_000_001 }),
+    ]);
   });
 });
 

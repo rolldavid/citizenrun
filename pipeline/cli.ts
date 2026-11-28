@@ -1,7 +1,7 @@
 // The pipeline's command line: pnpm run pipeline <command> [--state <ST,ST|all>] [--dry-run]
 // [--plan-out <path>]. The only file of the package that writes to the console.
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rulesFor } from '@citizenrun/rules';
 import { createLogger } from '@citizenrun/shared';
@@ -9,6 +9,15 @@ import type { LogLevel, Logger } from '@citizenrun/shared';
 import { z } from 'zod';
 import { defaultBundleDeps, runBundle } from './bundle/writer.ts';
 import type { BundleDeps, BundleRunResult } from './bundle/writer.ts';
+import {
+  SAMPLE_COUNTIES,
+  SAMPLE_MAX_BYTES,
+  SAMPLE_STATES,
+  SampleSourceMissing,
+  SampleTooLarge,
+  buildSample,
+} from './bundle/sample.ts';
+import type { SampleOptions, SampleResult } from './bundle/sample.ts';
 import { runSnapshots, snapshotsExitCode } from './crawlers/archiver.ts';
 import { EnvError, loadEnv } from './env.ts';
 import type { PipelineEnv } from './env.ts';
@@ -64,6 +73,8 @@ export type CliDeps = {
     deps: BundleDeps,
   ) => Promise<BundleRunResult>;
   readonly bundleDeps: () => BundleDeps;
+  /** `sample-bundle`: the builder of B-sample. */
+  readonly buildSample: (ctx: RunContext, opts: SampleOptions) => Promise<SampleResult>;
   readonly loadEnv: (log: Logger) => PipelineEnv;
   readonly makeLogger: (level: LogLevel) => Logger;
   /** The fetcher of a command that makes requests; null only in tests that make none. */
@@ -230,6 +241,63 @@ function bundleCommand(deps: CliDeps): Command {
   };
 }
 
+const SAMPLE_USAGE = 'sample-bundle --out <dir>';
+
+/**
+ * `sample-bundle --out <dir>`: B-sample's builder over the pipeline's home. A relative `--out` is
+ * resolved against the repository root. Exit 1 when the folder is too large or the source missing.
+ */
+function sampleCommand(deps: CliDeps): Command {
+  return {
+    name: 'sample-bundle',
+    usage: SAMPLE_USAGE,
+    needsFetcher: () => false,
+    async run(ctx, args) {
+      const out = args.flags.get('out');
+      if (
+        out === undefined ||
+        out === '' ||
+        args.states !== null ||
+        args.dryRun ||
+        [...args.flags.keys()].some((flag) => flag !== 'out')
+      ) {
+        console.error(`usage: pnpm run pipeline ${SAMPLE_USAGE}`);
+        return 2;
+      }
+      const root = repoRoot();
+      try {
+        const result = await deps.buildSample(ctx, {
+          outDir: isAbsolute(out) ? out : resolve(root, out),
+          counties: SAMPLE_COUNTIES,
+          states: SAMPLE_STATES,
+          maxBytes: SAMPLE_MAX_BYTES,
+          now: ctx.now,
+          gitSha: await deps.bundleDeps().gitSha(root),
+        });
+        ctx.log.info('sample.result', {
+          status: 'built',
+          fullVersion: result.fullVersion,
+          geometryVersion: result.geometryVersion,
+          bytes: result.bytes,
+          photos: result.photos,
+          stateGeometryReplaced: result.stateGeometryReplaced,
+        });
+        return 0;
+      } catch (error) {
+        if (error instanceof SampleTooLarge) {
+          ctx.log.error('sample.result', { status: 'too_large', bytes: error.bytes });
+          return 1;
+        }
+        if (error instanceof SampleSourceMissing) {
+          ctx.log.error('sample.result', { status: 'source_missing', reason: error.message });
+          return 1;
+        }
+        throw error;
+      }
+    },
+  };
+}
+
 function buildCommands(deps: CliDeps): readonly Command[] {
   const { stages } = deps;
   return [
@@ -261,6 +329,7 @@ function buildCommands(deps: CliDeps): readonly Command[] {
       module: stages.people,
     }),
     bundleCommand(deps),
+    sampleCommand(deps),
     {
       name: 'datasets seed',
       usage: SEED_LINE,
@@ -474,6 +543,7 @@ export function defaultCliDeps(): CliDeps {
     },
     runBundle,
     bundleDeps: defaultBundleDeps,
+    buildSample,
     loadEnv: () => loadEnv(),
     makeLogger: (level) => createLogger({ service: 'pipeline', level }),
     async makeFetcher(env, bucket, log) {
