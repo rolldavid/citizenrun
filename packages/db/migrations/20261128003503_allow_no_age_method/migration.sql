@@ -1,5 +1,3 @@
-ALTER TABLE "state_rules" ALTER COLUMN "age_method" SET DEFAULT 'store_signal_or_none';--> statement-breakpoint
 ALTER TABLE "users" DROP CONSTRAINT "users_age_method_check", ADD CONSTRAINT "users_age_method_check" CHECK ("age_method" in ('store_signal', 'self_declared', 'none'));--> statement-breakpoint
 ALTER TABLE "users" DROP CONSTRAINT "users_age_record_check", ADD CONSTRAINT "users_age_record_check" CHECK (case when "age_method" is null then num_nulls("age_result", "age_source_tier", "age_checked_at") = 3 when "age_method" = 'none' then "age_result" is null and "age_source_tier" is null and "age_checked_at" is not null else num_nulls("age_result", "age_source_tier", "age_checked_at") = 0 end);--> statement-breakpoint
-ALTER TABLE "state_rules" DROP CONSTRAINT "state_rules_age_method_check", ADD CONSTRAINT "state_rules_age_method_check" CHECK ("age_method" in ('store_signal_required', 'store_signal_or_dob', 'store_signal_or_none'));--> statement-breakpoint
-update state_rules set age_method = 'store_signal_or_none' where age_method = 'store_signal_or_dob';
+ALTER TABLE "state_rules" DROP CONSTRAINT "state_rules_age_method_check", ADD CONSTRAINT "state_rules_age_method_check" CHECK ("age_method" in ('store_signal_required', 'store_signal_or_dob', 'store_signal_or_none'));

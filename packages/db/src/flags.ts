@@ -19,8 +19,9 @@ export type FlagReader = {
   stateRulesAtLaunchDefault(): Promise<boolean>;
 };
 
-// `store_signal_or_dob` is the earlier name of `store_signal_or_none` (D-897). The table still accepts
-// it, because a version of the code that knows only that name may write it, and it reads as the new one.
+// `store_signal_or_dob` is the earlier name of `store_signal_or_none` (D-897). The table still stores
+// the default under it, because the previous version of the code knows only that name, and it reads as
+// the new one.
 type StoredAgeMethod = StateAgeMethod | 'store_signal_or_dob';
 
 type StateRuleDbRow = {

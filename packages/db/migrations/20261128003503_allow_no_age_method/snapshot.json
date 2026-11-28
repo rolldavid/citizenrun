@@ -91,7 +91,7 @@
       "op": "alter",
       "key": "columns\u0000[\"public\",\"state_rules\",\"age_method\"]",
       "set": {
-        "default": "'store_signal_or_none'"
+        "default": "'store_signal_or_dob'"
       }
     },
     {

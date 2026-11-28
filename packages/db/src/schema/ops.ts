@@ -111,7 +111,9 @@ export const stateRules = pgTable(
   {
     state: char('state', { length: 2 }).primaryKey(),
     signup: text('signup').notNull().default('allow'),
-    ageMethod: text('age_method').notNull().default('store_signal_or_none'),
+    // Stored under its earlier name, which reads as `store_signal_or_none` (D-897): the previous
+    // code version knows only that name, and a later migration renames the stored value.
+    ageMethod: text('age_method').notNull().default('store_signal_or_dob'),
     candidateTools: boolean('candidate_tools').notNull().default(true),
     updatedBy: uuid('updated_by'),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),

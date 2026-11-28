@@ -847,11 +847,23 @@ describe('the migrations', () => {
     for (const row of found) {
       expect(row).toMatchObject({
         signup: 'allow',
-        age_method: 'store_signal_or_none',
+        age_method: 'store_signal_or_dob',
         candidate_tools: true,
         updated_by: null,
       });
     }
+  });
+
+  it('a rule is stored under the name the previous code version reads', async () => {
+    // That version compares every rule with `store_signal_or_dob`: no row and no default moves off it.
+    const [column] = await rows<{ column_default: string | null }>(
+      sql`select column_default from information_schema.columns
+          where table_schema = 'public' and table_name = 'state_rules' and column_name = 'age_method'`,
+    );
+    expect(column?.column_default).toBe("'store_signal_or_dob'::text");
+    expect(
+      await rows(sql`select state from state_rules where age_method <> 'store_signal_or_dob'`),
+    ).toEqual([]);
   });
 
   it('a state rule takes the two age methods and the earlier name of the default', async () => {
