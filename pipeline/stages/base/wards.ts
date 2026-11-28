@@ -17,7 +17,8 @@ import type { GeometryRow, LayerFeature, MultiPolygonCoords } from './geometry.t
 import { outlineFor } from './outline.ts';
 
 export const WARD_DATASET = 'ward-layers';
-const GEOJSON = /^(application\/(geo\+)?json|text\/plain)\b/i;
+/** GeoJSON's media types (RFC 7946 and the older vnd form), JSON, or plain text, D-901. */
+export const GEOJSON = /^(application\/((vnd\.)?geo\+)?json|text\/plain)\b/i;
 /** A layer larger than this is not a city's ward layer. */
 const WARD_MAX_BYTES = 50_000_000;
 
@@ -78,8 +79,10 @@ export async function wardLayerDistricts(
   if (read.features.length === 0) {
     return { layer: entry.key, reason: 'the layer has no feature' };
   }
+  const prefix = entry.label_prefix ?? '';
   const byKebab = new Map<string, LayerFeature>();
-  for (const feature of read.features) {
+  for (const raw of read.features) {
+    const feature = prefix === '' ? raw : { ...raw, namelsad: `${prefix}${raw.namelsad.trim()}` };
     const label = kebab(feature.namelsad);
     if (label === '') {
       return { layer: entry.key, reason: 'a feature has no label' };
