@@ -27,7 +27,9 @@ export type ProblemKind =
   | 'namespace'
   | 'missing-error-key'
   | 'interpolation'
-  | 'brand';
+  | 'brand'
+  | 'advocacy'
+  | 'caution';
 
 export type Problem = { kind: ProblemKind; detail: string };
 
@@ -74,6 +76,73 @@ const PLURAL = /_(?:one|other)$/;
 const SEGMENT = /^[a-z][a-zA-Z0-9]*$/;
 const LAST_SEGMENT = /^[a-z][a-zA-Z0-9]*(?:_about)?(?:_one|_other)?$/;
 const MAX_SEGMENTS = 3;
+
+/** The catalogs whose values may never urge a vote about a person (INV-28, D-356). */
+export const ADVOCACY_SCAN_NAMESPACES = ['cards', 'notifications'] as const;
+/** The words of express advocacy, whole words in any case: "re-elect" counts, "election" does not. */
+const ADVOCACY_WORDS = /\b(vote for|vote against|elect|defeat)\b/i;
+/** The one caution sentence, under its one key (D-515). */
+const CAUTION_KEY = 'common:confirmBeforeFiling';
+const CAUTION_SENTENCE = 'Confirm with your election office.';
+const CAUTION_PHRASE = 'confirm with your election office';
+/** The keys that may hold the caution inside a longer sentence. */
+const CAUTION_SENTENCE_PREFIXES: readonly string[] = ['common:ui.closing.'];
+const CAUTION_SENTENCE_KEYS: ReadonlySet<string> = new Set(['forms:packetNotice']);
+/** The keys that hold the caution itself, in an email, and must equal it exactly. */
+const CAUTION_EXACT_KEYS: ReadonlySet<string> = new Set([
+  CAUTION_KEY,
+  'notifications:emailDeadlineReminder.caution',
+  'notifications:emailDeadlineChanged.caution',
+]);
+
+/** The express-advocacy words in the scanned catalogs; each problem names the key and the word. */
+function advocacyProblems(catalogs: Catalogs): Problem[] {
+  const problems: Problem[] = [];
+  for (const namespace of ADVOCACY_SCAN_NAMESPACES) {
+    for (const [key, value] of catalogs.get(namespace) ?? []) {
+      const found = ADVOCACY_WORDS.exec(value);
+      if (found !== null) {
+        problems.push({
+          kind: 'advocacy',
+          detail: `${namespace}:${key} uses the words "${(found[1] ?? '').toLowerCase()}" (D-356)`,
+        });
+      }
+    }
+  }
+  return problems;
+}
+
+/** The caution sentence exists once, exactly, and no other wording of it is in any catalog. */
+function cautionProblems(catalogs: Catalogs): Problem[] {
+  const problems: Problem[] = [];
+  if (catalogs.get('common')?.get('confirmBeforeFiling') === undefined) {
+    problems.push({ kind: 'caution', detail: `${CAUTION_KEY} is missing (D-515)` });
+  }
+  for (const [namespace, catalog] of catalogs) {
+    for (const [key, value] of catalog) {
+      const id = `${namespace}:${key}`;
+      if (CAUTION_EXACT_KEYS.has(id)) {
+        if (value !== CAUTION_SENTENCE) {
+          problems.push({
+            kind: 'caution',
+            detail: `${id} must be exactly "${CAUTION_SENTENCE}" (D-515)`,
+          });
+        }
+        continue;
+      }
+      const allowed =
+        CAUTION_SENTENCE_KEYS.has(id) ||
+        CAUTION_SENTENCE_PREFIXES.some((prefix) => id.startsWith(prefix));
+      if (!allowed && value.toLowerCase().includes(CAUTION_PHRASE)) {
+        problems.push({
+          kind: 'caution',
+          detail: `${id} words the caution again; read ${CAUTION_KEY} (D-515)`,
+        });
+      }
+    }
+  }
+  return problems;
+}
 
 /** Flattens a catalog object to dot-path keys and their string values. */
 export function flattenCatalog(value: object, prefix = ''): Map<string, string> {
@@ -413,6 +482,7 @@ export function checkCatalogs(
       });
     }
   }
+  problems.push(...advocacyProblems(catalogs), ...cautionProblems(catalogs));
   return problems;
 }
 
