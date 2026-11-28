@@ -76,8 +76,7 @@ const CITY_PLACEHOLDERS = [
 
 /**
  * Special districts with no block, no matching name pattern, or (hospital districts) a block with
- * no default board size; and the public utility districts, whose election years no schedule of the
- * state's module serves yet.
+ * no default board size.
  */
 const SPECIAL_DISTRICT_PLACEHOLDERS = [
   'Association of Washington Cities Employee Benefit Trust Health Care',
@@ -92,8 +91,6 @@ const SPECIAL_DISTRICT_PLACEHOLDERS = [
   'Mason County Public Hospital District 1',
   'Mason County Public Hospital District No 2',
   'Mason County Public Transportation Benefit Authority',
-  'Mason County Public Utility District 1',
-  'Mason County Public Utility District 3',
   'North Mason Regional Fire Authority',
   'Olympic Region Clean Air Agency',
   'Pacific Mountain Workforce Development Council',
@@ -102,7 +99,6 @@ const SPECIAL_DISTRICT_PLACEHOLDERS = [
   'Thurston 911 Communications (TCOMM911)',
   'Thurston County (scott Lake) Drainage District 11',
   'Thurston County Narcotics Task Force',
-  'Thurston County Public Utility District 1',
   'Thurston-mason Behavioral Health Organization',
   'Washington Counties Insurance Fund',
   'Washington Counties Risk Pool',
@@ -158,19 +154,29 @@ describe('WA pilot expansion', () => {
     }
   });
 
-  it('public utility districts keep their placeholder until a schedule serves them', () => {
-    // Mason County's two and Thurston County's one, named from the capture.
+  it('public utility districts get commissioners', () => {
+    // Mason County's two and Thurston County's one, named from the capture (function names 99, 92
+    // and 91, each named a public utility district). Three commissioner districts each (RCW
+    // 54.12.010). No district's election year is cited, so no commissioner has a contest: the
+    // office stands and its next election is not known yet.
     for (const name of [
       'Mason County Public Utility District 1',
       'Mason County Public Utility District 3',
       'Thurston County Public Utility District 1',
     ]) {
       const offices = officesByName(name);
-      expect(offices.map((o) => [o.office_type_id, o.placeholder])).toEqual([
-        ['special-district-other', true],
-      ]);
+      expect(offices.map((o) => [o.office_type_id, o.title, o.seats, o.placeholder])).toEqual(
+        [1, 2, 3].map((n) => [
+          'public-power-board',
+          `${name} Commissioner, District ${String(n)}`,
+          1,
+          false,
+        ]),
+      );
+      for (const office of offices) {
+        expect(electionsOf(run, office.slug)).toEqual([]);
+      }
     }
-    expect(run.expand.offices.some((o) => o.office_type_id === 'public-power-board')).toBe(false);
   });
 
   it('every active unit of an elected type is an office holder or a placeholder', () => {
@@ -194,7 +200,7 @@ describe('WA pilot expansion', () => {
     expect(placeholderCount(run, 'county')).toBe(0);
     expect(placeholderCount(run, 'city')).toBe(7);
     expect(placeholderCount(run, 'school_district')).toBe(0);
-    expect(placeholderCount(run, 'special_district')).toBe(29);
+    expect(placeholderCount(run, 'special_district')).toBe(26);
     // The fire, water-sewer, port, park and cemetery blocks place their districts by function and name.
     expect(
       officesByName('Mason County Fire Protection District 5').map((o) => [o.title, o.seats]),

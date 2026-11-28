@@ -115,6 +115,12 @@ describe('VA pilot expansion', () => {
         ['sheriff', 'Henrico County Sheriff', false],
         ['district-attorney', "Henrico County Commonwealth's Attorney", false],
         ['county-row-other', 'Henrico County Clerk of the Circuit Court', false],
+        // The board of supervisors, one office per magisterial district (D-894).
+        ['county-commission', 'Henrico County Supervisor, Brookland', false],
+        ['county-commission', 'Henrico County Supervisor, Fairfield', false],
+        ['county-commission', 'Henrico County Supervisor, Three Chopt', false],
+        ['county-commission', 'Henrico County Supervisor, Tuckahoe', false],
+        ['county-commission', 'Henrico County Supervisor, Varina', false],
       ].sort(byTitle),
     );
     expect(officeLines(RICHMOND)).toEqual(
@@ -124,6 +130,13 @@ describe('VA pilot expansion', () => {
         ['county-treasurer', 'Richmond city Treasurer', false],
         ['county-assessor', 'Richmond city Commissioner of the Revenue', false],
         ['county-row-other', 'Richmond city Clerk of the Circuit Court', false],
+        // The ward city's mayor and its nine district council members.
+        ['mayor', 'Richmond city Mayor', false],
+        ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [
+          'city-council',
+          `Richmond city Council Member, District ${String(n)}`,
+          false,
+        ]),
       ].sort(byTitle),
     );
     // A city's officers are offices of the city, never of a county.
@@ -231,7 +244,7 @@ describe('VA pilot expansion', () => {
 
   it('every active unit of an elected type is an office holder or a placeholder', () => {
     // From the capture's listing: Henrico County and Richmond city hold offices; the two school
-    // divisions are placeholders (each locality chooses whether its school board is elected); the
+    // divisions hold their elected boards (the Department of Elections' school board schedules); the
     // Henricopolis district holds its directors; the Central Virginia Transportation Authority
     // (public mass transit) has no block and is a placeholder. The waste management authority, the
     // toll highway authority, the hospital authority, the jail authority and the airport commission
@@ -254,11 +267,54 @@ describe('VA pilot expansion', () => {
       const placeholders = offices.filter((o) => o.placeholder);
       expect(offices.length > 0 && (placeholders.length === 0 || offices.length === 1)).toBe(true);
     }
-    expect(placeholderCount(run, 'school_district')).toBe(2);
+    expect(placeholderCount(run, 'school_district')).toBe(0);
     expect(placeholderCount(run, 'special_district')).toBe(1);
     expect(placeholderCount(run, 'county')).toBe(0);
     expect(placeholderCount(run, 'city')).toBe(0);
     expect(officesOf(run, 'census:251599').map((o) => o.placeholder)).toEqual([true]);
+  });
+
+  it('by-district boards are elected only in their schedule years (D-894)', () => {
+    // Written by hand from the Department of Elections' schedules: Richmond's council and school
+    // board in 2028, Henrico's supervisors and school board in 2027; the window runs from
+    // 2025-10-12 to 2029-11-15.
+    const generals = (jurisdictionKey: string, title: string): string[] => {
+      const office = officesOf(run, jurisdictionKey).find((o) => o.title === title);
+      expect(office).toBeDefined();
+      return electionsOf(run, office?.slug ?? '')
+        .filter((e) => e.kind === 'general')
+        .map((e) => e.election_date);
+    };
+    for (const n of [1, 5, 9]) {
+      expect(generals(RICHMOND, `Richmond city Council Member, District ${String(n)}`)).toEqual([
+        '2028-11-07',
+      ]);
+      expect(
+        generals(
+          'census:119002',
+          `Richmond City Public Schools School Board Member, District ${String(n)}`,
+        ),
+      ).toEqual(['2028-11-07']);
+    }
+    expect(generals(RICHMOND, 'Richmond city Mayor')).toEqual(['2028-11-07']);
+    for (const label of ['Brookland', 'Three Chopt', 'Varina']) {
+      expect(generals(HENRICO, `Henrico County Supervisor, ${label}`)).toEqual(['2027-11-02']);
+      expect(
+        generals('census:118992', `Henrico County Public Schools School Board Member, ${label}`),
+      ).toEqual(['2027-11-02']);
+    }
+    // Henrico's supervisors are nominated at the June primary of their year.
+    const supervisor = officesOf(run, HENRICO).find(
+      (o) => o.title === 'Henrico County Supervisor, Varina',
+    );
+    expect(
+      electionsOf(run, supervisor?.slug ?? '')
+        .filter((e) => e.kind === 'primary')
+        .map((e) => [e.election_date, e.party]),
+    ).toEqual([
+      ['2027-06-15', 'democratic'],
+      ['2027-06-15', 'republican'],
+    ]);
   });
 
   it('soil and water directors are elected in 2027', () => {

@@ -597,8 +597,92 @@ function stateCycle(office: OfficeRef, year: number, generalCitation: Citation):
 }
 
 /** Municipal elections fall every two years from 1973 under G.S. 163-279(a), in odd-numbered years. */
-function municipalYear(year: number): boolean {
+function oddMunicipalYear(year: number): boolean {
   return year >= MUNICIPAL_FIRST_YEAR && (year - MUNICIPAL_FIRST_YEAR) % 2 === 0;
+}
+
+// --- municipal offices whose charter sets their years, by template key (D-894, D-895) ---
+
+/**
+ * Raleigh's charter, section 9: S.L. 2021-56 put its regular elections in even-numbered years from
+ * 2022, with two-year terms; Ordinance (2024) 627 (adopted May 7, 2024, on the city's own document
+ * host) staggered four-year terms from the 2026 election.
+ */
+const SL_2021_56 =
+  'https://www.ncleg.gov/EnactedLegislation/SessionLaws/HTML/2021-2022/SL2021-56.html';
+const RALEIGH_ORDINANCE =
+  'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf';
+const RALEIGH_EVEN_YEARS = cite(
+  'S.L. 2021-56, § 1.8(b)',
+  SL_2021_56,
+  'No municipal elections shall be conducted in the City of Raleigh in 2021. The next regular municipal election shall be conducted in the City of Raleigh on November 8, 2022. The terms of office of the Mayor and all Council members serving on the effective date of this act shall be extended until their successor is elected and qualified. Regular municipal elections shall be conducted in 2022 and every two years thereafter.',
+  '2021-06-28',
+);
+const RALEIGH_STAGGER = cite(
+  'Raleigh Charter § 9(d), Ordinance (2024) 627',
+  RALEIGH_ORDINANCE,
+  'The terms of office shall be staggered as follows: In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms. In November 2026, the at-large candidate receiving the second highest number of votes in the 2026 municipal election and the prevailing candidates for the District C, D, and E seats shall be elected to two-year terms and in November 2028, and every four years thereafter, the same shall be elected to four-year terms.',
+  '2024-05-07',
+);
+
+/** Elected in `first + k × every` (k ≥ 0), through `last` when it is set. */
+type Cycle = {
+  readonly first: number;
+  readonly every: number;
+  readonly last: number | null;
+  readonly citation: Citation;
+};
+
+/** The two-year terms before the stagger: every even year from 2022 to `last`. */
+function raleighTwoYear(last: number | null): Cycle {
+  return { first: 2022, every: 2, last, citation: RALEIGH_EVEN_YEARS };
+}
+const RALEIGH_FIRST_GROUP: readonly Cycle[] = [
+  { first: 2026, every: 4, last: null, citation: RALEIGH_STAGGER },
+  raleighTwoYear(2026),
+];
+const RALEIGH_SECOND_GROUP: readonly Cycle[] = [
+  { first: 2026, every: 2, last: 2028, citation: RALEIGH_STAGGER },
+  { first: 2028, every: 4, last: null, citation: RALEIGH_STAGGER },
+  raleighTwoYear(2026),
+];
+
+/**
+ * Template key to election years, the first matching cycle citing them. Before a key's earliest
+ * year the office keeps the statute's odd years; a key not listed keeps them always. Raleigh's two
+ * at-large seats are one office: one seat of each group, so a contest every even year.
+ */
+const KEY_CYCLES: ReadonlyMap<string, readonly Cycle[]> = new Map([
+  ['raleigh-mayor', RALEIGH_FIRST_GROUP],
+  ['raleigh-city-council-district-a', RALEIGH_FIRST_GROUP],
+  ['raleigh-city-council-district-b', RALEIGH_FIRST_GROUP],
+  ['raleigh-city-council-district-c', RALEIGH_SECOND_GROUP],
+  ['raleigh-city-council-district-d', RALEIGH_SECOND_GROUP],
+  ['raleigh-city-council-district-e', RALEIGH_SECOND_GROUP],
+  [
+    'raleigh-city-council-at-large',
+    [{ first: 2026, every: 2, last: null, citation: RALEIGH_STAGGER }, raleighTwoYear(2026)],
+  ],
+]);
+
+/** The office types the table keys; no other office reads the key. */
+const KEYED_TYPES: ReadonlySet<string> = new Set(['mayor', 'city-council']);
+
+type MunicipalYear = { readonly elected: boolean; readonly citation: Citation | null };
+
+/** Whether a municipal office is elected in `year`, and the charter text that says so when keyed. */
+function municipalYear(office: OfficeRef, year: number): MunicipalYear {
+  const cycles = KEYED_TYPES.has(office.officeTypeId)
+    ? KEY_CYCLES.get(office.templateKey)
+    : undefined;
+  if (cycles === undefined || year < Math.min(...cycles.map((c) => c.first))) {
+    return { elected: oddMunicipalYear(year), citation: null };
+  }
+  const match = cycles.find(
+    (c) =>
+      year >= c.first && (c.last === null || year <= c.last) && (year - c.first) % c.every === 0,
+  );
+  return { elected: match !== undefined, citation: match?.citation ?? null };
 }
 
 function ncContests(office: OfficeRef, year: number): readonly ContestOut[] {
@@ -613,12 +697,22 @@ function ncContests(office: OfficeRef, year: number): readonly ContestOut[] {
       return year % 2 === 0
         ? [contest(novemberElectionDay(year), 'general', null, SOIL_WATER_DATE)]
         : [];
-    case 'nc_municipal':
-      return municipalYear(year)
-        ? [contest(novemberElectionDay(year), 'general', null, MUNICIPAL_PLURALITY_DATE)]
+    case 'nc_municipal': {
+      const { elected, citation } = municipalYear(office, year);
+      return elected
+        ? [
+            contest(
+              novemberElectionDay(year),
+              'general',
+              null,
+              citation ?? MUNICIPAL_PLURALITY_DATE,
+            ),
+          ]
         : [];
+    }
     case 'nc_municipal_partisan': {
-      if (!municipalYear(year)) {
+      const { elected, citation } = municipalYear(office, year);
+      if (!elected) {
         return [];
       }
       const election = novemberElectionDay(year);
@@ -632,26 +726,28 @@ function ncContests(office: OfficeRef, year: number): readonly ContestOut[] {
         ...PRIMARY_PARTIES.map((party) =>
           contest(second, 'primary_runoff', party, MUNICIPAL_PARTISAN_DATE),
         ),
-        contest(election, 'general', null, MUNICIPAL_PARTISAN_DATE),
+        contest(election, 'general', null, citation ?? MUNICIPAL_PARTISAN_DATE),
       ];
     }
     case 'nc_municipal_primary': {
-      if (!municipalYear(year)) {
+      const { elected, citation } = municipalYear(office, year);
+      if (!elected) {
         return [];
       }
       const election = novemberElectionDay(year);
       return [
         contest(daysBefore(election, 28), 'primary', null, MUNICIPAL_PRIMARY_DATE),
-        contest(election, 'general', null, MUNICIPAL_PRIMARY_DATE),
+        contest(election, 'general', null, citation ?? MUNICIPAL_PRIMARY_DATE),
       ];
     }
     case 'nc_municipal_runoff': {
-      if (!municipalYear(year)) {
+      const { elected, citation } = municipalYear(office, year);
+      if (!elected) {
         return [];
       }
       const runoff = novemberElectionDay(year);
       return [
-        contest(daysBefore(runoff, 28), 'general', null, MUNICIPAL_RUNOFF_DATE),
+        contest(daysBefore(runoff, 28), 'general', null, citation ?? MUNICIPAL_RUNOFF_DATE),
         contest(runoff, 'general_runoff', null, MUNICIPAL_RUNOFF_DATE),
       ];
     }

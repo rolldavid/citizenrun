@@ -329,6 +329,319 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
+      # Charter of the City of Raleigh, sec. 9 (S.L. 2021-56, Ordinance (2024) 627): one entry per lettered district.
+      - key: raleigh-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Mayor of Raleigh'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The Mayor of the City of Raleigh shall be elected by all the qualified voters of the City of Raleigh.'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-at-large
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, At Large'
+        seats:
+          arrangement: at_large
+          count:
+            value: 2
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The qualified voters of the City shall nominate and elect two (2) candidates apportioned to the City at large.'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 2
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The qualified voters of the City shall nominate and elect two (2) candidates apportioned to the City at large.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2026
+          - group: B
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-district-a
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The City Council shall divide the City into five (5) electoral districts'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          label_pattern: 'District A'
+        body_size:
+          value: 8
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The City Council shall consist of eight (8) members, including the Mayor of the City.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-district-b
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The City Council shall divide the City into five (5) electoral districts'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          label_pattern: 'District B'
+        body_size:
+          value: 8
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The City Council shall consist of eight (8) members, including the Mayor of the City.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-district-c
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The City Council shall divide the City into five (5) electoral districts'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          label_pattern: 'District C'
+        body_size:
+          value: 8
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The City Council shall consist of eight (8) members, including the Mayor of the City.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-district-d
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The City Council shall divide the City into five (5) electoral districts'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          label_pattern: 'District D'
+        body_size:
+          value: 8
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The City Council shall consist of eight (8) members, including the Mayor of the City.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: raleigh-city-council-district-e
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Raleigh city$'
+          population_min: null
+          population_max: null
+        title: 'Raleigh City Council, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+            quote: 'The City Council shall divide the City into five (5) electoral districts'
+            citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+          label_pattern: 'District E'
+        body_size:
+          value: 8
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The City Council shall consist of eight (8) members, including the Mayor of the City.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'In November 2026 and every four years thereafter, the at-large candidate receiving the highest number of votes in the 2026 municipal election, and the prevailing candidates for Mayor, and the District A and B seats shall be elected to four-year terms.'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        term_limit_terms: null
+        schedule: nc_municipal_primary
+        track_set: nc_municipal
+        partisan:
+          value: false
+          source_url: 'https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/drupal-prod/COR14/municipal-election-changes-2024-627.pdf'
+          quote: 'The method of election of the City Council of the City of Raleigh shall be the nonpartisan primary and election'
+          citation: 'Raleigh Charter § 9, Ordinance (2024) 627'
+        powers: []
+        pay: { local: true }
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
   # County and city administrative units (elementary and secondary): each board is set by G.S. 115C-37
   # or a local act; no unit's local act is written yet, so each unit has its placeholder.
   - key: school-administrative-unit

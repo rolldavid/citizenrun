@@ -233,6 +233,191 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
+      - key: henrico-board-of-supervisors-brookland
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Henrico County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Supervisor, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountyBOS.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County Board of Supervisors (2027, 2029, 2031)'
+          label_pattern: 'Brookland'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-board-of-supervisors-fairfield
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Henrico County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Supervisor, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountyBOS.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County Board of Supervisors (2027, 2029, 2031)'
+          label_pattern: 'Fairfield'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-board-of-supervisors-three-chopt
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Henrico County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Supervisor, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountyBOS.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County Board of Supervisors (2027, 2029, 2031)'
+          label_pattern: 'Three Chopt'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-board-of-supervisors-tuckahoe
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Henrico County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Supervisor, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountyBOS.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County Board of Supervisors (2027, 2029, 2031)'
+          label_pattern: 'Tuckahoe'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-board-of-supervisors-varina
+        office_type: county-commission
+        applies_to:
+          name_pattern: '^Henrico County$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Supervisor, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountyBOS.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County Board of Supervisors (2027, 2029, 2031)'
+          label_pattern: 'Varina'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
   - key: city
     kind: city
     unit_type_codes:
@@ -457,6 +642,723 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
+      - key: virginia-beach-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: '^Norfolk city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: richmond-mayor
+        office_type: mayor
+        applies_to:
+          name_pattern: '^Richmond city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Mayor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Richmond Mayor 4 District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Richmond Mayor 4 District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Richmond Mayor 4 District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-1
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 1'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-2
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 2'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-3
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 3'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-4
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 4'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-5
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 5'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-6
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 6'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-7
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 7'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-8
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 8'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-9
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 9'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-city-council-district-10
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Virginia Beach city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'District 10'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Virginia Beach Mayor 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: richmond-city-council
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Richmond city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 9
+            source_url: 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?201+ful+CHAP0827'
+            quote: 'there shall be held a general city election at which shall be elected by the qualified voters of the city one member of council from each of the nine election districts in the city'
+            citation: 'Richmond City Charter § 3.01 (2020 Acts c. 827)'
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?201+ful+CHAP0827'
+          quote: 'However, beginning with the elections to be held in 2008, and subject to approval by referendum as called for by this act, council members shall be elected for a term of four years.'
+          citation: 'Richmond City Charter § 3.01 (2020 Acts c. 827)'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan:
+          value: false
+          source_url: 'https://legacylis.virginia.gov/cgi-bin/legp604.exe?201+ful+CHAP0827'
+          quote: 'No primary election shall be held for the nomination of candidates for the office of councilman, and candidates shall be nominated only by petition.'
+          citation: 'Richmond City Charter § 3.01 (2020 Acts c. 827)'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-city-council-ward
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Norfolk city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 5
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'Ward {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-city-council-superward-6
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Norfolk city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'Superward 6'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-city-council-superward-7
+        office_type: city-council
+        applies_to:
+          name_pattern: '^Norfolk city$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+            quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+          label_pattern: 'Superward 7'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CityCncl26-31-November.pdf'
+          quote: 'Norfolk Mayor 4 Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City Council Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_june_primary
+        track_set: va_partisan
+        partisan:
+          value: true
+          source_url: 'https://www.elections.virginia.gov/media/candidatesandpacs/2025-candidate-bulletins/2025-11-04_Gen_Bulletin_Local_rev_12-5-2024.pdf'
+          quote: 'Primary candidate – an individual who is seeking the nomination of a political party by running in a primary'
+          citation: 'Department of Elections, June and November 2025 Local Offices Candidate Bulletin'
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
   - key: school-division
     kind: school_district
     unit_type_codes: null
@@ -466,7 +1368,715 @@ government_types:
       source_url: https://apps.senate.virginia.gov/Portal/Resources/VGIB.pdf
       quote: As a result of legislation adopted by the General Assembly in 1992, counties were authorized to establish, by referendum, a process whereby School Board members would be elected by the voters.
       citation: Senate of Virginia, Virginia Government in Brief, County School Board and School Superintendent
-    offices: []
+    offices:
+      - key: virginia-beach-school-board-at-large
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, At Large'
+        seats:
+          arrangement: at_large
+          count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          district_count: null
+          label_pattern: null
+        body_size:
+          value: 1
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        stagger:
+          - group: A
+            seats: 1
+            every: 4
+            first: 2028
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-1
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 1'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-2
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 2'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-3
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 3'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-4
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 4'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-5
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 5'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-6
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 6'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-7
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 7'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-8
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 8'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-9
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 9'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: virginia-beach-school-board-district-10
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Virginia Beach City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District 10'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Virginia Beach At Large 1 4 District 1 1 4 District 2 1 4 1 4 District 3 1 4 District 4 1 4 1 4 District 5 1 4 District 6 1 4 1 4 District 7 1 4 District 8 1 4 1 4 District 9 1 4 1 4 District 10 1 4 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: richmond-school-board
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Richmond City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 9
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Richmond District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'District {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Richmond District 1 1 4 District 2 1 4 District 3 1 4 District 4 1 4 District 5 1 4 District 6 1 4 District 7 1 4 District 8 1 4 District 9 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-school-board-ward
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Norfolk City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 5
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'Ward {n}'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-school-board-superward-6
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Norfolk City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'Superward 6'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: norfolk-school-board-superward-7
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Norfolk City Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+            quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+            citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+          label_pattern: 'Superward 7'
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/CITY-SCHOOL-BOARD-ELECTIONS.pdf'
+          quote: 'Norfolk Ward 1 1 4 1 4 Ward 2 1 4 1 4 Ward 3 1 4 1 4 Ward 4 1 4 1 4 Ward 5 1 4 1 4 Superward 6 1 4 Superward 7 1 4'
+          citation: 'Department of Elections, City School Board Elections, November Even-Numbered Years'
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-school-board-brookland
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Henrico County Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountySchoolBoard.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County School Board (2027, 2029, 2031)'
+          label_pattern: 'Brookland'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-school-board-fairfield
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Henrico County Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountySchoolBoard.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County School Board (2027, 2029, 2031)'
+          label_pattern: 'Fairfield'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-school-board-three-chopt
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Henrico County Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountySchoolBoard.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County School Board (2027, 2029, 2031)'
+          label_pattern: 'Three Chopt'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-school-board-tuckahoe
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Henrico County Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountySchoolBoard.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County School Board (2027, 2029, 2031)'
+          label_pattern: 'Tuckahoe'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: henrico-school-board-varina
+        office_type: school-board
+        applies_to:
+          name_pattern: '^Henrico County Public Schools$'
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} School Board Member, {label}'
+        seats:
+          arrangement: by_district
+          count: null
+          district_count:
+            value: 1
+            source_url: 'https://www.elections.virginia.gov/media/boardpapers/calendar/2027_2031CountySchoolBoard.pdf'
+            quote: 'Henrico Brookland 1 1 Fairfield 1 1 Three Chopt 1 1 Tuckahoe 1 1 Varina 1 1'
+            citation: 'Department of Elections, County School Board (2027, 2029, 2031)'
+          label_pattern: 'Varina'
+        body_size: null
+        stagger: []
+        term_years: null
+        term_limit_terms: null
+        schedule: va_november_general
+        track_set: va_nonpartisan
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
 
 statewide:
   - key: governor

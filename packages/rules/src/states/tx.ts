@@ -480,7 +480,27 @@ function partisanCycle(year: number, withPrimaries: boolean): readonly ContestOu
   ];
 }
 
+/**
+ * A by-district office's contests in its key's election years only, its general citing the text
+ * that sets those years (D-894); every other office's contests as its schedule gives them.
+ */
 function txContests(office: OfficeRef, year: number): readonly ContestOut[] {
+  const cycle =
+    KEYED_SCHEDULES.has(office.schedule) && KEYED_TYPES.has(office.officeTypeId)
+      ? KEY_CYCLES.get(office.templateKey)
+      : undefined;
+  if (cycle === undefined) {
+    return scheduleContests(office, year);
+  }
+  if (mod(year - cycle.first, cycle.every) !== 0) {
+    return [];
+  }
+  return scheduleContests(office, year).map((c) =>
+    c.kind === 'general' ? { ...c, dateCitation: cycle.citation } : c,
+  );
+}
+
+function scheduleContests(office: OfficeRef, year: number): readonly ContestOut[] {
   switch (office.schedule) {
     case 'tx_state_general':
     case 'tx_county_general':
@@ -513,6 +533,102 @@ function txContests(office: OfficeRef, year: number): readonly ContestOut[] {
       throw new RangeError(`tx: unknown schedule ${office.schedule}`);
   }
 }
+
+// --- by-district offices, by template key (D-894) ---
+
+/** Elected in the years `first + k × every`, k any integer. */
+type KeyCycle = { readonly first: number; readonly every: number; readonly citation: Citation };
+
+function mod(a: number, n: number): number {
+  return ((a % n) + n) % n;
+}
+
+// County commissioners: four-year terms (Const. art. V, § 18(b)) in two halves. The Secretary of
+// State's 2026 list of offices up for election names Precincts 2 and 4; its 2024 list names the
+// county commissioners without a precinct, the other half (Precincts 1 and 3). The staggering
+// scheme of art. XVI, § 65 was dropped in 1999, as the 2024 list notes, so the lists are the source.
+const SOS_GUIDE = 'https://www.sos.texas.gov/elections/candidates/guide';
+const COMMISSIONERS_2026 = cite(
+  'Texas Secretary of State, Offices up for election in 2026',
+  `${SOS_GUIDE}/2026/offices2026.shtml`,
+  'County Commissioners (Precincts 2 and 4) | 4 years',
+  '2026-01-01',
+);
+const COMMISSIONERS_2024 = cite(
+  'Texas Secretary of State, Offices up for election in 2024',
+  `${SOS_GUIDE}/2024/offices2024.shtml`,
+  'County Commissioners | 4 yr. term',
+  '2024-01-01',
+);
+
+const DALLAS_ELECTIONS = cite(
+  'Dallas City Charter ch. IV, § 3',
+  'https://dallascityhall.com/departments/government-affairs/Charter-Review/DCH%20Documents/Dallas%20City%20Charter.pdf',
+  'General elections for the purpose of electing members of the city council shall be held on the first authorized election date after March 1 of each odd-numbered year.',
+  '2005-11-08',
+);
+
+/** Austin: the districts on the 2026 ballot, and the other half two years on (charter art. III, § 2(A)). */
+const AUSTIN_2026 = cite(
+  'City of Austin, City Clerk, November 2026 Election',
+  'https://www.austintexas.gov/clerk/november-2026-election',
+  'The following offices will be on the 2026 Ballot: District 1 District 3 District 5 District 8 District 9',
+  '2026-01-01',
+);
+const AUSTIN_STAGGER = cite(
+  'Austin City Charter art. III, § 2(A)',
+  'https://services.austintexas.gov/edims/document.cfm?id=181069',
+  'Notwithstanding any other provision of this Charter, the regular term of the mayor and council members is four years. Council terms shall be staggered so that a general election is held every two years, and half or as near to half as is practical, of the council is elected at each election.',
+  '2012-11-06',
+);
+
+const EL_PASO_CHARTER =
+  'https://www2.elpasotexas.gov/municipal-clerk/CCElectionDocs/elections/2022-11-08/2022-Packet-Contents/3.%20-%20Articles%20I%20&%20II%20of%20the%20El%20Paso%20City%20Charter.pdf';
+const EL_PASO_2018 = cite(
+  'El Paso City Charter § 2.1',
+  EL_PASO_CHARTER,
+  'Commencing in June 2015, the District Representatives from districts numbers 1, 5, 6 and 8 shall be elected to terms greater than three years but less than four years that conform to the change made in subsection A to the start of the term and the new election date beginning in November 2018, and they shall thereafter be elected to four-year terms.',
+  '2015-06-01',
+);
+const EL_PASO_2020 = cite(
+  'El Paso City Charter § 2.1',
+  EL_PASO_CHARTER,
+  'Commencing in June 2017, the Judges of the Municipal Courts, the Mayor, and the District Representatives from districts numbers 2, 3, 4 and 7 shall be elected to terms greater than three years but less than four years that conform to the change made in subsection A to the start of the term and the new election date beginning in November 2020, and they shall thereafter be elected to four-year terms.',
+  '2017-06-01',
+);
+
+/** The schedules and office types of the offices the table keys; no other office reads the key. */
+const KEYED_SCHEDULES: ReadonlySet<string> = new Set([
+  'tx_county_general',
+  'tx_uniform_may',
+  'tx_uniform_november',
+]);
+const KEYED_TYPES: ReadonlySet<string> = new Set(['county-commission', 'city-council']);
+
+function keyCycles(
+  prefix: string,
+  districts: readonly (number | string)[],
+  first: number,
+  every: number,
+  citation: Citation,
+): readonly (readonly [string, KeyCycle])[] {
+  return districts.map((d) => [`${prefix}-${String(d)}`, { first, every, citation }] as const);
+}
+
+/**
+ * Template key to election years. A key not listed keeps its schedule's years. A body whose
+ * districts are elected in different years is one template entry per district, so the key names
+ * the district.
+ */
+const KEY_CYCLES: ReadonlyMap<string, KeyCycle> = new Map<string, KeyCycle>([
+  ...keyCycles('county-commissioner-precinct', [2, 4], 2026, 4, COMMISSIONERS_2026),
+  ...keyCycles('county-commissioner-precinct', [1, 3], 2024, 4, COMMISSIONERS_2024),
+  ['dallas-council', { first: 2025, every: 2, citation: DALLAS_ELECTIONS }],
+  ...keyCycles('austin-council-district', [1, 3, 5, 8, 9], 2026, 4, AUSTIN_2026),
+  ...keyCycles('austin-council-district', [2, 4, 6, 7, 10], 2028, 4, AUSTIN_STAGGER),
+  ...keyCycles('el-paso-council-district', [1, 5, 6, 8], 2018, 4, EL_PASO_2018),
+  ...keyCycles('el-paso-council-district', [2, 3, 4, 7], 2020, 4, EL_PASO_2020),
+]);
 
 // --- filing tracks ---
 

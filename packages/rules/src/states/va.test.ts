@@ -351,3 +351,206 @@ describe('VA rules module', () => {
     });
   });
 });
+
+/**
+ * The election years of each by-district template key from 2026 to 2031, read by hand from the
+ * Department of Elections' schedules (the column each district's cells sit in): the city council
+ * and city school board schedules of November in even years (2026, 2028, 2030) and the county board
+ * of supervisors and county school board schedules (2027, 2029, 2031).
+ */
+const VA_KEY_YEARS: readonly {
+  readonly keys: readonly string[];
+  readonly officeTypeId: string;
+  readonly jurisdictionKind: OfficeRef['jurisdictionKind'];
+  readonly years: readonly number[];
+}[] = [
+  {
+    keys: [1, 3, 5, 7].flatMap((n) => [
+      `virginia-beach-city-council-district-${String(n)}`,
+      `virginia-beach-school-board-district-${String(n)}`,
+    ]),
+    officeTypeId: 'city-council',
+    jurisdictionKind: 'city',
+    years: [2028],
+  },
+  {
+    keys: [2, 4, 6, 8, 9, 10].flatMap((n) => [
+      `virginia-beach-city-council-district-${String(n)}`,
+      `virginia-beach-school-board-district-${String(n)}`,
+    ]),
+    officeTypeId: 'city-council',
+    jurisdictionKind: 'city',
+    years: [2026, 2030],
+  },
+  {
+    keys: ['richmond-city-council', 'richmond-school-board'],
+    officeTypeId: 'city-council',
+    jurisdictionKind: 'city',
+    years: [2028],
+  },
+  {
+    keys: ['norfolk-city-council-ward', 'norfolk-school-board-ward'],
+    officeTypeId: 'city-council',
+    jurisdictionKind: 'city',
+    years: [2026, 2030],
+  },
+  {
+    keys: [
+      'norfolk-city-council-superward-6',
+      'norfolk-city-council-superward-7',
+      'norfolk-school-board-superward-6',
+      'norfolk-school-board-superward-7',
+    ],
+    officeTypeId: 'city-council',
+    jurisdictionKind: 'city',
+    years: [2028],
+  },
+  {
+    keys: ['brookland', 'fairfield', 'three-chopt', 'tuckahoe', 'varina'].flatMap((d) => [
+      `henrico-board-of-supervisors-${d}`,
+      `henrico-school-board-${d}`,
+    ]),
+    officeTypeId: 'county-commission',
+    jurisdictionKind: 'county',
+    years: [2027, 2031],
+  },
+];
+
+describe('VA by-district offices by template key (D-894)', () => {
+  it('each key has a contest only in its schedule years', async () => {
+    await eachZone(() => {
+      for (const group of VA_KEY_YEARS) {
+        for (const templateKey of group.keys) {
+          for (const [schedule, trackSet] of [
+            ['va_november_general', 'va_nonpartisan'],
+            ['va_june_primary', 'va_partisan'],
+          ] as const) {
+            const keyed = office({
+              templateKey,
+              officeTypeId: group.officeTypeId,
+              jurisdictionKind: group.jurisdictionKind,
+              schedule,
+              trackSet,
+            });
+            const years: number[] = [];
+            for (let year = 2026; year <= 2031; year++) {
+              const generals = vaRules
+                .contests({ office: keyed, year })
+                .filter((c) => c.kind === 'general');
+              expect(generals.length).toBeLessThanOrEqual(1);
+              if (generals.length === 1) {
+                years.push(year);
+                expect(generals[0]?.date).toBe(novemberElectionDay(year));
+              }
+              // A partisan keyed office has its primaries in the same years only.
+              const primaries = vaRules
+                .contests({ office: keyed, year })
+                .filter((c) => c.kind === 'primary');
+              expect(primaries.length).toBe(
+                schedule === 'va_june_primary' && generals.length === 1 ? 2 : 0,
+              );
+            }
+            expect(years).toEqual(group.years);
+          }
+        }
+      }
+    });
+  });
+
+  it('the four-year cycle runs on after the schedules', async () => {
+    await eachZone(() => {
+      const keyed = (templateKey: string) =>
+        office({ templateKey, schedule: 'va_november_general', trackSet: 'va_nonpartisan' });
+      const years = (templateKey: string) =>
+        [2032, 2033, 2034, 2035].filter(
+          (year) => vaRules.contests({ office: keyed(templateKey), year }).length > 0,
+        );
+      expect(years('virginia-beach-city-council-district-1')).toEqual([2032]);
+      expect(years('virginia-beach-city-council-district-2')).toEqual([2034]);
+      expect(years('henrico-board-of-supervisors-varina')).toEqual([2035]);
+    });
+  });
+
+  it('a key with no cycle keeps the office type years', async () => {
+    await eachZone(() => {
+      for (let year = 2026; year <= 2031; year++) {
+        const unkeyed = office({
+          templateKey: 'chesapeake-city-council',
+          officeTypeId: 'city-council',
+          jurisdictionKind: 'city',
+          schedule: 'va_november_general',
+          trackSet: 'va_nonpartisan',
+        });
+        const [general] = vaRules.contests({ office: unkeyed, year });
+        expect(general?.date).toBe(novemberElectionDay(year));
+        expect(general?.dateCitation.citation).toBe('Va. Code § 2.2-3300');
+        // A keyed office's type alone does not move a statewide or constitutional cycle.
+        const sheriff = office({
+          templateKey: 'sheriff',
+          officeTypeId: 'sheriff',
+          jurisdictionKind: 'county',
+          schedule: 'va_november_general',
+        });
+        expect(vaRules.contests({ office: sheriff, year }).length).toBe(year % 4 === 3 ? 1 : 0);
+      }
+    });
+  });
+
+  it('each keyed general cites its schedule with an https link and a quote', async () => {
+    await eachZone(() => {
+      for (const group of VA_KEY_YEARS) {
+        for (const templateKey of group.keys) {
+          for (const year of group.years) {
+            const [general] = vaRules.contests({
+              office: office({
+                templateKey,
+                officeTypeId: group.officeTypeId,
+                jurisdictionKind: group.jurisdictionKind,
+                schedule: 'va_november_general',
+                trackSet: 'va_nonpartisan',
+              }),
+              year,
+            });
+            const citation = general?.dateCitation;
+            expect(citation?.sourceUrl).toMatch(
+              /^https:\/\/www\.elections\.virginia\.gov\/media\/boardpapers\/calendar\/[^/]+\.pdf$/,
+            );
+            expect(citation?.citation).toMatch(/^Department of Elections, /);
+            expect(citation?.quote.length).toBeGreaterThan(40);
+            expect(citation?.validTo).toBeNull();
+          }
+        }
+      }
+    });
+  });
+
+  it('a keyed office files on the same deadline as any other', async () => {
+    await eachZone(() => {
+      const contest: ContestRef = { date: '2028-11-07', kind: 'general', party: null };
+      const keyed = only(
+        vaRules.filingTracks({
+          office: office({
+            templateKey: 'richmond-city-council',
+            officeTypeId: 'city-council',
+            jurisdictionKind: 'city',
+            schedule: 'va_november_general',
+            trackSet: 'va_nonpartisan',
+          }),
+          contest,
+        }),
+      );
+      const plain = only(
+        vaRules.filingTracks({
+          office: office({
+            officeTypeId: 'city-council',
+            jurisdictionKind: 'city',
+            schedule: 'va_november_general',
+            trackSet: 'va_nonpartisan',
+          }),
+          contest,
+        }),
+      );
+      expect(keyed).toEqual(plain);
+    });
+  });
+});

@@ -59,6 +59,7 @@ const STATE_GENERAL = 'wa_state_general';
 const COUNTY_GENERAL = 'wa_county_general';
 const CHARTER_COUNTY_ODD_YEAR = 'wa_charter_county_odd_year';
 const LOCAL_ODD_YEAR = 'wa_local_odd_year';
+const PUBLIC_UTILITY_DISTRICT = 'wa_public_utility_district';
 const STATE_PRIMARY = 'wa_state_primary';
 const CONSERVATION_DISTRICT = 'wa_conservation_district';
 const NO_PUBLIC_ELECTION = 'wa_no_public_election';
@@ -102,6 +103,40 @@ const LOCAL_GENERAL_DAY = cite(
   'All city, town, and district general elections shall be held throughout the state of Washington on the first Tuesday following the first Monday in November in the odd-numbered years.',
   EARLIEST_PUBLISHED_APPLICATION,
 );
+
+/**
+ * Public utility district commissioners are nominated at a primary and elected at a general
+ * election (RCW 54.12.010(3): "Only voters of a commissioner district may vote at a primary to
+ * nominate candidates for a commissioner of the commissioner district. Voters of the entire public
+ * utility district may vote at a general election to elect a person as a commissioner of the
+ * commissioner district."). RCW 29A.04.330(1)(b) takes their elections out of the odd-year city,
+ * town and district generals ("Public utility districts, conservation districts, or district
+ * elections at which the ownership of property within those districts is a prerequisite to voting,
+ * all of which elections shall be held at the times prescribed in the laws specifically applicable
+ * thereto;"), and RCW 29A.04.321(1) limits the odd-year general to the elections it lists, so their
+ * primary and general fall in even years. Each commissioner district is elected once in six years
+ * (RCW 54.12.010(4)), in a year its own term sets, which no statute names: a commissioner office
+ * has contests only when its template key has a cited first year (D-894), and none otherwise, so
+ * its next election reads "not known yet".
+ *
+ * Elected in the even years `first + k × every`, k any integer; `citation` states the first year. */
+type KeyCycle = { readonly first: number; readonly every: number; readonly citation: Citation };
+
+/** Commissioner template key to its cited election years; none is cited yet. */
+const PUBLIC_UTILITY_DISTRICT_KEYS: ReadonlyMap<string, KeyCycle> = new Map<string, KeyCycle>();
+
+function mod(a: number, n: number): number {
+  return ((a % n) + n) % n;
+}
+
+/** An office's contests in its key's cited years; no contest for a key with no cited year. */
+function publicUtilityDistrictContests(office: OfficeRef, year: number): readonly ContestOut[] {
+  const cycle = PUBLIC_UTILITY_DISTRICT_KEYS.get(office.templateKey);
+  if (cycle === undefined || !isEven(year) || mod(year - cycle.first, cycle.every) !== 0) {
+    return [];
+  }
+  return primaryAndGeneral(year, cycle.citation);
+}
 
 const PRECINCT_COMMITTEE_PRIMARY = cite(
   '29A.80.051',
@@ -147,6 +182,8 @@ function contests(office: OfficeRef, year: number): readonly ContestOut[] {
       return isEven(year) ? [] : primaryAndGeneral(year, CHARTER_COUNTY_GENERAL_DAY);
     case LOCAL_ODD_YEAR:
       return isEven(year) ? [] : primaryAndGeneral(year, LOCAL_GENERAL_DAY);
+    case PUBLIC_UTILITY_DISTRICT:
+      return publicUtilityDistrictContests(office, year);
     case STATE_PRIMARY:
       return isEven(year)
         ? [
@@ -446,6 +483,7 @@ export const waRules: StateRules = {
     COUNTY_GENERAL,
     CHARTER_COUNTY_ODD_YEAR,
     LOCAL_ODD_YEAR,
+    PUBLIC_UTILITY_DISTRICT,
     STATE_PRIMARY,
     CONSERVATION_DISTRICT,
     NO_PUBLIC_ELECTION,

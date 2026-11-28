@@ -381,3 +381,50 @@ describe('WA rules module', () => {
     expect(waRules.holidays(2100).holidays.length).toBeGreaterThan(0);
   });
 });
+
+describe('WA public utility district commissioners', () => {
+  const COMMISSIONER = office({
+    templateKey: 'pud-commissioner',
+    officeTypeId: 'public-power-board',
+    jurisdictionKind: 'special_district',
+    countyGeoid: null,
+    partisan: false,
+    schedule: 'wa_public_utility_district',
+    termYears: 6,
+  });
+
+  it('get no contest when their template key has no cited year', async () => {
+    // Each commissioner district is elected once in six years, in a year no statute names, so an
+    // unkeyed commissioner has no contest in any year and its next election is not known yet.
+    await eachZone(() => {
+      for (let year = 2022; year <= 2040; year++) {
+        expect(waRules.contests({ office: COMMISSIONER, year })).toEqual([]);
+        expect(
+          waRules.contests({
+            office: { ...COMMISSIONER, templateKey: 'mason-pud-1-commissioner-district-1' },
+            year,
+          }),
+        ).toEqual([]);
+      }
+    });
+  });
+
+  it('file in the filing week of the election year when a contest is asked', async () => {
+    await eachZone(() => {
+      const contest: ContestRef = { date: '2026-11-03', kind: 'general', party: null };
+      const track = only(waRules.filingTracks({ office: COMMISSIONER, contest }));
+      expect(track.opensOn?.value).toBe('2026-05-04');
+      expect(track.closesOn.value).toBe('2026-05-08');
+    });
+  });
+
+  it('leave every other schedule as it was', async () => {
+    await eachZone(() => {
+      const county = office({});
+      expect(waRules.contests({ office: county, year: 2026 }).map((c) => c.kind)).toEqual([
+        'primary',
+        'general',
+      ]);
+    });
+  });
+});
