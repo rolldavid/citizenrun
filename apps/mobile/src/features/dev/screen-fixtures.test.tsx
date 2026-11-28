@@ -123,7 +123,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * The strings a fixture carries as data: every string in the props its entry draws the view with,
- * the initials an avatar draws from a person's name and handle, and the brand's name.
+ * the initials an avatar draws from a person's name and handle (or name alone), and the brand's name.
  */
 function fixtureData(screen: string, fixture: string): Set<string> {
   const data = new Set<string>([BRAND.displayName]);
@@ -140,11 +140,13 @@ function fixtureData(screen: string, fixture: string): Set<string> {
     }
     seen.add(value);
     const name = value['name'];
-    const handle = value['handle'];
+    const handle = Object.hasOwn(value, 'handle') ? value['handle'] : null;
     if (
       (typeof name === 'string' || name === null) &&
       (typeof handle === 'string' || handle === null)
     ) {
+      // A person summary (an office holder, a candidate) has a name and no handle; its avatar's
+      // initials come from the name alone.
       data.add(avatarInitials(name, handle));
     }
     for (const child of Object.values(value)) {
