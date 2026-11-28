@@ -145,6 +145,46 @@ describe('check-bundle', () => {
     ]);
   });
 
+  it('finds a nested bracketed route', () => {
+    writeFixtureExport(['/apps/mobile/app/office/[slug]/index.tsx']);
+    writeChunk('_layout-ggg.js', 'var officeLayout=1;', [
+      '/apps/mobile/app/office/[slug]/_layout.tsx',
+    ]);
+    writeChunk('_layout-hhh.js', 'var otherLayout=1;', [
+      '/apps/mobile/app/office/[id]/_layout.tsx',
+    ]);
+    const html = readFileSync(join(distDir, 'index.html'), 'utf8');
+    const chunks = readChunks(distDir, root);
+    const groups = groupChunks('office/[slug]/index', chunks, entryChunkNames(html), LAZY);
+    expect(groups).toEqual({
+      route: 'office/[slug]/index',
+      routeFile: 'apps/mobile/app/office/[slug]/index.tsx',
+      entry: ['entry-aaa.js'],
+      routeChunk: 'index-bbb.js',
+      common: ['_layout-fff.js', '_layout-ggg.js', 'shared-ccc.js'],
+      lazyModules: [],
+    });
+    // The brackets are literal characters: they match no other segment, as a glob's would.
+    expect(groupChunks('office/[sl]/index', chunks, entryChunkNames(html), LAZY).routeFile).toBe(
+      null,
+    );
+    const config = { ...CONFIG, routes: ['(tabs)/index', 'office/[slug]/index'] };
+    const measures = measureBundle(distDir, root, config);
+    expect(measures.map((measured) => measured.routeFile)).toEqual([
+      null,
+      'apps/mobile/app/office/[slug]/index.tsx',
+    ]);
+  });
+
+  it('a lazy module in the office route fails', () => {
+    writeFixtureExport(['/apps/mobile/app/office/[slug]/index.tsx', `/${MAPLIBRE_MODULE}`]);
+    const config = { ...CONFIG, routes: ['office/[slug]/index'] };
+    const measures = measureBundle(distDir, root, config);
+    expect(bundleProblems(measures, config.limitBytes)).toEqual([
+      `route office/[slug]/index: the lazy module ${MAPLIBRE_MODULE} is in the route's entry, common or route chunk (D-164)`,
+    ]);
+  });
+
   it('a lazy module in the entry chunk fails', () => {
     const chunks = [
       { name: 'entry.js', modules: ['apps/mobile/index.ts', MAPLIBRE_MODULE], text: '' },

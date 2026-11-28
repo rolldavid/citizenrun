@@ -1,13 +1,19 @@
 {
   "limitBytes": 900000,
-  "routes": ["(tabs)/index"],
+  "routes": ["(tabs)/index", "office/[slug]/index"],
   "lazy": ["node_modules/maplibre-gl/", "node_modules/@cantoo/pdf-lib/"],
   "baseline": {
     "(tabs)/index": {
-      "entry": 794856,
-      "common": 4012,
-      "route": 376,
-      "total": 799244
+      "entry": 902736,
+      "common": 4030,
+      "route": 377,
+      "total": 907143
+    },
+    "office/[slug]/index": {
+      "entry": 902736,
+      "common": 4004,
+      "route": 393,
+      "total": 907133
     }
   }
 }
