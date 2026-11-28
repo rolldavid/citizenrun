@@ -6,4 +6,4 @@ const i18n = createI18n();
 /** Looks a key up in the English catalogs, with `{{appName}}` and any other values filled in. */
 export const t = i18n.t.bind(i18n);
 
-export const { auth, onboarding, settings } = RESOURCES.en;
+export const { auth, onboarding, settings, common, office, cards } = RESOURCES.en;

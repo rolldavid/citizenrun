@@ -67,6 +67,28 @@ export const SELECTORS = {
     home: 'feed.home',
     placeholder: 'feed.placeholder',
   },
+  office: {
+    screen: 'office.screen',
+    dealLine: 'office.deal-line',
+    // One element per field, by its camelCase name.
+    field: derived('office.field', (field: string) => `office.field-${field}`),
+    // A section's source rows (`pay-1`, `filing-2`) and the deadline's (`deadline`).
+    sourceLink: derived('office.source-link', (part: string) => `office.source-link-${part}`),
+    // The rows of the sources section, from 1 in display order.
+    sourcesOpen: derived('office.sources-open', (n: string) => `office.sources-open-${n}`),
+    sourcesSheet: 'office.sources-sheet',
+    actions: 'office.actions',
+    runButton: 'office.run-button',
+    followButton: 'office.follow-button',
+    bookmarkButton: 'office.bookmark-button',
+    miniMap: 'office.mini-map',
+    stepsOpen: 'office.steps-open',
+    stepsSheet: 'office.steps-sheet',
+    reportOpen: 'office.report-open',
+    reportSheet: 'office.report-sheet',
+    reportSend: 'office.report-send',
+    actionCard: 'office.action-card',
+  },
   settings: {
     rowProfile: 'settings.row-profile',
     rowIssues: 'settings.row-issues',

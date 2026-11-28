@@ -1,0 +1,113 @@
+# TEST-maestro-office: the office page of officeWithDeadline opened by link, its deal line and its
+# sources; Follow and Bookmark change state at once and keep it after the app is stopped and opened
+# again. Targets are found by id; text only asserts, and finds only the system's own prompt.
+# The asserted words are the English catalog's (common:ui.actions.following, .bookmarked, .follow),
+# written here because the job passes no catalog value.
+appId: ${APP_ID}
+tags:
+  - m02
+  - office
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+# Seed user 01 signs in with the email code; an account that exists goes straight in.
+- extendedWaitUntil:
+    visible:
+      id: 'auth.welcome-start'
+    timeout: 30000
+- tapOn:
+    id: 'auth.welcome-start'
+- tapOn:
+    id: 'auth.email-option'
+- tapOn:
+    id: 'auth.email-field'
+- inputText: seed_user_01@example.test
+- hideKeyboard
+- tapOn:
+    id: 'auth.email-continue'
+# The code is sent before the code step shows.
+- extendedWaitUntil:
+    visible:
+      id: 'auth.code-field'
+    timeout: 15000
+- runScript:
+    file: scripts/read-code.js
+    env:
+      EMAIL: seed_user_01@example.test
+- tapOn:
+    id: 'auth.code-field'
+# The field sends the code at the sixth digit.
+- inputText: ${output.code}
+- openLink: ${APP_SCHEME}://office/${officeWithDeadline}
+# The iOS simulator asks before it opens a link in the app.
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'office.deal-line'
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: 'office.sources-open-1'
+    direction: DOWN
+# Seed user 01 is one account for every run: an earlier run's follow and bookmark are undone first.
+- runFlow:
+    when:
+      visible:
+        id: 'office.follow-button'
+        text: 'Following'
+    commands:
+      - tapOn:
+          id: 'office.follow-button'
+- runFlow:
+    when:
+      visible:
+        id: 'office.bookmark-button'
+        text: 'Bookmarked'
+    commands:
+      - tapOn:
+          id: 'office.bookmark-button'
+- assertVisible:
+    id: 'office.follow-button'
+    text: 'Follow'
+- tapOn:
+    id: 'office.follow-button'
+- assertVisible:
+    id: 'office.follow-button'
+    text: 'Following'
+- tapOn:
+    id: 'office.bookmark-button'
+- assertVisible:
+    id: 'office.bookmark-button'
+    text: 'Bookmarked'
+# Both hold after the app is stopped and opened again: the server kept them.
+- stopApp
+- launchApp
+- openLink: ${APP_SCHEME}://office/${officeWithDeadline}
+- tapOn:
+    text: 'Open'
+    optional: true
+- extendedWaitUntil:
+    visible:
+      id: 'office.deal-line'
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: 'office.follow-button'
+      text: 'Following'
+    timeout: 15000
+- assertVisible:
+    id: 'office.bookmark-button'
+    text: 'Bookmarked'
+- scrollUntilVisible:
+    element:
+      id: 'office.sources-open-1'
+    direction: DOWN
+- tapOn:
+    id: 'office.sources-open-1'
+- extendedWaitUntil:
+    visible:
+      id: 'office.sources-sheet'
+    timeout: 15000

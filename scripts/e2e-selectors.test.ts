@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { RESOURCES } from '@citizenrun/shared';
 import { parseAllDocuments } from 'yaml';
 import { SELECTORS } from '../apps/mobile/e2e/selectors.ts';
 import { repoRoot } from './lib/repo-root.ts';
@@ -13,6 +14,8 @@ const ROOT = repoRoot();
 /** The folders whose source carries the app's testIDs. */
 const SOURCE_DIRS = ['apps/mobile/src', 'apps/mobile/app'];
 const FLOWS_DIR = 'apps/mobile/.maestro';
+/** TEST-maestro-office: its asserted words are written in, as the job passes no catalog value. */
+const OFFICE_FLOW = 'apps/mobile/.maestro/office.yaml';
 const SOURCE_FILE = /\.tsx?$/;
 /** A test names ids it expects; only the code that renders them counts. */
 const TEST_FILE = /\.test\.tsx?$/;
@@ -119,6 +122,82 @@ export function textTargets(source: string): string[] {
   return found;
 }
 
+/** The keys whose value names an element a flow asserts on or waits for. */
+const ASSERTING_KEYS: ReadonlySet<string> = new Set([
+  'assertVisible',
+  'assertNotVisible',
+  'visible',
+  'notVisible',
+]);
+
+/** Every text a flow asserts, at any depth: an assertion's, a wait's and a `when` condition's. */
+export function assertedTexts(source: string): string[] {
+  const found: string[] = [];
+  const visit = (value: unknown): void => {
+    if (Array.isArray(value)) {
+      for (const item of value as unknown[]) {
+        visit(item);
+      }
+      return;
+    }
+    if (!isRecord(value)) {
+      return;
+    }
+    for (const [key, inner] of Object.entries(value)) {
+      if (ASSERTING_KEYS.has(key)) {
+        if (typeof inner === 'string') {
+          found.push(inner);
+        } else if (isRecord(inner) && typeof inner.text === 'string') {
+          found.push(inner.text);
+        }
+      }
+      visit(inner);
+    }
+  };
+  for (const document of parseAllDocuments(source)) {
+    visit(document.toJS());
+  }
+  return found;
+}
+
+/**
+ * The registry's ids that name one element under two names: a plain id registered twice, or two
+ * derived entries that derive the same id. Two derived entries may share a base when the ids they
+ * derive differ (a row and its star), and an alias listed in `aliases` may repeat a plain id.
+ */
+export function duplicateSelectors(
+  registry: Registry,
+  aliases: ReadonlyMap<string, string> = new Map(),
+): string[] {
+  const flat = flattenRegistry(registry);
+  const seen = new Map<string, string>();
+  const duplicates: string[] = [];
+  const add = (name: string, id: string): void => {
+    const first = seen.get(id);
+    if (first === undefined) {
+      seen.set(id, name);
+    } else if (aliases.get(name) !== first) {
+      duplicates.push(`${name} repeats ${first} (${id})`);
+    }
+  };
+  for (const { name, id } of flat.ids) {
+    add(name, id);
+  }
+  // A sample part that no plain id ends with, so a derived id is compared with the others only.
+  for (const { name, entry } of flat.derived) {
+    add(name, entry.id('sample'));
+  }
+  return duplicates;
+}
+
+/**
+ * The plain ids registered under a second name on purpose, each with the name it repeats: the
+ * handle field is described by its status line, which has no element of its own.
+ */
+const ALIASES: ReadonlyMap<string, string> = new Map([
+  ['onboarding.handleStatus', 'onboarding.handleField'],
+]);
+
 /** The files under a folder, at any depth, whose names match. */
 function filesUnder(dir: string, pattern: RegExp): string[] {
   return readdirSync(join(ROOT, dir), { recursive: true, encoding: 'utf8' })
@@ -189,6 +268,59 @@ describe('the selector registry', () => {
         file,
       ).toEqual([]);
     }
+  });
+
+  it('no id is registered twice', () => {
+    expect(duplicateSelectors(SELECTORS, ALIASES)).toEqual([]);
+    const registry: Registry = {
+      auth: {
+        here: 'auth.here',
+        again: 'auth.here',
+        row: { base: 'auth.row', id: (value) => `auth.row-${value}` },
+        rowStar: { base: 'auth.row', id: (value) => `auth.row-${value}-star` },
+        rowAgain: { base: 'auth.row', id: (value) => `auth.row-${value}` },
+      },
+    };
+    expect(duplicateSelectors(registry)).toEqual([
+      'auth.again repeats auth.here (auth.here)',
+      'auth.rowAgain repeats auth.row (auth.row-sample)',
+    ]);
+    expect(duplicateSelectors(registry, new Map([['auth.again', 'auth.here']]))).toEqual([
+      'auth.rowAgain repeats auth.row (auth.row-sample)',
+    ]);
+  });
+
+  it("the office flow's words equal the catalog", () => {
+    const { actions } = RESOURCES.en.common.ui;
+    const words: string[] = [actions.following, actions.bookmarked, actions.follow];
+    const texts = assertedTexts(readFileSync(join(ROOT, OFFICE_FLOW), 'utf8'));
+    expect(texts.length).toBeGreaterThan(0);
+    expect(texts.filter((text) => !words.includes(text))).toEqual([]);
+    expect([...new Set(texts)].sort()).toEqual([...words].sort());
+  });
+
+  it('reads the asserted texts of a flow at any depth', () => {
+    const flow = [
+      'appId: x',
+      '---',
+      "- assertVisible: 'Shown'",
+      '- assertVisible:',
+      "    id: 'auth.here'",
+      "    text: 'Here'",
+      '- runFlow:',
+      '    when:',
+      '      visible:',
+      "        id: 'auth.here'",
+      "        text: 'When'",
+      '    commands:',
+      '      - tapOn:',
+      "          id: 'auth.here'",
+      '- extendedWaitUntil:',
+      '    notVisible:',
+      "      text: 'Gone'",
+      "- tapOn: 'Open'",
+    ].join('\n');
+    expect(assertedTexts(flow)).toEqual(['Shown', 'Here', 'When', 'Gone']);
   });
 
   it('reads a target found by text in each form', () => {
