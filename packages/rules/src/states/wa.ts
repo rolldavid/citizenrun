@@ -59,6 +59,7 @@ const STATE_GENERAL = 'wa_state_general';
 const COUNTY_GENERAL = 'wa_county_general';
 const CHARTER_COUNTY_ODD_YEAR = 'wa_charter_county_odd_year';
 const LOCAL_ODD_YEAR = 'wa_local_odd_year';
+const PUBLIC_UTILITY_DISTRICT = 'wa_public_utility_district';
 const STATE_PRIMARY = 'wa_state_primary';
 const CONSERVATION_DISTRICT = 'wa_conservation_district';
 const NO_PUBLIC_ELECTION = 'wa_no_public_election';
@@ -100,6 +101,24 @@ const CHARTER_COUNTY_GENERAL_DAY = cite(
 const LOCAL_GENERAL_DAY = cite(
   '29A.04.330',
   'All city, town, and district general elections shall be held throughout the state of Washington on the first Tuesday following the first Monday in November in the odd-numbered years.',
+  EARLIEST_PUBLISHED_APPLICATION,
+);
+
+/**
+ * Public utility district commissioners are nominated at a primary and elected at a general
+ * election (RCW 54.12.010(3): "Only voters of a commissioner district may vote at a primary to
+ * nominate candidates for a commissioner of the commissioner district. Voters of the entire public
+ * utility district may vote at a general election to elect a person as a commissioner of the
+ * commissioner district."). RCW 29A.04.330(1)(b) takes their elections out of the odd-year city,
+ * town and district generals ("Public utility districts, conservation districts, or district
+ * elections at which the ownership of property within those districts is a prerequisite to voting,
+ * all of which elections shall be held at the times prescribed in the laws specifically applicable
+ * thereto;"), and RCW 29A.04.321(1) limits the odd-year general to the elections it lists, so their
+ * primary and general fall in even years.
+ */
+const PUBLIC_UTILITY_DISTRICT_GENERAL_DAY = cite(
+  '29A.04.321',
+  'However, the statewide general election held in odd-numbered years shall be limited to (a) city, town, and district general elections as provided for in RCW 29A.04.330, or as otherwise provided by law;',
   EARLIEST_PUBLISHED_APPLICATION,
 );
 
@@ -147,6 +166,8 @@ function contests(office: OfficeRef, year: number): readonly ContestOut[] {
       return isEven(year) ? [] : primaryAndGeneral(year, CHARTER_COUNTY_GENERAL_DAY);
     case LOCAL_ODD_YEAR:
       return isEven(year) ? [] : primaryAndGeneral(year, LOCAL_GENERAL_DAY);
+    case PUBLIC_UTILITY_DISTRICT:
+      return isEven(year) ? primaryAndGeneral(year, PUBLIC_UTILITY_DISTRICT_GENERAL_DAY) : [];
     case STATE_PRIMARY:
       return isEven(year)
         ? [
@@ -446,6 +467,7 @@ export const waRules: StateRules = {
     COUNTY_GENERAL,
     CHARTER_COUNTY_ODD_YEAR,
     LOCAL_ODD_YEAR,
+    PUBLIC_UTILITY_DISTRICT,
     STATE_PRIMARY,
     CONSERVATION_DISTRICT,
     NO_PUBLIC_ELECTION,
