@@ -299,9 +299,18 @@ const KEY_CYCLES: ReadonlyMap<string, KeyCycle> = new Map([
   ...keyCycles(prefixed('henrico-school-board', HENRICO_DISTRICTS), 2027, HENRICO_SCHOOL),
 ]);
 
+/** The office types the table keys; no other office reads the key. */
+const KEYED_TYPES: ReadonlySet<string> = new Set([
+  'city-council',
+  'school-board',
+  'county-commission',
+]);
+
 /** The cycle of the office's template key when `year` is one of its election years, else null. */
 function keyCycleIn(office: OfficeRef, year: number): KeyCycle | null {
-  const cycle = KEY_CYCLES.get(office.templateKey);
+  const cycle = KEYED_TYPES.has(office.officeTypeId)
+    ? KEY_CYCLES.get(office.templateKey)
+    : undefined;
   return cycle !== undefined && mod(year - cycle.first, cycle.every) === 0 ? cycle : null;
 }
 
@@ -311,7 +320,7 @@ function mod(a: number, n: number): number {
 
 /** Whether the office is elected in `year`; an office whose years each locality sets is asked every year. */
 function electedIn(office: OfficeRef, year: number): boolean {
-  if (KEY_CYCLES.has(office.templateKey)) {
+  if (KEYED_TYPES.has(office.officeTypeId) && KEY_CYCLES.has(office.templateKey)) {
     return keyCycleIn(office, year) !== null;
   }
   const cycle = STATE_CYCLES[office.officeTypeId];

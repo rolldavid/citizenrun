@@ -485,7 +485,10 @@ function partisanCycle(year: number, withPrimaries: boolean): readonly ContestOu
  * that sets those years (D-894); every other office's contests as its schedule gives them.
  */
 function txContests(office: OfficeRef, year: number): readonly ContestOut[] {
-  const cycle = KEY_CYCLES.get(office.templateKey);
+  const cycle =
+    KEYED_SCHEDULES.has(office.schedule) && KEYED_TYPES.has(office.officeTypeId)
+      ? KEY_CYCLES.get(office.templateKey)
+      : undefined;
   if (cycle === undefined) {
     return scheduleContests(office, year);
   }
@@ -593,6 +596,14 @@ const EL_PASO_2020 = cite(
   'Commencing in June 2017, the Judges of the Municipal Courts, the Mayor, and the District Representatives from districts numbers 2, 3, 4 and 7 shall be elected to terms greater than three years but less than four years that conform to the change made in subsection A to the start of the term and the new election date beginning in November 2020, and they shall thereafter be elected to four-year terms.',
   '2017-06-01',
 );
+
+/** The schedules and office types of the offices the table keys; no other office reads the key. */
+const KEYED_SCHEDULES: ReadonlySet<string> = new Set([
+  'tx_county_general',
+  'tx_uniform_may',
+  'tx_uniform_november',
+]);
+const KEYED_TYPES: ReadonlySet<string> = new Set(['county-commission', 'city-council']);
 
 function keyCycles(
   prefix: string,

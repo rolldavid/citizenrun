@@ -665,11 +665,16 @@ const KEY_CYCLES: ReadonlyMap<string, readonly Cycle[]> = new Map([
   ],
 ]);
 
+/** The office types the table keys; no other office reads the key. */
+const KEYED_TYPES: ReadonlySet<string> = new Set(['mayor', 'city-council']);
+
 type MunicipalYear = { readonly elected: boolean; readonly citation: Citation | null };
 
 /** Whether a municipal office is elected in `year`, and the charter text that says so when keyed. */
 function municipalYear(office: OfficeRef, year: number): MunicipalYear {
-  const cycles = KEY_CYCLES.get(office.templateKey);
+  const cycles = KEYED_TYPES.has(office.officeTypeId)
+    ? KEY_CYCLES.get(office.templateKey)
+    : undefined;
   if (cycles === undefined || year < Math.min(...cycles.map((c) => c.first))) {
     return { elected: oddMunicipalYear(year), citation: null };
   }
