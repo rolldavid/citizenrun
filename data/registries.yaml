@@ -1,2 +1,15 @@
 # State registries of special districts, read as a second source.
-[]
+- state: TX
+  name: Special Purpose District Public Information Database
+  url: https://spdpid.comptroller.texas.gov/
+  publisher: Texas Comptroller of Public Accounts
+  licence_text: No licence stated; published by Texas Comptroller of Public Accounts on its own portal
+  retrieved_on: 2026-11-28
+  provides: [district_list, rosters]
+- state: VA
+  name: Election Schedule, Soil and Water Conservation District Directors, 2027 to 2039
+  url: https://www.elections.virginia.gov/media/boardpapers/calendar/SWCD_27_39.pdf
+  publisher: Virginia Department of Elections
+  licence_text: No licence stated; published by Virginia Department of Elections on its own portal
+  retrieved_on: 2026-11-28
+  provides: [district_list, election_calendar]
