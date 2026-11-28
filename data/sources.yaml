@@ -502,6 +502,346 @@
   ci_status: unknown
   notes: The quotes of the House and Senate terms come from the transcripts of the Constitution and of amendments 11 to 27 under /founding-docs/. robots.txt of www.archives.gov allows /founding-docs/ and asks for a crawl delay of 10 seconds.
 
+- id: nc-leg
+  kind: crawl_host
+  name: 'North Carolina General Statutes and Session Laws'
+  publisher: 'North Carolina General Assembly'
+  url: https://www.ncleg.gov/
+  terms_url: https://www.ncleg.gov/Disclaimer
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'North Carolina General Assembly'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the General Statutes and session laws (city charters among them) that the North Carolina template and rules module cite. robots.txt allowed every page fetched.'
+
+- id: nc-sbe-files
+  kind: crawl_host
+  name: 'North Carolina State Board of Elections documents'
+  publisher: 'North Carolina State Board of Elections'
+  url: https://dl.ncsbe.gov/
+  terms_url: https://www.nc.gov/disclaimer-terms-use
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page. The State terms grant permission to copy and distribute non-image documents for non-commercial use, unaltered and cited to the source.'
+  licence_spdx: null
+  attribution: 'North Carolina State Board of Elections'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "The State Board of Elections' file host: candidate guides and election calendars used for the North Carolina fixtures. The terms page is the State of North Carolina's, linked from the Board's pages."
+
+- id: nc-oshr
+  kind: crawl_host
+  name: 'North Carolina state holiday schedule'
+  publisher: 'North Carolina Office of State Human Resources'
+  url: https://oshr.nc.gov/
+  terms_url: https://www.nc.gov/disclaimer-terms-use
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'North Carolina Office of State Human Resources'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the state holiday schedule read beside G.S. 103-4. The terms page is the State of North Carolina's, linked from the site footer."
+
+- id: nc-durham-county
+  kind: crawl_host
+  name: 'Durham County publications'
+  publisher: 'Durham County'
+  url: https://dconc.gov/
+  terms_url: https://dconc.gov/PublicSite/Bottom-Nav/Privacy-Policy-Disclaimer
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Durham County'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves Durham County at a Glance, which the North Carolina template cites for the Board of Commissioners.'
+
+- id: nc-raleigh-files
+  kind: crawl_host
+  name: 'City of Raleigh documents'
+  publisher: 'City of Raleigh'
+  url: https://cityofraleigh0drupal.blob.core.usgovcloudapi.net/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'City of Raleigh'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "The file storage of the City of Raleigh's website, which serves the charter and ordinance documents the North Carolina template cites for Raleigh's council. No terms page found on 2026-11-28: the city's site raleighnc.gov answered the home page request with a challenge (403), so its terms were not read."
+
+- id: wa-leg
+  kind: crawl_host
+  name: 'Revised Code of Washington and the state constitution'
+  publisher: 'Washington State Legislature'
+  url: https://leg.wa.gov/
+  terms_url: https://leg.wa.gov/disclaimer/
+  terms_read_on: 2026-11-28
+  basis: "Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page. The disclaimer names the Statute Law Committee's copyright claim for those who sell the codes; the project sells nothing."
+  licence_spdx: null
+  attribution: 'Washington State Legislature'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Revised Code of Washington (app.leg.wa.gov, a named robots.txt exception, D-877) and the state constitution (leg.wa.gov) that the Washington template and rules module cite.'
+  hosts: [app.leg.wa.gov, leg.wa.gov]
+
+- id: wa-sos-site
+  kind: crawl_host
+  name: 'Washington Secretary of State elections pages'
+  publisher: 'Washington Secretary of State'
+  url: https://www.sos.wa.gov/
+  terms_url: https://www.sos.wa.gov/web-sites-privacy-policy
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page. The policy page states that this is a public domain web site under the Public Disclosure Act.'
+  licence_spdx: null
+  attribution: 'Washington Secretary of State'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the elections calendar and the annual elections reports used for the Washington fixtures.'
+
+- id: wa-spokane
+  kind: crawl_host
+  name: 'City of Spokane charter and council pages'
+  publisher: 'City of Spokane'
+  url: https://my.spokanecity.org/
+  terms_url: https://my.spokanecity.org/website/terms/
+  terms_read_on: 2026-11-28
+  basis: "Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page. The site's terms restrict reposting its content; the project quotes the city charter's text, a public law, with a link to the page."
+  licence_spdx: null
+  attribution: 'City of Spokane'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the city charter the Washington template cites for Spokane's council."
+
+- id: wa-tacoma
+  kind: crawl_host
+  name: 'City of Tacoma council pages'
+  publisher: 'City of Tacoma'
+  url: https://tacoma.gov/
+  terms_url: https://tacoma.gov/city-of-tacoma-website-disclaimer/
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'City of Tacoma'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the City Council page the Washington template cites for Tacoma's council."
+
+- id: wa-thurston-county
+  kind: crawl_host
+  name: 'Thurston County board pages'
+  publisher: 'Thurston County'
+  url: https://www.thurstoncountywa.gov/
+  terms_url: https://www.thurstoncountywa.gov/website-use-disclaimer
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Thurston County'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Board of County Commissioners page the Washington template cites.'
+
+- id: tx-legis
+  kind: crawl_host
+  name: 'Texas Constitution and Statutes'
+  publisher: 'Texas Legislative Council'
+  url: https://tcss.legis.texas.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Texas Legislative Council'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the Election Code, Local Government Code and Constitution sections the Texas template and rules module cite. No terms page found on 2026-11-28: the host's home page answered 404."
+
+- id: tx-sos-site
+  kind: crawl_host
+  name: 'Texas Secretary of State elections pages'
+  publisher: 'Texas Secretary of State'
+  url: https://www.sos.texas.gov/
+  terms_url: https://www.sos.texas.gov/disclaimer.shtml
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Texas Secretary of State'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the important election dates and the candidate guides used for the Texas fixtures.'
+
+- id: us-code
+  kind: crawl_host
+  name: 'United States Code'
+  publisher: 'Office of the Law Revision Counsel, U.S. House of Representatives'
+  url: https://uscode.house.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Office of the Law Revision Counsel, U.S. House of Representatives'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves 5 U.S.C. 6103 (federal holidays), cited by the Texas rules module. No terms page found on 2026-11-28 (the home page redirects to the browse page, which links none).'
+
+- id: tx-dallas
+  kind: crawl_host
+  name: 'City of Dallas charter'
+  publisher: 'City of Dallas'
+  url: https://dallascityhall.com/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'City of Dallas'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the city charter the Texas template cites for Dallas's council. No terms page found on 2026-11-28 (the home page links none)."
+
+- id: tx-austin
+  kind: crawl_host
+  name: 'City of Austin charter and election pages'
+  publisher: 'City of Austin'
+  url: https://www.austintexas.gov/
+  terms_url: https://www.austintexas.gov/legal-notice
+  terms_read_on: 2026-11-28
+  basis: "Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page. The legal notice asks for permission before copyrighted material of the site is used; the project quotes the city charter's text, a public law, with a link to the page."
+  licence_spdx: null
+  attribution: 'City of Austin'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the city charter (services.austintexas.gov) and the city clerk's election page (www.austintexas.gov) that the Texas template cites for Austin's council."
+  hosts: [www.austintexas.gov, services.austintexas.gov]
+
+- id: tx-el-paso
+  kind: crawl_host
+  name: 'City of El Paso charter'
+  publisher: 'City of El Paso'
+  url: https://www2.elpasotexas.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'City of El Paso'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the city charter the Texas template cites for El Paso's council. No terms page read on 2026-11-28: the home page answered with a challenge (403)."
+
+- id: la-legis
+  kind: crawl_host
+  name: 'Louisiana Revised Statutes and Constitution'
+  publisher: 'Louisiana State Legislature'
+  url: https://legis.la.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Louisiana State Legislature'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Revised Statutes and Constitution the Louisiana template and rules module cite (each from its LawPrint.aspx page). robots.txt answers 404 (no restriction, RFC 9309). No terms page found on 2026-11-28 (the home page links none).'
+
+- id: la-ethics
+  kind: crawl_host
+  name: 'Louisiana Board of Ethics campaign finance schedules'
+  publisher: 'Louisiana Board of Ethics'
+  url: https://ethics.la.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Louisiana Board of Ethics'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the campaign finance reporting schedules that state the election dates used for the Louisiana fixtures. No terms page found on 2026-11-28 (the home page links only an ADA policy).'
+
+- id: la-brla
+  kind: crawl_host
+  name: 'City of Baton Rouge and Parish of East Baton Rouge'
+  publisher: 'City of Baton Rouge and Parish of East Baton Rouge'
+  url: https://www.brla.gov/
+  terms_url: https://www.brla.gov/site/copyright
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'City of Baton Rouge and Parish of East Baton Rouge'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Plan of Government the Louisiana template cites for the Metropolitan Council.'
+
+- id: la-calcasieu-clerk
+  kind: crawl_host
+  name: 'Calcasieu Parish Clerk of Court election pages'
+  publisher: 'Calcasieu Parish Clerk of Court'
+  url: https://www.calcasieuclerk.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Calcasieu Parish Clerk of Court'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the qualifying calendars used for the Louisiana fixtures; its PDF links redirect to the site builder's file host, read as the clerk's own publication (D-888). That file host's robots.txt answers 403 (no restriction, RFC 9309; D-893). No terms page found on 2026-11-28 (the home page links none)."
+  hosts:
+    [www.calcasieuclerk.gov, calcasieuclerk.gov, 0fed7ada-ffd6-448a-9d77-f7f552b92923.filesusr.com]
+
+- id: va-dlas
+  kind: crawl_host
+  name: 'Code of Virginia (legacy Legislative Information System)'
+  publisher: 'Virginia Division of Legislative Automated Systems'
+  url: https://legacylis.virginia.gov/
+  terms_url: https://legacylis.virginia.gov/priv.htm
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Virginia Division of Legislative Automated Systems'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Code of Virginia sections the Virginia template and rules module cite. The privacy statement is the only policy page the site links.'
+
+- id: va-senate
+  kind: crawl_host
+  name: 'Senate of Virginia publications'
+  publisher: 'Senate of Virginia'
+  url: https://apps.senate.virginia.gov/
+  terms_url: null
+  terms_read_on: null
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Senate of Virginia'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: 'Serves the Virginia Government in Brief the Virginia template cites. No terms page found on 2026-11-28 (the home page redirects to the senator list).'
+
+- id: va-scb
+  kind: crawl_host
+  name: 'Virginia Compensation Board'
+  publisher: 'Virginia Compensation Board'
+  url: https://www.scb.virginia.gov/
+  terms_url: https://www.scb.virginia.gov/privacy.cfm
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'Virginia Compensation Board'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the Compensation Board's questions page, which quotes Constitution of Virginia Art. VII, § 4 on the elected constitutional officers; the Virginia template cites it."
+
+- id: census-www
+  kind: crawl_host
+  name: 'U.S. Census Bureau publications'
+  publisher: 'U.S. Census Bureau'
+  url: https://www.census.gov/
+  terms_url: https://www.census.gov/about/policies/citation.html
+  terms_read_on: 2026-11-28
+  basis: 'Public government records: statutes, charters, election calendars and official notices, quoted with a link to the page.'
+  licence_spdx: null
+  attribution: 'U.S. Census Bureau'
+  robots_checked_on: 2026-11-27
+  ci_status: unknown
+  notes: "Serves the 2022 Individual State Descriptions (D-321), which the Virginia template cites for special districts' elected fact."
+
 # --- never fetched ---
 
 - id: ballotpedia
