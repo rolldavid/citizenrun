@@ -26,3 +26,18 @@ paths = [
   '''(^|/)pnpm-lock\.yaml$''',
   '''(^|/)__fixtures__/''',
 ]
+
+[[allowlists]]
+description = "Office template keys in the state templates and the rules tests that name them"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+condition = "AND"
+# A template key is lowercase words and numbers joined by hyphens, such as
+# austin-council-district-2; no segment mixes letters and digits.
+regexes = [
+  '''^(key|templateKey): '?(?:[a-z]+|[0-9]+)(?:-(?:[a-z]+|[0-9]+))+'?$''',
+]
+paths = [
+  '''^data/templates/[a-z]{2}\.yaml$''',
+  '''^packages/rules/src/states/[a-z]{2}\.test\.ts$''',
+]
