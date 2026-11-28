@@ -841,7 +841,48 @@ government_types:
         district: null
         wikidata_position: null
         roster_url: null
-      - key: tacoma-council
+      - key: tacoma-council-at-large
+        office_type: city-council
+        applies_to:
+          name_pattern: ^Tacoma city$
+          population_min: null
+          population_max: null
+        title: '{jurisdiction} Council Member, At Large'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: 'https://tacoma.gov/government/departments/city-council/'
+            quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+            citation: 'City of Tacoma, City Council'
+          district_count: null
+          label_pattern: null
+        body_size: null
+        stagger: []
+        term_years:
+          value: 4
+          source_url: 'https://tacoma.gov/government/departments/city-council/'
+          quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
+          citation: 'City of Tacoma, City Council'
+        term_limit_terms: null
+        schedule: wa_local_odd_year
+        track_set: wa_filing_week
+        partisan:
+          value: false
+          source_url: 'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.52.231'
+          quote: 'All city, town, and special purpose district elective offices shall be nonpartisan and the candidates therefor shall be nominated and elected as such.'
+          citation: RCW 29A.52.231
+        powers: []
+        pay:
+          local: true
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
+      - key: tacoma-council-district
         office_type: city-council
         applies_to:
           name_pattern: ^Tacoma city$
@@ -849,12 +890,8 @@ government_types:
           population_max: null
         title: '{jurisdiction} Council Member, {label}'
         seats:
-          arrangement: mixed
-          count:
-            value: 3
-            source_url: 'https://tacoma.gov/government/departments/city-council/'
-            quote: City Council Members are comprised of a Mayor and eight Council Members (five Councilmanic districts and three at-large) elected to serve four-year terms.
-            citation: 'City of Tacoma, City Council'
+          arrangement: by_district
+          count: null
           district_count:
             value: 5
             source_url: 'https://tacoma.gov/government/departments/city-council/'
