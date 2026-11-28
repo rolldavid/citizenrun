@@ -336,12 +336,48 @@ const WHERE_LOCAL = cite(
   'Local and municipal candidates shall qualify for a primary election with the clerk of court for the parish in which the candidate is registered to vote.',
   '2023-10-14',
 );
-const FEES = cite(
-  'R.S. 18:464(B)',
+const FEE_STATE = cite(
+  'R.S. 18:464(B)(1)',
   URL_18_464,
-  'B. Amount of qualifying fees. The qualifying fees for candidates in primary elections are: (1) For state candidates -- two thousand five hundred dollars for governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, and commissioner of insurance; three thousand five hundred dollars for United States senator; one thousand five hundred dollars for United States representative; four hundred fifty dollars for justice of the supreme court, judge of a court of appeal, and member of the public service commission; and six hundred dollars for all other state candidates. (2) For local candidates -- three hundred dollars for state senator and district judge, two hundred twenty-five dollars for state representative, parish president, and other district or parochial offices, one hundred fifteen dollars for police juror, parish council member, and school board member, and seventy-five dollars for ward and all other local offices. (3) For municipal candidates -- forty dollars in a municipality with a population of less than five thousand, seventy-five dollars in a municipality with a population of five thousand or more but less than twenty-five thousand, one hundred fifty dollars in a municipality with a population of twenty-five thousand or more but less than fifty thousand, two hundred twenty-five dollars in a municipality with a population of fifty thousand or more but less than one hundred thousand, three hundred dollars in a municipality with a population of one hundred thousand or more but less than three hundred thousand, and three hundred seventy-five dollars in a municipality with a population of three hundred thousand or more. Population for purposes of this Paragraph shall be the population shown by the latest federal decennial census. (4) For candidates for membership on state central committees and parish executive committees of political parties -- seventy-five dollars. (5) All candidates other than candidates for membership on the state central committee or parish executive committee of a political party, in addition to the qualifying fees established pursuant to Paragraphs (1) through (4) of this Subsection, shall pay an additional qualifying fee of twenty-five dollars.',
+  'For state candidates -- two thousand five hundred dollars for governor, lieutenant governor, secretary of state, attorney general, treasurer, commissioner of agriculture, and commissioner of insurance; three thousand five hundred dollars for United States senator; one thousand five hundred dollars for United States representative; four hundred fifty dollars for justice of the supreme court, judge of a court of appeal, and member of the public service commission; and six hundred dollars for all other state candidates.',
   '2023-10-14',
 );
+const FEE_LOCAL = cite(
+  'R.S. 18:464(B)(2)',
+  URL_18_464,
+  'For local candidates -- three hundred dollars for state senator and district judge, two hundred twenty-five dollars for state representative, parish president, and other district or parochial offices, one hundred fifteen dollars for police juror, parish council member, and school board member, and seventy-five dollars for ward and all other local offices.',
+  '2023-10-14',
+);
+const FEE_MUNICIPAL = cite(
+  'R.S. 18:464(B)(3)',
+  URL_18_464,
+  'For municipal candidates -- forty dollars in a municipality with a population of less than five thousand, seventy-five dollars in a municipality with a population of five thousand or more but less than twenty-five thousand, one hundred fifty dollars in a municipality with a population of twenty-five thousand or more but less than fifty thousand, two hundred twenty-five dollars in a municipality with a population of fifty thousand or more but less than one hundred thousand, three hundred dollars in a municipality with a population of one hundred thousand or more but less than three hundred thousand, and three hundred seventy-five dollars in a municipality with a population of three hundred thousand or more. Population for purposes of this Paragraph shall be the population shown by the latest federal decennial census.',
+  '2023-10-14',
+);
+const FEE_COMMITTEE = cite(
+  'R.S. 18:464(B)(4)',
+  URL_18_464,
+  'For candidates for membership on state central committees and parish executive committees of political parties -- seventy-five dollars.',
+  '2023-10-14',
+);
+const FEE_ADDITIONAL = cite(
+  'R.S. 18:464(B)(5)',
+  URL_18_464,
+  'All candidates other than candidates for membership on the state central committee or parish executive committee of a political party, in addition to the qualifying fees established pursuant to Paragraphs (1) through (4) of this Subsection, shall pay an additional qualifying fee of twenty-five dollars.',
+  '2023-10-14',
+);
+/** A fee of Paragraph (1), (2) or (3) with the additional fee of Paragraph (5) it always carries. */
+function withAdditionalFee(paragraph: Citation): Citation {
+  return cite(
+    `${paragraph.citation} and (B)(5)`,
+    URL_18_464,
+    `${paragraph.quote} ${FEE_ADDITIONAL.quote}`,
+    paragraph.validFrom,
+  );
+}
+const FEE_STATE_TOTAL = withAdditionalFee(FEE_STATE);
+const FEE_LOCAL_TOTAL = withAdditionalFee(FEE_LOCAL);
+const FEE_MUNICIPAL_TOTAL = withAdditionalFee(FEE_MUNICIPAL);
 const PETITION_COUNTS = cite(
   'R.S. 18:465(C)',
   URL_18_465,
@@ -1064,13 +1100,18 @@ function feeFor(office: OfficeRef): Computed<FeeRule> | null {
       ? null
       : {
           value: { kind: 'fixed', cents: tier[1] * 100 + ADDITIONAL_FEE_CENTS },
-          citation: FEES,
+          citation: FEE_MUNICIPAL_TOTAL,
         };
   }
   const dollars = FEE_DOLLARS[office.officeTypeId];
   return dollars === undefined
     ? null
-    : { value: { kind: 'fixed', cents: dollars * 100 + ADDITIONAL_FEE_CENTS }, citation: FEES };
+    : {
+        value: { kind: 'fixed', cents: dollars * 100 + ADDITIONAL_FEE_CENTS },
+        citation: STATE_CANDIDATE_TYPES.has(office.officeTypeId)
+          ? FEE_STATE_TOTAL
+          : FEE_LOCAL_TOTAL,
+      };
 }
 
 function signaturesFor(office: OfficeRef, contestYear: number): Computed<SignatureRule> | null {
@@ -1216,7 +1257,7 @@ function committeeTracks(contest: ContestRef): readonly TrackOut[] {
       closesTime: period.closesTime,
       petitionOpens: null,
       petitionDue: null,
-      fee: { value: { kind: 'fixed', cents: 7_500 }, citation: FEES },
+      fee: { value: { kind: 'fixed', cents: 7_500 }, citation: FEE_COMMITTEE },
       signatures: null,
       alternatives: [
         {
