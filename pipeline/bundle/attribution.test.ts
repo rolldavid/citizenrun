@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { loadSources } from '../lib/data-files.ts';
 import type { BoundarySource, SourceEntry } from '../lib/data-files.ts';
 import { repoRoot } from '../lib/paths.ts';
+import { TIMEZONE_DATASET } from '../lib/timezones.ts';
 import { emptyRows } from './assemble.ts';
 import {
   PHOTO_SENTENCE,
@@ -13,8 +14,9 @@ import {
   renderRootAttribution,
   sourceCredits,
   usedHosts,
+  usedRegisterDatasets,
 } from './attribution.ts';
-import { district } from './testing/rows.ts';
+import { district, jurisdiction } from './testing/rows.ts';
 
 function manifest(datasets: BundleManifest['datasets']): BundleManifest {
   return BundleManifestSchema.parse({
@@ -75,6 +77,32 @@ describe('attribution', () => {
     expect(text).toMatch(
       /- U\.S\. Census Bureau\. TIGER\/Line Shapefiles 2026, edition 2026, downloaded 2026-11-26\. Licence: LicenseRef-PD-USGov\. Source: https:/,
     );
+  });
+
+  it("a jurisdiction's zone credits the time-zone register's dataset, which no manifest names", async () => {
+    const sources = await loadSources();
+    const register = sources.find((entry) => entry.id === TIMEZONE_DATASET);
+    if (register === undefined) throw new Error(`${TIMEZONE_DATASET} is not in data/sources.yaml`);
+    expect(register.kind).toBe('dataset');
+    const zoned = {
+      ...emptyRows(),
+      jurisdictions: [jurisdiction('state:ZZ', { timezone: 'America/New_York' })],
+    };
+    expect([...usedRegisterDatasets(zoned)]).toEqual([TIMEZONE_DATASET]);
+    const text = renderBundleAttribution(
+      manifest({}),
+      sources,
+      new Set(),
+      usedRegisterDatasets(zoned),
+    );
+    expect(text).toContain(
+      `- ${register.attribution ?? register.publisher}. ${register.name}. Licence: ${register.licence_spdx ?? 'no licence stated'}. Source: ${register.url}`,
+    );
+    const unzoned = { ...emptyRows(), jurisdictions: [jurisdiction('state:ZZ')] };
+    expect(usedRegisterDatasets(unzoned).size).toBe(0);
+    expect(
+      renderBundleAttribution(manifest({}), sources, new Set(), usedRegisterDatasets(unzoned)),
+    ).not.toContain(register.name);
   });
 
   it('the root ATTRIBUTION.md matches data/sources.yaml', async () => {

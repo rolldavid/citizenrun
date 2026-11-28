@@ -7,6 +7,9 @@ import { dataDir } from './paths.ts';
 
 export type TimezoneRegister = ReadonlyMap<string, TimezoneEntry>;
 
+/** The data/sources.yaml dataset the register is authored from (49 CFR Part 71). */
+export const TIMEZONE_DATASET = 'ecfr-time-zones';
+
 /** The register keyed by state. */
 export function timezoneRegister(entries: readonly TimezoneEntry[]): TimezoneRegister {
   return new Map(entries.map((entry) => [entry.state, entry]));

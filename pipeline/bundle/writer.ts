@@ -40,7 +40,7 @@ import { rulesFixtureInfo } from '../stages/shared/rules-fixtures.ts';
 import { defaultTemplatesDir, listTemplateFiles } from '../templates/load.ts';
 import { FULL_FILES, assemble, combineRows } from './assemble.ts';
 import type { AssembledRows, FullFileName } from './assemble.ts';
-import { renderBundleAttribution, usedHosts } from './attribution.ts';
+import { renderBundleAttribution, usedHosts, usedRegisterDatasets } from './attribution.ts';
 import {
   copyStage1Checks,
   integrityCheck,
@@ -571,7 +571,7 @@ export async function runBundle(
     });
     await write(
       bucketKeys.bundleFile(fullVersion, ATTRIBUTION_FILE),
-      text(renderBundleAttribution(manifest, sources, hosts)),
+      text(renderBundleAttribution(manifest, sources, hosts, usedRegisterDatasets(rows))),
       MARKDOWN_TYPE,
     );
     if (!opts.dryRun) {

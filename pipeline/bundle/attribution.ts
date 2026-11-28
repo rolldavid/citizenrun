@@ -7,6 +7,7 @@ import type { BundleManifest } from '@citizenrun/shared';
 import { REGISTER_FILES, sourceHosts } from '../lib/data-files.ts';
 import type { BoundarySource, SourceEntry } from '../lib/data-files.ts';
 import { dataDir } from '../lib/paths.ts';
+import { TIMEZONE_DATASET } from '../lib/timezones.ts';
 import { parseYamlWith } from '../lib/yaml.ts';
 import type { AssembledRows } from './assemble.ts';
 
@@ -115,6 +116,17 @@ export function usedHosts(
   return hosts;
 }
 
+/**
+ * The datasets of data/sources.yaml the bundle's rows rely on through a register under `data/`
+ * rather than a download of the run, so no stage records them in the manifest's `datasets`: the
+ * time-zone register's when a jurisdiction carries a zone (PIPE-timezones).
+ */
+export function usedRegisterDatasets(rows: AssembledRows): ReadonlySet<string> {
+  const ids = new Set<string>();
+  if (rows.jurisdictions.some((row) => row.timezone !== null)) ids.add(TIMEZONE_DATASET);
+  return ids;
+}
+
 function usable(entry: SourceEntry): boolean {
   return !entry.forbidden;
 }
@@ -124,19 +136,24 @@ export function renderBundleAttribution(
   manifest: BundleManifest,
   sources: SourcesFile,
   hosts: ReadonlySet<string>,
+  registers: ReadonlySet<string> = new Set(),
 ): string {
   const byId = new Map(sources.map((entry) => [entry.id, entry]));
-  for (const id of Object.keys(manifest.datasets)) {
+  for (const id of [...Object.keys(manifest.datasets), ...registers]) {
     if (!byId.has(id)) throw new AttributionSourceMissing(id);
   }
   const datasets = sources
-    .filter((entry) => Object.hasOwn(manifest.datasets, entry.id))
+    .filter((entry) => Object.hasOwn(manifest.datasets, entry.id) || registers.has(entry.id))
     .map((entry) => {
+      const licence = `Licence: ${entry.licence_spdx ?? 'no licence stated'}.`;
       const used = manifest.datasets[entry.id];
+      if (used === undefined) {
+        // Read through a register under data/: no edition or download date of a run to state.
+        return `- ${creditName(entry)}. ${entry.name}. ${licence} Source: ${entry.url}`;
+      }
       return (
-        `- ${creditName(entry)}. ${entry.name}, edition ${used?.edition ?? ''}, downloaded ` +
-        `${used?.downloaded_on ?? ''}. Licence: ${entry.licence_spdx ?? 'no licence stated'}. ` +
-        `Source: ${used?.source_url ?? entry.url}`
+        `- ${creditName(entry)}. ${entry.name}, edition ${used.edition}, downloaded ` +
+        `${used.downloaded_on}. ${licence} Source: ${used.source_url}`
       );
     });
   const local = sources
