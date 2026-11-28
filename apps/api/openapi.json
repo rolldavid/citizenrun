@@ -318,8 +318,7 @@
         "enum": [
           "terms",
           "content_policy",
-          "privacy_policy",
-          "ai_screening"
+          "privacy_policy"
         ]
       },
       "ConsentState": {
@@ -333,14 +332,6 @@
           },
           "privacyPolicy": {
             "$ref": "#/components/schemas/DocumentConsent"
-          },
-          "aiScreening": {
-            "type": "string",
-            "enum": [
-              "granted",
-              "declined",
-              "not_asked"
-            ]
           },
           "needed": {
             "type": "array",
@@ -358,7 +349,6 @@
           "terms",
           "contentPolicy",
           "privacyPolicy",
-          "aiScreening",
           "needed"
         ]
       },
@@ -880,7 +870,6 @@
                   "handle_taken",
                   "handle_reserved",
                   "handle_change_too_soon",
-                  "ai_consent_required",
                   "unknown_issue",
                   "upload_invalid",
                   "onboarding_step_mismatch",
@@ -4563,12 +4552,6 @@
               "privacyPolicyVersion"
             ]
           },
-          "aiScreening": {
-            "type": [
-              "boolean",
-              "null"
-            ]
-          },
           "state": {
             "type": [
               "string",
@@ -4637,8 +4620,7 @@
         },
         "required": [
           "age",
-          "agreements",
-          "aiScreening"
+          "agreements"
         ]
       },
       "SkipOnboardingStepBody": {
@@ -6302,7 +6284,6 @@
           "origin_rejected",
           "account_suspended",
           "upload_invalid",
-          "ai_consent_required",
           "rate_limited"
         ],
         "security": [
@@ -6365,7 +6346,7 @@
             }
           },
           "422": {
-            "description": "The upload cannot be used, or the bio needs an AI-screening answer.",
+            "description": "The upload cannot be used.",
             "content": {
               "application/json": {
                 "schema": {
@@ -6581,7 +6562,7 @@
         },
         "responses": {
           "200": {
-            "description": "The agreements and the AI-screening answer after the change.",
+            "description": "The agreements after the change.",
             "content": {
               "application/json": {
                 "schema": {

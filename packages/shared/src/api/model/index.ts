@@ -20,7 +20,6 @@ export * from './clientErrorFrame.ts';
 export * from './confidence.ts';
 export * from './consentKind.ts';
 export * from './consentState.ts';
-export * from './consentStateAiScreening.ts';
 export * from './consentStateNeededItem.ts';
 export * from './createAuthNonceBody.ts';
 export * from './createClientErrorBody.ts';

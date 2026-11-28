@@ -9,7 +9,5 @@ export interface SignupDetails {
   age: SignupDetailsAge;
   agreements: SignupDetailsAgreements;
   /** @nullable */
-  aiScreening: boolean | null;
-  /** @nullable */
   state?: SignupDetailsState;
 }

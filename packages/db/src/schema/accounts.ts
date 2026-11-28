@@ -268,6 +268,7 @@ export const userConsents = pgTable(
       columns: [table.userId],
       foreignColumns: [users.id],
     }).onDelete('cascade'),
+    // `ai_screening` stays readable for rows written before D-900; nothing writes it now.
     check(
       'user_consents_kind_check',
       sql`${table.kind} in ('terms', 'content_policy', 'privacy_policy', 'ai_screening')`,

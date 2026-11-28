@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import * as fixtures from '@/features/settings/view-models/settings-privacy.fixtures';
@@ -27,11 +27,8 @@ vi.mock('react-native-svg/lib/module/lib/resolveAssetUri', () => ({
 }));
 
 const FIXTURES: Readonly<Record<string, SettingsPrivacyViewModel>> = fixtures;
-type Ready = Extract<SettingsPrivacyViewModel, { status: 'ready' }>;
 
-const SENTENCE =
-  'Public posts, comments and bios may be checked by an automated AI service run by Anthropic; direct messages never are.';
-const OFF_NOTE = 'Your content is never sent to it; keyword checks still apply.';
+const INTRO = 'Your issues, your districts and your private runs are never shown on your profile.';
 
 /** Renders the screen from one view-model, in place of whatever was drawn before. */
 function draw(vm: SettingsPrivacyViewModel): HTMLElement {
@@ -45,22 +42,9 @@ function draw(vm: SettingsPrivacyViewModel): HTMLElement {
   return screen.getByTestId('settings.privacy');
 }
 
-/** A ready fixture with some of its data replaced. */
-function withData(base: Ready, data: Partial<Ready['data']>): Ready {
-  return { ...base, data: { ...base.data, ...data } };
-}
-
-/** The fixture's person with the AI answer set. */
-function answered(aiScreening: Ready['data']['me']['consents']['aiScreening']): Ready {
-  const { me } = fixtures.privacyM1.data;
-  return withData(fixtures.privacyM1, {
-    me: { ...me, consents: { ...me.consents, aiScreening } },
-  });
-}
-
 describe('SettingsPrivacyScreenView', () => {
   it('renders every fixture', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(7);
+    expect(Object.keys(FIXTURES)).toHaveLength(5);
     for (const [name, vm] of Object.entries(FIXTURES)) {
       const root = draw(vm);
       expect(root.textContent, name).not.toContain('{{');
@@ -72,74 +56,15 @@ describe('SettingsPrivacyScreenView', () => {
     }
   });
 
-  it('the AI switch', () => {
-    const onSetAiScreening = vi.fn();
-    const root = draw(withData(fixtures.privacyM1, { onSetAiScreening }));
-    expect(root.textContent).toContain(
-      'Your issues, your districts and your private runs are never shown on your profile.',
-    );
-    const control = screen.getByTestId('settings.privacy-ai');
-    expect(
-      screen.getByRole('switch', { name: /Let an automated service check my public posts/ }),
-    ).toBe(control);
-    // The sentence as written stands with the switch.
-    expect(root.textContent).toContain(SENTENCE);
-    expect(control.getAttribute('aria-checked')).toBe('true');
-    expect(root.textContent).not.toContain(OFF_NOTE);
-
-    // Turning it off asks the view-model; the switch stays until the answer is saved.
-    fireEvent.click(control);
-    expect(onSetAiScreening).toHaveBeenCalledTimes(1);
-    expect(onSetAiScreening).toHaveBeenLastCalledWith(false);
-    expect(screen.getByTestId('settings.privacy-ai').getAttribute('aria-checked')).toBe('true');
-  });
-
-  it('off says what still applies, and turns on again', () => {
-    for (const answer of ['declined', 'not_asked'] as const) {
-      const onSetAiScreening = vi.fn();
-      const base = answered(answer);
-      const root = draw(withData(base, { onSetAiScreening }));
-      const control = screen.getByTestId('settings.privacy-ai');
-      expect(control.getAttribute('aria-checked'), answer).toBe('false');
-      expect(root.textContent, answer).toContain(OFF_NOTE);
-      fireEvent.click(control);
-      expect(onSetAiScreening, answer).toHaveBeenLastCalledWith(true);
+  it('says what a profile never shows, and asks nothing about AI screening', () => {
+    for (const vm of [fixtures.privacyM1, fixtures.privacyStale]) {
+      const root = draw(vm);
+      expect(root.textContent).toContain(INTRO);
+      // No switch, no box and no sentence about an automated check (D-900).
+      expect(root.querySelectorAll('[role="switch"], [role="checkbox"], input')).toHaveLength(0);
+      expect(screen.queryByTestId('settings.privacy-ai')).toBeNull();
+      expect(root.textContent).not.toMatch(/\bAI\b|Anthropic|automated/i);
     }
-  });
-
-  it('a change on its way waits', () => {
-    const onSetAiScreening = vi.fn();
-    draw(withData(fixtures.privacySaving, { onSetAiScreening }));
-    const control = screen.getByTestId('settings.privacy-ai');
-    expect(control.getAttribute('aria-busy')).toBe('true');
-    fireEvent.click(control);
-    expect(onSetAiScreening).not.toHaveBeenCalled();
-  });
-
-  it('a failed save says so', () => {
-    cleanup();
-    setViewport(390, 844);
-    const view = renderWithProviders(
-      <ToastHost>
-        <SettingsPrivacyScreenView vm={fixtures.privacySaving} />
-      </ToastHost>,
-    );
-    expect(screen.queryByTestId('toast')).toBeNull();
-    act(() => {
-      view.rerender(
-        <ToastHost>
-          <SettingsPrivacyScreenView vm={fixtures.privacySaveFailed} />
-        </ToastHost>,
-      );
-    });
-    expect(screen.getByTestId('toast').textContent).toBe(
-      "This isn't available right now. Try again in a few minutes.",
-    );
-    // The switch is where it was: the change was never shown as made.
-    expect(screen.getByTestId('settings.privacy-ai').getAttribute('aria-checked')).toBe(
-      String(fixtures.privacySaveFailed.data.me.consents.aiScreening === 'granted'),
-    );
-    expect(screen.getByTestId('settings.privacy-ai').getAttribute('aria-busy')).not.toBe('true');
   });
 
   it('generic states', () => {
@@ -153,13 +78,5 @@ describe('SettingsPrivacyScreenView', () => {
     expect(onRetry).toHaveBeenCalledTimes(1);
 
     expect(draw(fixtures.privacyOffline).textContent).toContain('No connection.');
-
-    // Shown from the cache: the switch takes no press.
-    const onSetAiScreening = vi.fn();
-    draw(withData(fixtures.privacyStale, { onSetAiScreening }));
-    const control = screen.getByTestId('settings.privacy-ai');
-    expect(control.getAttribute('aria-disabled')).toBe('true');
-    fireEvent.click(control);
-    expect(onSetAiScreening).not.toHaveBeenCalled();
   });
 });

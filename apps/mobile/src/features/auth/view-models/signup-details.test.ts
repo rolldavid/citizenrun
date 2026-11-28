@@ -7,7 +7,7 @@ const STORE = { method: 'store_signal', sourceTier: 'confirmed' } as const;
 
 describe('buildSignupDetails', () => {
   it('carries the three current legal versions', () => {
-    expect(buildSignupDetails({ age: STORE, aiScreening: true, state: null }).agreements).toEqual({
+    expect(buildSignupDetails({ age: STORE, state: null }).agreements).toEqual({
       termsVersion: LEGAL_VERSIONS.terms,
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
       privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
@@ -15,22 +15,25 @@ describe('buildSignupDetails', () => {
   });
 
   it('omits the state when none was asked', () => {
-    const details = buildSignupDetails({ age: STORE, aiScreening: true, state: null });
+    const details = buildSignupDetails({ age: STORE, state: null });
     expect(details).not.toHaveProperty('state');
     expect(details.age).toEqual(STORE);
-    expect(details.aiScreening).toBe(true);
   });
 
   it('carries the state when picked', () => {
-    expect(buildSignupDetails({ age: STORE, aiScreening: true, state: 'VT' }).state).toBe('VT');
+    expect(buildSignupDetails({ age: STORE, state: 'VT' }).state).toBe('VT');
   });
 
-  it('carries null for "Not now"', () => {
+  it('carries the age record, the agreements and no AI-screening answer', () => {
     const details = buildSignupDetails({
       age: { method: 'none', sourceTier: null },
-      aiScreening: null,
       state: null,
     });
-    expect(details).toHaveProperty('aiScreening', null);
+    expect(Object.keys(details).sort()).toEqual(['age', 'agreements']);
+    expect(Object.keys(buildSignupDetails({ age: STORE, state: 'VT' })).sort()).toEqual([
+      'age',
+      'agreements',
+      'state',
+    ]);
   });
 });

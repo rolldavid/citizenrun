@@ -20,9 +20,9 @@ export const SuspendedReasonSchema = z
 
 export type SuspendedReason = z.infer<typeof SuspendedReasonSchema>;
 
-/** The kinds of consent a user records (L-age-consent). */
+/** The kinds of consent a user records (L-age-consent): the three agreements (D-900). */
 export const ConsentKindSchema = z
-  .enum(['terms', 'content_policy', 'privacy_policy', 'ai_screening'])
+  .enum(['terms', 'content_policy', 'privacy_policy'])
   .meta({ id: 'ConsentKind' });
 
 export type ConsentKind = z.infer<typeof ConsentKindSchema>;
@@ -56,13 +56,12 @@ export const DocumentConsentSchema = z
 
 export type DocumentConsent = z.infer<typeof DocumentConsentSchema>;
 
-/** The user's agreements, the AI-screening answer and the agreements to ask again (L-age-consent). */
+/** The user's agreements and the agreements to ask again (L-age-consent). */
 export const ConsentStateSchema = z
   .object({
     terms: DocumentConsentSchema,
     contentPolicy: DocumentConsentSchema,
     privacyPolicy: DocumentConsentSchema,
-    aiScreening: z.enum(['granted', 'declined', 'not_asked']),
     needed: z.array(z.enum(['terms', 'content_policy', 'privacy_policy'])),
   })
   .meta({ id: 'ConsentState' });
@@ -390,13 +389,7 @@ export const SkipOnboardingStepBodySchema = z
 
 export type SkipOnboardingStepBody = z.infer<typeof SkipOnboardingStepBodySchema>;
 
-const AGREEMENT_KINDS: ReadonlySet<ConsentKind> = new Set([
-  'terms',
-  'content_policy',
-  'privacy_policy',
-]);
-
-/** The body of `POST /v1/me/consents` (E-ME-11); an agreement cannot be withdrawn, only AI screening can. */
+/** The body of `POST /v1/me/consents` (E-ME-11); an agreement cannot be withdrawn. */
 export const RecordConsentBodySchema = z
   .object({
     kind: ConsentKindSchema,
@@ -404,7 +397,7 @@ export const RecordConsentBodySchema = z
     granted: z.boolean(),
   })
   .superRefine((body, ctx) => {
-    if (!body.granted && AGREEMENT_KINDS.has(body.kind)) {
+    if (!body.granted) {
       ctx.addIssue({
         code: 'custom',
         path: ['granted'],

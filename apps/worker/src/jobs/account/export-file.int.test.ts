@@ -7,7 +7,13 @@ import {
   userDistricts,
   users,
 } from '@citizenrun/db';
-import { getTestBucket, getTestDb, insertUser, resetStorage } from '@citizenrun/db/testing';
+import {
+  getTestBucket,
+  getTestDb,
+  insertConsent,
+  insertUser,
+  resetStorage,
+} from '@citizenrun/db/testing';
 import { ExportFileSchema } from '@citizenrun/shared';
 import { loadKeyRing } from '@citizenrun/shared/crypto';
 import type { KeyRing } from '@citizenrun/shared/crypto';
@@ -149,16 +155,23 @@ describe('the export file', () => {
       .orderBy(asc(issues.sort))
       .limit(3);
 
+    // An answer recorded while AI screening was asked is still the person's own record.
+    await insertConsent(getTestDb(), {
+      userId: kind.user.id,
+      kind: 'ai_screening',
+      version: '2026-11-25',
+      granted: false,
+    });
+
     const file = await buildExportFile(getTestDb(), media, kind.user.id, now);
 
-    expect(file.consents.map((consent) => consent.kind)).toEqual([
-      'terms',
-      'content_policy',
-      'privacy_policy',
-      'ai_screening',
+    expect(file.consents.map((consent) => [consent.kind, consent.granted])).toEqual([
+      ['terms', true],
+      ['content_policy', true],
+      ['privacy_policy', true],
+      ['ai_screening', false],
     ]);
     for (const consent of file.consents) {
-      expect(consent.granted).toBe(true);
       expect(consent.platform).toBe('ios');
       expect(consent.version.length).toBeGreaterThan(0);
     }

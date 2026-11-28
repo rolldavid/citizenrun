@@ -52,18 +52,11 @@ export const auth = {
     needState: 'Pick a state or territory',
   },
   agree: {
-    title: 'Before you start',
-    body: 'By tapping Agree you accept the <terms>Terms</terms> and the <policy>Content policy</policy>, and you have read the <privacy>Privacy policy</privacy>.',
-    action: 'Agree',
-  },
-  ai: {
-    title: 'One more choice',
-    sentence:
-      'Public posts, comments and bios may be checked by an automated AI service run by Anthropic; direct messages never are.',
-    allow: 'Allow',
-    notNow: 'Not now',
-    dontAllow: "Don't allow",
-    declineNote: 'Your content is never sent to it. Keyword checks still apply.',
+    title: 'Create your account',
+    label: 'I agree to the <terms>Terms</terms> and the <privacy>Privacy Policy</privacy>',
+    labelText: 'I agree to the Terms and the Privacy Policy',
+    continue: 'Continue',
+    needTick: 'Check the box to continue',
   },
   reauth: {
     title: 'Sign in again to continue',

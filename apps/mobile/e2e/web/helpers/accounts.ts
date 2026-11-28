@@ -77,7 +77,6 @@ export async function signUpThroughApi(
         contentPolicyVersion: LEGAL_VERSIONS.content_policy,
         privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
       },
-      aiScreening: true,
     },
   };
   expectOk(

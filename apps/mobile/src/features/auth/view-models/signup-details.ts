@@ -8,7 +8,6 @@ function isStateCode(code: string): code is StateCode {
 /** SCR-sign-in rule 2 (D-464): the answers a new account is created with. */
 export function buildSignupDetails(input: {
   age: SignupDetails['age'];
-  aiScreening: boolean | null;
   state: string | null;
 }): SignupDetails {
   return {
@@ -18,7 +17,6 @@ export function buildSignupDetails(input: {
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
       privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
     },
-    aiScreening: input.aiScreening,
     ...(input.state !== null && isStateCode(input.state) ? { state: input.state } : {}),
   };
 }

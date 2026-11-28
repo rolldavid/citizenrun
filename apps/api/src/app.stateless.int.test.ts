@@ -183,7 +183,6 @@ describe('a stateless API', () => {
             contentPolicyVersion: LEGAL_VERSIONS.content_policy,
             privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
           },
-          aiScreening: null,
         },
       },
     });
@@ -217,7 +216,6 @@ describe('a stateless API', () => {
           contentPolicyVersion: LEGAL_VERSIONS.content_policy,
           privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
         },
-        aiScreening: null,
       },
     };
     const onB = await b.request.post('/v1/auth/apple', { ip: freshIp(), body });

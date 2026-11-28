@@ -141,18 +141,17 @@ export async function checkCreationPreconditions(
   await checkStateRules(signup, input.flags);
 }
 
-// The records every sign-up writes (L-account-link, L-app-events): the three agreements, the
-// AI-screening answer when one was given, and `account_created`.
+// The records every sign-up writes (L-account-link, L-app-events): the three agreements and
+// `account_created`. No AI-screening answer is asked or recorded (D-900).
 async function writeSignupRecords(
   tx: Tx,
   input: {
     userId: string;
-    signup: SignupDetails;
     platform: Platform;
     method: 'email' | 'apple' | 'google';
   },
 ): Promise<void> {
-  const { userId, signup, platform } = input;
+  const { userId, platform } = input;
   const consents: (typeof userConsents.$inferInsert)[] = [
     { id: newId(), userId, kind: 'terms', version: LEGAL_VERSIONS.terms, granted: true, platform },
     {
@@ -172,16 +171,6 @@ async function writeSignupRecords(
       platform,
     },
   ];
-  if (signup.aiScreening !== null) {
-    consents.push({
-      id: newId(),
-      userId,
-      kind: 'ai_screening',
-      version: LEGAL_VERSIONS.ai_screening,
-      granted: signup.aiScreening,
-      platform,
-    });
-  }
   await tx.insert(userConsents).values(consents);
   await writeAppEvent(tx, {
     userId,
@@ -284,7 +273,6 @@ export async function createUserWithIdentity(
       if (input.signup !== null) {
         await writeSignupRecords(sp, {
           userId,
-          signup: input.signup,
           platform: input.platform,
           method: input.method,
         });
@@ -310,7 +298,6 @@ export async function completeDeferredSignup(
     .where(and(eq(users.id, input.userId), isNull(users.ageMethod)));
   await writeSignupRecords(tx, {
     userId: input.userId,
-    signup: input.signup,
     platform: input.platform,
     method: 'apple',
   });

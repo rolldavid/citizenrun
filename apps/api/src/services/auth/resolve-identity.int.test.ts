@@ -25,7 +25,6 @@ const SIGNUP: SignupDetails = {
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
     privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
   },
-  aiScreening: null,
 };
 const ADDRESS_HASH = 'fixture-address-hash';
 

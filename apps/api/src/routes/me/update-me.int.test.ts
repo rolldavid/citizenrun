@@ -1,4 +1,4 @@
-import { appEvents, uploads, users } from '@citizenrun/db';
+import { appEvents, uploads, userConsents, users } from '@citizenrun/db';
 import { insertConsent, insertRateCounter, insertUpload, insertUser } from '@citizenrun/db/testing';
 import { ERROR_CODES, ErrorEnvelopeSchema, MeSchema } from '@citizenrun/shared';
 import type { ErrorCode, Me } from '@citizenrun/shared';
@@ -56,10 +56,9 @@ async function expectMe(response: TestResponse): Promise<Me> {
   return MeSchema.parse(await response.json());
 }
 
-/** A finished user with an AI-screening answer, signed in by bearer. */
+/** A finished user, signed in by bearer. */
 async function member(overrides: Parameters<typeof insertUser>[1] = {}) {
   const user = await insertUser(testApp.deps.db, overrides);
-  await insertConsent(testApp.deps.db, { userId: user.id, kind: 'ai_screening', granted: true });
   const auth = await signIn(testApp.deps.db, user, 'bearer');
   return { user, auth };
 }
@@ -262,21 +261,30 @@ describe('PATCH /v1/me', () => {
     expect((await userRow(user.id)).link).toBe('https://example.org/about');
   });
 
-  it('a bio from a user with no ai_screening row answers ai_consent_required and is not stored', async () => {
+  it('a bio needs no AI-screening answer: it is stored with no consent row at all', async () => {
     const user = await insertUser(testApp.deps.db);
     const auth = await signIn(testApp.deps.db, user, 'bearer');
-    await expectEnvelope(
-      await patchMe({ bio: 'Running for school board.' }, { auth }),
-      'ai_consent_required',
-    );
-    expect((await userRow(user.id)).bio).toBeNull();
-    // Clearing the bio needs no answer.
+    expect(
+      await testApp.deps.db.select().from(userConsents).where(eq(userConsents.userId, user.id)),
+    ).toEqual([]);
+    const me = await expectMe(await patchMe({ bio: 'Running for school board.' }, { auth }));
+    expect(me.bio).toBe('Running for school board.');
+    const row = await userRow(user.id);
+    expect(row.bio).toBe('Running for school board.');
+    // Stored unscreened: the bio is screenable without any record.
+    expect(row.bioAiScreenStatus).toBeNull();
     await expectMe(await patchMe({ bio: null }, { auth }));
+    expect((await userRow(user.id)).bio).toBeNull();
   });
 
-  it('the same bio after a declined answer is stored', async () => {
+  it('a bio is stored the same way after an earlier declined answer', async () => {
     const user = await insertUser(testApp.deps.db);
-    await insertConsent(testApp.deps.db, { userId: user.id, kind: 'ai_screening', granted: false });
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'ai_screening',
+      version: '2026-11-25',
+      granted: false,
+    });
     const auth = await signIn(testApp.deps.db, user, 'bearer');
     const me = await expectMe(await patchMe({ bio: 'Running for school board.' }, { auth }));
     expect(me.bio).toBe('Running for school board.');

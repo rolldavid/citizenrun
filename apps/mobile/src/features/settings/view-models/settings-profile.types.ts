@@ -13,8 +13,6 @@ export type SettingsProfileViewModel = ViewState<{
     fields: Partial<Record<'name' | 'bio' | 'link' | 'handle', string>>;
     errorCode: ErrorCode | null;
   };
-  aiConsentNeeded: boolean;
-  onAnswerAiConsent: (allow: boolean) => void;
   onChoosePhoto: () => void;
   onRemovePhoto: () => void;
   onSave: (input: {

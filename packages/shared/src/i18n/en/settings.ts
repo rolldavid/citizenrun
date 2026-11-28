@@ -68,8 +68,6 @@ export const settings = {
   },
   privacy: {
     intro: 'Your issues, your districts and your private runs are never shown on your profile.',
-    ai: 'Let an automated service check my public posts',
-    aiOff: 'Your content is never sent to it; keyword checks still apply.',
   },
   export: {
     body: 'Get a copy of your profile, issues, follows, posts, comments, runs and messages as one file.',

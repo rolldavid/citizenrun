@@ -24,7 +24,6 @@ const SIGNUP = {
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
     privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
   },
-  aiScreening: true,
 };
 const STANDARD_LOG_KEYS = ['event', 'level', 'service', 'time'];
 const PER_ADDRESS_HOURLY = 10;

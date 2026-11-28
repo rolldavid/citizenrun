@@ -137,15 +137,12 @@ async function reachStage(hook: Hook, stage: string): Promise<void> {
   });
 }
 
-/** From the agreements through "Allow" or "Not now". */
-function agreeAndAnswer(hook: Hook, allow: boolean): void {
+/** Continue on the agreements, as the screen calls it once the box is ticked: the account is made next. */
+function agree(hook: Hook): void {
   act(() => {
     hook.result.current.agreements?.onAgree();
   });
-  expect(hook.result.current.stage).toBe('aiConsent');
-  act(() => {
-    hook.result.current.aiConsent?.onAnswer(allow);
-  });
+  expect(hook.result.current.stage).toBe('finishing');
 }
 
 const APPEARANCE: ProviderButtonAppearance = {
@@ -237,11 +234,10 @@ describe('useSignInViewModel', () => {
     expect(hook.result.current.signingUp).toBe(true);
     expect(hook.result.current.agreements?.links).toEqual({
       terms: 'http://api.test/terms',
-      contentPolicy: 'http://api.test/content-policy',
       privacyPolicy: 'http://api.test/privacy',
     });
 
-    agreeAndAnswer(hook, true);
+    agree(hook);
     expect(hook.result.current.stage).toBe('finishing');
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
@@ -256,7 +252,6 @@ describe('useSignInViewModel', () => {
         signup: {
           age: { method: 'store_signal', sourceTier: 'declared' },
           agreements: AGREEMENTS,
-          aiScreening: true,
         },
       },
     ]);
@@ -275,7 +270,7 @@ describe('useSignInViewModel', () => {
     await reachStage(hook, 'agreements');
     expect(hook.result.current.blocked).toBeNull();
     expect(Object.keys(hook.result.current)).not.toContain('ageGate');
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
     });
@@ -289,7 +284,6 @@ describe('useSignInViewModel', () => {
         signup: {
           age: { method: 'none', sourceTier: null },
           agreements: AGREEMENTS,
-          aiScreening: true,
         },
       },
     ]);
@@ -304,7 +298,7 @@ describe('useSignInViewModel', () => {
     await submitCode(hook);
     await reachStage(hook, 'agreements');
     expect(hook.result.current.blocked).toBeNull();
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
     });
@@ -316,7 +310,6 @@ describe('useSignInViewModel', () => {
       signup: {
         age: { method: 'none', sourceTier: null },
         agreements: AGREEMENTS,
-        aiScreening: true,
       },
     });
     // The store was asked once, silently; nothing was kept on the device.
@@ -381,16 +374,34 @@ describe('useSignInViewModel', () => {
     expect(routerCalls).toEqual([{ op: 'replace', path: '/welcome' }]);
   });
 
-  it('sends no AI answer for "Not now"', async () => {
+  it('makes no account before the agreement, and asks and sends no AI answer', async () => {
     answers({ verify: newPerson() });
     const hook = render();
     await submitCode(hook);
     await reachStage(hook, 'agreements');
-    agreeAndAnswer(hook, false);
-    await waitFor(() => {
-      expect(verifyBodies()).toHaveLength(2);
+    // The stage waits for the person: nothing was sent with sign-up details, and no session exists.
+    expect(verifyBodies()).toEqual([{ pendingToken: PENDING, code: CODE, intent: 'sign_in' }]);
+    expect(getSessionPresence()).not.toBe('present');
+    expect(hook.result.current.agreements?.links).toEqual({
+      terms: 'http://api.test/terms',
+      privacyPolicy: 'http://api.test/privacy',
     });
-    expect(verifyBodies()[1]).toMatchObject({ signup: { aiScreening: null } });
+    expect(Object.keys(hook.result.current)).not.toContain('aiConsent');
+
+    agree(hook);
+    await waitFor(() => {
+      expect(getSessionPresence()).toBe('present');
+    });
+    expect(verifyBodies()).toHaveLength(2);
+    // Exactly the age record and the three document versions.
+    expect(verifyBodies()[1]).toEqual({
+      pendingToken: PENDING,
+      code: CODE,
+      intent: 'sign_in',
+      signup: { age: { method: 'store_signal', sourceTier: 'declared' }, agreements: AGREEMENTS },
+    });
+    expect(JSON.stringify(stub.requests)).not.toContain('aiScreening');
+    expect(requests('/v1/me/consents')).toEqual([]);
   });
 
   it('asks for the state only when the server says so', async () => {
@@ -403,7 +414,7 @@ describe('useSignInViewModel', () => {
     await submitCode(hook);
     await reachStage(hook, 'agreements');
     expect(hook.result.current.statePicker).toBeNull();
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await reachStage(hook, 'state');
     expect(hook.result.current.statePicker?.codes).toEqual(STATE_CODES);
 
@@ -419,7 +430,7 @@ describe('useSignInViewModel', () => {
     expect(verifyBodies()[2]).toMatchObject({
       pendingToken: PENDING,
       code: CODE,
-      signup: { state: 'VT', aiScreening: true },
+      signup: { state: 'VT', agreements: AGREEMENTS },
     });
   });
 
@@ -433,7 +444,7 @@ describe('useSignInViewModel', () => {
     const hook = render();
     await submitCode(hook);
     await reachStage(hook, 'agreements');
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await reachStage(hook, 'state');
     act(() => {
       hook.result.current.statePicker?.onSubmit('VT');
@@ -456,7 +467,7 @@ describe('useSignInViewModel', () => {
     const hook = render();
     await submitCode(hook);
     await reachStage(hook, 'agreements');
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await reachStage(hook, 'methods');
     expect(hook.result.current.notice).toEqual({
       code: 'age_signal_required',
@@ -469,7 +480,7 @@ describe('useSignInViewModel', () => {
     const hook = render();
     await submitCode(hook);
     await reachStage(hook, 'agreements');
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await reachStage(hook, 'code');
     expect(hook.result.current.code?.status).toBe('expired');
     expect(hook.result.current.signingUp).toBe(false);
@@ -646,9 +657,6 @@ describe('useSignInViewModel', () => {
     act(() => {
       screen.vm().agreements?.onAgree();
     });
-    act(() => {
-      screen.vm().aiConsent?.onAnswer(true);
-    });
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
     });
@@ -662,7 +670,6 @@ describe('useSignInViewModel', () => {
         signup: {
           age: { method: 'store_signal', sourceTier: 'declared' },
           agreements: AGREEMENTS,
-          aiScreening: true,
         },
       },
     ]);
@@ -674,7 +681,7 @@ describe('useSignInViewModel', () => {
     const hook = render('/settings');
     await submitCode(hook);
     await reachStage(hook, 'agreements');
-    agreeAndAnswer(hook, true);
+    agree(hook);
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
     });

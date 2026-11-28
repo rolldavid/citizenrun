@@ -16,19 +16,12 @@ function hoursBetween(from: string | null | undefined, to: string | null | undef
 describe('the privacy and data fixtures', () => {
   it('privacy fixtures are the states of the screen', () => {
     expect(namesOf(privacyFixtures)).toEqual(
-      [
-        'privacyM1',
-        'privacySaving',
-        'privacySaveFailed',
-        'privacyLoading',
-        'privacyError',
-        'privacyOffline',
-        'privacyStale',
-      ].sort(),
+      ['privacyM1', 'privacyLoading', 'privacyError', 'privacyOffline', 'privacyStale'].sort(),
     );
-    expect(privacyFixtures.privacyM1.data.me.consents.aiScreening).toBe('granted');
-    expect(privacyFixtures.privacySaving.data.saving).toBe('aiScreening');
-    expect(privacyFixtures.privacySaveFailed.data.errorCode).toBe('unavailable');
+    // The screen holds no control: its data is the person alone.
+    expect(Object.keys(privacyFixtures.privacyM1.data)).toEqual(['me']);
+    expect(privacyFixtures.privacyM1.data.me.consents).not.toHaveProperty('aiScreening');
+    expect(privacyFixtures.privacyM1.stale).toBe(false);
     expect(privacyFixtures.privacyStale.stale).toBe(true);
   });
 

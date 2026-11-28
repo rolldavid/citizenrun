@@ -86,7 +86,7 @@ False information about how, when or where to vote, and manipulated media of rea
 
 - A keyword filter holds some words and phrases for review before they are shown.
 - Uploaded images are screened automatically for nudity, sexual content and gore.
-- Public posts, comments and bios that our filters flag may be screened with AI by Anthropic, only if their author gave permission. Direct messages are never screened with AI.
+- Public posts, comments and bios that our filters flag may be screened with AI by Anthropic. Direct messages are never screened with AI.
 - When three different people report a post or comment, it is hidden until an admin reviews it.
 - An admin reviews reports, and we aim to decide on every report within 24 hours.
 - The person who reported and the author are told the outcome.

@@ -1,4 +1,3 @@
-import { LEGAL_VERSIONS } from '@citizenrun/shared';
 import type { Me, UploadTicket } from '@citizenrun/shared';
 import { act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,7 +42,6 @@ const ME = fixtureMe({
   name: 'Fixture Person',
   bio: null,
   link: null,
-  consents: { ...fixtureMe().consents, aiScreening: 'not_asked' },
 });
 
 const SAME: { name: string | null; bio: string | null; link: string | null; handle: string } = {
@@ -225,64 +223,18 @@ describe('useSettingsProfileViewModel', () => {
     expect(data(hook).me.name).toBe('Fixture Person');
   });
 
-  it('asks the AI question at the first bio edit, then saves', async () => {
-    const consents = { ...ME.consents, aiScreening: 'granted' as const };
-    const saved = fixtureMe({ ...ME, bio: 'Fixture bio.', consents });
-    stub.use([
-      patchRoute((index) =>
-        index === 0 ? apiError(422, 'ai_consent_required') : json(200, saved),
-      ),
-      { method: 'POST', path: '/v1/me/consents', reply: json(200, consents) },
-    ]);
+  it('saves a first bio with no AI question and no consent request', async () => {
+    const saved = fixtureMe({ ...ME, bio: 'Fixture bio.' });
+    stub.use([patchRoute(() => json(200, saved))]);
     const hook = mount();
 
     await save(hook, { ...SAME, bio: 'Fixture bio.' });
-    expect(data(hook).aiConsentNeeded).toBe(true);
-    expect(data(hook).save.status).toBe('idle');
 
-    act(() => {
-      data(hook).onAnswerAiConsent(true);
-    });
-    await settle();
-
-    expect(writes()).toEqual([
-      ['PATCH', '/v1/me', { bio: 'Fixture bio.' }],
-      [
-        'POST',
-        '/v1/me/consents',
-        { kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted: true },
-      ],
-      ['PATCH', '/v1/me', { bio: 'Fixture bio.' }],
-    ]);
-    expect(data(hook).aiConsentNeeded).toBe(false);
+    expect(writes()).toEqual([['PATCH', '/v1/me', { bio: 'Fixture bio.' }]]);
+    expect(Object.keys(data(hook))).not.toContain('aiConsentNeeded');
+    expect(Object.keys(data(hook))).not.toContain('onAnswerAiConsent');
     expect(data(hook).save.status).toBe('saved');
     expect(readMeFromCache(hook.client)?.bio).toBe('Fixture bio.');
-  });
-
-  it('saves the bio after a declined AI question', async () => {
-    const consents = { ...ME.consents, aiScreening: 'declined' as const };
-    stub.use([
-      patchRoute((index) =>
-        index === 0
-          ? apiError(422, 'ai_consent_required')
-          : json(200, fixtureMe({ ...ME, bio: 'Fixture bio.', consents })),
-      ),
-      { method: 'POST', path: '/v1/me/consents', reply: json(200, consents) },
-    ]);
-    const hook = mount();
-
-    await save(hook, { ...SAME, bio: 'Fixture bio.' });
-    act(() => {
-      data(hook).onAnswerAiConsent(false);
-    });
-    await settle();
-
-    expect(writes()[1]).toEqual([
-      'POST',
-      '/v1/me/consents',
-      { kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted: false },
-    ]);
-    expect(data(hook).save.status).toBe('saved');
   });
 
   it("keeps the field's taken state when the handle was taken meanwhile", async () => {

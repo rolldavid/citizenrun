@@ -186,10 +186,10 @@ describe('seed step 010-users', () => {
   it('consents carry the current versions and are rewritten on every run', async () => {
     await runStep();
     const consents = await getTestDb().select().from(userConsents);
-    expect(consents).toHaveLength(200);
+    expect(consents).toHaveLength(150);
     const created = new Map((await seedUserRows()).map((row) => [row.id, row.createdAt]));
     for (const consent of consents) {
-      const kind = consent.kind as keyof typeof LEGAL_VERSIONS; // the kind check admits these four only
+      const kind = consent.kind as keyof typeof LEGAL_VERSIONS; // the seed writes these three only
       expect(consent.version).toBe(LEGAL_VERSIONS[kind]);
       expect(consent.granted).toBe(true);
       expect(consent.platform).toBe('web');
@@ -199,7 +199,7 @@ describe('seed step 010-users', () => {
     }
     for (const userId of SEED_IDS) {
       const kinds = consents.filter((consent) => consent.userId === userId).map((c) => c.kind);
-      expect(kinds.sort()).toEqual(['ai_screening', 'content_policy', 'privacy_policy', 'terms']);
+      expect(kinds.sort()).toEqual(['content_policy', 'privacy_policy', 'terms']);
     }
 
     const [first] = consents;
@@ -216,7 +216,7 @@ describe('seed step 010-users', () => {
       .from(userConsents)
       .where(eq(userConsents.id, first.id));
     expect(rewritten?.version).toBe(first.version);
-    expect(await countOf('user_consents')).toBe(200);
+    expect(await countOf('user_consents')).toBe(150);
   });
 
   it('issue picks follow the formula', async () => {
@@ -321,7 +321,7 @@ describe('seed step 010-users', () => {
     await runStep();
     const tables = ['users', 'auth_identities', 'user_consents', 'user_issues', 'uploads'] as const;
     const first = await Promise.all(tables.map(countOf));
-    expect(first).toEqual([50, 50, 200, 321, 30]);
+    expect(first).toEqual([50, 50, 150, 321, 30]);
 
     const later = new Date(ANCHOR.getTime() + 3 * DAY_MS);
     await runStep(later);

@@ -330,7 +330,7 @@ describe('J-account.delete', () => {
     const expected: Record<string, number> = {
       auth_identities: 1,
       sessions: 1,
-      user_consents: 4,
+      user_consents: 3,
       user_issues: 3,
       uploads: 1,
       data_exports: 1,

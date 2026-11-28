@@ -35,7 +35,7 @@ export const updateMeRoute = defineRoute({
       content: ERROR_RESPONSE,
     },
     422: {
-      description: 'The upload cannot be used, or the bio needs an AI-screening answer.',
+      description: 'The upload cannot be used.',
       content: ERROR_RESPONSE,
     },
     429: { description: 'Too many requests.', content: ERROR_RESPONSE },
@@ -47,7 +47,6 @@ export const updateMeRoute = defineRoute({
     'origin_rejected',
     'account_suspended',
     'upload_invalid',
-    'ai_consent_required',
     'rate_limited',
   ],
 });

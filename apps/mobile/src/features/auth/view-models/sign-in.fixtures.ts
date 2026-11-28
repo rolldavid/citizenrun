@@ -31,7 +31,6 @@ export const signInMethods = {
   code: null,
   statePicker: null,
   agreements: null,
-  aiConsent: null,
   blocked: null,
   offline: false,
   onChooseEmail: noop,
@@ -126,18 +125,10 @@ export const signInAgreements = {
   agreements: {
     links: {
       terms: 'https://example.test/terms',
-      contentPolicy: 'https://example.test/content-policy',
       privacyPolicy: 'https://example.test/privacy',
     },
     onAgree: noop,
   },
-} satisfies SignInViewModel;
-
-export const signInAiConsent = {
-  ...signInMethods,
-  stage: 'aiConsent',
-  signingUp: true,
-  aiConsent: { onAnswer: noop },
 } satisfies SignInViewModel;
 
 export const signInAdultsOnly = {

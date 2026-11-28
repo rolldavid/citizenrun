@@ -8,5 +8,4 @@ export const ConsentKind = {
   terms: 'terms',
   content_policy: 'content_policy',
   privacy_policy: 'privacy_policy',
-  ai_screening: 'ai_screening',
 } as const;

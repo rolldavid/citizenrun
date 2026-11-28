@@ -234,7 +234,7 @@ export async function everyKindSessions(build: EveryKindBuild): Promise<void> {
   }
 }
 
-/** `user_consents`: the four consents of sign-up for each user. */
+/** `user_consents`: the three consents of sign-up for each user. */
 export async function everyKindUserConsents(build: EveryKindBuild): Promise<void> {
   await insertConsents(build.db, build.user.id);
   await insertConsents(build.db, build.other.id);

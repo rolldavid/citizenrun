@@ -29,7 +29,7 @@ const LAST_WITH_AVATAR = 30;
 // The photo limit an avatar upload ticket carries (8 MB).
 const AVATAR_MAX_BYTES = 8_388_608;
 const AVATAR_CACHE_CONTROL = 'public, max-age=31536000, immutable';
-const CONSENT_KINDS = ['terms', 'content_policy', 'privacy_policy', 'ai_screening'] as const;
+const CONSENT_KINDS = ['terms', 'content_policy', 'privacy_policy'] as const;
 // The reference list's length, which the pick and color formulas count around (T-issues).
 const ISSUE_COUNT = 19;
 

@@ -23,7 +23,6 @@ const SIGNUP = {
     contentPolicyVersion: '2027-01-01',
     privacyPolicyVersion: '2027-01-01',
   },
-  aiScreening: null,
 };
 
 function fieldIssues(result: z.ZodSafeParseResult<unknown>) {
@@ -167,11 +166,19 @@ describe('SignupDetails', () => {
         agreements: { ...SIGNUP.agreements, privacyPolicyVersion: 'v'.repeat(33) },
       }).success,
     ).toBe(false);
-    const withoutAnswer = Object.fromEntries(
-      Object.entries(SIGNUP).filter(([key]) => key !== 'aiScreening'),
-    );
-    expect(SignupDetailsSchema.safeParse(withoutAnswer).success).toBe(false);
-    expect(SignupDetailsSchema.safeParse({ ...SIGNUP, aiScreening: true }).success).toBe(true);
+  });
+
+  it('SignupDetails carries no AI-screening answer', () => {
+    expect(Object.keys(SignupDetailsSchema.shape).sort()).toEqual(['age', 'agreements', 'state']);
+    // An answer an earlier client still sends is dropped, not refused.
+    const parsed = SignupDetailsSchema.parse({ ...SIGNUP, aiScreening: true });
+    expect(parsed).not.toHaveProperty('aiScreening');
+    // The three agreement versions are still required, each one.
+    for (const key of ['termsVersion', 'contentPolicyVersion', 'privacyPolicyVersion'] as const) {
+      const agreements: Record<string, string> = { ...SIGNUP.agreements };
+      Reflect.deleteProperty(agreements, key);
+      expect(SignupDetailsSchema.safeParse({ ...SIGNUP, agreements }).success, key).toBe(false);
+    }
   });
 });
 
@@ -258,7 +265,6 @@ describe('SessionInfo', () => {
         terms: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
         contentPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
         privacyPolicy: { agreedVersion: null, currentVersion: '2027-01-01' },
-        aiScreening: 'granted',
         needed: ['privacy_policy'],
       },
       session: {

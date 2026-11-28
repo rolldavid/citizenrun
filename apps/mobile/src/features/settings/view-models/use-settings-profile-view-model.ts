@@ -7,7 +7,7 @@ import {
   useAvatarPhoto,
   useHandleCheck,
 } from '@/features/onboarding';
-import { readMeFromCache, recordAiScreening, useMe, writeMeToCache } from '@/features/system';
+import { useMe, writeMeToCache } from '@/features/system';
 import { failureCode, useIsOnline, viewStateOf } from '@/lib/view-models/query';
 import type { ApiFailure } from '@/lib/view-models/query';
 import { queryClient } from '@/platform/query-client';
@@ -54,16 +54,13 @@ function writeMe(me: Me): void {
   writeMeToCache(queryClient.get(), me);
 }
 
-/** SCR-settings-profile: E-ME-02, then E-ME-08; E-UPL-01 for the photo; E-ME-11 on ai_consent_required. */
+/** SCR-settings-profile: E-ME-02, then E-ME-08; E-UPL-01 for the photo. */
 export function useSettingsProfileViewModel(): SettingsProfileViewModel {
   const { me, source } = useMe();
   const online = useIsOnline();
   const avatar = useAvatarPhoto();
   const checker = useHandleCheck({ ownHandle: me?.handle ?? null });
   const [save, setSave] = useState<Save>(SAVE_IDLE);
-  const [aiConsentNeeded, setAiConsentNeeded] = useState(false);
-  // The refused save's input, kept in memory for the one retry after E-ME-11
-  const keptInput = useRef<ProfileInput | null>(null);
   const sending = useRef(false);
   const sendWhenReady = useRef(false);
   const photoBusy = useRef(false);
@@ -73,7 +70,6 @@ export function useSettingsProfileViewModel(): SettingsProfileViewModel {
     mounted.current = true;
     return () => {
       mounted.current = false;
-      keptInput.current = null;
     };
   }, []);
 
@@ -154,12 +150,6 @@ export function useSettingsProfileViewModel(): SettingsProfileViewModel {
           setSave({ status: 'idle', fields: fieldsOf(failure), errorCode: null });
           return;
         }
-        if (isRefusal(failure, 'ai_consent_required')) {
-          keptInput.current = input;
-          setAiConsentNeeded(true);
-          setSave(SAVE_IDLE);
-          return;
-        }
         setSave({ status: 'idle', fields: {}, errorCode: failureCode(failure) });
         return;
       }
@@ -195,36 +185,6 @@ export function useSettingsProfileViewModel(): SettingsProfileViewModel {
     void sendChanges(me, input);
   };
 
-  // L-age-consent: the answer through E-ME-11, then the kept input once more
-  const onAnswerAiConsent = (allow: boolean): void => {
-    const input = keptInput.current;
-    if (!online || sending.current || input === null) return;
-    sending.current = true;
-    setSave(SAVE_SENDING);
-    void recordAiScreening(allow, queryClient.get()).then((outcome) => {
-      if (!outcome.ok) {
-        sending.current = false;
-        if (isMounted()) {
-          setSave({ status: 'idle', fields: {}, errorCode: failureCode(outcome.failure) });
-        }
-        return;
-      }
-      keptInput.current = null;
-      if (!isMounted()) {
-        sending.current = false;
-        return;
-      }
-      setAiConsentNeeded(false);
-      const base = readMeFromCache(queryClient.get()) ?? me;
-      if (base === null) {
-        sending.current = false;
-        setSave(SAVE_IDLE);
-        return;
-      }
-      void sendChanges(base, input);
-    });
-  };
-
   const view = viewStateOf<ProfileData | null>(
     [source],
     () =>
@@ -239,8 +199,6 @@ export function useSettingsProfileViewModel(): SettingsProfileViewModel {
               onChange: checker.onChange,
             },
             save,
-            aiConsentNeeded,
-            onAnswerAiConsent,
             onChoosePhoto,
             onRemovePhoto,
             onSave,

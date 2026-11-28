@@ -35,7 +35,6 @@ const SIGNUP: SignupDetails = {
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
     privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
   },
-  aiScreening: null,
 };
 
 let stub: ApiStub;

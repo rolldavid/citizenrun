@@ -101,7 +101,6 @@ describe('loadMe', () => {
         agreedVersion: LEGAL_VERSIONS.privacy_policy,
         currentVersion: LEGAL_VERSIONS.privacy_policy,
       },
-      aiScreening: 'granted',
       needed: [],
     });
     expect(me.session).toEqual({
@@ -157,20 +156,24 @@ describe('loadMe', () => {
     expect(me.consents.terms.agreedVersion).toBe('2000-01-01');
   });
 
-  it('aiScreening is declined or not asked', async () => {
+  it('an earlier AI-screening row changes nothing, and no answer is reported', async () => {
     const { user, session } = await newUser();
     const bare = await insertUser(testApp.deps.db, {});
     const { row: bareSession } = await insertSession(testApp.deps.db, { userId: bare.id });
     const bareMe = await load(bare.id, bareSession.id);
-    expect(bareMe.consents.aiScreening).toBe('not_asked');
+    expect(bareMe.consents).not.toHaveProperty('aiScreening');
     expect(bareMe.consents.needed).toEqual(['terms', 'content_policy', 'privacy_policy']);
     expect(bareMe.consents.terms.agreedVersion).toBeNull();
+    const before = (await load(user.id, session.id)).consents;
     await insertConsent(testApp.deps.db, {
       userId: user.id,
       kind: 'ai_screening',
+      version: '2026-11-25',
       granted: false,
     });
-    expect((await load(user.id, session.id)).consents.aiScreening).toBe('declined');
+    const after = (await load(user.id, session.id)).consents;
+    expect(after).toEqual(before);
+    expect(after).not.toHaveProperty('aiScreening');
   });
 
   it('session holds no admin key', async () => {
@@ -296,7 +299,7 @@ describe('loadMe', () => {
       currentVersion: LEGAL_VERSIONS.privacy_policy,
     });
     expect(state.needed).toEqual(['terms', 'content_policy', 'privacy_policy']);
-    expect(state.aiScreening).toBe('not_asked');
+    expect(state).not.toHaveProperty('aiScreening');
   });
 
   it('loadConsentState takes the newest granted version of each document', async () => {

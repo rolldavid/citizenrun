@@ -47,7 +47,6 @@ export function fixtureMe(overrides: Partial<Me> = {}): Me {
         agreedVersion: LEGAL_VERSIONS.privacy_policy,
         currentVersion: LEGAL_VERSIONS.privacy_policy,
       },
-      aiScreening: 'granted',
       needed: [],
     },
     session: {

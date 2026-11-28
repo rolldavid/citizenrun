@@ -46,7 +46,6 @@ function signup(overrides: Record<string, unknown> = {}): Record<string, unknown
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
       privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
     },
-    aiScreening: true,
     ...overrides,
   };
 }
@@ -706,7 +705,7 @@ describe('POST /v1/auth/apple', () => {
         'too_long',
       ],
       [{ ...valid, intent: 'add_email' }, 'intent', 'invalid_value'],
-      [{ ...valid, signup: { aiScreening: true } }, 'signup.age', 'required'],
+      [{ ...valid, signup: { agreements: signup()['agreements'] } }, 'signup.age', 'required'],
     ];
     for (const [body, field, code] of cases) {
       const response = await postApple(body);

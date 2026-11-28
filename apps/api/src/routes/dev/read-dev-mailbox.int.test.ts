@@ -30,7 +30,6 @@ const SIGNUP = {
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
     privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
   },
-  aiScreening: true,
 };
 
 type StartResult = { pendingToken: string };

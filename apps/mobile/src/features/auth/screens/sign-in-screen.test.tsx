@@ -43,8 +43,7 @@ const BACK = 'shell.app-bar-back';
 /** The time the fixtures are written at: a code fixture may be sent again 30 seconds later. */
 const FIXTURE_TIME = Date.parse('2027-01-15T12:00:00.000Z');
 const STEP = 'Step 1 of 5';
-const AI_SENTENCE =
-  'Public posts, comments and bios may be checked by an automated AI service run by Anthropic; direct messages never are.';
+const AGREE_SENTENCE = 'I agree to the Terms and the Privacy Policy';
 
 type Code = NonNullable<SignInViewModel['code']>;
 
@@ -138,7 +137,7 @@ describe('SignInScreenView', () => {
       [820, 1180],
       [1440, 900],
     ] as const)('at %i by %i', (width, height) => {
-      expect(Object.keys(FIXTURES)).toHaveLength(21);
+      expect(Object.keys(FIXTURES)).toHaveLength(20);
       setViewport(width, height);
       for (const [name, vm] of Object.entries(FIXTURES)) {
         for (const theme of ['light', 'dark'] as const) {
@@ -517,16 +516,22 @@ describe('SignInScreenView', () => {
     expect(onChangeEmail).toHaveBeenCalledTimes(1);
   });
 
-  it('no stage asks an age', () => {
+  it('no stage asks an age or about AI screening', () => {
     for (const [name, vm] of Object.entries(FIXTURES)) {
       cleanup();
       const view = renderWithProviders(<SignInScreenView vm={vm} />);
       expect(view.container.querySelector('[data-testid^="onboarding.age"]'), name).toBeNull();
       expect(view.container.textContent, name).not.toMatch(/\bborn\b|birth|how old/i);
+      expect(view.container.querySelector('[data-testid*="ai-"]'), name).toBeNull();
+      expect(view.container.textContent, name).not.toMatch(/\bAI\b|Anthropic|automated/i);
     }
-    // The agreements are the first thing a new account is asked.
+    expect(Object.keys(FIXTURES).filter((name) => /dob|aiConsent|aiScreening/i.test(name))).toEqual(
+      [],
+    );
+    // The one box is all a new account is asked.
     draw(fixtures.signInAgreements);
-    expect(title()).toBe('Before you start');
+    expect(title()).toBe('Create your account');
+    expect(screen.getAllByRole('checkbox')).toHaveLength(1);
   });
 
   it('state picker', () => {
@@ -572,27 +577,27 @@ describe('SignInScreenView', () => {
     ).toEqual(['California', 'Texas']);
   });
 
-  it('agreements', () => {
+  it('one box to agree: unticked, and Continue waits for it', () => {
     const onAgree = vi.fn<() => void>();
-    const root = draw({
+    const vm: SignInViewModel = {
       ...fixtures.signInAgreements,
       agreements: { ...fixtures.signInAgreements.agreements, onAgree },
-    });
-    expect(title()).toBe('Before you start');
-    expect(root.textContent).toContain(
-      'By tapping Agree you accept the Terms and the Content policy, and you have read the Privacy policy.',
-    );
+    };
+    const root = draw(vm);
+    expect(title()).toBe('Create your account');
+    // One box with its role, its name and its state. Nothing ticks it for the person.
+    const box = (): HTMLElement => button('onboarding.terms-agree');
+    expect(screen.getByRole('checkbox', { name: AGREE_SENTENCE })).toBe(box());
+    expect(root.querySelectorAll('input, [role="checkbox"], [role="switch"]')).toHaveLength(1);
+    expect(box().getAttribute('aria-checked')).toBe('false');
+    expect(root.textContent).toContain(AGREE_SENTENCE);
+    // Both documents are linked from the sentence.
     const links = [
       ['auth.agree-terms', 'https://example.test/terms', 'Terms, opens in your browser'],
       [
-        'auth.agree-policy',
-        'https://example.test/content-policy',
-        'Content policy, opens in your browser',
-      ],
-      [
         'auth.agree-privacy',
         'https://example.test/privacy',
-        'Privacy policy, opens in your browser',
+        'Privacy Policy, opens in your browser',
       ],
     ] as const;
     for (const [testID, href, name] of links) {
@@ -601,34 +606,37 @@ describe('SignInScreenView', () => {
       expect(link.getAttribute('target'), testID).toBe('_blank');
       expect(screen.getByRole('link', { name }), testID).toBe(link);
     }
-    expect(screen.getAllByRole('link')).toHaveLength(3);
-    // Nothing is ticked for anyone: there is nothing to tick.
-    expect(root.querySelectorAll('input, [role="checkbox"], [role="switch"]')).toHaveLength(0);
+    expect(screen.getAllByRole('link')).toHaveLength(2);
 
-    const agree = button('onboarding.terms-agree');
-    expect(agree.textContent).toBe('Agree');
-    expect(isDisabled(agree)).toBe(false);
+    // Continue takes no press until the box is ticked, and says why.
+    const proceed = (): HTMLElement => button('onboarding.terms-continue');
+    expect(isDisabled(proceed())).toBe(true);
+    expect(proceed().textContent).toBe('Check the box to continue');
+    fireEvent.click(proceed());
     expect(onAgree).not.toHaveBeenCalled();
-    fireEvent.click(agree);
-    expect(onAgree).toHaveBeenCalledTimes(1);
-  });
 
-  it('AI sentence and two answers', () => {
-    const onAnswer = vi.fn<(allowed: boolean) => void>();
-    const root = draw({ ...fixtures.signInAiConsent, aiConsent: { onAnswer } });
-    expect(title()).toBe('One more choice');
-    expect(within(root).getByText(AI_SENTENCE)).toBeTruthy();
-    const allow = button('onboarding.ai-consent-agree');
-    const notNow = button('auth.ai-not-now');
-    expect(allow.textContent).toBe('Allow');
-    expect(notNow.textContent).toBe('Not now');
-    // Neither answer is given for the person.
-    expect(root.querySelectorAll('input, [role="checkbox"], [role="switch"]')).toHaveLength(0);
-    expect(onAnswer).not.toHaveBeenCalled();
-    fireEvent.click(allow);
-    expect(onAnswer.mock.calls).toEqual([[true]]);
-    fireEvent.click(notNow);
-    expect(onAnswer.mock.calls).toEqual([[true], [false]]);
+    // The tick alone makes nothing: the account waits for Continue.
+    fireEvent.click(box());
+    expect(box().getAttribute('aria-checked')).toBe('true');
+    expect(isDisabled(proceed())).toBe(false);
+    expect(proceed().textContent).toBe('Continue');
+    expect(onAgree).not.toHaveBeenCalled();
+
+    // Unticked again, Continue waits again.
+    fireEvent.click(box());
+    expect(box().getAttribute('aria-checked')).toBe('false');
+    expect(isDisabled(proceed())).toBe(true);
+    fireEvent.click(proceed());
+    expect(onAgree).not.toHaveBeenCalled();
+
+    fireEvent.click(box());
+    fireEvent.click(proceed());
+    expect(onAgree).toHaveBeenCalledTimes(1);
+
+    // The tick lives in the stage and goes with it: drawn again, the box is empty.
+    draw(vm);
+    expect(box().getAttribute('aria-checked')).toBe('false');
+    expect(isDisabled(proceed())).toBe(true);
   });
 
   it('signing up shows the step bar', () => {
@@ -636,13 +644,7 @@ describe('SignInScreenView', () => {
       ([, vm]) => vm.signingUp && vm.blocked === null,
     );
     expect(signingUp.map(([name]) => name).sort()).toEqual(
-      [
-        'signInAgreements',
-        'signInAiConsent',
-        'signInCheckingAge',
-        'signInFinishing',
-        'signInState',
-      ].sort(),
+      ['signInAgreements', 'signInCheckingAge', 'signInFinishing', 'signInState'].sort(),
     );
     for (const [name, vm] of signingUp) {
       draw(vm);
@@ -729,14 +731,19 @@ describe('SignInScreenView', () => {
     fireEvent.click(email);
     expect(onChooseEmail).not.toHaveBeenCalled();
 
-    // The second answer of a stage with two is withheld with the first.
-    const onAnswer = vi.fn<(allowed: boolean) => void>();
-    draw({ ...fixtures.signInAiConsent, offline: true, aiConsent: { onAnswer } });
-    expect(isDisabled(button('onboarding.ai-consent-agree'))).toBe(true);
-    expect(button('onboarding.ai-consent-agree').textContent).toBe('Needs a connection');
-    expect(screen.queryByTestId('auth.ai-not-now')).toBeNull();
-    fireEvent.click(button('onboarding.ai-consent-agree'));
-    expect(onAnswer).not.toHaveBeenCalled();
+    // A ticked box makes no account without a connection.
+    const onAgree = vi.fn<() => void>();
+    draw({
+      ...fixtures.signInAgreements,
+      offline: true,
+      agreements: { ...fixtures.signInAgreements.agreements, onAgree },
+    });
+    fireEvent.click(button('onboarding.terms-agree'));
+    expect(button('onboarding.terms-agree').getAttribute('aria-checked')).toBe('true');
+    expect(isDisabled(button('onboarding.terms-continue'))).toBe(true);
+    expect(button('onboarding.terms-continue').textContent).toBe('Needs a connection');
+    fireEvent.click(button('onboarding.terms-continue'));
+    expect(onAgree).not.toHaveBeenCalled();
   });
 
   it('legal links need https', () => {
@@ -746,18 +753,14 @@ describe('SignInScreenView', () => {
         ...fixtures.signInAgreements.agreements,
         links: {
           terms: 'http://api.test/terms',
-          contentPolicy: 'https://example.test/content-policy',
           privacyPolicy: 'https://example.test/privacy',
         },
       },
     });
     // The sentence is whole; the document with no https address is words, not a link.
-    expect(root.textContent).toContain(
-      'By tapping Agree you accept the Terms and the Content policy, and you have read the Privacy policy.',
-    );
+    expect(root.textContent).toContain(AGREE_SENTENCE);
     expect(screen.queryByTestId('auth.agree-terms')).toBeNull();
     expect(screen.getAllByRole('link').map((link) => link.getAttribute('href'))).toEqual([
-      'https://example.test/content-policy',
       'https://example.test/privacy',
     ]);
     expect(root.innerHTML).not.toContain('http://api.test');

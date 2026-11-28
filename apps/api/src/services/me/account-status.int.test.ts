@@ -39,7 +39,6 @@ const signup = {
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
     privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
   },
-  aiScreening: null,
 };
 
 /** Email-code sign-in for `email` through the two routes, with `signup` when given. */

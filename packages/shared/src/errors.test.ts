@@ -46,7 +46,6 @@ const ACCOUNT_CODE_STATUSES: Record<string, number> = {
   handle_taken: 409,
   handle_reserved: 409,
   handle_change_too_soon: 422,
-  ai_consent_required: 422,
   unknown_issue: 422,
   upload_invalid: 422,
   onboarding_step_mismatch: 409,
@@ -157,7 +156,7 @@ describe('error registry', () => {
       ]),
     );
     expect(registered).toEqual(ACCOUNT_CODE_STATUSES);
-    expect(Object.keys(ACCOUNT_CODE_STATUSES)).toHaveLength(35);
+    expect(Object.keys(ACCOUNT_CODE_STATUSES)).toHaveLength(34);
   });
 
   it('no later code is registered', () => {

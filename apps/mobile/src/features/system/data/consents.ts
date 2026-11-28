@@ -1,4 +1,3 @@
-import { LEGAL_VERSIONS } from '@citizenrun/shared';
 import type { ConsentState, Me } from '@citizenrun/shared';
 import { recordConsent } from '@citizenrun/shared/api';
 import type { QueryClient } from '@tanstack/react-query';
@@ -34,18 +33,4 @@ export async function recordAgreements(
     writeConsentsToCache(client, outcome.value);
   }
   return { ok: true, value: undefined };
-}
-
-/** E-ME-11 for the AI-screening answer (03a section 3.10). */
-export async function recordAiScreening(
-  granted: boolean,
-  client: QueryClient,
-): Promise<Outcome<ConsentState>> {
-  const outcome = await attempt(() =>
-    recordConsent({ kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted }),
-  );
-  if (outcome.ok) {
-    writeConsentsToCache(client, outcome.value);
-  }
-  return outcome;
 }

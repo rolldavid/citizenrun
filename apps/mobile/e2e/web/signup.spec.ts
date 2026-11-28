@@ -76,31 +76,56 @@ test('a new person signs up and reaches Home', async ({ page }, testInfo) => {
   await shot(page, 'signup-code');
 
   // Step 3: the code from the dev mailbox; the field sends it at the sixth digit. The web has no
-  // store signal and sign-up asks no age (D-897): the agreements follow, and no session exists yet.
+  // store signal and sign-up asks no age (D-897): the one box to agree follows (D-900), and no
+  // session exists yet.
   const code = await readCode(page.request, email);
   await page.getByTestId(auth.codeField).fill(code);
-  await expect(page.getByTestId(onboarding.termsAgree)).toBeVisible();
+  const agree = page.getByTestId(onboarding.termsAgree);
+  const proceedToAccount = page.getByTestId(onboarding.termsContinue);
+  await expect(agree).toBeVisible();
   expect((await readMe(page)).status, 'no session before the sign-up details').toBe(401);
   await expect(page.locator('[data-testid^="onboarding.age"]'), 'no age is asked').toHaveCount(0);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText(t('auth:agree.title'));
-  await expectNoA11yViolations(page);
 
-  // Step 5: agree, read the AI sentence word for word (CTL-77), allow it. The answers are recorded
-  // with the account (D-351, D-464).
+  // Step 4: the box is a checkbox with the sentence as its name. It is not ticked for the person,
+  // and Continue waits for the tick. The sentence names both documents; they are links only where
+  // the pages are served over https, which this stack does not do.
+  await expect(page.getByRole('checkbox', { name: t('auth:agree.labelText') })).toHaveCount(1);
+  await expect(agree).toHaveRole('checkbox');
+  await expect(agree).toHaveAccessibleName(t('auth:agree.labelText'));
+  await expect(agree).not.toBeChecked();
+  await expect(proceedToAccount).toBeDisabled();
+  await expect(page.getByText(t('auth:agree.labelText'), { exact: true })).toBeVisible();
+  await expect(page.locator('[data-testid*="ai-consent"]'), 'no AI question').toHaveCount(0);
+  await expect(page.getByText(/\bAI\b|Anthropic/), 'no AI notice').toHaveCount(0);
+  await expectNoA11yViolations(page);
   await shot(page, 'signup-consent');
-  await page.getByTestId(onboarding.termsAgree).click();
-  await expect(page.getByText(t('auth:ai.sentence'), { exact: true })).toBeVisible();
-  await page.getByTestId(onboarding.aiConsentAgree).click();
+
+  // Step 5: tick the box, then Continue. The sentence's words take no press, so the links in them
+  // are pressed alone: the press lands on the box, the square at the row's start. The three
+  // documents are recorded with the account (D-351, D-900).
+  const row = await agree.boundingBox();
+  if (row === null) {
+    throw new Error('the box to agree has no place on the page');
+  }
+  await agree.click({ position: { x: row.height / 2, y: row.height / 2 } });
+  await expect(agree).toBeChecked();
+  expect((await readMe(page)).status, 'the tick alone makes no account').toBe(401);
+  await expect(proceedToAccount).toBeEnabled();
+  await proceedToAccount.click();
   await expect(page.getByTestId(onboarding.photoSkip)).toBeVisible();
+  await expect(page.locator('[data-testid*="ai-consent"]'), 'no AI question').toHaveCount(0);
   const consented = await signedInMe(page);
   for (const agreement of [
     consented.consents.terms,
     consented.consents.contentPolicy,
     consented.consents.privacyPolicy,
   ]) {
+    expect(agreement.agreedVersion).not.toBeNull();
     expect(agreement.agreedVersion).toBe(agreement.currentVersion);
   }
-  expect(consented.consents.aiScreening).toBe('granted');
+  expect(consented.consents.needed).toEqual([]);
+  expect(consented.consents, 'no AI-screening answer is held').not.toHaveProperty('aiScreening');
   // The account records that no age signal came, and claims no result.
   expect(consented.age?.method).toBe('none');
   expect(consented.age?.sourceTier).toBeNull();

@@ -42,7 +42,6 @@ export const ErrorEnvelopeErrorCode = {
   handle_taken: 'handle_taken',
   handle_reserved: 'handle_reserved',
   handle_change_too_soon: 'handle_change_too_soon',
-  ai_consent_required: 'ai_consent_required',
   unknown_issue: 'unknown_issue',
   upload_invalid: 'upload_invalid',
   onboarding_step_mismatch: 'onboarding_step_mismatch',

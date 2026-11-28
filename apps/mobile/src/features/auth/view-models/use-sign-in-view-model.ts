@@ -240,7 +240,7 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
     })();
   };
 
-  const finish = (answers: { aiScreening: boolean | null; state: string | null }): void => {
+  const finish = (answers: { state: string | null }): void => {
     const { pending, age } = state;
     if (pending === null || age === null || inFlight.current) return;
     const signup = buildSignupDetails({ age, ...answers });
@@ -264,16 +264,17 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
     })();
   };
 
-  const onAnswerAi = (allow: boolean): void => {
+  // D-900: the screen calls this only once the box is ticked.
+  const onAgree = (): void => {
     if (offline || inFlight.current) return;
-    dispatch({ type: 'aiAnswered', allow });
-    finish({ aiScreening: allow ? true : null, state: null });
+    dispatch({ type: 'agreed' });
+    finish({ state: null });
   };
 
   const onSubmitState = (code: string): void => {
     if (offline || inFlight.current) return;
     dispatch({ type: 'statePicked', code });
-    finish({ aiScreening: state.aiScreening, state: code });
+    finish({ state: code });
   };
 
   const onBack = (): void => {
@@ -322,17 +323,10 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
     agreements:
       state.stage === 'agreements'
         ? {
-            links: {
-              terms: publicPageUrl('/terms'),
-              contentPolicy: publicPageUrl('/content-policy'),
-              privacyPolicy: publicPageUrl('/privacy'),
-            },
-            onAgree: () => {
-              dispatch({ type: 'agreed' });
-            },
+            links: { terms: publicPageUrl('/terms'), privacyPolicy: publicPageUrl('/privacy') },
+            onAgree,
           }
         : null,
-    aiConsent: state.stage === 'aiConsent' ? { onAnswer: onAnswerAi } : null,
     blocked: state.blocked,
     offline,
     onChooseEmail: () => {

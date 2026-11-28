@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import type { ViewStyle } from 'react-native';
 
-import { AiConsentSheet } from '@/features/settings/components/ai-consent-sheet';
 import { errorText } from '@/features/settings/components/error-text';
 import { handleStatus } from '@/features/settings/components/handle-status';
 import { localDateOf } from '@/features/settings/components/instant-text';
@@ -25,7 +24,6 @@ import { TextField } from '@/ui/components/text-field';
 import { space } from '@/ui/tokens';
 
 type ProfileData = Extract<SettingsProfileViewModel, { status: 'ready' }>['data'];
-type Save = ProfileData['save'];
 
 /** What is typed into the form; it stays here until Save hands it over. */
 type Typed = { name: string; bio: string; link: string; handle: string };
@@ -70,9 +68,6 @@ function handleRefused(check: ProfileData['handle']['check']): boolean {
 export function SettingsProfileScreenView({ vm }: { vm: SettingsProfileViewModel }): JSX.Element {
   const { t, i18n } = useTranslation(SETTINGS_NAMESPACES);
   const [typed, setTyped] = useState<Typed | null>(null);
-  // The answer to the AI question is on its way.
-  const [answering, setAnswering] = useState(false);
-  const [seenSave, setSeenSave] = useState<Save | null>(null);
 
   // The profile's text is taken once, the first time the profile is there.
   let values = typed ?? NOTHING_TYPED;
@@ -82,17 +77,6 @@ export function SettingsProfileScreenView({ vm }: { vm: SettingsProfileViewModel
   }
 
   const save = vm.status === 'ready' ? vm.data.save : null;
-  const asking = vm.status === 'ready' && vm.data.aiConsentNeeded;
-  if (save !== seenSave) {
-    setSeenSave(save);
-    // A save that is no longer on its way has answered: with the change, or with a refusal.
-    if (answering && save?.status !== 'sending') {
-      setAnswering(false);
-    }
-  }
-  if (answering && !asking) {
-    setAnswering(false);
-  }
 
   useToastOn(save?.status === 'saved', {
     kind: 'success',
@@ -249,14 +233,6 @@ export function SettingsProfileScreenView({ vm }: { vm: SettingsProfileViewModel
               testID="settings.profile-link"
             />
             {handleBlock(data)}
-            <AiConsentSheet
-              open={data.aiConsentNeeded}
-              busy={answering}
-              onAnswer={(allow) => {
-                setAnswering(true);
-                data.onAnswerAiConsent(allow);
-              }}
-            />
           </View>
         );
       }}

@@ -165,7 +165,6 @@ function signupDetails(): Record<string, unknown> {
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
       privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
     },
-    aiScreening: true,
     state: 'TX',
   };
 }

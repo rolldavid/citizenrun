@@ -27,7 +27,6 @@ describe('the auth fixtures', () => {
         'signInFinishing',
         'signInState',
         'signInAgreements',
-        'signInAiConsent',
         'signInAdultsOnly',
         'signInStateUnavailable',
         'signInOffline',
@@ -63,7 +62,7 @@ describe('the auth fixtures', () => {
     expect(f.signInOffline).toMatchObject({ stage: 'email', offline: true });
     for (const fixture of Object.values(signInFixtures)) {
       expect(fixture.signingUp).toBe(
-        ['checkingAge', 'state', 'agreements', 'aiConsent', 'finishing'].includes(fixture.stage),
+        ['checkingAge', 'state', 'agreements', 'finishing'].includes(fixture.stage),
       );
       expect(fixture.code !== null).toBe(fixture.stage === 'code');
     }

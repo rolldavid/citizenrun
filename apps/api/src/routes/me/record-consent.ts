@@ -14,7 +14,7 @@ import { signedInOf } from './get-me.ts';
 
 const ERROR_RESPONSE = { 'application/json': { schema: ErrorEnvelopeSchema } };
 
-/** E-ME-11 `POST /v1/me/consents`: records an agreement or the AI-screening answer. */
+/** E-ME-11 `POST /v1/me/consents`: records an agreement. */
 export const recordConsentRoute = defineRoute({
   method: 'post',
   path: '/me/consents',
@@ -28,7 +28,7 @@ export const recordConsentRoute = defineRoute({
   },
   responses: {
     200: {
-      description: 'The agreements and the AI-screening answer after the change.',
+      description: 'The agreements after the change.',
       content: { 'application/json': { schema: ConsentStateSchema } },
     },
     400: { description: 'The request is not valid.', content: ERROR_RESPONSE },

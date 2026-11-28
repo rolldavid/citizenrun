@@ -38,7 +38,6 @@ const PER_ADDRESS_HOURLY = 60;
 type Signup = {
   age: { method: 'none' | 'store_signal'; sourceTier: 'confirmed' | 'declared' | null };
   agreements: { termsVersion: string; contentPolicyVersion: string; privacyPolicyVersion: string };
-  aiScreening: boolean | null;
   state?: string;
 };
 
@@ -50,7 +49,6 @@ function signup(overrides: Partial<Signup> = {}): Signup {
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
       privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
     },
-    aiScreening: true,
     ...overrides,
   };
 }
@@ -169,7 +167,7 @@ describe('POST /v1/auth/email/verify', () => {
     expect(info.me.id).toBe(user?.id);
     expect(info.me.signInMethods).toEqual(['email']);
     expect(info.me.consents.needed).toEqual([]);
-    expect(info.me.consents.aiScreening).toBe('granted');
+    expect(info.me.consents).not.toHaveProperty('aiScreening');
     const consents = await testApp.deps.db
       .select()
       .from(userConsents)
@@ -183,9 +181,12 @@ describe('POST /v1/auth/email/verify', () => {
         ['terms', LEGAL_VERSIONS.terms, true, 'ios'],
         ['content_policy', LEGAL_VERSIONS.content_policy, true, 'ios'],
         ['privacy_policy', LEGAL_VERSIONS.privacy_policy, true, 'ios'],
-        ['ai_screening', LEGAL_VERSIONS.ai_screening, true, 'ios'],
       ].sort(),
     );
+    // Each acceptance carries its own time.
+    for (const consent of consents) {
+      expect(consent.createdAt, consent.kind).toBeInstanceOf(Date);
+    }
     const events = await testApp.deps.db.select().from(appEvents);
     expect(events.map((event) => [event.name, event.userId, event.props, event.platform])).toEqual([
       ['account_created', user?.id, { method: 'email' }, 'ios'],
@@ -740,7 +741,8 @@ describe('POST /v1/auth/email/verify', () => {
       [{ ...valid, code: 123456 }, 'code', 'invalid_type'],
       [{ ...valid, code: '1234567' }, 'code', 'invalid_format'],
       [{ ...valid, signup: 'yes' }, 'signup', 'invalid_type'],
-      [{ ...valid, signup: { aiScreening: true } }, 'signup.age', 'required'],
+      [{ ...valid, signup: { agreements: signup().agreements } }, 'signup.age', 'required'],
+      [{ ...valid, signup: { age: signup().age } }, 'signup.agreements', 'required'],
     ];
     for (const [body, field, fieldCode] of cases) {
       const envelope = await expectError(await verify(body), 400, 'invalid_request');

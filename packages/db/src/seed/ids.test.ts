@@ -44,7 +44,7 @@ function ordinalOf(key: string): number {
   return key === 'admin' ? 50 : Number(key);
 }
 
-const CONSENT_KINDS = ['terms', 'content_policy', 'privacy_policy', 'ai_screening'] as const;
+const CONSENT_KINDS = ['terms', 'content_policy', 'privacy_policy'] as const;
 
 function allFixedIds(): string[] {
   return [
@@ -83,7 +83,7 @@ describe('the fixed seed ids', () => {
 
   it('every fixed id is distinct and a version 7 uuid', () => {
     const ids = allFixedIds();
-    expect(ids).toHaveLength(50 + 50 * 4 + 30);
+    expect(ids).toHaveLength(50 + 50 * 3 + 30);
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) {
       expect(id).toMatch(UUID_V7);

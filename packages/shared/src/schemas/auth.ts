@@ -44,7 +44,7 @@ export type NonceResult = z.infer<typeof NonceResultSchema>;
 /**
  * The sign-up answers sent with a sign-in that may create a user: how the age was checked (the store's
  * adult signal with its tier, or `none` when no signal came: sign-up asks no age, D-897), the agreement
- * versions, the AI-screening answer and, when asked, the state lived in, which is never stored (L-account-link).
+ * versions and, when asked, the state lived in, which is never stored (L-account-link).
  */
 export const SignupDetailsSchema = z
   .object({
@@ -57,7 +57,6 @@ export const SignupDetailsSchema = z
       contentPolicyVersion: z.string().min(1).max(32),
       privacyPolicyVersion: z.string().min(1).max(32),
     }),
-    aiScreening: z.boolean().nullable(),
     state: z.enum(STATE_CODES).nullable().optional(),
   })
   .superRefine((details, ctx) => {

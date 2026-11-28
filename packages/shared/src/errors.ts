@@ -42,7 +42,6 @@ export const ERROR_CODES = {
   handle_taken: { status: 409, message: 'Handle is already in use.' },
   handle_reserved: { status: 409, message: 'Handle is reserved.' },
   handle_change_too_soon: { status: 422, message: 'Handle changed too recently.' },
-  ai_consent_required: { status: 422, message: 'AI screening answer is required.' },
   unknown_issue: { status: 422, message: 'Unknown issue id.' },
   upload_invalid: { status: 422, message: 'Upload cannot be used.' },
   onboarding_step_mismatch: { status: 409, message: 'Onboarding step not reached.' },

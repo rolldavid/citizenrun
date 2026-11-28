@@ -1,5 +1,5 @@
 import { reservedHandles, users } from '@citizenrun/db';
-import { insertConsent, insertUser } from '@citizenrun/db/testing';
+import { insertUser } from '@citizenrun/db/testing';
 import { ApiError, ERROR_CODES, RESERVED_HANDLE_WORDS } from '@citizenrun/shared';
 import type { HandleError } from '@citizenrun/shared';
 import { keyedHash, loadKeyRing } from '@citizenrun/shared/crypto';
@@ -241,7 +241,6 @@ describe('L-handle-service', () => {
 
   it('names are normalised', async () => {
     const user = await insertUser(testApp.deps.db);
-    await insertConsent(testApp.deps.db, { userId: user.id, kind: 'ai_screening' });
     const auth = await signIn(testApp.deps.db, user, 'bearer');
     const patch = (name: string) => testApp.request.patch('/v1/me', { auth, body: { name } });
     // NFKC folds the ligature; the zero-width, bidirectional, control, private-use, variation

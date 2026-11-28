@@ -18,7 +18,7 @@ const GOOGLE_PENDING: PendingCredential = {
 };
 const NONE = { method: 'none', sourceTier: null } as const;
 const STORE = { method: 'store_signal', sourceTier: 'declared' } as const;
-const DROPPED = { pending: null, age: null, aiScreening: null, state: null };
+const DROPPED = { pending: null, age: null, state: null };
 
 const START_RESULT = {
   pendingToken: 'p'.repeat(43),
@@ -44,7 +44,6 @@ function finishing(pending: PendingCredential = EMAIL_PENDING): SignInMachineSta
   return at('finishing', {
     pending,
     age: NONE,
-    aiScreening: true,
     emailCode: CODE_STAGE,
   });
 }
@@ -112,7 +111,6 @@ describe('signInReducer', () => {
       stage: 'checkingAge',
       pending: EMAIL_PENDING,
       age: null,
-      aiScreening: null,
       state: null,
       notice: null,
       providersBusy: false,
@@ -164,20 +162,35 @@ describe('signInReducer', () => {
     }
   });
 
-  it('agreeing moves on to the AI-screening choice', () => {
-    expect(run(at('agreements', { age: STORE }), { type: 'agreed' }).stage).toBe('aiConsent');
+  it('agreeing makes the account: no step follows it', () => {
+    for (const age of [NONE, STORE]) {
+      const before = at('agreements', { pending: EMAIL_PENDING, age });
+      const state = run(before, { type: 'agreed' });
+      expect(state).toEqual({ ...before, stage: 'finishing' });
+    }
   });
 
-  it('"Allow" records true for the AI-screening answer', () => {
-    const state = run(at('aiConsent', { age: STORE }), { type: 'aiAnswered', allow: true });
-    expect(state.stage).toBe('finishing');
-    expect(state.aiScreening).toBe(true);
-  });
-
-  it('"Not now" sends no AI answer', () => {
-    const state = run(at('aiConsent', { age: STORE }), { type: 'aiAnswered', allow: false });
-    expect(state.stage).toBe('finishing');
-    expect(state.aiScreening).toBeNull();
+  it('holds no AI-screening answer and has no stage that asks one', () => {
+    expect(Object.keys(INITIAL_SIGN_IN_STATE).sort()).toEqual([
+      'age',
+      'blocked',
+      'emailCode',
+      'notice',
+      'pending',
+      'providersBusy',
+      'stage',
+      'state',
+    ]);
+    const stages: Record<SignInStage, true> = {
+      methods: true,
+      email: true,
+      code: true,
+      checkingAge: true,
+      state: true,
+      agreements: true,
+      finishing: true,
+    };
+    expect(Object.keys(stages)).toHaveLength(7);
   });
 
   it('the state picker shows only after the server asks', () => {
@@ -186,7 +199,7 @@ describe('signInReducer', () => {
     const picked = run(asked, { type: 'statePicked', code: 'VT' });
     expect(picked.stage).toBe('finishing');
     expect(picked.state).toBe('VT');
-    expect(run(at('aiConsent'), { type: 'stateRequired' }).stage).toBe('aiConsent');
+    expect(run(at('agreements'), { type: 'stateRequired' }).stage).toBe('agreements');
     expect(run(at('finishing'), { type: 'statePicked', code: 'VT' }).state).toBeNull();
   });
 
@@ -309,12 +322,11 @@ describe('signInReducer', () => {
     }
   });
 
-  it('back from the AI-screening choice returns to the agreements', () => {
-    expect(run(at('aiConsent', { age: NONE }), { type: 'back' }).stage).toBe('agreements');
-  });
-
-  it('back from the state picker returns to the AI-screening choice', () => {
-    expect(run(at('state', { age: NONE }), { type: 'back' }).stage).toBe('aiConsent');
+  it('back from the state picker returns to the agreements and keeps the pending sign-in', () => {
+    const state = run(at('state', { pending: EMAIL_PENDING, age: NONE }), { type: 'back' });
+    expect(state.stage).toBe('agreements');
+    expect(state.pending).toEqual(EMAIL_PENDING);
+    expect(state.age).toEqual(NONE);
   });
 
   it('back does nothing on the methods, while waiting or while blocked', () => {
@@ -347,8 +359,9 @@ describe('signInReducer', () => {
       ],
       [at('methods'), { type: 'storeSignalUnsupported' }],
       [at('agreements'), { type: 'storeSignalUnsupported' }],
-      [at('aiConsent'), { type: 'agreed' }],
-      [at('agreements'), { type: 'aiAnswered', allow: true }],
+      [at('methods'), { type: 'agreed' }],
+      [at('checkingAge'), { type: 'agreed' }],
+      [at('finishing'), { type: 'agreed' }],
       [at('email'), { type: 'finishRefused', code: 'unavailable', retryAfterSeconds: null }],
       [at('email'), { type: 'providerStarted' }],
     ];

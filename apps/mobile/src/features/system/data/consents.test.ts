@@ -7,7 +7,7 @@ import { queryClient } from '@/platform/query-client';
 import { apiError, configureTestApiClient, installApiStub, json } from '@/test/api-stub';
 import type { ApiStub } from '@/test/api-stub';
 
-import { recordAgreements, recordAiScreening } from './consents';
+import { recordAgreements } from './consents';
 import { readMeFromCache, writeMeToCache } from './me';
 
 const VERSION = '2027-02-01';
@@ -103,20 +103,14 @@ describe('recordAgreements', () => {
   });
 });
 
-describe('recordAiScreening', () => {
-  it('records the AI-screening answer with its version', async () => {
-    const me = fixtureMe();
-    const client = queryClient.get();
-    writeMeToCache(client, me);
-    const answered: ConsentState = { ...me.consents, aiScreening: 'declined' };
-    stub.use([{ method: 'POST', path: '/v1/me/consents', reply: json(200, answered) }]);
-
-    const outcome = await recordAiScreening(false, client);
-
-    expect(outcome).toEqual({ ok: true, value: answered });
-    expect(stub.requests.map((request) => request.body)).toEqual([
-      { kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted: false },
+describe('the consent requests', () => {
+  it('has no AI-screening answer to record', async () => {
+    const consents = await import('./consents');
+    expect(Object.keys(consents).sort()).toEqual(['recordAgreements']);
+    expect(Object.keys(LEGAL_VERSIONS).sort()).toEqual([
+      'content_policy',
+      'privacy_policy',
+      'terms',
     ]);
-    expect(readMeFromCache(client)?.consents.aiScreening).toBe('declined');
   });
 });

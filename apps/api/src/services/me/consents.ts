@@ -6,7 +6,7 @@ import type { Platform } from '../../middleware/session.ts';
 import { loadConsentState } from './load-me.ts';
 
 /**
- * E-ME-11 (L-age-consent): appends one agreement or AI-screening answer at the current version and
+ * E-ME-11 (L-age-consent): appends one agreement at the current version and
  * answers the recomputed ConsentState. A version other than LEGAL_VERSIONS[kind] answers 422
  * `consent_version_outdated`. The answer and the version are never logged.
  */

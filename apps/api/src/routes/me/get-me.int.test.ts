@@ -154,24 +154,30 @@ describe('GET /v1/me', () => {
     expect(me.consents.privacyPolicy.agreedVersion).toBeNull();
   });
 
-  it('aiScreening reports the newest answer', async () => {
+  it('reports no AI-screening answer, whatever earlier rows an account has', async () => {
     const user = await insertUser(testApp.deps.db);
     const auth = await signIn(testApp.deps.db, user, 'bearer');
-    expect((await readMe(auth)).consents.aiScreening).toBe('not_asked');
-    await insertConsent(testApp.deps.db, {
-      userId: user.id,
-      kind: 'ai_screening',
-      granted: true,
-      createdAt: shift(now(), -2 * MINUTE_MS),
-    });
-    expect((await readMe(auth)).consents.aiScreening).toBe('granted');
-    await insertConsent(testApp.deps.db, {
-      userId: user.id,
-      kind: 'ai_screening',
-      granted: false,
-      createdAt: shift(now(), -MINUTE_MS),
-    });
-    expect((await readMe(auth)).consents.aiScreening).toBe('declined');
+    const before = await readMe(auth);
+    expect(Object.keys(before.consents).sort()).toEqual([
+      'contentPolicy',
+      'needed',
+      'privacyPolicy',
+      'terms',
+    ]);
+    // Rows written while the answer was asked: one granted, a newer one declined.
+    for (const [granted, age] of [
+      [true, 2 * MINUTE_MS],
+      [false, MINUTE_MS],
+    ] as const) {
+      await insertConsent(testApp.deps.db, {
+        userId: user.id,
+        kind: 'ai_screening',
+        version: '2026-11-25',
+        granted,
+        createdAt: shift(now(), -age),
+      });
+    }
+    expect((await readMe(auth)).consents).toEqual(before.consents);
   });
 
   it('a suspended user receives the reason and since', async () => {

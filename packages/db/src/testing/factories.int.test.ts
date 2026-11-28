@@ -16,6 +16,7 @@ import {
   fixtureSquareWkt,
   getTestDb,
   insertCandidacy,
+  insertConsent,
   insertConsents,
   insertDataBundle,
   insertDataExport,
@@ -29,6 +30,7 @@ import {
   insertUnmatchedFiling,
   insertUpload,
   insertUser,
+  makeConsent,
   resetDb,
   setUserDistricts,
   setUserIssues,
@@ -101,7 +103,7 @@ describe('the account factories', () => {
     expect(found?.n).toBe(0);
   });
 
-  it('insertConsents writes the four kinds at the current versions', async () => {
+  it('insertConsents writes the three agreements at the current versions', async () => {
     const user = await insertUser(getTestDb());
     const rows = await insertConsents(getTestDb(), user.id);
     expect(
@@ -110,8 +112,19 @@ describe('the account factories', () => {
       { kind: 'terms', version: LEGAL_VERSIONS.terms, granted: true },
       { kind: 'content_policy', version: LEGAL_VERSIONS.content_policy, granted: true },
       { kind: 'privacy_policy', version: LEGAL_VERSIONS.privacy_policy, granted: true },
-      { kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted: true },
     ]);
+  });
+
+  it('a consent of a kind no longer asked is still stored, with its own version', async () => {
+    const user = await insertUser(getTestDb());
+    expect(() => makeConsent({ userId: user.id, kind: 'ai_screening' })).toThrow(RangeError);
+    const row = await insertConsent(getTestDb(), {
+      userId: user.id,
+      kind: 'ai_screening',
+      version: '2026-11-25',
+      granted: false,
+    });
+    expect(row).toMatchObject({ kind: 'ai_screening', version: '2026-11-25', granted: false });
   });
 
   it('an override of terms writes that version', async () => {

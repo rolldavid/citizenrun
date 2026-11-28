@@ -5,6 +5,8 @@ import {
   AccountDeletionViewSchema,
   AgeRecordSchema,
   CheckHandleQuerySchema,
+  ConsentKindSchema,
+  ConsentStateSchema,
   DataExportStatusSchema,
   ExportFileSchema,
   HandleCheckSchema,
@@ -77,7 +79,6 @@ const NEW_USER_ME = {
     terms: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
     contentPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
     privacyPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
-    aiScreening: 'not_asked',
     needed: [],
   },
   session: {
@@ -422,16 +423,27 @@ describe('RecordConsentBody', () => {
       ]);
     }
     expect(
-      RecordConsentBodySchema.safeParse({
-        kind: 'ai_screening',
-        version: '2027-01-01',
-        granted: false,
-      }).success,
-    ).toBe(true);
-    expect(
       RecordConsentBodySchema.safeParse({ kind: 'terms', version: '2027-01-01', granted: true })
         .success,
     ).toBe(true);
+  });
+
+  it('RecordConsentBody takes the three agreements and no AI-screening answer', () => {
+    expect(ConsentKindSchema.options).toEqual(['terms', 'content_policy', 'privacy_policy']);
+    for (const granted of [true, false]) {
+      const result = RecordConsentBodySchema.safeParse({
+        kind: 'ai_screening',
+        version: '2027-01-01',
+        granted,
+      });
+      expect(result.success, String(granted)).toBe(false);
+    }
+    expect(Object.keys(ConsentStateSchema.shape).sort()).toEqual([
+      'contentPolicy',
+      'needed',
+      'privacyPolicy',
+      'terms',
+    ]);
   });
 
   it('a version is 1 to 32 characters', () => {

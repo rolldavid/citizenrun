@@ -4,7 +4,7 @@ import type { ComponentType } from 'react';
 import type { AppleSignInButtonProps, GoogleSignInButtonProps } from '@/platform/auth'; // PC6C-18
 
 export type SignInStage =
-  'methods' | 'email' | 'code' | 'checkingAge' | 'state' | 'agreements' | 'aiConsent' | 'finishing';
+  'methods' | 'email' | 'code' | 'checkingAge' | 'state' | 'agreements' | 'finishing';
 
 type Bound<P> = ComponentType<
   Pick<P, Extract<keyof P, 'appearance' | 'testID' | 'accessibilityLabel'>>
@@ -40,11 +40,11 @@ export type SignInViewModel = {
     onChangeEmail: () => void;
   } | null;
   statePicker: { codes: readonly string[]; onSubmit: (code: string) => void } | null; // SCR-sign-in
+  /** The one box of sign-up (D-900). The screen holds the tick; `onAgree` is Continue once it is ticked. */
   agreements: {
-    links: { terms: string; contentPolicy: string; privacyPolicy: string };
+    links: { terms: string; privacyPolicy: string };
     onAgree: () => void;
   } | null;
-  aiConsent: { onAnswer: (allow: boolean) => void } | null;
   blocked: 'adultsOnly' | { stateUnavailable: string } | null; // SCR-sign-in
   offline: boolean;
   onChooseEmail: () => void;

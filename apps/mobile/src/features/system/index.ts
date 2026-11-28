@@ -12,7 +12,6 @@ export {
   readMeFromCache,
 } from './data/me';
 export { useThemeChoice, setThemeChoice } from './data/system-state';
-export { recordAiScreening } from './data/consents';
 export type { ConsentDocument } from './data/consents';
 export { handleUnauthorized } from './data/session-events';
 export type { NavItem, RootViewModel, SystemScreenId } from './view-models/root.types';

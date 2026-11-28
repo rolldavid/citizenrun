@@ -47,7 +47,7 @@ function SentenceLink({ href, testID, role, children }: SentenceLinkProps): JSX.
 
 export type LinkedSentenceProps = {
   /** One whole sentence whose tags are the names of `links`. */
-  i18nKey: 'auth:welcome.legal' | 'auth:methods.legal' | 'auth:agree.body';
+  i18nKey: 'auth:welcome.legal' | 'auth:methods.legal' | 'auth:agree.label';
   role: TypeRole;
   tone: TextTone;
   /** By the tag each stands for in the sentence. */

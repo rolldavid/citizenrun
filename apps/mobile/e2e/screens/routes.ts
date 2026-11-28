@@ -191,11 +191,6 @@ async function reauthCodeAtRest(page: Page): Promise<void> {
   await reauthSheetAtRest(page);
 }
 
-/** The AI-screening question's sheet has faded in and, on a phone, risen to where it rests. */
-async function aiConsentSheetAtRest(page: Page): Promise<void> {
-  await layerAtRest(page.getByTestId('settings.ai-consent'));
-}
-
 /** The add-email sheet has faded in and, on a phone, risen to where it rests. */
 async function addEmailSheetAtRest(page: Page): Promise<void> {
   await layerAtRest(page.getByTestId('auth.add-email-sheet'));
@@ -1694,11 +1689,6 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
   },
   {
-    id: 'sign-in-sign-in-ai-consent',
-    path: '/dev/screens/sign-in/signInAiConsent',
-    auth: 'none',
-  },
-  {
     id: 'sign-in-sign-in-adults-only',
     path: '/dev/screens/sign-in/signInAdultsOnly',
     auth: 'none',
@@ -1862,12 +1852,6 @@ export const SCREENS: ScreenEntry[] = [
     auth: 'none',
   },
   {
-    id: 'settings-profile-profile-edit-ai-consent',
-    path: '/dev/screens/settings-profile/profileEditAiConsent',
-    auth: 'none',
-    prepare: aiConsentSheetAtRest,
-  },
-  {
     id: 'settings-profile-profile-edit-loading',
     path: '/dev/screens/settings-profile/profileEditLoading',
     auth: 'none',
@@ -2014,16 +1998,6 @@ export const SCREENS: ScreenEntry[] = [
   {
     id: 'settings-privacy-privacy-m1',
     path: '/dev/screens/settings-privacy/privacyM1',
-    auth: 'none',
-  },
-  {
-    id: 'settings-privacy-privacy-saving',
-    path: '/dev/screens/settings-privacy/privacySaving',
-    auth: 'none',
-  },
-  {
-    id: 'settings-privacy-privacy-save-failed',
-    path: '/dev/screens/settings-privacy/privacySaveFailed',
     auth: 'none',
   },
   {

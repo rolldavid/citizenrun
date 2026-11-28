@@ -92,7 +92,7 @@ describe('J-account.export', () => {
       'apple',
       'google',
     ]);
-    expect(file.consents).toHaveLength(4);
+    expect(file.consents).toHaveLength(3);
     expect(file.issues).toHaveLength(3);
     expect(file.districts.map((district) => district.id)).toEqual(kind.civic.districtIds);
     expect(file.districts.map((district) => district.name)).toEqual([

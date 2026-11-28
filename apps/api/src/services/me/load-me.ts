@@ -57,13 +57,6 @@ export async function loadConsentState(db: Db | Tx, userId: string): Promise<Con
       ),
     )
     .orderBy(asc(userConsents.kind), desc(userConsents.id));
-  // index: user_consents_user
-  const [screening] = await db
-    .select({ granted: userConsents.granted })
-    .from(userConsents)
-    .where(and(eq(userConsents.userId, userId), eq(userConsents.kind, 'ai_screening')))
-    .orderBy(desc(userConsents.id))
-    .limit(1);
 
   const agreedVersions = new Map<string, string>(agreed.map((row) => [row.kind, row.version]));
   const consentOf = (kind: Agreement) => ({
@@ -74,7 +67,6 @@ export async function loadConsentState(db: Db | Tx, userId: string): Promise<Con
     terms: consentOf('terms'),
     contentPolicy: consentOf('content_policy'),
     privacyPolicy: consentOf('privacy_policy'),
-    aiScreening: screening === undefined ? 'not_asked' : screening.granted ? 'granted' : 'declined',
     needed: AGREEMENTS.filter((kind) => agreedVersions.get(kind) !== LEGAL_VERSIONS[kind]),
   };
 }

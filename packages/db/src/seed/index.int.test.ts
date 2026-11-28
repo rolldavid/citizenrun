@@ -173,7 +173,7 @@ describe('runSeed', () => {
     const counts = await rowCounts(db);
     expect(counts['users']).toBe(50);
     expect(counts['auth_identities']).toBe(50);
-    expect(counts['user_consents']).toBe(200);
+    expect(counts['user_consents']).toBe(150);
     expect(counts['uploads']).toBe(30);
     expect(counts['user_issues']).toBe(321);
     const [bios] = await db.execute<{ n: number }>(

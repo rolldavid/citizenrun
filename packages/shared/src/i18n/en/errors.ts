@@ -40,7 +40,6 @@ export const errors = {
   handle_taken: 'That handle is taken. Try another one.',
   handle_reserved: "That handle isn't available. Try another one.",
   handle_change_too_soon: 'You changed your handle recently. You can change it again on {{date}}.',
-  ai_consent_required: 'Choose whether we may screen your text with AI to continue.',
   unknown_issue: "One of those issues isn't available anymore. Choose again.",
   upload_invalid: "That photo can't be used. Choose another one.",
   onboarding_step_mismatch: 'Something got out of order. Go back and try again.',

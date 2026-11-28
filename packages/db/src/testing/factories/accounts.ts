@@ -90,12 +90,7 @@ export async function insertUser(
 /** A consent kind: a key of LEGAL_VERSIONS. */
 export type ConsentKindKey = keyof typeof LEGAL_VERSIONS;
 
-const CONSENT_KINDS: readonly ConsentKindKey[] = [
-  'terms',
-  'content_policy',
-  'privacy_policy',
-  'ai_screening',
-];
+const CONSENT_KINDS: readonly ConsentKindKey[] = ['terms', 'content_policy', 'privacy_policy'];
 
 /** The overrides of the Consent factory; `userId` is required. */
 export type ConsentOverrides = Partial<NewUserConsentRow> & { userId: string };
@@ -131,8 +126,8 @@ export async function insertConsent(db: Db, overrides: ConsentOverrides): Promis
 }
 
 /**
- * Writes the four consents of sign-up (`terms`, `content_policy`, `privacy_policy`,
- * `ai_screening`), each granted at its LEGAL_VERSIONS value unless `versions` gives another.
+ * Writes the three consents of sign-up (`terms`, `content_policy`, `privacy_policy`), each
+ * granted at its LEGAL_VERSIONS value unless `versions` gives another.
  */
 export async function insertConsents(
   db: Db,

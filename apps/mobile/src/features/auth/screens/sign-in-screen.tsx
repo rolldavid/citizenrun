@@ -21,10 +21,10 @@ import {
   stateUnavailableViewModel,
 } from '@/features/system';
 import { head } from '@/platform/head';
+import { Checkbox } from '@/ui/components/checkbox';
 import { Notice } from '@/ui/components/notice';
 import { Select } from '@/ui/components/select';
 import { Skeleton } from '@/ui/components/skeleton';
-import { Text } from '@/ui/components/text';
 import { space } from '@/ui/tokens';
 
 type StageProps = { vm: SignInViewModel };
@@ -237,9 +237,13 @@ type AgreementsStageProps = StageProps & {
   agreements: NonNullable<SignInViewModel['agreements']>;
 };
 
-/** `agreements`: one sentence, three documents and one explicit tap. Nothing is ticked for anyone (D-351). */
+/**
+ * `agreements`: the one box of sign-up (D-900). It opens unticked, nothing ticks it for the person,
+ * and the button waits for it. The tick lives here and goes when the stage does.
+ */
 function AgreementsStage({ vm, agreements }: AgreementsStageProps): JSX.Element {
   const { t } = useTranslation(AUTH_NAMESPACES);
+  const [agreed, setAgreed] = useState(false);
   const { links } = agreements;
   return (
     <StageFrame
@@ -249,58 +253,35 @@ function AgreementsStage({ vm, agreements }: AgreementsStageProps): JSX.Element 
       title={t('auth:agree.title')}
       footer={{
         primary: {
-          label: t('auth:agree.action'),
-          onPress: agreements.onAgree,
-          testID: 'onboarding.terms-agree',
+          label: agreed ? t('auth:agree.continue') : t('auth:agree.needTick'),
+          onPress: () => {
+            if (agreed) {
+              agreements.onAgree();
+            }
+          },
+          disabled: !agreed,
+          testID: 'onboarding.terms-continue',
         },
       }}
       testID={TEST_ID}
     >
-      <LinkedSentence
-        i18nKey="auth:agree.body"
-        role="body"
-        tone="primary"
-        links={{
-          terms: { href: links.terms, testID: 'auth.agree-terms' },
-          policy: { href: links.contentPolicy, testID: 'auth.agree-policy' },
-          privacy: { href: links.privacyPolicy, testID: 'auth.agree-privacy' },
-        }}
+      <Checkbox
+        checked={agreed}
+        onChange={setAgreed}
+        label={
+          <LinkedSentence
+            i18nKey="auth:agree.label"
+            role="body"
+            tone="primary"
+            links={{
+              terms: { href: links.terms, testID: 'auth.agree-terms' },
+              privacy: { href: links.privacyPolicy, testID: 'auth.agree-privacy' },
+            }}
+          />
+        }
+        labelText={t('auth:agree.labelText')}
+        testID="onboarding.terms-agree"
       />
-    </StageFrame>
-  );
-}
-
-type AiConsentStageProps = StageProps & { aiConsent: NonNullable<SignInViewModel['aiConsent']> };
-
-/** `aiConsent`: the screening sentence, word for word, and two answers, neither one chosen (D-351). */
-function AiConsentStage({ vm, aiConsent }: AiConsentStageProps): JSX.Element {
-  const { t } = useTranslation(AUTH_NAMESPACES);
-  return (
-    <StageFrame
-      onBack={vm.onBack}
-      signingUp={vm.signingUp}
-      offline={vm.offline}
-      title={t('auth:ai.title')}
-      footer={{
-        primary: {
-          label: t('auth:ai.allow'),
-          onPress: () => {
-            aiConsent.onAnswer(true);
-          },
-          testID: 'onboarding.ai-consent-agree',
-        },
-        secondary: {
-          variant: 'secondary',
-          label: t('auth:ai.notNow'),
-          onPress: () => {
-            aiConsent.onAnswer(false);
-          },
-          testID: 'auth.ai-not-now',
-        },
-      }}
-      testID={TEST_ID}
-    >
-      <Text role="body">{t('auth:ai.sentence')}</Text>
     </StageFrame>
   );
 }
@@ -328,12 +309,6 @@ function Stage({ vm }: StageProps): JSX.Element {
         <WaitingStage vm={vm} />
       ) : (
         <AgreementsStage vm={vm} agreements={vm.agreements} />
-      );
-    case 'aiConsent':
-      return vm.aiConsent === null ? (
-        <WaitingStage vm={vm} />
-      ) : (
-        <AiConsentStage vm={vm} aiConsent={vm.aiConsent} />
       );
     default:
       return assertNever(vm.stage);

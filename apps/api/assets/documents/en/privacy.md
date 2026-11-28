@@ -19,7 +19,7 @@ We collect only what the service needs to work:
 - **Profile.** Your handle, name, bio, link and profile photo.
 - **Sign-in methods and sessions.** Which sign-in methods your account uses. Session tokens are kept only as hashes, never in readable form.
 - **Age record.** How your age was checked and when, and, when your device's app store gave an age signal, the result and where it came from. We never ask for your birth date and never store the raw age signal.
-- **Agreements.** Which versions of these documents you agreed to and when, and your answer to the question about screening your public posts with AI.
+- **Agreements.** Which versions of these documents you agreed to and when.
 - **Issue picks.** The issues you choose during sign-up, used to rank your feed.
 - **Districts and location precision.** The districts you live in and how precisely you set your location. If you let the app use your device's location, it is used once to find your districts and then discarded. If you type an address, the text is sent to Geoapify for suggestions and to the US Census Geocoder to find your districts, with no identifier attached, and it is not stored.
 - **Your activity.** Follows, bookmarks and the offices you say you are running for ("Running"); posts, comments, likes, reposts and reports you file.
@@ -54,7 +54,7 @@ These are the only outside parties that receive data from the service, what they
 - **Tigris**, Railway's file store, holds uploaded and processed files and sees your device's network address when it sends or loads a file.
 - **Resend** delivers our email, so it receives your email address and the content of each email we send you, such as sign-in codes and notices.
 - **Geoapify** and the **US Census Geocoder** receive address text you type, to suggest addresses and find districts. No identifier is sent with it.
-- **Anthropic** reviews some public captions, comments and bios that our filters flag, and some photos held for a second look, only if you give permission and with no identifier attached. Anthropic deletes these inputs within 30 days, but may keep flagged content for up to 2 years.
+- **Anthropic** reviews some public captions, comments and bios that our filters flag, and some photos held for a second look, with no handle, user id, email or other identifier attached. Direct messages are never sent to it. Anthropic deletes these inputs within 30 days, but may keep flagged content for up to 2 years.
 - **The Expo push service** and **Apple and Google push services** deliver notifications to your device. They receive your push token and the notification text, including message previews unless you switch previews off.
 - **Apple and Google sign-in** handle the sign-in itself when you choose them. If you sign in with Apple, we keep Apple's refresh token, encrypted, so that we can revoke it when you delete your account.
 - **OpenFreeMap**, through **Cloudflare**, serves the map. Your device fetches the map directly, so they receive your device's network address and the area of the map you view.
@@ -136,7 +136,6 @@ You can export your data in settings, once a day. The export holds your profile,
 - Choose which notifications and emails you receive.
 - Hide message previews in notifications.
 - Choose whether reminders name the office you are running for.
-- Give or withdraw permission to screen your public posts, comments and bio with AI.
 - Remove your location and districts.
 - Change or switch off your private calendar feed.
 - Unsubscribe from reminder emails with the link in each one.

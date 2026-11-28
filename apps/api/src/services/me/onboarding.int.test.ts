@@ -144,14 +144,14 @@ describe('L-onboarding', () => {
         body: signup === null ? { pendingToken, code } : { pendingToken, code, signup },
       });
     };
-    const signup = (aiScreening: boolean | null) => ({
+    const signup = (extra: Record<string, unknown> = {}) => ({
       age: { method: 'none', sourceTier: null },
       agreements: {
         termsVersion: LEGAL_VERSIONS.terms,
         contentPolicyVersion: LEGAL_VERSIONS.content_policy,
         privacyPolicyVersion: LEGAL_VERSIONS.privacy_policy,
       },
-      aiScreening,
+      ...extra,
     });
     const consentsOf = async (email: string) => {
       const [user] = await testApp.deps.db.select().from(users).where(eq(users.email, email));
@@ -169,16 +169,20 @@ describe('L-onboarding', () => {
       return rows.sort((a, b) => a.kind.localeCompare(b.kind));
     };
 
-    const granted = await signUp('agree-with-ai@example.test', signup(true));
-    expect(granted.status).toBe(200);
-    expect(await consentsOf('agree-with-ai@example.test')).toEqual([
-      { kind: 'ai_screening', version: LEGAL_VERSIONS.ai_screening, granted: true },
-      { kind: 'content_policy', version: LEGAL_VERSIONS.content_policy, granted: true },
-      { kind: 'privacy_policy', version: LEGAL_VERSIONS.privacy_policy, granted: true },
-      { kind: 'terms', version: LEGAL_VERSIONS.terms, granted: true },
-    ]);
+    // The three acceptances and nothing else: no AI-screening answer is asked or kept (D-900),
+    // whatever an earlier client still sends.
+    for (const answer of [true, false, null]) {
+      const email = `agree-with-ai-${String(answer)}@example.test`;
+      const answered = await signUp(email, signup({ aiScreening: answer }));
+      expect(answered.status, String(answer)).toBe(200);
+      expect(await consentsOf(email), String(answer)).toEqual([
+        { kind: 'content_policy', version: LEGAL_VERSIONS.content_policy, granted: true },
+        { kind: 'privacy_policy', version: LEGAL_VERSIONS.privacy_policy, granted: true },
+        { kind: 'terms', version: LEGAL_VERSIONS.terms, granted: true },
+      ]);
+    }
 
-    const unanswered = await signUp('agree-no-ai@example.test', signup(null));
+    const unanswered = await signUp('agree-no-ai@example.test', signup());
     expect(unanswered.status).toBe(200);
     expect(await consentsOf('agree-no-ai@example.test')).toEqual([
       { kind: 'content_policy', version: LEGAL_VERSIONS.content_policy, granted: true },

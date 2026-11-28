@@ -74,7 +74,7 @@ function valueOf(testID: string): string {
 
 describe('SettingsProfileScreenView', () => {
   it('renders every fixture', () => {
-    expect(Object.keys(FIXTURES)).toHaveLength(12);
+    expect(Object.keys(FIXTURES)).toHaveLength(11);
     for (const [name, vm] of Object.entries(FIXTURES)) {
       const root = draw(vm);
       expect(root.textContent, name).not.toContain('{{');
@@ -284,55 +284,17 @@ describe('SettingsProfileScreenView', () => {
     expect(screen.getByTestId('toast').textContent).toBe('Profile saved.');
   });
 
-  it('AI consent sheet', () => {
-    draw(fixtures.profileEdit);
-    expect(screen.queryByTestId('settings.ai-consent')).toBeNull();
-
-    const onAnswerAiConsent = vi.fn();
-    draw(withData(fixtures.profileEditAiConsent, { onAnswerAiConsent }));
-    const sheet = screen.getByTestId('settings.ai-consent');
-    expect(sheet.textContent).toContain('One more choice');
-    expect(sheet.textContent).toContain(
-      'Public posts, comments and bios may be checked by an automated AI service run by Anthropic; direct messages never are.',
-    );
-    expect(sheet.textContent).toContain(
-      'Your content is never sent to it. Keyword checks still apply.',
-    );
-    // Closing is never an answer: the sheet has no grabber to press.
-    expect(screen.queryByTestId('settings.ai-consent-grabber')).toBeNull();
-    const decline = screen.getByTestId('settings.ai-consent-decline');
-    const allow = screen.getByTestId('settings.ai-consent-allow');
-    expect(decline.textContent).toBe("Don't allow");
-    expect(allow.textContent).toBe('Allow');
-    // Neither answer is given for the person: the sheet opens with the question focused.
-    expect(document.activeElement).not.toBe(decline);
-    expect(document.activeElement).not.toBe(allow);
-    expect(sheet.contains(document.activeElement)).toBe(true);
-    expect(document.activeElement?.textContent).toContain('One more choice');
-
-    fireEvent.click(decline);
-    expect(onAnswerAiConsent).toHaveBeenCalledTimes(1);
-    expect(onAnswerAiConsent).toHaveBeenLastCalledWith(false);
-    // While the answer is on its way the pressed button waits and the other takes no press.
-    expect(screen.getByTestId('settings.ai-consent-decline').getAttribute('aria-busy')).toBe(
-      'true',
-    );
-    expect(screen.getByTestId('settings.ai-consent-allow').getAttribute('aria-disabled')).toBe(
-      'true',
-    );
-    fireEvent.click(screen.getByTestId('settings.ai-consent-allow'));
-    expect(onAnswerAiConsent).toHaveBeenCalledTimes(1);
-  });
-
-  it('allowing answers yes', () => {
-    const onAnswerAiConsent = vi.fn();
-    draw(withData(fixtures.profileEditAiConsent, { onAnswerAiConsent }));
-    fireEvent.click(screen.getByTestId('settings.ai-consent-allow'));
-    expect(onAnswerAiConsent).toHaveBeenLastCalledWith(true);
-    expect(screen.getByTestId('settings.ai-consent-allow').getAttribute('aria-busy')).toBe('true');
-    expect(screen.getByTestId('settings.ai-consent-decline').getAttribute('aria-disabled')).toBe(
-      'true',
-    );
+  it('asks nothing about AI screening, whatever is saved', () => {
+    for (const vm of [
+      fixtures.profileEdit,
+      fixtures.profileEditSaving,
+      fixtures.profileEditSaved,
+    ]) {
+      const root = draw(vm);
+      expect(screen.queryByTestId('settings.ai-consent')).toBeNull();
+      expect(document.body.querySelectorAll('[role="dialog"]')).toHaveLength(0);
+      expect(root.textContent).not.toMatch(/\bAI\b|Anthropic|automated/i);
+    }
   });
 
   it('generic states', () => {

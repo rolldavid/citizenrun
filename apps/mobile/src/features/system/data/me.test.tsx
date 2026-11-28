@@ -115,7 +115,6 @@ describe('the Me cache', () => {
     const me = fixtureMe();
     const consents = {
       ...me.consents,
-      aiScreening: 'declined' as const,
       needed: ['terms' as const],
     };
 

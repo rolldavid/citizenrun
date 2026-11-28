@@ -23,7 +23,6 @@ export type SignInMachineState = {
   emailCode: EmailCodeState;
   pending: PendingCredential | null; // memory only
   age: SignupDetails['age'] | null;
-  aiScreening: boolean | null;
   state: string | null;
   notice: SignInViewModel['notice'];
   providersBusy: boolean;
@@ -37,7 +36,6 @@ export type SignInEvent =
   | { type: 'storeSignal'; outcome: AgeOutcome }
   | { type: 'storeSignalUnsupported' }
   | { type: 'agreed' }
-  | { type: 'aiAnswered'; allow: boolean }
   | { type: 'stateRequired' }
   | { type: 'statePicked'; code: string }
   | { type: 'finishRefused'; code: ErrorCode | 'generic'; retryAfterSeconds: number | null }
@@ -57,7 +55,6 @@ export const INITIAL_SIGN_IN_STATE: SignInMachineState = {
   emailCode: INITIAL_EMAIL_CODE_STATE,
   pending: null,
   age: null,
-  aiScreening: null,
   state: null,
   notice: null,
   providersBusy: false,
@@ -68,7 +65,6 @@ const SIGNING_UP: ReadonlySet<SignInStage> = new Set([
   'checkingAge',
   'state',
   'agreements',
-  'aiConsent',
   'finishing',
 ]);
 
@@ -77,7 +73,7 @@ export function isSigningUp(state: SignInMachineState): boolean {
 }
 
 function dropAnswers(state: SignInMachineState): SignInMachineState {
-  return { ...state, pending: null, age: null, aiScreening: null, state: null };
+  return { ...state, pending: null, age: null, state: null };
 }
 
 function block(state: SignInMachineState, blocked: SignInViewModel['blocked']): SignInMachineState {
@@ -143,10 +139,8 @@ function back(state: SignInMachineState): SignInMachineState {
       return { ...state, stage: 'email', emailCode: INITIAL_EMAIL_CODE_STATE };
     case 'agreements':
       return { ...dropAnswers(state), stage: 'methods' };
-    case 'aiConsent':
-      return { ...state, stage: 'agreements' };
     case 'state':
-      return { ...state, stage: 'aiConsent' };
+      return { ...state, stage: 'agreements' };
     case 'methods':
     case 'checkingAge':
     case 'finishing':
@@ -172,7 +166,6 @@ export function signInReducer(state: SignInMachineState, event: SignInEvent): Si
         stage: 'checkingAge',
         pending: event.pending,
         age: null,
-        aiScreening: null,
         state: null,
         notice: null,
         providersBusy: false,
@@ -183,12 +176,10 @@ export function signInReducer(state: SignInMachineState, event: SignInEvent): Si
     case 'storeSignalUnsupported':
       if (state.stage !== 'checkingAge') return state;
       return { ...state, stage: 'agreements', age: NO_SIGNAL };
+    // The one box of sign-up was ticked and Continue pressed (D-900): the account is made.
     case 'agreed':
       if (state.stage !== 'agreements') return state;
-      return { ...state, stage: 'aiConsent' };
-    case 'aiAnswered':
-      if (state.stage !== 'aiConsent') return state;
-      return { ...state, stage: 'finishing', aiScreening: event.allow ? true : null };
+      return { ...state, stage: 'finishing' };
     case 'stateRequired':
       if (state.stage !== 'finishing') return state;
       return { ...state, stage: 'state' };

@@ -2,9 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { LEGAL_VERSIONS } from './versions.ts';
 
 describe('LEGAL_VERSIONS', () => {
-  it('four versions, one date', () => {
+  it('three versions, one date', () => {
     expect(Object.keys(LEGAL_VERSIONS).sort()).toEqual([
-      'ai_screening',
       'content_policy',
       'privacy_policy',
       'terms',

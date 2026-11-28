@@ -51,7 +51,6 @@ describe('the settings fixtures of the list, profile, issues, account and appear
         'profileEditFieldErrors',
         'profileEditHandleLocked',
         'profileEditAvatarPending',
-        'profileEditAiConsent',
         'profileEditLoading',
         'profileEditError',
         'profileEditOffline',
@@ -70,7 +69,7 @@ describe('the settings fixtures of the list, profile, issues, account and appear
       avatarPending: true,
     });
     expect(dataOf(profileFixtures.profileEditAvatarPending).me.avatar).not.toBeNull();
-    expect(dataOf(profileFixtures.profileEditAiConsent).aiConsentNeeded).toBe(true);
+    expect(Object.keys(dataOf(profileFixtures.profileEdit))).not.toContain('aiConsentNeeded');
     expect(dataOf(profileFixtures.profileEditSaved).save.status).toBe('saved');
     expect(profileFixtures.profileEditStale).toEqual({
       ...profileFixtures.profileEdit,

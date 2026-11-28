@@ -88,21 +88,28 @@ async function rowsOf(userId: string) {
     .orderBy(asc(userConsents.id));
 }
 
-const screening = (granted: boolean) => ({
-  kind: 'ai_screening',
-  version: LEGAL_VERSIONS.ai_screening,
-  granted,
+type Agreement = 'terms' | 'content_policy' | 'privacy_policy';
+
+const agreement = (kind: Agreement = 'terms') => ({
+  kind,
+  version: LEGAL_VERSIONS[kind],
+  granted: true,
 });
 
 describe('POST /v1/me/consents', () => {
   it('ok', async () => {
     const { user, auth } = await member();
-    const state = await expectConsents(await record(screening(true), { auth }));
-    expect(state.aiScreening).toBe('granted');
+    const state = await expectConsents(await record(agreement('terms'), { auth }));
+    expect(Object.keys(state).sort()).toEqual([
+      'contentPolicy',
+      'needed',
+      'privacyPolicy',
+      'terms',
+    ]);
     expect(state.needed).toEqual([]);
     expect((await rowsOf(user.id)).at(-1)).toEqual({
-      kind: 'ai_screening',
-      version: LEGAL_VERSIONS.ai_screening,
+      kind: 'terms',
+      version: LEGAL_VERSIONS.terms,
       granted: true,
       platform: 'ios',
     });
@@ -115,6 +122,17 @@ describe('POST /v1/me/consents', () => {
       // A missing enumerated field is reported as invalid_value by the router's issue mapping.
       [{ version: LEGAL_VERSIONS.terms, granted: true }, 'kind', 'invalid_value'],
       [{ kind: 'cookies', version: LEGAL_VERSIONS.terms, granted: true }, 'kind', 'invalid_value'],
+      // The AI-screening answer is no longer taken (D-900), granted or declined.
+      [
+        { kind: 'ai_screening', version: LEGAL_VERSIONS.terms, granted: true },
+        'kind',
+        'invalid_value',
+      ],
+      [
+        { kind: 'ai_screening', version: LEGAL_VERSIONS.terms, granted: false },
+        'kind',
+        'invalid_value',
+      ],
       [{ kind: 'terms', granted: true }, 'version', 'required'],
       [{ kind: 'terms', version: '', granted: true }, 'version', 'too_short'],
       [{ kind: 'terms', version: 'v'.repeat(33), granted: true }, 'version', 'too_long'],
@@ -143,13 +161,13 @@ describe('POST /v1/me/consents', () => {
     expect(await rowsOf(user.id)).toEqual(before);
     // An unknown key is dropped: the row is written as if it were absent.
     await expectConsents(
-      await record({ ...screening(false), userId: 'x', platform: 'web' }, { auth }),
+      await record({ ...agreement('terms'), userId: 'x', platform: 'web' }, { auth }),
     );
     expect((await rowsOf(user.id)).at(-1)?.platform).toBe('ios');
   });
 
   it('envelope on every error', async () => {
-    await expectEnvelope(await record(screening(true)), 'unauthenticated');
+    await expectEnvelope(await record(agreement()), 'unauthenticated');
     const { auth } = await member();
     await expectEnvelope(
       await record({ kind: 'terms', version: OLD_VERSION, granted: true }, { auth }),
@@ -162,16 +180,16 @@ describe('POST /v1/me/consents', () => {
   });
 
   it('requires a session', async () => {
-    await expectEnvelope(await record(screening(true)), 'unauthenticated');
+    await expectEnvelope(await record(agreement()), 'unauthenticated');
     const user = await insertUser(testApp.deps.db);
     const expired = await signIn(testApp.deps.db, user, 'bearer', {
       authenticatedAt: new Date(now().getTime() - 100 * DAY_MS),
       expiresAt: new Date(now().getTime() - MINUTE_MS),
     });
-    await expectEnvelope(await record(screening(true), { auth: expired }), 'unauthenticated');
+    await expectEnvelope(await record(agreement(), { auth: expired }), 'unauthenticated');
     const cookie = await signIn(testApp.deps.db, user, 'cookie');
     await expectEnvelope(
-      await record(screening(true), {
+      await record(agreement(), {
         auth: cookie,
         headers: { Authorization: 'Bearer not-a-session-token-of-anyone-at-all' },
       }),
@@ -184,15 +202,15 @@ describe('POST /v1/me/consents', () => {
     const user = await insertUser(testApp.deps.db);
     const cookie = await signIn(testApp.deps.db, user, 'cookie');
     await expectEnvelope(
-      await record(screening(true), { auth: cookie, origin: null }),
+      await record(agreement(), { auth: cookie, origin: null }),
       'origin_rejected',
     );
     await expectEnvelope(
-      await record(screening(true), { auth: cookie, origin: 'https://elsewhere.example.test' }),
+      await record(agreement(), { auth: cookie, origin: 'https://elsewhere.example.test' }),
       'origin_rejected',
     );
     await expectEnvelope(
-      await record(screening(true), {
+      await record(agreement(), {
         auth: cookie,
         client: 'ios/1.4.0',
         origin: testApp.deps.env.PUBLIC_URL,
@@ -200,37 +218,36 @@ describe('POST /v1/me/consents', () => {
       'origin_rejected',
     );
     expect(await rowsOf(user.id)).toEqual([]);
-    await expectConsents(await record(screening(true), { auth: cookie }));
+    await expectConsents(await record(agreement('terms'), { auth: cookie }));
     const bearer: TestAuth = await signIn(testApp.deps.db, user, 'bearer');
-    await expectConsents(await record(screening(false), { auth: bearer, origin: null }));
+    await expectConsents(await record(agreement('content_policy'), { auth: bearer, origin: null }));
     expect(await rowsOf(user.id)).toHaveLength(2);
   });
 
-  it('ai_screening granted then declined leaves declined and two rows', async () => {
+  it('an AI-screening answer is refused, and an earlier one is not reported', async () => {
     const user = await insertUser(testApp.deps.db);
+    // A row written while the answer was asked.
+    await insertConsent(testApp.deps.db, {
+      userId: user.id,
+      kind: 'ai_screening',
+      version: OLD_VERSION,
+      granted: false,
+    });
     const auth = await signIn(testApp.deps.db, user, 'bearer');
-    expect((await expectConsents(await record(screening(true), { auth }))).aiScreening).toBe(
-      'granted',
-    );
-    expect((await expectConsents(await record(screening(false), { auth }))).aiScreening).toBe(
-      'declined',
-    );
-    expect(await rowsOf(user.id)).toEqual([
-      {
-        kind: 'ai_screening',
-        version: LEGAL_VERSIONS.ai_screening,
-        granted: true,
-        platform: 'ios',
-      },
-      {
-        kind: 'ai_screening',
-        version: LEGAL_VERSIONS.ai_screening,
-        granted: false,
-        platform: 'ios',
-      },
-    ]);
+    const before = await rowsOf(user.id);
+    for (const granted of [true, false]) {
+      const envelope = await expectEnvelope(
+        await record({ kind: 'ai_screening', version: OLD_VERSION, granted }, { auth }),
+        'invalid_request',
+      );
+      expect(envelope.error.fields).toEqual({ kind: 'invalid_value' });
+    }
+    expect(await rowsOf(user.id)).toEqual(before);
     const me = await testApp.request.get('/v1/me', { auth });
-    expect((await me.json<{ consents: ConsentState }>()).consents.aiScreening).toBe('declined');
+    expect(me.status).toBe(200);
+    expect((await me.json<{ consents: ConsentState }>()).consents).not.toHaveProperty(
+      'aiScreening',
+    );
   });
 
   it('terms with granted false answers not_allowed on granted', async () => {
@@ -254,7 +271,7 @@ describe('POST /v1/me/consents', () => {
       'consent_version_outdated',
     );
     await expectEnvelope(
-      await record({ kind: 'ai_screening', version: OLD_VERSION, granted: true }, { auth }),
+      await record({ kind: 'privacy_policy', version: OLD_VERSION, granted: true }, { auth }),
       'consent_version_outdated',
     );
     expect(await rowsOf(user.id)).toEqual(before);
@@ -284,26 +301,28 @@ describe('POST /v1/me/consents', () => {
       suspendedAt: now(),
       suspendedReason: 'spam',
     });
-    await expectConsents(await record(screening(true), { auth }));
-    expect((await rowsOf(user.id)).at(-1)?.kind).toBe('ai_screening');
+    await expectConsents(await record(agreement('privacy_policy'), { auth }));
+    expect((await rowsOf(user.id)).at(-1)?.kind).toBe('privacy_policy');
   });
 
   it("the row's platform is the request's platform", async () => {
     const user = await insertUser(testApp.deps.db);
     const phone = await signIn(testApp.deps.db, user, 'bearer');
     const web = await signIn(testApp.deps.db, user, 'cookie');
-    await expectConsents(await record(screening(true), { auth: phone, client: 'android/1.4.0' }));
-    await expectConsents(await record(screening(false), { auth: web }));
+    await expectConsents(
+      await record(agreement('terms'), { auth: phone, client: 'android/1.4.0' }),
+    );
+    await expectConsents(await record(agreement('content_policy'), { auth: web }));
     expect((await rowsOf(user.id)).map((row) => row.platform)).toEqual(['android', 'web']);
   });
 
   it('a repeat adds a row and changes nothing the user sees', async () => {
     const { user, auth } = await member();
-    // member() wrote one granted ai_screening row at sign-up.
-    const first = await expectConsents(await record(screening(true), { auth }));
-    const second = await expectConsents(await record(screening(true), { auth }));
+    // member() wrote one granted terms row at sign-up.
+    const first = await expectConsents(await record(agreement('terms'), { auth }));
+    const second = await expectConsents(await record(agreement('terms'), { auth }));
     expect(second).toEqual(first);
-    expect((await rowsOf(user.id)).filter((row) => row.kind === 'ai_screening')).toHaveLength(3);
+    expect((await rowsOf(user.id)).filter((row) => row.kind === 'terms')).toHaveLength(3);
   });
 
   it('rate-limited', async () => {
@@ -315,7 +334,7 @@ describe('POST /v1/me/consents', () => {
       count: ME_WRITE_LIMIT,
     });
     const before = await rowsOf(user.id);
-    const response = await record(screening(true), { auth });
+    const response = await record(agreement(), { auth });
     await expectEnvelope(response, 'rate_limited');
     const left = Math.ceil((windowStart.getTime() + MINUTE_MS - now().getTime()) / SECOND_MS);
     expect(response.headers.get('retry-after')).toBe(String(left));

@@ -43,15 +43,17 @@ tags:
     id: 'auth.code-field'
 # The field sends the code at the sixth digit.
 - inputText: ${output.code}
-# Sign-up asks no age: the agreements follow the code.
+# Sign-up asks no age: the one box to agree follows the code. Continue takes no press before the tick.
 - extendedWaitUntil:
     visible:
       id: 'onboarding.terms-agree'
     timeout: 15000
+# The sentence's words keep their links for themselves: the tap lands on the box at the row's start.
 - tapOn:
     id: 'onboarding.terms-agree'
+    point: '6%,50%'
 - tapOn:
-    id: 'onboarding.ai-consent-agree'
+    id: 'onboarding.terms-continue'
 - tapOn:
     id: 'onboarding.photo-skip'
 - tapOn:

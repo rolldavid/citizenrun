@@ -146,7 +146,6 @@ async function insertTarget(testApp: TestApp, issueIds: readonly string[]): Prom
     terms: version,
     content_policy: version,
     privacy_policy: version,
-    ai_screening: version,
   });
   const picks = A_PICK_POSITIONS.map((position) => ({
     issueId: issueIds[position] ?? '',

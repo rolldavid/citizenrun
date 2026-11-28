@@ -28,8 +28,6 @@ function readyWith(overrides: Partial<ProfileData> = {}): Ready {
       photo: { status: 'none' },
       handle: { check: 'idle', invalidReason: null, onChange: noop },
       save: { status: 'idle', fields: {}, errorCode: null },
-      aiConsentNeeded: false,
-      onAnswerAiConsent: noop,
       onChoosePhoto: noop,
       onRemovePhoto: noop,
       onSave: noop,
@@ -65,10 +63,6 @@ export const profileEditHandleLocked = readyWith({
 
 export const profileEditAvatarPending = readyWith({
   me: meWith({ avatar: fixtureAvatar(), avatarPending: true }),
-}) satisfies SettingsProfileViewModel;
-
-export const profileEditAiConsent = readyWith({
-  aiConsentNeeded: true,
 }) satisfies SettingsProfileViewModel;
 
 export const profileEditLoading = { status: 'loading' } satisfies SettingsProfileViewModel;

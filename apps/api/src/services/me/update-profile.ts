@@ -1,4 +1,4 @@
-import { uploads, userConsents, users } from '@citizenrun/db';
+import { uploads, users } from '@citizenrun/db';
 import type { NewUserRow } from '@citizenrun/db';
 import {
   ApiError,
@@ -60,22 +60,6 @@ export async function updateProfile(
   const { db } = deps;
   const { userId, body, now, platform } = input;
   const text = normaliseText(body);
-
-  // D-351: a changed, non-null bio needs an AI-screening answer, granted or declined.
-  if (text.bio !== undefined && text.bio !== null) {
-    const [stored] = await db.select({ bio: users.bio }).from(users).where(eq(users.id, userId));
-    if (stored !== undefined && stored.bio !== text.bio) {
-      // index: user_consents_user
-      const [answer] = await db
-        .select({ id: userConsents.id })
-        .from(userConsents)
-        .where(and(eq(userConsents.userId, userId), eq(userConsents.kind, 'ai_screening')))
-        .limit(1);
-      if (answer === undefined) {
-        throw new ApiError('ai_consent_required');
-      }
-    }
-  }
 
   let uploadId: string | null = null;
   if (typeof body.avatarUploadKey === 'string') {
