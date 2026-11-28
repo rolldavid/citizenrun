@@ -393,49 +393,38 @@ describe('WA public utility district commissioners', () => {
     termYears: 6,
   });
 
-  it('are nominated at the August primary and elected in November of even years', async () => {
-    // Worked by hand: the first Tuesday of August and the Tuesday after the first Monday of
-    // November of 2026, 2028 and 2030; no contest in an odd year.
-    const expected: Readonly<Record<number, readonly string[]>> = {
-      2026: ['2026-08-04', '2026-11-03'],
-      2027: [],
-      2028: ['2028-08-01', '2028-11-07'],
-      2029: [],
-      2030: ['2030-08-06', '2030-11-05'],
-      2031: [],
-    };
+  it('get no contest when their template key has no cited year', async () => {
+    // Each commissioner district is elected once in six years, in a year no statute names, so an
+    // unkeyed commissioner has no contest in any year and its next election is not known yet.
     await eachZone(() => {
-      for (const [year, dates] of Object.entries(expected)) {
-        const contests = waRules.contests({ office: COMMISSIONER, year: Number(year) });
-        expect(contests.map((c) => c.date)).toEqual(dates);
-        expect(contests.map((c) => c.kind)).toEqual(
-          dates.length === 0 ? [] : ['primary', 'general'],
-        );
-        expect(contests.every((c) => c.party === null && !c.electsOutright)).toBe(true);
+      for (let year = 2022; year <= 2040; year++) {
+        expect(waRules.contests({ office: COMMISSIONER, year })).toEqual([]);
+        expect(
+          waRules.contests({
+            office: { ...COMMISSIONER, templateKey: 'mason-pud-1-commissioner-district-1' },
+            year,
+          }),
+        ).toEqual([]);
       }
     });
   });
 
-  it('cite the odd-year limit of RCW 29A.04.321(1) for the general', async () => {
-    await eachZone(() => {
-      const [primary, general] = waRules.contests({ office: COMMISSIONER, year: 2026 });
-      expect(primary?.dateCitation.citation).toBe('RCW 29A.04.311');
-      expect(general?.dateCitation.citation).toBe('RCW 29A.04.321');
-      expect(general?.dateCitation.sourceUrl).toBe(
-        'https://app.leg.wa.gov/RCW/default.aspx?cite=29A.04.321',
-      );
-      expect(general?.dateCitation.quote).toContain(
-        'the statewide general election held in odd-numbered years shall be limited to',
-      );
-    });
-  });
-
-  it('file in the filing week of the election year', async () => {
+  it('file in the filing week of the election year when a contest is asked', async () => {
     await eachZone(() => {
       const contest: ContestRef = { date: '2026-11-03', kind: 'general', party: null };
       const track = only(waRules.filingTracks({ office: COMMISSIONER, contest }));
       expect(track.opensOn?.value).toBe('2026-05-04');
       expect(track.closesOn.value).toBe('2026-05-08');
+    });
+  });
+
+  it('leave every other schedule as it was', async () => {
+    await eachZone(() => {
+      const county = office({});
+      expect(waRules.contests({ office: county, year: 2026 }).map((c) => c.kind)).toEqual([
+        'primary',
+        'general',
+      ]);
     });
   });
 });

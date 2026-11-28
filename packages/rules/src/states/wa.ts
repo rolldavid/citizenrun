@@ -114,13 +114,29 @@ const LOCAL_GENERAL_DAY = cite(
  * elections at which the ownership of property within those districts is a prerequisite to voting,
  * all of which elections shall be held at the times prescribed in the laws specifically applicable
  * thereto;"), and RCW 29A.04.321(1) limits the odd-year general to the elections it lists, so their
- * primary and general fall in even years.
- */
-const PUBLIC_UTILITY_DISTRICT_GENERAL_DAY = cite(
-  '29A.04.321',
-  'However, the statewide general election held in odd-numbered years shall be limited to (a) city, town, and district general elections as provided for in RCW 29A.04.330, or as otherwise provided by law;',
-  EARLIEST_PUBLISHED_APPLICATION,
-);
+ * primary and general fall in even years. Each commissioner district is elected once in six years
+ * (RCW 54.12.010(4)), in a year its own term sets, which no statute names: a commissioner office
+ * has contests only when its template key has a cited first year (D-894), and none otherwise, so
+ * its next election reads "not known yet".
+ *
+ * Elected in the even years `first + k × every`, k any integer; `citation` states the first year. */
+type KeyCycle = { readonly first: number; readonly every: number; readonly citation: Citation };
+
+/** Commissioner template key to its cited election years; none is cited yet. */
+const PUBLIC_UTILITY_DISTRICT_KEYS: ReadonlyMap<string, KeyCycle> = new Map<string, KeyCycle>();
+
+function mod(a: number, n: number): number {
+  return ((a % n) + n) % n;
+}
+
+/** An office's contests in its key's cited years; no contest for a key with no cited year. */
+function publicUtilityDistrictContests(office: OfficeRef, year: number): readonly ContestOut[] {
+  const cycle = PUBLIC_UTILITY_DISTRICT_KEYS.get(office.templateKey);
+  if (cycle === undefined || !isEven(year) || mod(year - cycle.first, cycle.every) !== 0) {
+    return [];
+  }
+  return primaryAndGeneral(year, cycle.citation);
+}
 
 const PRECINCT_COMMITTEE_PRIMARY = cite(
   '29A.80.051',
@@ -167,7 +183,7 @@ function contests(office: OfficeRef, year: number): readonly ContestOut[] {
     case LOCAL_ODD_YEAR:
       return isEven(year) ? [] : primaryAndGeneral(year, LOCAL_GENERAL_DAY);
     case PUBLIC_UTILITY_DISTRICT:
-      return isEven(year) ? primaryAndGeneral(year, PUBLIC_UTILITY_DISTRICT_GENERAL_DAY) : [];
+      return publicUtilityDistrictContests(office, year);
     case STATE_PRIMARY:
       return isEven(year)
         ? [

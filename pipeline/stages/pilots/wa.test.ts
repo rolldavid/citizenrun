@@ -157,7 +157,8 @@ describe('WA pilot expansion', () => {
   it('public utility districts get commissioners', () => {
     // Mason County's two and Thurston County's one, named from the capture (function names 99, 92
     // and 91, each named a public utility district). Three commissioner districts each (RCW
-    // 54.12.010), nominated at the August primary and elected in November of even years.
+    // 54.12.010). No district's election year is cited, so no commissioner has a contest: the
+    // office stands and its next election is not known yet.
     for (const name of [
       'Mason County Public Utility District 1',
       'Mason County Public Utility District 3',
@@ -173,16 +174,7 @@ describe('WA pilot expansion', () => {
         ]),
       );
       for (const office of offices) {
-        expect(
-          electionsOf(run, office.slug)
-            .map((e) => [e.election_date, e.kind])
-            .sort(),
-        ).toEqual([
-          ['2026-08-04', 'primary'],
-          ['2026-11-03', 'general'],
-          ['2028-08-01', 'primary'],
-          ['2028-11-07', 'general'],
-        ]);
+        expect(electionsOf(run, office.slug)).toEqual([]);
       }
     }
   });
