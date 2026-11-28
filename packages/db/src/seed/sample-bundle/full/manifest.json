@@ -1,0 +1,665 @@
+{
+  "format": "citizenrun-bundle",
+  "kind": "full",
+  "version": "sample-20261128T022949Z-full",
+  "schema_version": 1,
+  "schema_revision": 0,
+  "created_at": "2026-11-28T03:07:04.238Z",
+  "git_sha": "537874665e7b96762d592a136f6cfdefc8ede8c6",
+  "geometry_version": "sample-20261128T013452Z-geometry",
+  "tiger_vintage": null,
+  "states": [
+    "NC",
+    "WA"
+  ],
+  "files": [
+    {
+      "name": "jurisdictions",
+      "state": null,
+      "path": "jurisdictions.ndjson.gz",
+      "sha256": "fbbc7bfa7eaa8be0160afe1ed26934bf28aa132f99b1362076f7f9efdfe68720",
+      "bytes": 6209,
+      "rows": 130
+    },
+    {
+      "name": "districts",
+      "state": null,
+      "path": "districts.ndjson.gz",
+      "sha256": "29edd65628a063ae53a34199484201b042d221b434537f46a17a85cda9dc979c",
+      "bytes": 8247,
+      "rows": 188
+    },
+    {
+      "name": "district_fallbacks",
+      "state": null,
+      "path": "district_fallbacks.ndjson.gz",
+      "sha256": "a1eade8c0daaa3c2fc2fce79b523189d40b4a695ca529db578c4783cc3794c3f",
+      "bytes": 1173,
+      "rows": 131
+    },
+    {
+      "name": "offices",
+      "state": null,
+      "path": "offices.ndjson.gz",
+      "sha256": "3849f3b35e170cd9277f3913068eaeeb9b8ddff2b7a126fac43a0a66565f866d",
+      "bytes": 17741,
+      "rows": 194
+    },
+    {
+      "name": "office_powers",
+      "state": null,
+      "path": "office_powers.ndjson.gz",
+      "sha256": "6db95fcb36987c4ac4f1c4032d574f85f6872a52bac23eded489a151eb4cfd4f",
+      "bytes": 3480,
+      "rows": 282
+    },
+    {
+      "name": "elections",
+      "state": null,
+      "path": "elections.ndjson.gz",
+      "sha256": "e179809a7c9e45afcad5ed909c9be7bd545967f92cf8f370533f41505dcd7b24",
+      "bytes": 12360,
+      "rows": 838
+    },
+    {
+      "name": "filing_tracks",
+      "state": null,
+      "path": "filing_tracks.ndjson.gz",
+      "sha256": "ba6ebfafa2a040c36915d07a1cf70fff848145526b3e058b670bdaf210b33a92",
+      "bytes": 12058,
+      "rows": 658
+    },
+    {
+      "name": "people",
+      "state": null,
+      "path": "people.ndjson.gz",
+      "sha256": "828e2efa0fc8a5061f31441095fa728fcae6bfc4f6a1733f68fa7cf98f09061d",
+      "bytes": 4963,
+      "rows": 49
+    },
+    {
+      "name": "person_aliases",
+      "state": null,
+      "path": "person_aliases.ndjson.gz",
+      "sha256": "50a8d5fd8f65aafc7b352b77fadae04bf969eb33f648a8df9ab19b54b742f803",
+      "bytes": 1980,
+      "rows": 54
+    },
+    {
+      "name": "officeholders",
+      "state": null,
+      "path": "officeholders.ndjson.gz",
+      "sha256": "dd15f0a15bb1a643a1656d77a876dd0dc5d8968174c33ffdb5f997da2aa45aed",
+      "bytes": 1793,
+      "rows": 49
+    },
+    {
+      "name": "given_name_aliases",
+      "state": null,
+      "path": "given_name_aliases.ndjson.gz",
+      "sha256": "cebd9879e9361e3dc8eec426a162850912106bbb5eca4f607271606d04fe20d9",
+      "bytes": 25184,
+      "rows": 2825
+    }
+  ],
+  "assets": [
+    {
+      "path": "../assets/photos/043e2726bb11f35073e6d196497494cee0bcdefa330b4ec015085d2caa880c30.jpg",
+      "sha256": "043e2726bb11f35073e6d196497494cee0bcdefa330b4ec015085d2caa880c30",
+      "kind": "photo",
+      "bytes": 38753,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/235920ab8b0a513097909b6b2aed9fb0154382e939bd8f355138e7518e47bac7.jpg",
+      "sha256": "235920ab8b0a513097909b6b2aed9fb0154382e939bd8f355138e7518e47bac7",
+      "kind": "photo",
+      "bytes": 16974,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/28153628531b5df132570fcdb9e19e3eed026a5ea9236522eb2fb6dff0872e96.jpg",
+      "sha256": "28153628531b5df132570fcdb9e19e3eed026a5ea9236522eb2fb6dff0872e96",
+      "kind": "photo",
+      "bytes": 27258,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/2879eb99818ef364424a9392c48bd0e221cf5fadc6c08746823aec5a0d21899f.jpg",
+      "sha256": "2879eb99818ef364424a9392c48bd0e221cf5fadc6c08746823aec5a0d21899f",
+      "kind": "photo",
+      "bytes": 23767,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/30e85e75a045c41e4169c1ecae3ec8d33b5e4211c6d9e86388f64ba81b1c7974.jpg",
+      "sha256": "30e85e75a045c41e4169c1ecae3ec8d33b5e4211c6d9e86388f64ba81b1c7974",
+      "kind": "photo",
+      "bytes": 21635,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/50b799b99815642648602e068b67f5e2ec50dfc7c209dcc747fda22db1dcc6c2.jpg",
+      "sha256": "50b799b99815642648602e068b67f5e2ec50dfc7c209dcc747fda22db1dcc6c2",
+      "kind": "photo",
+      "bytes": 19111,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/6a99ac0e321620ee76d83b2e1dc72c91e470ba023b7c1adf1eac3b5698c3038c.jpg",
+      "sha256": "6a99ac0e321620ee76d83b2e1dc72c91e470ba023b7c1adf1eac3b5698c3038c",
+      "kind": "photo",
+      "bytes": 26562,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/6fcaf0de6f899ae5b379ee454995f23abd88475882ef8a704f9f40305111f2ca.jpg",
+      "sha256": "6fcaf0de6f899ae5b379ee454995f23abd88475882ef8a704f9f40305111f2ca",
+      "kind": "photo",
+      "bytes": 25628,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/731b401ff249e63204c18e7c19ac7bfa8272b723d9975b665f344c48f31044e8.jpg",
+      "sha256": "731b401ff249e63204c18e7c19ac7bfa8272b723d9975b665f344c48f31044e8",
+      "kind": "photo",
+      "bytes": 21287,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/8c3caf52575198b1da70f6306c55230c6ac9eb79c5b59506e63220ba11c9a4ab.jpg",
+      "sha256": "8c3caf52575198b1da70f6306c55230c6ac9eb79c5b59506e63220ba11c9a4ab",
+      "kind": "photo",
+      "bytes": 28879,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/b31d388ea3cd497120820b4ab3eb3d98098f032a6d7748595d6ab0012ca8be2e.jpg",
+      "sha256": "b31d388ea3cd497120820b4ab3eb3d98098f032a6d7748595d6ab0012ca8be2e",
+      "kind": "photo",
+      "bytes": 19628,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/bb76237e9ba7032d6f5e0bc16d95a201a654741c83fdc2439a8db4325aca5dea.jpg",
+      "sha256": "bb76237e9ba7032d6f5e0bc16d95a201a654741c83fdc2439a8db4325aca5dea",
+      "kind": "photo",
+      "bytes": 30124,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/bb8571144dc49f9079f75881ee90ef97e8b222356dc89f00e8d5e586587ce83a.jpg",
+      "sha256": "bb8571144dc49f9079f75881ee90ef97e8b222356dc89f00e8d5e586587ce83a",
+      "kind": "photo",
+      "bytes": 26077,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/bf1fe0f86aac6be8ad19a017ca855f4ec07924ec1f5222bd3c599a19721fa276.jpg",
+      "sha256": "bf1fe0f86aac6be8ad19a017ca855f4ec07924ec1f5222bd3c599a19721fa276",
+      "kind": "photo",
+      "bytes": 21957,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/ca0611d90dd15ac90d185dd6552bcf621e0a0fccf13b375d49160b22ce8fc706.jpg",
+      "sha256": "ca0611d90dd15ac90d185dd6552bcf621e0a0fccf13b375d49160b22ce8fc706",
+      "kind": "photo",
+      "bytes": 11358,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/ccb4d822ccb79524fdac9aaf131970cd2b95498e1c206478798b22b112a9b79d.jpg",
+      "sha256": "ccb4d822ccb79524fdac9aaf131970cd2b95498e1c206478798b22b112a9b79d",
+      "kind": "photo",
+      "bytes": 17042,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/d5e3e8520b75af3ecdf323e74c166b3218ba4d7b8065bd0aca39ba261b042a5d.jpg",
+      "sha256": "d5e3e8520b75af3ecdf323e74c166b3218ba4d7b8065bd0aca39ba261b042a5d",
+      "kind": "photo",
+      "bytes": 21732,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/d8d728beef7cc20b9b0bc2d89e682fd9f283baae648b7988489455dc9f1f08dd.jpg",
+      "sha256": "d8d728beef7cc20b9b0bc2d89e682fd9f283baae648b7988489455dc9f1f08dd",
+      "kind": "photo",
+      "bytes": 26623,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/e826b37359551c2f6f749e126d42a83c42bac267d44d904e71feb01ba1f4ce4a.jpg",
+      "sha256": "e826b37359551c2f6f749e126d42a83c42bac267d44d904e71feb01ba1f4ce4a",
+      "kind": "photo",
+      "bytes": 30772,
+      "content_type": "image/jpeg"
+    },
+    {
+      "path": "../assets/photos/ff6626a40b36431c4330bfddee8be42d427147ea164842203437d54d1702ed30.jpg",
+      "sha256": "ff6626a40b36431c4330bfddee8be42d427147ea164842203437d54d1702ed30",
+      "kind": "photo",
+      "bytes": 22292,
+      "content_type": "image/jpeg"
+    }
+  ],
+  "datasets": {
+    "acs5": {
+      "edition": "2020-2024",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www2.census.gov/programs-surveys/acs/summary_file/2024/table-based-SF/data/5YRData/"
+    },
+    "cb-state": {
+      "edition": "2025",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip"
+    },
+    "census-gus": {
+      "edition": "2026",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www2.census.gov/programs-surveys/gus/datasets/2026/gov_units_2026.zip"
+    },
+    "congress-legislators": {
+      "edition": "2026-11-28",
+      "downloaded_on": "2026-11-28",
+      "source_url": "https://unitedstates.github.io/congress-legislators/legislators-current.csv"
+    },
+    "eia861": {
+      "edition": "2025",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www.eia.gov/electricity/data/eia861/zip/f8612025.zip"
+    },
+    "irs-eobmf": {
+      "edition": "2026-11-10",
+      "downloaded_on": "2026-11-27",
+      "source_url": "https://www.irs.gov/pub/irs-soi/eo_co.csv"
+    },
+    "irs990": {
+      "edition": "2026",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://apps.irs.gov/pub/epostcard/990/xml/2026/index_2026.csv"
+    },
+    "nicknames": {
+      "edition": "ed160b3af2d17e1af8ebd570f10a10e4dade4ff4",
+      "downloaded_on": "2026-11-27",
+      "source_url": "https://raw.githubusercontent.com/carltonnorthern/nicknames/ed160b3af2d17e1af8ebd570f10a10e4dade4ff4/names.csv"
+    },
+    "openstates": {
+      "edition": "2026-11-28",
+      "downloaded_on": "2026-11-28",
+      "source_url": "https://data.openstates.org/people/current/nc.csv"
+    },
+    "openstates-people": {
+      "edition": "6c96e49451833e745fb4f529bb631fa04ae1148a",
+      "downloaded_on": "2026-11-28",
+      "source_url": "https://api.github.com/repos/openstates/people/tarball/main"
+    },
+    "pl94171": {
+      "edition": "2020",
+      "downloaded_on": "2026-11-27",
+      "source_url": "https://www2.census.gov/programs-surveys/decennial/2020/data/01-Redistricting_File%2D%2DPL_94-171/"
+    },
+    "school-finance": {
+      "edition": "2024",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www2.census.gov/programs-surveys/school-finances/tables/2024/secondary-education-finance/elsec24t.xlsx"
+    },
+    "tiger": {
+      "edition": "2026",
+      "downloaded_on": "2026-11-27",
+      "source_url": "https://www2.census.gov/geo/tiger/TIGER2026/"
+    },
+    "wikidata": {
+      "edition": "2026-11-28",
+      "downloaded_on": "2026-11-28",
+      "source_url": "https://query.wikidata.org/"
+    }
+  },
+  "checks": [
+    {
+      "name": "rules_fixtures",
+      "passed": true,
+      "detail": "exit=0"
+    },
+    {
+      "name": "template_valid:LA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "rules_plausible:LA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "template_valid:NC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "rules_plausible:NC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "template_valid:TX",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "rules_plausible:TX",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "template_valid:VA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "rules_plausible:VA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "template_valid:WA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "rules_plausible:WA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "personal_data",
+      "passed": true,
+      "detail": "matches=0"
+    },
+    {
+      "name": "referential_integrity",
+      "passed": true,
+      "detail": "failures=0"
+    },
+    {
+      "name": "listing_header",
+      "passed": true,
+      "detail": "states=51 failing="
+    },
+    {
+      "name": "unit_counts",
+      "passed": true,
+      "detail": "states=51 failing="
+    },
+    {
+      "name": "join_rate",
+      "passed": true,
+      "detail": "states=51 failing="
+    },
+    {
+      "name": "geometry_valid:AK",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AR",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AZ",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CO",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:DC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:DE",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:FL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:GA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:HI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ID",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:KS",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:KY",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:LA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MD",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ME",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MO",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MS",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ND",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NE",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NH",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NJ",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NM",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NV",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NY",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OH",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OK",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OR",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:PA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:RI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:SC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:SD",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:TN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:TX",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:UT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:VA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:VT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WV",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WY",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "slug_unique",
+      "passed": true,
+      "detail": "collisions=0"
+    }
+  ],
+  "filing_sources": [],
+  "two_source_fields": 0,
+  "coverage_path": null,
+  "attribution_path": "ATTRIBUTION.md"
+}

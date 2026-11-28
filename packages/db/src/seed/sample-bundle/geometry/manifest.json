@@ -1,0 +1,315 @@
+{
+  "format": "citizenrun-bundle",
+  "kind": "geometry",
+  "version": "sample-20261128T013452Z-geometry",
+  "schema_version": 1,
+  "schema_revision": 0,
+  "created_at": "2026-11-28T03:07:04.238Z",
+  "git_sha": "537874665e7b96762d592a136f6cfdefc8ede8c6",
+  "geometry_version": null,
+  "tiger_vintage": "2026",
+  "states": [
+    "NC",
+    "WA"
+  ],
+  "files": [
+    {
+      "name": "geometry",
+      "state": "NC",
+      "path": "geometry/NC.ndjson.gz",
+      "sha256": "649f97bbfa0c509db9f9e76fb114cb1ce8b01ee9974f450ab827235388c36ff6",
+      "bytes": 1608527,
+      "rows": 44
+    },
+    {
+      "name": "geometry",
+      "state": "WA",
+      "path": "geometry/WA.ndjson.gz",
+      "sha256": "42c85c22f3af6b6cb9168a9d3cfb657ff99b62957db3d28f34e5721dc18fcd76",
+      "bytes": 1900603,
+      "rows": 144
+    },
+    {
+      "name": "zip_centroids",
+      "state": null,
+      "path": "zip_centroids.ndjson.gz",
+      "sha256": "dd744874f6d3d222704f51e0b90e9143b60ae4451cc291244d7d315ecc7a1847",
+      "bytes": 715,
+      "rows": 40
+    }
+  ],
+  "assets": [],
+  "datasets": {
+    "cb-state": {
+      "edition": "2025",
+      "downloaded_on": "2026-11-26",
+      "source_url": "https://www2.census.gov/geo/tiger/GENZ2025/shp/cb_2025_us_state_500k.zip"
+    },
+    "tiger": {
+      "edition": "2026",
+      "downloaded_on": "2026-11-27",
+      "source_url": "https://www2.census.gov/geo/tiger/TIGER2026/"
+    }
+  },
+  "checks": [
+    {
+      "name": "geometry_valid:AK",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AR",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:AZ",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CO",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:CT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:DC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:DE",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:FL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:GA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:HI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ID",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IL",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:IN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:KS",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:KY",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:LA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MD",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ME",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MO",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MS",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:MT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:ND",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NE",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NH",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NJ",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NM",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NV",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:NY",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OH",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OK",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:OR",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:PA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:RI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:SC",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:SD",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:TN",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:TX",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:UT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:VA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:VT",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WA",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WI",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WV",
+      "passed": true,
+      "detail": "passed"
+    },
+    {
+      "name": "geometry_valid:WY",
+      "passed": true,
+      "detail": "passed"
+    }
+  ],
+  "filing_sources": [],
+  "two_source_fields": 0,
+  "coverage_path": null,
+  "attribution_path": "ATTRIBUTION.md"
+}

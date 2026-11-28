@@ -19,3 +19,4 @@ plans
 admin/
 ml
 .review-evidence
+packages/db/src/seed/sample-bundle/
