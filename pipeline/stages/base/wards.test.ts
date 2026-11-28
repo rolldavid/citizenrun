@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import type { BoundarySource } from '../../lib/data-files.ts';
 import { scriptedRun } from '../../sources/dataset.fixtures.ts';
-import { buildWardDistricts, kebab } from './wards.ts';
+import { GEOJSON, buildWardDistricts, kebab } from './wards.ts';
 import type { MultiPolygonCoords } from './geometry.ts';
 
 const FIXTURE = join(
@@ -112,6 +112,36 @@ describe('wards', () => {
       { layer: 'zz-fixture-wards', reason: 'two features share a label' },
     ]);
     expect(result.districts).toEqual([]);
+  });
+
+  it('a label prefix turns a bare number into the template label', async () => {
+    const parsed = JSON.parse(await readFile(FIXTURE, 'utf8')) as {
+      features: { properties: Record<string, unknown> }[];
+    };
+    parsed.features.forEach((feature, index) => {
+      feature.properties['DISTRICT_NAME'] = String(index + 1);
+    });
+    const prefixed: BoundarySource = { ...ENTRY, label_prefix: 'District ' };
+    const { result } = await runWith({ [ENTRY.url]: JSON.stringify(parsed) }, [prefixed]);
+    expect(result.failures).toEqual([]);
+    expect(result.districts.map((district) => [district.key, district.name])).toEqual([
+      ['ward:9999999:district-1', 'District 1'],
+      ['ward:9999999:district-2', 'District 2'],
+    ]);
+  });
+
+  it('accepts the GeoJSON media types and refuses others', () => {
+    for (const type of [
+      'application/geo+json',
+      'application/vnd.geo+json',
+      'application/json; charset=utf-8',
+      'text/plain',
+    ]) {
+      expect(GEOJSON.test(type)).toBe(true);
+    }
+    for (const type of ['text/html', 'application/zip', 'application/vnd.ms-excel']) {
+      expect(GEOJSON.test(type)).toBe(false);
+    }
   });
 
   it('reads only the layers of places in the state', async () => {

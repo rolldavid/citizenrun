@@ -132,6 +132,8 @@ export const BoundarySourceSchema = z.strictObject({
   licence_text: text(2000),
   retrieved_on: IsoDateSchema,
   label_field: text(100),
+  /** Written before each label when the layer holds only the number ('District ' + '3'), D-901. */
+  label_prefix: text(40).optional(),
   format: z.literal('geojson'),
 });
 export type BoundarySource = z.infer<typeof BoundarySourceSchema>;
