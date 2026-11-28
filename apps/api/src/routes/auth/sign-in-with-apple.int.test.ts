@@ -40,7 +40,7 @@ type NonceResult = { nonce: string; nonceHash: string; state: string; expiresAt:
 
 function signup(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    age: { method: 'self_declared', sourceTier: 'self' },
+    age: { method: 'none', sourceTier: null },
     agreements: {
       termsVersion: LEGAL_VERSIONS.terms,
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
@@ -198,7 +198,10 @@ describe('POST /v1/auth/apple', () => {
     });
     expect((await nonceRow(nonce))?.usedAt).not.toBeNull();
     const user = await userOf(subject);
-    expect(user?.ageResult).toBe('adult');
+    // The sign-up carried no store signal: the record says so and claims no result.
+    expect(user?.ageMethod).toBe('none');
+    expect(user?.ageResult).toBeNull();
+    expect(user?.ageCheckedAt).toBeInstanceOf(Date);
     expect(user?.onboardingStep).toBe('photo');
   });
 

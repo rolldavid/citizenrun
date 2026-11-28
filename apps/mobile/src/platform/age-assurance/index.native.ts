@@ -8,9 +8,6 @@ import {
 import Constants from 'expo-constants';
 import { Linking, Platform } from 'react-native';
 
-import { storage } from '@/platform/storage';
-
-import { blockedUntilFrom, evaluateBirthMonth } from './dob-gate';
 import { fakeOutcomeFromUrl } from './fake-signal';
 import { mapAgeOutcome } from './map-outcome';
 import type { AgeAssurance, AgeOutcome } from './types';
@@ -95,11 +92,6 @@ export const ageAssurance: AgeAssurance = {
     } catch {
       // dropped (D-350)
     }
-  },
-  evaluateBirthMonth,
-  gateBlockedUntil: () => storage.get('ageGate.blockedUntil'),
-  blockGate: (now) => {
-    storage.set('ageGate.blockedUntil', blockedUntilFrom(now));
   },
 };
 

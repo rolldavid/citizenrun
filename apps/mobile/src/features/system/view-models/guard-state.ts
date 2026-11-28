@@ -7,7 +7,6 @@ import { useEffect } from 'react';
 import { markNavigationReady, peekRememberedNext, resolveGuard } from '@/lib/navigation';
 import type { GuardInput, GuardResult } from '@/lib/navigation';
 import { useSessionPresence } from '@/lib/session-state';
-import { ageAssurance } from '@/platform/age-assurance';
 import type { SessionPresence } from '@/platform/session';
 import { useBreakpoint } from '@/ui/shells/use-breakpoint';
 
@@ -57,8 +56,6 @@ export function useGuardState(): GuardState {
     rememberedNext: peekRememberedNext(),
     session: guardSessionOf(presence, me),
     upgradeBlocked,
-    // storage.get throws until hydrated, which boot 'ready' follows.
-    ageGateBlocked: boot === 'ready' && ageAssurance.gateBlockedUntil() !== null,
     landingPageSupported: false,
     revealShowing: false,
     breakpoint,

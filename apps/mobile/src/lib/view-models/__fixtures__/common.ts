@@ -36,7 +36,7 @@ export function fixtureMe(overrides: Partial<Me> = {}): Me {
     handleChangeAvailableAt: null,
     issues: [],
     locale: 'en',
-    age: { method: 'self_declared', sourceTier: 'self', checkedAt: '2027-01-15T11:59:00.000Z' },
+    age: { method: 'none', sourceTier: null, checkedAt: '2027-01-15T11:59:00.000Z' },
     consents: {
       terms: { agreedVersion: LEGAL_VERSIONS.terms, currentVersion: LEGAL_VERSIONS.terms },
       contentPolicy: {

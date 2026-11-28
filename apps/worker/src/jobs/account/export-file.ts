@@ -69,12 +69,10 @@ async function accountOf(
   if (user === undefined) {
     throw new ExportUserMissingError();
   }
-  // users_age_record_check keeps the four age columns all null or all set.
+  // users_age_record_check: a record always has its method and time; a sign-up with no store
+  // signal has no result and no tier.
   const age =
-    user.ageMethod === null ||
-    user.ageResult === null ||
-    user.ageSourceTier === null ||
-    user.ageCheckedAt === null
+    user.ageMethod === null || user.ageCheckedAt === null
       ? null
       : {
           method: user.ageMethod,

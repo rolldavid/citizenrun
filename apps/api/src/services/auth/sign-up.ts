@@ -76,7 +76,7 @@ async function checkStateRules(signup: SignupDetails, flags: FlagReader): Promis
   if (rule?.signup === 'withhold') {
     throw new ApiError('unavailable_in_state');
   }
-  if (rule?.ageMethod === 'store_signal_required' && signup.age.method === 'self_declared') {
+  if (rule?.ageMethod === 'store_signal_required' && signup.age.method !== 'store_signal') {
     throw new ApiError('age_signal_required');
   }
 }
@@ -199,6 +199,10 @@ class LostRace extends Error {
 function ageColumns(signup: SignupDetails | null, now: Date) {
   if (signup === null) {
     return { ageMethod: null, ageResult: null, ageSourceTier: null, ageCheckedAt: null };
+  }
+  // Only a store signal claims a result; a sign-up with no signal records that none came (D-897).
+  if (signup.age.method === 'none') {
+    return { ageMethod: 'none', ageResult: null, ageSourceTier: null, ageCheckedAt: now };
   }
   return {
     ageMethod: signup.age.method,

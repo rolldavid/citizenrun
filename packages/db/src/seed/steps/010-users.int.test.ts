@@ -165,7 +165,7 @@ describe('seed step 010-users', () => {
     }
   });
 
-  it('every user has one verified email identity and an adult self-declared age record', async () => {
+  it('every user has one verified email identity and an age record that claims no result', async () => {
     await runStep();
     const identities = await getTestDb().select().from(authIdentities);
     expect(identities).toHaveLength(50);
@@ -176,9 +176,9 @@ describe('seed step 010-users', () => {
       expect(own[0]?.subject).toBe(row.email);
       expect(own[0]?.email).toBe(row.email);
       expect(own[0]?.emailVerified).toBe(true);
-      expect(row.ageMethod).toBe('self_declared');
-      expect(row.ageResult).toBe('adult');
-      expect(row.ageSourceTier).toBe('self');
+      expect(row.ageMethod).toBe('none');
+      expect(row.ageResult).toBeNull();
+      expect(row.ageSourceTier).toBeNull();
       expect(row.ageCheckedAt).toEqual(row.createdAt);
     }
   });

@@ -44,15 +44,20 @@
             "type": "string",
             "enum": [
               "store_signal",
-              "self_declared"
+              "self_declared",
+              "none"
             ]
           },
           "sourceTier": {
-            "type": "string",
+            "type": [
+              "string",
+              "null"
+            ],
             "enum": [
               "confirmed",
               "declared",
-              "self"
+              "self",
+              null
             ]
           },
           "checkedAt": {
@@ -4513,15 +4518,18 @@
                 "type": "string",
                 "enum": [
                   "store_signal",
-                  "self_declared"
+                  "none"
                 ]
               },
               "sourceTier": {
-                "type": "string",
+                "type": [
+                  "string",
+                  "null"
+                ],
                 "enum": [
                   "confirmed",
                   "declared",
-                  "self"
+                  null
                 ]
               }
             },

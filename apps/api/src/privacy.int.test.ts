@@ -159,7 +159,7 @@ function clientErrorBody(): Record<string, unknown> {
 
 function signupDetails(): Record<string, unknown> {
   return {
-    age: { method: 'self_declared', sourceTier: 'self' },
+    age: { method: 'none', sourceTier: null },
     agreements: {
       termsVersion: LEGAL_VERSIONS.terms,
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,

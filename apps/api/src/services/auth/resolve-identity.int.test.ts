@@ -19,7 +19,7 @@ import type { CreateResult } from './sign-up.ts';
 // and then writes as the sign-in routes do, in one transaction, and asserts on rows.
 
 const SIGNUP: SignupDetails = {
-  age: { method: 'self_declared', sourceTier: 'self' },
+  age: { method: 'none', sourceTier: null },
   agreements: {
     termsVersion: LEGAL_VERSIONS.terms,
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,

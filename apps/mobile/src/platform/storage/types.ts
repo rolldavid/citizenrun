@@ -13,7 +13,6 @@ export type StorageEntries = {
   theme: ThemeChoice;
   'reload.chunkReloaded': true; // visit scope (D-163)
   'reload.upgradeReloaded': true; // visit scope
-  'ageGate.blockedUntil': string; // an ISO instant (CTL-75)
 };
 
 export type StorageKey = Extract<keyof StorageEntries, string>;

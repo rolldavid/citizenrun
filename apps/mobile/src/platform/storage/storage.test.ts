@@ -166,59 +166,38 @@ describe('storage', () => {
   });
 
   it('invalid values are dropped', async () => {
-    fs.files.set(FILE_NAME, JSON.stringify({ theme: 'sepia', 'ageGate.blockedUntil': 'tomorrow' }));
+    fs.files.set(FILE_NAME, JSON.stringify({ theme: 'sepia' }));
     const native = await freshNative();
     await native.hydrate();
     expect(native.get('theme')).toBeNull();
-    expect(native.get('ageGate.blockedUntil')).toBeNull();
     await native.flush();
     expect(storedFile()).toEqual({});
 
     local.setItem('s1:theme', '"sepia"');
-    local.setItem('s1:ageGate.blockedUntil', '"tomorrow"');
     const web = await freshWeb();
     await web.hydrate();
     expect(web.get('theme')).toBeNull();
     expect(local.getItem('s1:theme')).toBeNull();
-    expect(web.get('ageGate.blockedUntil')).toBeNull();
-    expect(local.getItem('s1:ageGate.blockedUntil')).toBeNull();
   });
 
-  it('expiry rules', async () => {
-    vi.setSystemTime(NOW);
-    const past = new Date(NOW.getTime() - 1).toISOString();
+  it('a key an earlier version kept is dropped from the device', async () => {
+    // The lock of the removed birth question (D-897), still in the future.
     const dayAhead = new Date(NOW.getTime() + DAY_MS).toISOString();
 
-    fs.files.set(FILE_NAME, JSON.stringify({ 'ageGate.blockedUntil': past }));
-    const nativePast = await freshNative();
-    await nativePast.hydrate();
-    expect(nativePast.get('ageGate.blockedUntil')).toBeNull();
-    await nativePast.flush();
-    expect(storedFile()).toEqual({});
+    fs.files.set(FILE_NAME, JSON.stringify({ theme: 'dark', 'ageGate.blockedUntil': dayAhead }));
+    const native = await freshNative();
+    await native.hydrate();
+    expect(native.get('theme')).toBe('dark');
+    await native.flush();
+    expect(storedFile()).toEqual({ theme: 'dark' });
 
-    fs.files.set(FILE_NAME, JSON.stringify({ 'ageGate.blockedUntil': dayAhead }));
-    const nativeAhead = await freshNative();
-    await nativeAhead.hydrate();
-    expect(nativeAhead.get('ageGate.blockedUntil')).toBe(dayAhead);
-    await nativeAhead.flush();
-    expect(storedFile()).toEqual({ 'ageGate.blockedUntil': dayAhead });
-
-    local.setItem('s1:ageGate.blockedUntil', JSON.stringify(past));
-    const webPast = await freshWeb();
-    await webPast.hydrate();
-    expect(webPast.get('ageGate.blockedUntil')).toBeNull();
-    expect(local.getItem('s1:ageGate.blockedUntil')).toBeNull();
-
+    local.setItem('s1:theme', '"dark"');
     local.setItem('s1:ageGate.blockedUntil', JSON.stringify(dayAhead));
-    const webAhead = await freshWeb();
-    await webAhead.hydrate();
-    expect(webAhead.get('ageGate.blockedUntil')).toBe(dayAhead);
-    expect(local.getItem('s1:ageGate.blockedUntil')).toBe(JSON.stringify(dayAhead));
-
-    // a lock kept at hydrate() reads as absent once its instant is reached
-    vi.setSystemTime(new Date(NOW.getTime() + DAY_MS));
-    expect(nativeAhead.get('ageGate.blockedUntil')).toBeNull();
-    expect(webAhead.get('ageGate.blockedUntil')).toBeNull();
+    const web = await freshWeb();
+    await web.hydrate();
+    expect(web.get('theme')).toBe('dark');
+    expect(local.getItem('s1:ageGate.blockedUntil')).toBeNull();
+    expect(local.getItem('s1:theme')).toBe('"dark"');
   });
 
   it('unknown keys are dropped', async () => {
@@ -296,21 +275,18 @@ describe('storage', () => {
     expect(web.get('theme')).toBe('light');
   });
 
-  it('clearUserData keeps the theme, the reload flags and the gate lock', async () => {
-    const lock = new Date(Date.now() + DAY_MS).toISOString();
+  it('clearUserData keeps the theme and the reload flags', async () => {
     for (const storage of [await freshNative(), await freshWeb()]) {
       await storage.hydrate();
       storage.set('theme', 'dark');
       storage.set('reload.chunkReloaded', true);
       storage.set('reload.upgradeReloaded', true);
-      storage.set('ageGate.blockedUntil', lock);
       storage.clearUserData();
       expect(storage.get('theme')).toBe('dark');
       expect(storage.get('reload.chunkReloaded')).toBe(true);
       expect(storage.get('reload.upgradeReloaded')).toBe(true);
-      expect(storage.get('ageGate.blockedUntil')).toBe(lock);
     }
-    expect(local.getItem('s1:ageGate.blockedUntil')).toBe(JSON.stringify(lock));
+    expect(local.getItem('s1:theme')).toBe('"dark"');
   });
 
   it('native writes are coalesced and ordered', async () => {

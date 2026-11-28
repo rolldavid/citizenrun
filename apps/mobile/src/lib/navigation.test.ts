@@ -44,7 +44,6 @@ const BASE: GuardInput = {
   rememberedNext: null,
   session: { kind: 'none' },
   upgradeBlocked: false,
-  ageGateBlocked: false,
   landingPageSupported: false,
   revealShowing: false,
   breakpoint: 'compact',
@@ -119,19 +118,10 @@ describe('resolveGuard', () => {
   });
 
   it('shows the update screen first', () => {
-    expect(guard({ upgradeBlocked: true, ageGateBlocked: true, path: '/welcome' })).toEqual({
+    expect(guard({ upgradeBlocked: true, path: '/welcome' })).toEqual({
       kind: 'system',
       screen: 'update',
     });
-  });
-
-  it('shows the adults-only screen on sign-in and onboarding paths while the gate is locked', () => {
-    const adultsOnly: GuardResult = { kind: 'system', screen: 'adultsOnly' };
-    expect(guard({ ageGateBlocked: true, path: '/sign-in' })).toEqual(adultsOnly);
-    expect(
-      guard({ ageGateBlocked: true, path: '/onboarding/photo', session: ready('photo') }),
-    ).toEqual(adultsOnly);
-    expect(guard({ ageGateBlocked: true, path: '/' })).toEqual(to('/welcome'));
   });
 
   it('sends a visitor with no session from / to the welcome screen where there is no landing page', () => {

@@ -67,7 +67,7 @@ async function expectDeletion(response: TestResponse): Promise<AccountDeletionVi
   return AccountDeletionViewSchema.parse(await response.json());
 }
 
-/** A self-declared adult signed in by bearer from iOS. */
+/** A user whose sign-up had no store signal, signed in by bearer from iOS. */
 async function member(overrides: Parameters<typeof insertUser>[1] = {}) {
   const user = await insertUser(testApp.deps.db, overrides);
   const auth = await signIn(testApp.deps.db, user, 'bearer');
@@ -136,7 +136,7 @@ describe('POST /v1/me/age', () => {
     expect(malformed.status).toBe(400);
     expect(((await malformed.json()) as Envelope).error.code).toBe('invalid_request');
     const row = await userRow(user.id);
-    expect(row.ageMethod).toBe('self_declared');
+    expect(row.ageMethod).toBe('none');
     // An unknown key is dropped: a raw signal or a birth year is never read or stored.
     await expectMe(await report({ ...adult, birthYear: 1990, rawSignal: 'x' }, { auth }));
     expect((await userRow(user.id)).ageMethod).toBe('store_signal');
@@ -170,7 +170,7 @@ describe('POST /v1/me/age', () => {
       }),
       'unauthenticated',
     );
-    expect((await userRow(user.id)).ageMethod).toBe('self_declared');
+    expect((await userRow(user.id)).ageMethod).toBe('none');
   });
 
   it('checks origin on cookie writes', async () => {
@@ -189,25 +189,35 @@ describe('POST /v1/me/age', () => {
       }),
       'origin_rejected',
     );
-    expect((await userRow(user.id)).ageMethod).toBe('self_declared');
+    expect((await userRow(user.id)).ageMethod).toBe('none');
     const bearer: TestAuth = await signIn(testApp.deps.db, user, 'bearer');
     await expectMe(await report(adult, { auth: bearer, origin: null }));
   });
 
-  it('a self_declared user reporting adult confirmed is stored as store_signal confirmed', async () => {
-    const { user, auth } = await member({
-      ageMethod: 'self_declared',
-      ageSourceTier: 'self',
-      ageCheckedAt: new Date(now().getTime() - 30 * DAY_MS),
-    });
-    await expectMe(await report(adult, { auth }));
-    const row = await userRow(user.id);
-    expect(row.ageMethod).toBe('store_signal');
-    expect(row.ageResult).toBe('adult');
-    expect(row.ageSourceTier).toBe('confirmed');
-    expect(row.ageCheckedAt?.toISOString()).toBe(now().toISOString());
-    expect(row.status).toBe('active');
-    expect(await sessionsOf(user.id)).toHaveLength(1);
+  it('a user with no signal reporting adult confirmed is stored as store_signal confirmed', async () => {
+    const earlier = new Date(now().getTime() - 30 * DAY_MS);
+    const records: Parameters<typeof insertUser>[1][] = [
+      { ageMethod: 'none', ageResult: null, ageSourceTier: null, ageCheckedAt: earlier },
+      // A record made while sign-up asked a birth month is replaced the same way.
+      {
+        ageMethod: 'self_declared',
+        ageResult: 'adult',
+        ageSourceTier: 'self',
+        ageCheckedAt: earlier,
+      },
+    ];
+    for (const record of records) {
+      const { user, auth } = await member(record);
+      expect((await userRow(user.id)).ageMethod).toBe(record?.ageMethod);
+      await expectMe(await report(adult, { auth }));
+      const row = await userRow(user.id);
+      expect(row.ageMethod).toBe('store_signal');
+      expect(row.ageResult).toBe('adult');
+      expect(row.ageSourceTier).toBe('confirmed');
+      expect(row.ageCheckedAt?.toISOString()).toBe(now().toISOString());
+      expect(row.status).toBe('active');
+      expect(await sessionsOf(user.id)).toHaveLength(1);
+    }
   });
 
   it('a repeated adult signal refreshes age_checked_at', async () => {
@@ -236,8 +246,9 @@ describe('POST /v1/me/age', () => {
     expect(await sessionsOf(user.id)).toEqual([]);
     expect(await deletionJobsFor(user.id)).toEqual([{ userId: user.id, skipDeferral: false }]);
     // The age record is left as it was: nothing of the minor signal is stored.
-    expect(row.ageMethod).toBe('self_declared');
-    expect(row.ageResult).toBe('adult');
+    expect(row.ageMethod).toBe('none');
+    expect(row.ageResult).toBeNull();
+    expect(row.ageSourceTier).toBeNull();
   });
 
   it('under_13 enqueues the deletion job with skipDeferral true', async () => {
@@ -266,7 +277,7 @@ describe('POST /v1/me/age', () => {
       'invalid_request',
     );
     const row = await userRow(user.id);
-    expect(row.ageMethod).toBe('self_declared');
+    expect(row.ageMethod).toBe('none');
     expect(row.status).toBe('active');
     expect(await deletionJobsFor(user.id)).toEqual([]);
   });

@@ -1,0 +1,119 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "78147a5f-607c-4d6c-a411-4ab58cbf3d33",
+  "prevIds": [
+    "6a60e5ab-c87e-439e-94eb-33efacdf8a9c"
+  ],
+  "footprints": [
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "state_rules",
+        "age_method"
+      ],
+      "writes": [
+        "s|colprop|public.state_rules.age_method.default"
+      ],
+      "reads": [
+        "n|tbl|public.state_rules",
+        "n|sch|public",
+        "n|col|public.state_rules.age_method"
+      ],
+      "sqlHash": "899025ec1b3260aa"
+    },
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "users"
+      ],
+      "writes": [
+        "s|ck|public.users.users_age_method_check"
+      ],
+      "reads": [
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.users.age_method",
+        "e|col|public.users.age_method"
+      ],
+      "sqlHash": "0803d888b12321f2"
+    },
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "users"
+      ],
+      "writes": [
+        "s|ck|public.users.users_age_record_check"
+      ],
+      "reads": [
+        "n|tbl|public.users",
+        "n|sch|public",
+        "n|col|public.users.age_method",
+        "n|col|public.users.age_result",
+        "n|col|public.users.age_source_tier",
+        "n|col|public.users.age_checked_at",
+        "e|col|public.users.age_method",
+        "e|col|public.users.age_result",
+        "e|col|public.users.age_source_tier",
+        "e|col|public.users.age_checked_at"
+      ],
+      "sqlHash": "4a4106c377fcee9b"
+    },
+    {
+      "statementType": "alter_check",
+      "statementTarget": [
+        "table",
+        "public",
+        "state_rules"
+      ],
+      "writes": [
+        "s|ck|public.state_rules.state_rules_age_method_check"
+      ],
+      "reads": [
+        "n|tbl|public.state_rules",
+        "n|sch|public",
+        "n|col|public.state_rules.age_method",
+        "e|col|public.state_rules.age_method"
+      ],
+      "sqlHash": "758df3147abcb8b9"
+    }
+  ],
+  "deltas": [
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"state_rules\",\"age_method\"]",
+      "set": {
+        "default": "'store_signal_or_none'"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"users\",\"users_age_method_check\"]",
+      "set": {
+        "value": "\"age_method\" in ('store_signal', 'self_declared', 'none')"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"users\",\"users_age_record_check\"]",
+      "set": {
+        "value": "case when \"age_method\" is null then num_nulls(\"age_result\", \"age_source_tier\", \"age_checked_at\") = 3 when \"age_method\" = 'none' then \"age_result\" is null and \"age_source_tier\" is null and \"age_checked_at\" is not null else num_nulls(\"age_result\", \"age_source_tier\", \"age_checked_at\") = 0 end"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "checks\u0000[\"public\",\"state_rules\",\"state_rules_age_method_check\"]",
+      "set": {
+        "value": "\"age_method\" in ('store_signal_required', 'store_signal_or_dob', 'store_signal_or_none')"
+      }
+    }
+  ]
+}

@@ -26,18 +26,6 @@ function neverExpires(): boolean {
   return false;
 }
 
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/;
-
-/** An ISO 8601 UTC instant, as `Date.prototype.toISOString()` writes it, that names a real time. */
-function isIsoInstant(value: unknown): boolean {
-  return typeof value === 'string' && ISO_INSTANT.test(value) && Number.isFinite(Date.parse(value));
-}
-
-/** True when the instant is at or before `now`. */
-function instantReached(value: unknown, now: Date): boolean {
-  return typeof value === 'string' && Date.parse(value) <= now.getTime();
-}
-
 /** PM-storage's key table. */
 export const STORAGE_KEY_RULES = {
   theme: { scope: 'persistent', userData: false, isValid: isThemeChoice, isExpired: neverExpires },
@@ -52,13 +40,6 @@ export const STORAGE_KEY_RULES = {
     userData: false,
     isValid: isTrue,
     isExpired: neverExpires,
-  },
-  // A lock on the device, not on an account: session.endLocal() leaves it in place (CTL-75).
-  'ageGate.blockedUntil': {
-    scope: 'persistent',
-    userData: false,
-    isValid: isIsoInstant,
-    isExpired: instantReached,
   },
 } as const satisfies Record<StorageKey, StorageKeyRule>;
 

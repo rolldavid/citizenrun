@@ -37,7 +37,7 @@ type NonceResult = { nonce: string; nonceHash: string; state: string; expiresAt:
 
 function signup(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
-    age: { method: 'self_declared', sourceTier: 'self' },
+    age: { method: 'none', sourceTier: null },
     agreements: {
       termsVersion: LEGAL_VERSIONS.terms,
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
@@ -172,9 +172,9 @@ describe('POST /v1/auth/apple/handoff', () => {
     expect(info.created).toBe(true);
     expect(info.me.id).toBe(userId);
     expect(await userById(userId)).toMatchObject({
-      ageMethod: 'self_declared',
-      ageResult: 'adult',
-      ageSourceTier: 'self',
+      ageMethod: 'none',
+      ageResult: null,
+      ageSourceTier: null,
     });
     const consents = await testApp.deps.db
       .select()

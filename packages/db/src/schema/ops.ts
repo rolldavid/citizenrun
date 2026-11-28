@@ -111,7 +111,7 @@ export const stateRules = pgTable(
   {
     state: char('state', { length: 2 }).primaryKey(),
     signup: text('signup').notNull().default('allow'),
-    ageMethod: text('age_method').notNull().default('store_signal_or_dob'),
+    ageMethod: text('age_method').notNull().default('store_signal_or_none'),
     candidateTools: boolean('candidate_tools').notNull().default(true),
     updatedBy: uuid('updated_by'),
     updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull().defaultNow(),
@@ -127,7 +127,7 @@ export const stateRules = pgTable(
     check('state_rules_signup_check', sql`${table.signup} in ('allow', 'withhold')`),
     check(
       'state_rules_age_method_check',
-      sql`${table.ageMethod} in ('store_signal_required', 'store_signal_or_dob')`,
+      sql`${table.ageMethod} in ('store_signal_required', 'store_signal_or_dob', 'store_signal_or_none')`,
     ),
   ],
 );

@@ -89,7 +89,7 @@ describe('loadMe', () => {
       handleChangeAvailableAt: null,
       createdAt: now.toISOString(),
       newAccountUntil: shift(now, 7 * DAY_MS).toISOString(),
-      age: { method: 'self_declared', sourceTier: 'self', checkedAt: now.toISOString() },
+      age: { method: 'none', sourceTier: null, checkedAt: now.toISOString() },
     });
     expect(me.consents).toEqual({
       terms: { agreedVersion: LEGAL_VERSIONS.terms, currentVersion: LEGAL_VERSIONS.terms },

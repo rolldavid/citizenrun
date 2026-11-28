@@ -9,7 +9,7 @@ import { session } from '@/platform/session';
 
 export type NavItemId = 'home' | 'explore' | 'post' | 'activity' | 'messages' | 'profile';
 export type Breakpoint = 'compact' | 'medium' | 'expanded';
-export type GuardSystemScreen = 'update' | 'adultsOnly';
+export type GuardSystemScreen = 'update';
 export type GuardSession =
   | { kind: 'none' } // no session
   | { kind: 'pending' } // a session may exist; Me not loaded
@@ -20,7 +20,6 @@ export type GuardInput = {
   rememberedNext: string | null; // rule N3
   session: GuardSession;
   upgradeBlocked: boolean; // the last /v1 answer was 426 and links.reloadOnce answered false
-  ageGateBlocked: boolean; // ageAssurance.gateBlockedUntil() is not null
   landingPageSupported: boolean; // SCR-root-layout
   revealShowing: boolean; // SCR-onboarding-reveal
   breakpoint: Breakpoint;
@@ -101,9 +100,6 @@ export function resolveGuard(input: GuardInput): GuardResult {
   }
   if (input.upgradeBlocked) {
     return { kind: 'system', screen: 'update' };
-  }
-  if (input.ageGateBlocked && (cls === 'auth' || cls === 'onboarding')) {
-    return { kind: 'system', screen: 'adultsOnly' };
   }
 
   if (current.kind === 'none') {

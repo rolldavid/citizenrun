@@ -9,7 +9,6 @@ import { AUTH_NAMESPACES } from '@/features/auth/components/auth-translation';
 import { CodeControl } from '@/features/auth/components/code-control';
 import { EmailField, isEmailAddress } from '@/features/auth/components/email-field';
 import { LegalLine, LinkedSentence } from '@/features/auth/components/legal-line';
-import { monthNames } from '@/features/auth/components/month-names';
 import { signInNoticeText } from '@/features/auth/components/notice-text';
 import { ProviderOptions } from '@/features/auth/components/provider-options';
 import { StageFrame } from '@/features/auth/components/stage-frame';
@@ -22,7 +21,6 @@ import {
   stateUnavailableViewModel,
 } from '@/features/system';
 import { head } from '@/platform/head';
-import { AgeGate } from '@/ui/components/age-gate';
 import { Notice } from '@/ui/components/notice';
 import { Select } from '@/ui/components/select';
 import { Skeleton } from '@/ui/components/skeleton';
@@ -34,8 +32,6 @@ type StageProps = { vm: SignInViewModel };
 const TEST_ID = 'auth.sign-in';
 /** A whole sign-in code. */
 const WHOLE_CODE = /^[0-9]{6}$/;
-/** How far back the years of the birth question go. */
-const YEARS_BACK = 120;
 
 const NOTICE: ViewStyle = { marginBottom: space.x4 };
 const LEGAL: ViewStyle = { marginTop: space.x4 };
@@ -190,59 +186,6 @@ function WaitingStage({ vm }: StageProps): JSX.Element {
   );
 }
 
-type AgeGateStageProps = StageProps & { ageGate: NonNullable<SignInViewModel['ageGate']> };
-
-/**
- * `ageGate`: a month and a year, with nothing chosen for the person and nothing said about which
- * answer passes (D-350, CTL-75). The answer lives here and goes when the stage does.
- */
-function AgeGateStage({ vm, ageGate }: AgeGateStageProps): JSX.Element {
-  const { t, i18n } = useTranslation(AUTH_NAMESPACES);
-  const [birth, setBirth] = useState<{ month: number | null; year: number | null }>({
-    month: null,
-    year: null,
-  });
-  const { month, year } = birth;
-  const years = Array.from({ length: YEARS_BACK + 1 }, (_, back) => ageGate.thisYear - back);
-  const complete = month !== null && year !== null;
-
-  return (
-    <StageFrame
-      onBack={vm.onBack}
-      signingUp={vm.signingUp}
-      offline={vm.offline}
-      title={t('auth:age.title')}
-      body={t('auth:age.body')}
-      footer={{
-        primary: {
-          label: complete ? t('auth:age.continue') : t('auth:age.needBoth'),
-          onPress: () => {
-            if (month !== null && year !== null) {
-              ageGate.onSubmit({ year, month });
-            }
-          },
-          disabled: !complete,
-          testID: 'onboarding.age-continue',
-        },
-      }}
-      testID={TEST_ID}
-    >
-      <AgeGate
-        month={month}
-        year={year}
-        years={years}
-        onChange={setBirth}
-        monthLabel={t('auth:age.month')}
-        yearLabel={t('auth:age.year')}
-        monthPlaceholder={t('auth:age.monthPlaceholder')}
-        yearPlaceholder={t('auth:age.yearPlaceholder')}
-        monthNames={monthNames(i18n.language)}
-        testIDs={{ month: 'onboarding.age-month', year: 'onboarding.age-year' }}
-      />
-    </StageFrame>
-  );
-}
-
 type StateStageProps = StageProps & { statePicker: NonNullable<SignInViewModel['statePicker']> };
 
 /** `state`: where the person lives, asked once and only where a state's rule differs. */
@@ -374,12 +317,6 @@ function Stage({ vm }: StageProps): JSX.Element {
     case 'checkingAge':
     case 'finishing':
       return <WaitingStage vm={vm} />;
-    case 'ageGate':
-      return vm.ageGate === null ? (
-        <WaitingStage vm={vm} />
-      ) : (
-        <AgeGateStage vm={vm} ageGate={vm.ageGate} />
-      );
     case 'state':
       return vm.statePicker === null ? (
         <WaitingStage vm={vm} />

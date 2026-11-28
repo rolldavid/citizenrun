@@ -27,7 +27,7 @@ describe('buildSignupDetails', () => {
 
   it('carries null for "Not now"', () => {
     const details = buildSignupDetails({
-      age: { method: 'self_declared', sourceTier: 'self' },
+      age: { method: 'none', sourceTier: null },
       aiScreening: null,
       state: null,
     });

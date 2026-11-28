@@ -400,17 +400,6 @@ describe('useRootViewModel', () => {
     expect(result.current.system).toBeNull();
   });
 
-  it('shows the adults-only screen on a sign-in route while the gate is locked', async () => {
-    storageFake.seed({
-      'ageGate.blockedUntil': new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    });
-    sessionFake.scriptPresence('absent');
-    setRoute('/welcome');
-    const { result } = await readyHook();
-    expect(result.current.system).toBe('adultsOnly');
-    expect(result.current.shell.mode).toBe('bare');
-  });
-
   it('reports a minor signal at a cold start', async () => {
     sessionFake.scriptPresence('present');
     ageAssuranceFake.scriptSignal({ kind: 'minor', tier: 'declared', under13: false });

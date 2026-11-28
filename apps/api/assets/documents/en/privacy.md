@@ -18,7 +18,7 @@ We collect only what the service needs to work:
 - **Email address.** The address that comes with your sign-in method: the one you type for an email code, or the one Apple or Google shares when you sign in with them. Apple may give us a private relay address instead of your real one.
 - **Profile.** Your handle, name, bio, link and profile photo.
 - **Sign-in methods and sessions.** Which sign-in methods your account uses. Session tokens are kept only as hashes, never in readable form.
-- **Age record.** How your age was checked, the result, where the result came from and when. We never store your birth date or the raw age signal from your device's app store.
+- **Age record.** How your age was checked and when, and, when your device's app store gave an age signal, the result and where it came from. We never ask for your birth date and never store the raw age signal.
 - **Agreements.** Which versions of these documents you agreed to and when, and your answer to the question about screening your public posts with AI.
 - **Issue picks.** The issues you choose during sign-up, used to rank your feed.
 - **Districts and location precision.** The districts you live in and how precisely you set your location. If you let the app use your device's location, it is used once to find your districts and then discarded. If you type an address, the text is sent to Geoapify for suggestions and to the US Census Geocoder to find your districts, with no identifier attached, and it is not stored.
@@ -128,7 +128,7 @@ You can export your data in settings, once a day. The export holds your profile,
 
 ## Adults only
 
-{{appName}} is for people aged 18 and over. When you sign up, we check your age with the age signal from your device's app store or, where there is none, by asking your date of birth, which we do not store. If we learn that an account belongs to someone under 18, we suspend it and delete it. If the person is under 13, we delete the account promptly.
+{{appName}} is for people aged 18 and over. When you sign up in the phone app, we check the age signal from your device's app store. Where the store gives no signal, and on the web, we record that no check was made. We never ask for your date of birth. If we learn that an account belongs to someone under 18, we suspend it and delete it. If the person is under 13, we delete the account promptly.
 
 ## Your choices
 

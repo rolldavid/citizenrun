@@ -43,7 +43,7 @@ tags:
     id: 'auth.code-field'
 # The field sends the code at the sixth digit.
 - inputText: ${output.code}
-# The fake signal answered adult, so no birth question comes.
+# Sign-up asks no age: the agreements follow the code.
 - extendedWaitUntil:
     visible:
       id: 'onboarding.terms-agree'

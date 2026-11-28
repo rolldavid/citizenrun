@@ -138,7 +138,7 @@ describe('SignInScreenView', () => {
       [820, 1180],
       [1440, 900],
     ] as const)('at %i by %i', (width, height) => {
-      expect(Object.keys(FIXTURES)).toHaveLength(23);
+      expect(Object.keys(FIXTURES)).toHaveLength(21);
       setViewport(width, height);
       for (const [name, vm] of Object.entries(FIXTURES)) {
         for (const theme of ['light', 'dark'] as const) {
@@ -517,66 +517,16 @@ describe('SignInScreenView', () => {
     expect(onChangeEmail).toHaveBeenCalledTimes(1);
   });
 
-  it('the date-of-birth step', () => {
-    const onSubmit = vi.fn<(birth: { year: number; month: number }) => void>();
-    const vm: SignInViewModel = {
-      ...fixtures.signInAgeGate,
-      ageGate: { ...fixtures.signInAgeGate.ageGate, onSubmit },
-    };
-    const { thisYear } = fixtures.signInAgeGate.ageGate;
-    const born = thisYear - 30;
-    const root = draw(vm);
-    expect(title()).toBe('When were you born?');
-    // Nothing is chosen for the person.
-    const month = button('onboarding.age-month');
-    const year = button('onboarding.age-year');
-    expect(within(month).getByText('Pick a month')).toBeTruthy();
-    expect(within(year).getByText('Pick a year')).toBeTruthy();
-    const proceed = (): HTMLElement => button('onboarding.age-continue');
-    expect(isDisabled(proceed())).toBe(true);
-    expect(proceed().textContent).toBe('Pick a month and a year');
-    fireEvent.click(proceed());
-    expect(onSubmit).not.toHaveBeenCalled();
-    // Nothing on the screen says which answer passes.
-    for (const word of ['18', 'adult', 'older', 'younger']) {
-      expect(root.textContent.toLowerCase(), word).not.toContain(word);
+  it('no stage asks an age', () => {
+    for (const [name, vm] of Object.entries(FIXTURES)) {
+      cleanup();
+      const view = renderWithProviders(<SignInScreenView vm={vm} />);
+      expect(view.container.querySelector('[data-testid^="onboarding.age"]'), name).toBeNull();
+      expect(view.container.textContent, name).not.toMatch(/\bborn\b|birth|how old/i);
     }
-
-    fireEvent.click(month);
-    // Every year a living person was born in, the newest first, and no year after this one.
-    fireEvent.click(screen.getByTestId('onboarding.age-month-options-3'));
-    leave();
-    expect(within(button('onboarding.age-month')).getByText('March')).toBeTruthy();
-    // One answer of two is not an answer.
-    expect(isDisabled(proceed())).toBe(true);
-    expect(proceed().textContent).toBe('Pick a month and a year');
-
-    fireEvent.click(button('onboarding.age-year'));
-    expect(screen.queryByTestId(`onboarding.age-year-options-${String(thisYear + 1)}`)).toBeNull();
-    expect(screen.getByTestId(`onboarding.age-year-options-${String(thisYear)}`)).toBeTruthy();
-    expect(
-      screen.getByTestId(`onboarding.age-year-options-${String(thisYear - 120)}`),
-    ).toBeTruthy();
-    expect(
-      screen.queryByTestId(`onboarding.age-year-options-${String(thisYear - 121)}`),
-    ).toBeNull();
-    fireEvent.click(screen.getByTestId(`onboarding.age-year-options-${String(born)}`));
-    leave();
-    expect(within(button('onboarding.age-year')).getByText(String(born))).toBeTruthy();
-    expect(isDisabled(proceed())).toBe(false);
-    expect(proceed().textContent).toBe('Continue');
-    for (const word of ['18', 'adult', 'older', 'younger']) {
-      expect(root.textContent.toLowerCase().replace(String(born), ''), word).not.toContain(word);
-    }
-    fireEvent.click(proceed());
-    expect(onSubmit.mock.calls).toEqual([[{ year: born, month: 3 }]]);
-
-    // The answer lives in the stage and goes with it: drawn again, both are empty.
-    draw(vm);
-    expect(within(button('onboarding.age-month')).getByText('Pick a month')).toBeTruthy();
-    expect(within(button('onboarding.age-year')).getByText('Pick a year')).toBeTruthy();
-    expect(isDisabled(proceed())).toBe(true);
-    expect(document.body.textContent).not.toContain('March');
+    // The agreements are the first thing a new account is asked.
+    draw(fixtures.signInAgreements);
+    expect(title()).toBe('Before you start');
   });
 
   it('state picker', () => {
@@ -687,8 +637,6 @@ describe('SignInScreenView', () => {
     );
     expect(signingUp.map(([name]) => name).sort()).toEqual(
       [
-        'signInAgeGate',
-        'signInAgeGateIncomplete',
         'signInAgreements',
         'signInAiConsent',
         'signInCheckingAge',
@@ -727,9 +675,9 @@ describe('SignInScreenView', () => {
       ).toEqual([BACK]);
     }
     // A stage whose own part has not arrived asks nothing either.
-    draw({ ...fixtures.signInAgeGate, ageGate: null });
+    draw({ ...fixtures.signInState, statePicker: null });
     expect(screen.getByRole('progressbar', { name: 'Loading' })).toBeTruthy();
-    expect(screen.queryByTestId('onboarding.age-continue')).toBeNull();
+    expect(screen.queryByTestId('auth.state-continue')).toBeNull();
   });
 
   it('blocked draws the system screens', () => {
@@ -842,17 +790,17 @@ describe('SignInScreenView', () => {
 
   it('tight keeps every stage whole', () => {
     setViewport(360, 740);
-    const wide = draw(fixtures.signInAgeGate);
+    const wide = draw(fixtures.signInState);
     const wideSize = within(wide).getByRole('heading', { level: 1 }).style.fontSize;
-    const tight = draw(fixtures.signInAgeGate, { textScale: 1.3 });
+    const tight = draw(fixtures.signInState, { textScale: 1.3 });
     const heading = within(tight).getByRole('heading', { level: 1 });
     // The heading takes the smaller of its two roles, and nothing is left out.
-    expect(heading.textContent).toBe('When were you born?');
+    expect(heading.textContent).toBe('Which state or territory do you live in?');
     expect(Number.parseFloat(heading.style.fontSize) / 1.3).toBeLessThan(
       Number.parseFloat(wideSize),
     );
-    expect(button('onboarding.age-month')).toBeTruthy();
-    expect(button('onboarding.age-continue')).toBeTruthy();
+    expect(button('auth.state-select')).toBeTruthy();
+    expect(button('auth.state-continue')).toBeTruthy();
     expect(screen.getByRole('progressbar', { name: STEP })).toBeTruthy();
   });
 });

@@ -38,7 +38,6 @@ export * from './checkbox';
 export * from './radio';
 export * from './radio-group';
 export * from './switch';
-export * from './age-gate';
 export * from './progress';
 export * from './sticky-footer';
 export * from './section-header';

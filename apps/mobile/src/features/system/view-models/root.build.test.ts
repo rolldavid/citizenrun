@@ -43,9 +43,6 @@ describe('systemScreenFor', () => {
     expect(systemScreenFor(base)).toBeNull();
     expect(systemScreenFor({ ...base, me: fixtureMe() })).toBeNull();
     expect(systemScreenFor({ ...base, me: needsTerms })).toBe('agreements');
-    expect(
-      systemScreenFor({ ...base, me: needsTerms, guard: { kind: 'system', screen: 'adultsOnly' } }),
-    ).toBe('adultsOnly');
     expect(systemScreenFor({ ...base, me: needsTerms, minorEnded: true })).toBe('adultsOnly');
     expect(
       systemScreenFor({ ...base, me: needsTerms, minorEnded: true, upgradeBlocked: true }),

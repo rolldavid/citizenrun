@@ -9,6 +9,7 @@ import type { AgeRecordSourceTier } from './ageRecordSourceTier.ts';
  */
 export type AgeRecord = {
   method: AgeRecordMethod;
+  /** @nullable */
   sourceTier: AgeRecordSourceTier;
   checkedAt: string;
 } | null;

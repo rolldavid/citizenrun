@@ -30,7 +30,7 @@ export type UserOverrides = Partial<NewUserRow> & { newAccount?: boolean };
 
 /**
  * A complete, finished `users` row: handle `test_<seq>`, an `@example.test` email holding the run
- * marker, an adult self-declared age record, onboarding done 50 seconds after sign-up, created 30
+ * marker, an age record with no store signal, onboarding done 50 seconds after sign-up, created 30
  * days (or, with `newAccount`, 1 day) before `ctx.now`.
  */
 export function makeUser(
@@ -47,9 +47,9 @@ export function makeUser(
     email: `test_${String(seq)}.${marker()}@example.test`,
     status: 'active',
     role: 'user',
-    ageMethod: 'self_declared',
-    ageResult: 'adult',
-    ageSourceTier: 'self',
+    ageMethod: 'none',
+    ageResult: null,
+    ageSourceTier: null,
     ageCheckedAt: createdAt,
     onboardingStep: 'done',
     onboardedAt: shiftMs(createdAt, 50 * SECOND_MS),

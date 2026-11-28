@@ -113,7 +113,7 @@ export async function setLocation(
         .select({ ageMethod: users.ageMethod })
         .from(users)
         .where(eq(users.id, viewer.userId));
-      if (row?.ageMethod === 'self_declared') {
+      if (row?.ageMethod !== 'store_signal') {
         throw new ApiError('age_signal_required');
       }
     }

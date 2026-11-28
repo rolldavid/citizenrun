@@ -17,7 +17,7 @@ import {
 const TOKEN = 'A'.repeat(21) + '-_' + 'z9'.repeat(10);
 
 const SIGNUP = {
-  age: { method: 'self_declared', sourceTier: 'self' },
+  age: { method: 'none', sourceTier: null },
   agreements: {
     termsVersion: '2027-01-01',
     contentPolicyVersion: '2027-01-01',
@@ -110,9 +110,9 @@ describe('VerifyEmailSignInBody', () => {
 describe('SignupDetails', () => {
   it('SignupDetails pairs method and tier', () => {
     for (const age of [
-      { method: 'store_signal', sourceTier: 'self' },
-      { method: 'self_declared', sourceTier: 'confirmed' },
-      { method: 'self_declared', sourceTier: 'declared' },
+      { method: 'store_signal', sourceTier: null },
+      { method: 'none', sourceTier: 'confirmed' },
+      { method: 'none', sourceTier: 'declared' },
     ]) {
       expect(fieldIssues(SignupDetailsSchema.safeParse({ ...SIGNUP, age }))).toEqual([
         { path: 'age.sourceTier', code: 'custom', params: { code: 'invalid_value' } },
@@ -121,10 +121,28 @@ describe('SignupDetails', () => {
     for (const age of [
       { method: 'store_signal', sourceTier: 'confirmed' },
       { method: 'store_signal', sourceTier: 'declared' },
-      { method: 'self_declared', sourceTier: 'self' },
+      { method: 'none', sourceTier: null },
     ]) {
       expect(SignupDetailsSchema.safeParse({ ...SIGNUP, age }).success).toBe(true);
     }
+  });
+
+  it('SignupDetails takes no self-declared age', () => {
+    expect(
+      fieldIssues(
+        SignupDetailsSchema.safeParse({
+          ...SIGNUP,
+          age: { method: 'self_declared', sourceTier: 'self' },
+        }),
+      ).map((issue) => issue.path),
+    ).toEqual(['age.method', 'age.sourceTier']);
+    expect(
+      SignupDetailsSchema.safeParse({ ...SIGNUP, age: { method: 'none', sourceTier: 'self' } })
+        .success,
+    ).toBe(false);
+    expect(SignupDetailsSchema.safeParse({ ...SIGNUP, age: { method: 'none' } }).success).toBe(
+      false,
+    );
   });
 
   it('SignupDetails state is a state code or absent', () => {

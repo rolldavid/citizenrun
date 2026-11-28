@@ -4,7 +4,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useReducer, useRef } from 'react';
 
 import { publicPageUrl, rememberNext, replaceWith, welcomeHref } from '@/lib/navigation';
-import { useNow } from '@/lib/now';
 import { failureCode, useIsOnline } from '@/lib/view-models/query';
 import type { ApiFailure, Outcome } from '@/lib/view-models/query';
 import { ageAssurance } from '@/platform/age-assurance';
@@ -89,9 +88,8 @@ function repeatWithSignup(
   }
 }
 
-// PM-age-assurance "Callers": the sign-up account step.
+// PM-age-assurance "Callers": the sign-up account step. It asks the person nothing (D-897).
 async function checkAge(): Promise<SignInEvent> {
-  if (ageAssurance.gateBlockedUntil() !== null) return { type: 'gateLocked' };
   if (!ageAssurance.storeSignalSupported) return { type: 'storeSignalUnsupported' };
   let outcome: AgeOutcome;
   try {
@@ -107,7 +105,6 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
   const [state, dispatch] = useReducer(signInReducer, INITIAL_SIGN_IN_STATE);
   const offline = !useIsOnline();
   const client = useQueryClient();
-  const now = useNow();
   const inFlight = useRef(false);
   const resending = useRef(false);
   const { emailCode } = state;
@@ -267,13 +264,6 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
     })();
   };
 
-  const onSubmitBirth = (birth: { year: number; month: number }): void => {
-    const today = new Date();
-    const verdict = ageAssurance.evaluateBirthMonth(birth, today.toISOString().slice(0, 10));
-    if (verdict === 'minor') ageAssurance.blockGate(today); // CTL-75
-    dispatch({ type: 'birthAnswered', verdict });
-  };
-
   const onAnswerAi = (allow: boolean): void => {
     if (offline || inFlight.current) return;
     dispatch({ type: 'aiAnswered', allow });
@@ -327,10 +317,6 @@ export function useSignInViewModel(input: { next: string | null }): SignInViewMo
               dispatch(emailEvent({ type: 'changeEmail' }));
             },
           }
-        : null,
-    ageGate:
-      state.stage === 'ageGate'
-        ? { onSubmit: onSubmitBirth, thisYear: now.getUTCFullYear() }
         : null,
     statePicker: state.stage === 'state' ? { codes: STATE_CODES, onSubmit: onSubmitState } : null,
     agreements:

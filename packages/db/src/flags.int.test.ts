@@ -29,10 +29,20 @@ describe('createFlagReader', () => {
     expect(await flags.stateRule('TX')).toEqual({
       state: 'TX',
       signup: 'allow',
-      ageMethod: 'store_signal_or_dob',
+      ageMethod: 'store_signal_or_none',
       candidateTools: true,
     });
     expect(await flags.stateRule('XX')).toBeNull();
+  });
+
+  it('reads the earlier name of the default age method as the default', async () => {
+    const db = getTestDb();
+    await db.execute(
+      sql`update state_rules set age_method = 'store_signal_or_dob' where state = 'TX'`,
+    );
+    const flags = createFlagReader(db, new FakeClock());
+    expect((await flags.stateRule('TX'))?.ageMethod).toBe('store_signal_or_none');
+    expect(await flags.stateRulesAtLaunchDefault()).toBe(true);
   });
 
   it('all rows at the launch default', async () => {
@@ -53,7 +63,7 @@ describe('createFlagReader', () => {
     expect(await flags.stateRulesAtLaunchDefault()).toBe(false);
 
     await db.execute(
-      sql`update state_rules set age_method = 'store_signal_or_dob' where state = 'TN'`,
+      sql`update state_rules set age_method = 'store_signal_or_none' where state = 'TN'`,
     );
     await db.execute(sql`update state_rules set candidate_tools = false where state = 'CA'`);
     clock.advance(FLAG_CACHE_MS);

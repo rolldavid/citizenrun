@@ -4,7 +4,7 @@ import type { Db } from './client.ts';
 export const FLAG_CACHE_MS = 30_000; // the one server flag helper caches 30 seconds
 
 export type StateSignup = 'allow' | 'withhold';
-export type StateAgeMethod = 'store_signal_or_dob' | 'store_signal_required';
+export type StateAgeMethod = 'store_signal_or_none' | 'store_signal_required';
 export type StateRule = {
   state: string;
   signup: StateSignup;
@@ -15,16 +15,24 @@ export type StateRule = {
 export type FlagReader = {
   /** The rules row of a state code, or null when the table has no row for it. */
   stateRule(state: string): Promise<StateRule | null>;
-  /** True while every state_rules row has signup 'allow' and age_method 'store_signal_or_dob' (candidate_tools plays no part, CTL-76). */
+  /** True while every state_rules row has signup 'allow' and the age method 'store_signal_or_none' (candidate_tools plays no part, CTL-76). */
   stateRulesAtLaunchDefault(): Promise<boolean>;
 };
+
+// `store_signal_or_dob` is the earlier name of `store_signal_or_none` (D-897). The table still accepts
+// it, because a version of the code that knows only that name may write it, and it reads as the new one.
+type StoredAgeMethod = StateAgeMethod | 'store_signal_or_dob';
 
 type StateRuleDbRow = {
   state: string;
   signup: StateSignup;
-  age_method: StateAgeMethod;
+  age_method: StoredAgeMethod;
   candidate_tools: boolean;
 };
+
+function ageMethodOf(stored: StoredAgeMethod): StateAgeMethod {
+  return stored === 'store_signal_required' ? 'store_signal_required' : 'store_signal_or_none';
+}
 
 type Loaded = { rules: ReadonlyMap<string, StateRule>; loadedAt: Date };
 
@@ -49,7 +57,7 @@ export function createFlagReader(db: Db, clock: { now(): Date }): FlagReader {
       rules.set(row.state, {
         state: row.state,
         signup: row.signup,
-        ageMethod: row.age_method,
+        ageMethod: ageMethodOf(row.age_method),
         candidateTools: row.candidate_tools,
       });
     }
@@ -80,7 +88,7 @@ export function createFlagReader(db: Db, clock: { now(): Date }): FlagReader {
     stateRule: async (state) => (await current()).rules.get(state) ?? null,
     stateRulesAtLaunchDefault: async () => {
       for (const rule of (await current()).rules.values()) {
-        if (rule.signup !== 'allow' || rule.ageMethod !== 'store_signal_or_dob') {
+        if (rule.signup !== 'allow' || rule.ageMethod !== 'store_signal_or_none') {
           return false;
         }
       }

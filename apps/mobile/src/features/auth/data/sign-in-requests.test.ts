@@ -29,7 +29,7 @@ const NONCE_RESULT = {
   expiresAt: '2027-01-15T12:10:00.000Z',
 };
 const SIGNUP: SignupDetails = {
-  age: { method: 'self_declared', sourceTier: 'self' },
+  age: { method: 'none', sourceTier: null },
   agreements: {
     termsVersion: LEGAL_VERSIONS.terms,
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,

@@ -16,7 +16,7 @@ const GOOGLE_PENDING: PendingCredential = {
   idToken: 'fixture-id-token',
   nonce: 'n'.repeat(43),
 };
-const SELF = { method: 'self_declared', sourceTier: 'self' } as const;
+const NONE = { method: 'none', sourceTier: null } as const;
 const STORE = { method: 'store_signal', sourceTier: 'declared' } as const;
 const DROPPED = { pending: null, age: null, aiScreening: null, state: null };
 
@@ -43,7 +43,7 @@ function run(state: SignInMachineState, ...events: SignInEvent[]): SignInMachine
 function finishing(pending: PendingCredential = EMAIL_PENDING): SignInMachineState {
   return at('finishing', {
     pending,
-    age: SELF,
+    age: NONE,
     aiScreening: true,
     emailCode: CODE_STAGE,
   });
@@ -123,11 +123,6 @@ describe('signInReducer', () => {
     expect(fromMethods.pending).toEqual(GOOGLE_PENDING);
   });
 
-  it('a locked gate asks nothing', () => {
-    const state = run(at('checkingAge', { pending: EMAIL_PENDING }), { type: 'gateLocked' });
-    expect(state).toMatchObject({ blocked: 'adultsOnly', stage: 'methods', ...DROPPED });
-  });
-
   it('a store adult goes to the agreements with its tier', () => {
     const state = run(at('checkingAge', { pending: EMAIL_PENDING }), {
       type: 'storeSignal',
@@ -145,7 +140,15 @@ describe('signInReducer', () => {
     expect(state).toMatchObject({ blocked: 'adultsOnly', stage: 'methods', ...DROPPED });
   });
 
-  it('an unavailable store signal opens the date of birth', () => {
+  it('a store minor under 13 stops sign-up the same way', () => {
+    const state = run(at('checkingAge', { pending: EMAIL_PENDING }), {
+      type: 'storeSignal',
+      outcome: { kind: 'minor', tier: 'confirmed', under13: true },
+    });
+    expect(state).toMatchObject({ blocked: 'adultsOnly', stage: 'methods', ...DROPPED });
+  });
+
+  it('with no store signal sign-up goes on to the agreements and asks no age', () => {
     const unavailable = run(at('checkingAge', { pending: EMAIL_PENDING }), {
       type: 'storeSignal',
       outcome: { kind: 'unavailable' },
@@ -153,26 +156,12 @@ describe('signInReducer', () => {
     const unsupported = run(at('checkingAge', { pending: EMAIL_PENDING }), {
       type: 'storeSignalUnsupported',
     });
-    expect(unavailable.stage).toBe('ageGate');
-    expect(unsupported.stage).toBe('ageGate');
-    expect(unsupported.pending).toEqual(EMAIL_PENDING);
-  });
-
-  it('a birth month of an adult records a self-declared age', () => {
-    const state = run(at('ageGate', { pending: EMAIL_PENDING }), {
-      type: 'birthAnswered',
-      verdict: 'adult',
-    });
-    expect(state.stage).toBe('agreements');
-    expect(state.age).toEqual(SELF);
-  });
-
-  it('a birth month of a minor stops sign-up', () => {
-    const state = run(at('ageGate', { pending: EMAIL_PENDING }), {
-      type: 'birthAnswered',
-      verdict: 'minor',
-    });
-    expect(state).toMatchObject({ blocked: 'adultsOnly', stage: 'methods', ...DROPPED });
+    for (const state of [unavailable, unsupported]) {
+      expect(state.stage).toBe('agreements');
+      expect(state.age).toEqual(NONE);
+      expect(state.pending).toEqual(EMAIL_PENDING);
+      expect(state.blocked).toBeNull();
+    }
   });
 
   it('agreeing moves on to the AI-screening choice', () => {
@@ -313,25 +302,19 @@ describe('signInReducer', () => {
     expect(state.emailCode).toEqual(INITIAL_EMAIL_CODE_STATE);
   });
 
-  it('back from the date of birth drops the pending sign-in', () => {
-    const state = run(at('ageGate', { pending: EMAIL_PENDING }), { type: 'back' });
-    expect(state).toMatchObject({ stage: 'methods', ...DROPPED });
-  });
-
-  it('back from the agreements returns to the date of birth only for a self-declared age', () => {
-    const self = run(at('agreements', { pending: EMAIL_PENDING, age: SELF }), { type: 'back' });
-    expect(self.stage).toBe('ageGate');
-    expect(self.pending).toEqual(EMAIL_PENDING);
-    const store = run(at('agreements', { pending: EMAIL_PENDING, age: STORE }), { type: 'back' });
-    expect(store).toMatchObject({ stage: 'methods', ...DROPPED });
+  it('back from the agreements drops the pending sign-in', () => {
+    for (const age of [NONE, STORE]) {
+      const state = run(at('agreements', { pending: EMAIL_PENDING, age }), { type: 'back' });
+      expect(state).toMatchObject({ stage: 'methods', ...DROPPED });
+    }
   });
 
   it('back from the AI-screening choice returns to the agreements', () => {
-    expect(run(at('aiConsent', { age: SELF }), { type: 'back' }).stage).toBe('agreements');
+    expect(run(at('aiConsent', { age: NONE }), { type: 'back' }).stage).toBe('agreements');
   });
 
   it('back from the state picker returns to the AI-screening choice', () => {
-    expect(run(at('state', { age: SELF }), { type: 'back' }).stage).toBe('aiConsent');
+    expect(run(at('state', { age: NONE }), { type: 'back' }).stage).toBe('aiConsent');
   });
 
   it('back does nothing on the methods, while waiting or while blocked', () => {
@@ -357,14 +340,13 @@ describe('signInReducer', () => {
     const cases: [SignInMachineState, SignInEvent][] = [
       [at('email'), { type: 'chooseEmail' }],
       [at('methods'), { type: 'emailCode', event: { type: 'emailSubmitted' } }],
-      [at('ageGate'), { type: 'signupRequired', pending: EMAIL_PENDING }],
-      [at('methods'), { type: 'gateLocked' }],
+      [at('agreements'), { type: 'signupRequired', pending: EMAIL_PENDING }],
       [
-        at('ageGate'),
+        at('agreements'),
         { type: 'storeSignal', outcome: { kind: 'minor', tier: 'declared', under13: false } },
       ],
       [at('methods'), { type: 'storeSignalUnsupported' }],
-      [at('agreements'), { type: 'birthAnswered', verdict: 'minor' }],
+      [at('agreements'), { type: 'storeSignalUnsupported' }],
       [at('aiConsent'), { type: 'agreed' }],
       [at('agreements'), { type: 'aiAnswered', allow: true }],
       [at('email'), { type: 'finishRefused', code: 'unavailable', retryAfterSeconds: null }],

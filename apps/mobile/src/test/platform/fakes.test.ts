@@ -1,5 +1,5 @@
 import { focusManager, onlineManager } from '@tanstack/react-query';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import * as realAgeAssurance from '@/platform/age-assurance';
 import * as realAuth from '@/platform/auth';
@@ -17,7 +17,7 @@ import * as realShare from '@/platform/share';
 import * as realStorage from '@/platform/storage';
 import * as realUpload from '@/platform/upload';
 import * as realVideo from '@/platform/video';
-import { PlatformError, PlatformNotReadyError } from '@/platform/shared';
+import { PlatformError } from '@/platform/shared';
 import type { PickedPhoto } from '@/platform/upload/types';
 import { resetPlatformFakes } from '@/test/platform';
 import { ageAssurance, ageAssuranceFake } from '@/test/platform/age-assurance';
@@ -112,7 +112,7 @@ describe('the platform fakes', () => {
     ageAssuranceFake.scriptOutcome({ kind: 'unavailable' });
     ageAssuranceFake.setStoreSignalSupported(false);
     ageAssuranceFake.scriptAcknowledgmentRequired(true);
-    ageAssurance.blockGate(new Date('2026-01-01T00:00:00Z'));
+    await ageAssurance.acknowledgeSignificantUpdate();
 
     uploadFake.scriptPick({ kind: 'failed', code: 'upload.picker_failed' });
     uploadFake.scriptPrepare({ kind: 'rejected', reason: 'photo_too_large' });
@@ -207,7 +207,6 @@ describe('the platform fakes', () => {
       tier: 'declared',
     });
     await expect(ageAssurance.significantUpdateAcknowledgmentRequired()).resolves.toBe(false);
-    expect(ageAssurance.gateBlockedUntil()).toBeNull();
 
     await expect(upload.pickAvatarPhoto()).resolves.toEqual({ kind: 'cancelled' });
     await expect(upload.preparePhoto(PHOTO, { crop: null })).resolves.toMatchObject({
@@ -342,27 +341,5 @@ describe('the platform fakes', () => {
 
     pushFake.scriptPermission('blocked');
     await expect(push.requestPermission()).resolves.toBe('blocked');
-  });
-
-  it('the age assurance fake keeps its gate lock in the storage fake', () => {
-    const now = new Date('2026-03-01T12:00:00.000Z');
-    vi.setSystemTime(now);
-    ageAssurance.blockGate(now);
-    expect(ageAssurance.gateBlockedUntil()).toBe('2026-03-02T12:00:00.000Z');
-    expect(storage.get('ageGate.blockedUntil')).toBe('2026-03-02T12:00:00.000Z');
-    expect(storageFake.calls).toEqual([{ op: 'set', key: 'ageGate.blockedUntil' }]);
-    expect(ageAssuranceFake.calls).toEqual([{ op: 'blockGate' }]);
-    vi.setSystemTime(new Date('2026-03-02T12:00:00.000Z'));
-    expect(ageAssurance.gateBlockedUntil()).toBeNull();
-    vi.useRealTimers();
-  });
-
-  it('the age assurance fake answers the real date-of-birth gate', () => {
-    expect(() =>
-      ageAssurance.evaluateBirthMonth({ year: 2000, month: 1 }, '2026-03-01'),
-    ).not.toThrow(PlatformNotReadyError);
-    expect(ageAssurance.evaluateBirthMonth({ year: 2008, month: 2 }, '2026-03-01')).toBe('adult');
-    expect(ageAssurance.evaluateBirthMonth({ year: 2008, month: 3 }, '2026-03-01')).toBe('minor');
-    expect(ageAssuranceFake.calls).toEqual([]);
   });
 });

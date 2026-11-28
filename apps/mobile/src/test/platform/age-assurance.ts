@@ -1,11 +1,7 @@
-import { blockedUntilFrom, evaluateBirthMonth } from '@/platform/age-assurance/dob-gate';
 import type { AgeAssurance, AgeOutcome } from '@/platform/age-assurance/types';
 
-import { storage } from './storage';
-
-/** Never a birth month: the gate's answer and its lock are the only things a test can see. */
 export type AgeAssuranceFakeCall =
-  { op: 'requestStoreSignal' } | { op: 'blockGate' } | { op: 'acknowledgeSignificantUpdate' };
+  { op: 'requestStoreSignal' } | { op: 'acknowledgeSignificantUpdate' };
 
 const DEFAULT_OUTCOME: AgeOutcome = { kind: 'adult', tier: 'declared' };
 
@@ -20,7 +16,6 @@ const state: {
   acknowledgmentRequired: false,
 };
 
-// The real gate function; the lock lives in the storage fake under 'ageGate.blockedUntil'.
 export const ageAssurance: AgeAssurance = {
   get storeSignalSupported() {
     return state.storeSignalSupported;
@@ -33,12 +28,6 @@ export const ageAssurance: AgeAssurance = {
   acknowledgeSignificantUpdate: () => {
     calls.push({ op: 'acknowledgeSignificantUpdate' });
     return Promise.resolve();
-  },
-  evaluateBirthMonth,
-  gateBlockedUntil: () => storage.get('ageGate.blockedUntil'),
-  blockGate: (now) => {
-    calls.push({ op: 'blockGate' });
-    storage.set('ageGate.blockedUntil', blockedUntilFrom(now));
   },
 };
 
@@ -58,7 +47,7 @@ export const ageAssuranceFake = {
   scriptAcknowledgmentRequired: (value: boolean): void => {
     state.acknowledgmentRequired = value;
   },
-  /** Restores the defaults. The gate lock is the storage fake's, which its own reset() clears. */
+  /** Restores the defaults. */
   reset: (): void => {
     calls.length = 0;
     state.storeSignalSupported = true;

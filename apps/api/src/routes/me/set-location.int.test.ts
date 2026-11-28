@@ -389,16 +389,30 @@ describe('PUT /v1/me/location', () => {
     expect((await userRow(user.id)).locationPrecision).toBe('approx');
   });
 
-  it('a state that needs the store signal refuses a self-declared age', async () => {
+  it('a state that needs the store signal refuses an account with none', async () => {
     await testApp.deps.db.execute(
       sql`update state_rules set age_method = 'store_signal_required' where state = 'ZZ'`,
     );
-    const declared = await signedInUser({ ageMethod: 'self_declared', ageSourceTier: 'self' });
-    await expectEnvelope(await put(pointBody(), { auth: declared.auth }), 'age_signal_required');
-    expect(await storedIds(declared.user.id)).toEqual([]);
-    expect((await userRow(declared.user.id)).locationPrecision).toBeNull();
+    const records: Parameters<typeof insertUser>[1][] = [
+      { ageMethod: 'none', ageResult: null, ageSourceTier: null },
+      // A record made while sign-up asked a birth month is no store signal either.
+      { ageMethod: 'self_declared', ageResult: 'adult', ageSourceTier: 'self' },
+    ];
+    for (const record of records) {
+      const unsignalled = await signedInUser(record);
+      await expectEnvelope(
+        await put(pointBody(), { auth: unsignalled.auth }),
+        'age_signal_required',
+      );
+      expect(await storedIds(unsignalled.user.id)).toEqual([]);
+      expect((await userRow(unsignalled.user.id)).locationPrecision).toBeNull();
+    }
 
-    const signalled = await signedInUser({ ageMethod: 'store_signal', ageSourceTier: 'confirmed' });
+    const signalled = await signedInUser({
+      ageMethod: 'store_signal',
+      ageResult: 'adult',
+      ageSourceTier: 'confirmed',
+    });
     await expectResult(await put(pointBody(), { auth: signalled.auth }));
     expect(await storedIds(signalled.user.id)).toEqual(pointDistrictIds());
   });

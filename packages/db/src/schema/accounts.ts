@@ -82,7 +82,10 @@ export const users = pgTable(
       'users_suspended_at_check',
       sql`${table.status} <> 'suspended' or ${table.suspendedAt} is not null`,
     ),
-    check('users_age_method_check', sql`${table.ageMethod} in ('store_signal', 'self_declared')`),
+    check(
+      'users_age_method_check',
+      sql`${table.ageMethod} in ('store_signal', 'self_declared', 'none')`,
+    ),
     check('users_age_result_check', sql`${table.ageResult} in ('adult')`),
     check(
       'users_age_source_tier_check',
@@ -90,7 +93,7 @@ export const users = pgTable(
     ),
     check(
       'users_age_record_check',
-      sql`num_nulls(${table.ageMethod}, ${table.ageResult}, ${table.ageSourceTier}, ${table.ageCheckedAt}) in (0, 4)`,
+      sql`case when ${table.ageMethod} is null then num_nulls(${table.ageResult}, ${table.ageSourceTier}, ${table.ageCheckedAt}) = 3 when ${table.ageMethod} = 'none' then ${table.ageResult} is null and ${table.ageSourceTier} is null and ${table.ageCheckedAt} is not null else num_nulls(${table.ageResult}, ${table.ageSourceTier}, ${table.ageCheckedAt}) = 0 end`,
     ),
     check(
       'users_onboarding_step_check',

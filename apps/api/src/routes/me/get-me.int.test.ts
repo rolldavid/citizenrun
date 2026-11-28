@@ -107,7 +107,7 @@ describe('GET /v1/me', () => {
       avatar: null,
       avatarPending: false,
       signInMethods: ['email'],
-      age: { method: 'self_declared', sourceTier: 'self', checkedAt: now().toISOString() },
+      age: { method: 'none', sourceTier: null, checkedAt: now().toISOString() },
       suspension: null,
       status: 'active',
     });

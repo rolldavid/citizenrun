@@ -25,8 +25,6 @@ describe('the auth fixtures', () => {
         'signInCodeResendLimited',
         'signInCheckingAge',
         'signInFinishing',
-        'signInAgeGate',
-        'signInAgeGateIncomplete',
         'signInState',
         'signInAgreements',
         'signInAiConsent',
@@ -59,16 +57,13 @@ describe('the auth fixtures', () => {
       resendStatus: 'limited',
       resendRetryAfterSeconds: 900,
     });
-    expect(f.signInAgeGateIncomplete).toEqual(f.signInAgeGate);
     expect(f.signInState.statePicker.codes).toBe(STATE_CODES);
     expect(f.signInAdultsOnly.blocked).toBe('adultsOnly');
     expect(f.signInStateUnavailable.blocked).toEqual({ stateUnavailable: 'VT' });
     expect(f.signInOffline).toMatchObject({ stage: 'email', offline: true });
     for (const fixture of Object.values(signInFixtures)) {
       expect(fixture.signingUp).toBe(
-        ['checkingAge', 'ageGate', 'state', 'agreements', 'aiConsent', 'finishing'].includes(
-          fixture.stage,
-        ),
+        ['checkingAge', 'state', 'agreements', 'aiConsent', 'finishing'].includes(fixture.stage),
       );
       expect(fixture.code !== null).toBe(fixture.stage === 'code');
     }

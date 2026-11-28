@@ -145,7 +145,7 @@ describe('L-onboarding', () => {
       });
     };
     const signup = (aiScreening: boolean | null) => ({
-      age: { method: 'self_declared', sourceTier: 'self' },
+      age: { method: 'none', sourceTier: null },
       agreements: {
         termsVersion: LEGAL_VERSIONS.terms,
         contentPolicyVersion: LEGAL_VERSIONS.content_policy,

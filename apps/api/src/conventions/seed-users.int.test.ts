@@ -39,7 +39,8 @@ describe('the seed users', () => {
     for (const me of [first, newAccount, admin]) {
       expect(me.consents.needed).toEqual([]);
       expect(me.onboardingStep).toBe('done');
-      expect(me.age?.method).toBe('self_declared');
+      expect(me.age?.method).toBe('none');
+      expect(me.age?.sourceTier).toBeNull();
     }
     expect(first.handle).toBe('seed_user_01');
     expect(newAccount.handle).toBe('seed_user_45');

@@ -6,7 +6,6 @@ import type { HostInstance, TextInstance, ViewStyle } from 'react-native';
 import {
   ActionRow,
   AddressField,
-  AgeGate,
   AppBar,
   Avatar,
   BigNumber,
@@ -83,7 +82,6 @@ import {
 import type {
   ActionRowProps,
   AddressFieldProps,
-  AgeGateProps,
   CardShellProps,
   CheckboxProps,
   CodeFieldProps,
@@ -110,7 +108,6 @@ import type {
 } from '@/ui';
 import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
 import * as addressFieldFixtures from '@/ui/components/address-field.fixtures';
-import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
@@ -618,12 +615,6 @@ function SwitchSpecimen({ fixture }: { fixture: SwitchProps }): JSX.Element {
   return <Switch {...fixture} value={value} onChange={setValue} />;
 }
 
-/** One state of C-AgeGate, holding the month and the year chosen from its two lists. */
-function AgeGateSpecimen({ fixture }: { fixture: AgeGateProps }): JSX.Element {
-  const [answer, setAnswer] = useState({ month: fixture.month, year: fixture.year });
-  return <AgeGate {...fixture} month={answer.month} year={answer.year} onChange={setAnswer} />;
-}
-
 // The foot of a screen: a little of its ground over the footer, which is not pinned here.
 const FOOTER_BOX: ViewStyle = { marginHorizontal: -space.x3, borderWidth: rule.hairline };
 const FOOTER_GROUND: ViewStyle = { height: size.listRowMin };
@@ -997,9 +988,6 @@ const GALLERY_SECTIONS: readonly GallerySection[] = [
   ),
   fixtureSection<SwitchProps>('C-Switch', 'switch', 'wide', switchFixtures, (fixture) => (
     <SwitchSpecimen fixture={fixture} />
-  )),
-  fixtureSection<AgeGateProps>('C-AgeGate', 'age-gate', 'wide', ageGateFixtures, (fixture) => (
-    <AgeGateSpecimen fixture={fixture} />
   )),
   section('C-Progress', 'progress', 'wide', Progress, progressFixtures),
   fixtureSection<StickyFooterProps>(

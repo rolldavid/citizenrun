@@ -66,14 +66,33 @@ describe('the export file', () => {
       createdAt: user.createdAt.toISOString(),
       onboardedAt: user.onboardedAt?.toISOString() ?? null,
       age: {
-        method: 'self_declared',
-        result: 'adult',
-        sourceTier: 'self',
+        method: 'none',
+        result: null,
+        sourceTier: null,
         checkedAt: user.ageCheckedAt?.toISOString(),
       },
     });
     expect(file.account.avatarUrl).toContain(`/${user.avatarKey ?? ''}?`);
     expect(file.account.avatarUrl).toContain('X-Amz-Signature=');
+    expect(ExportFileSchema.safeParse(file).success).toBe(true);
+  });
+
+  it('writes the result and the tier of a store signal age record', async () => {
+    const now = new FakeClock().now();
+    const user = await insertUser(
+      getTestDb(),
+      { ageMethod: 'store_signal', ageResult: 'adult', ageSourceTier: 'confirmed' },
+      { now },
+    );
+
+    const file = await buildExportFile(getTestDb(), await getTestBucket('media'), user.id, now);
+
+    expect(file.account.age).toEqual({
+      method: 'store_signal',
+      result: 'adult',
+      sourceTier: 'confirmed',
+      checkedAt: user.ageCheckedAt?.toISOString(),
+    });
     expect(ExportFileSchema.safeParse(file).success).toBe(true);
   });
 

@@ -4,15 +4,7 @@ import type { ComponentType } from 'react';
 import type { AppleSignInButtonProps, GoogleSignInButtonProps } from '@/platform/auth'; // PC6C-18
 
 export type SignInStage =
-  | 'methods'
-  | 'email'
-  | 'code'
-  | 'checkingAge'
-  | 'ageGate'
-  | 'state'
-  | 'agreements'
-  | 'aiConsent'
-  | 'finishing';
+  'methods' | 'email' | 'code' | 'checkingAge' | 'state' | 'agreements' | 'aiConsent' | 'finishing';
 
 type Bound<P> = ComponentType<
   Pick<P, Extract<keyof P, 'appearance' | 'testID' | 'accessibilityLabel'>>
@@ -47,7 +39,6 @@ export type SignInViewModel = {
     onResend: () => void; // E-AUTH-01
     onChangeEmail: () => void;
   } | null;
-  ageGate: { onSubmit: (birth: { year: number; month: number }) => void; thisYear: number } | null;
   statePicker: { codes: readonly string[]; onSubmit: (code: string) => void } | null; // SCR-sign-in
   agreements: {
     links: { terms: string; contentPolicy: string; privacyPolicy: string };

@@ -34,11 +34,15 @@ export const UserIssueSchema = z
 
 export type UserIssue = z.infer<typeof UserIssueSchema>;
 
-/** How an account's adult age was established; the result is always adult and is not sent (L-age-consent). */
+/**
+ * How an account's age was checked (L-age-consent, D-897): `store_signal` is the store's adult signal with
+ * its tier; `none` is a sign-up with no signal, which claims no result and has no tier. `self_declared`
+ * with the tier `self` is read only from records made while sign-up asked a birth month.
+ */
 export const AgeRecordSchema = z
   .object({
-    method: z.enum(['store_signal', 'self_declared']),
-    sourceTier: z.enum(['confirmed', 'declared', 'self']),
+    method: z.enum(['store_signal', 'self_declared', 'none']),
+    sourceTier: z.enum(['confirmed', 'declared', 'self']).nullable(),
     checkedAt: InstantSchema,
   })
   .meta({ id: 'AgeRecord' });
@@ -266,8 +270,8 @@ export const ExportFileSchema = z
       age: z
         .object({
           method: z.string(),
-          result: z.string(),
-          sourceTier: z.string(),
+          result: z.string().nullable(),
+          sourceTier: z.string().nullable(),
           checkedAt: InstantSchema,
         })
         .nullable(),

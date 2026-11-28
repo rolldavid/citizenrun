@@ -65,9 +65,9 @@ describe('the account factories', () => {
     expect(user).toMatchObject({
       status: 'active',
       role: 'user',
-      ageMethod: 'self_declared',
-      ageResult: 'adult',
-      ageSourceTier: 'self',
+      ageMethod: 'none',
+      ageResult: null,
+      ageSourceTier: null,
       onboardingStep: 'done',
     });
     expect(user.createdAt.getTime()).toBe(NOW.getTime() - 30 * DAY_MS);

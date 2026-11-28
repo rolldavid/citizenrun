@@ -265,27 +265,63 @@ describe('useSignInViewModel', () => {
     expect(readMeFromCache(hook.client)).toEqual(CREATED.me);
   });
 
-  it('uses the date of birth where there is no store signal', async () => {
+  it('asks no age on the web and records that no signal came', async () => {
     answers({ verify: newPerson() });
+    // The web: no store signal exists, and the store is never asked.
     ageAssuranceFake.setStoreSignalSupported(false);
     const hook = render();
     await submitCode(hook);
-    await reachStage(hook, 'ageGate');
-    expect(hook.result.current.ageGate?.thisYear).toBe(new Date().getUTCFullYear());
-
-    act(() => {
-      hook.result.current.ageGate?.onSubmit({ year: 1990, month: 4 });
-    });
-    expect(hook.result.current.stage).toBe('agreements');
+    // The agreements follow the code: no stage between them asks anything.
+    await reachStage(hook, 'agreements');
+    expect(hook.result.current.blocked).toBeNull();
+    expect(Object.keys(hook.result.current)).not.toContain('ageGate');
     agreeAndAnswer(hook, true);
     await waitFor(() => {
-      expect(verifyBodies()).toHaveLength(2);
+      expect(getSessionPresence()).toBe('present');
     });
 
-    expect(verifyBodies()[1]).toMatchObject({
-      signup: { age: { method: 'self_declared', sourceTier: 'self' } },
-    });
+    expect(verifyBodies()).toEqual([
+      { pendingToken: PENDING, code: CODE, intent: 'sign_in' },
+      {
+        pendingToken: PENDING,
+        code: CODE,
+        intent: 'sign_in',
+        signup: {
+          age: { method: 'none', sourceTier: null },
+          agreements: AGREEMENTS,
+          aiScreening: true,
+        },
+      },
+    ]);
     expect(ageAssuranceFake.calls).toEqual([]);
+    expect(storageFake.calls).toEqual([]);
+  });
+
+  it('goes on with no age record result when a phone has no store signal', async () => {
+    answers({ verify: newPerson() });
+    ageAssuranceFake.scriptSignal({ kind: 'unavailable' });
+    const hook = render();
+    await submitCode(hook);
+    await reachStage(hook, 'agreements');
+    expect(hook.result.current.blocked).toBeNull();
+    agreeAndAnswer(hook, true);
+    await waitFor(() => {
+      expect(getSessionPresence()).toBe('present');
+    });
+
+    expect(verifyBodies()[1]).toEqual({
+      pendingToken: PENDING,
+      code: CODE,
+      intent: 'sign_in',
+      signup: {
+        age: { method: 'none', sourceTier: null },
+        agreements: AGREEMENTS,
+        aiScreening: true,
+      },
+    });
+    // The store was asked once, silently; nothing was kept on the device.
+    expect(ageAssuranceFake.calls).toEqual([{ op: 'requestStoreSignal' }]);
+    expect(storageFake.calls).toEqual([]);
   });
 
   it('stops a minor store signal with no account', async () => {
@@ -303,28 +339,27 @@ describe('useSignInViewModel', () => {
     expect(getSessionPresence()).not.toBe('present');
   });
 
-  it('locks the gate after a minor birth month and asks nothing again', async () => {
+  it('a minor store signal keeps no lock: the store is asked again at the next sign-up', async () => {
     answers({ verify: newPerson() });
-    ageAssuranceFake.setStoreSignalSupported(false);
+    ageAssuranceFake.scriptSignal({ kind: 'minor', tier: 'declared', under13: false });
     const first = render();
     await submitCode(first);
-    await reachStage(first, 'ageGate');
-    act(() => {
-      first.result.current.ageGate?.onSubmit({ year: new Date().getUTCFullYear() - 10, month: 1 });
+    await waitFor(() => {
+      expect(first.result.current.blocked).toBe('adultsOnly');
     });
-    expect(first.result.current.blocked).toBe('adultsOnly');
-    expect(ageAssuranceFake.calls).toEqual([{ op: 'blockGate' }]);
-    expect(storageFake.calls).toEqual([{ op: 'set', key: 'ageGate.blockedUntil' }]);
+    expect(storageFake.calls).toEqual([]);
     first.unmount();
 
-    ageAssuranceFake.setStoreSignalSupported(true);
     answers({ verify: newPerson() });
     const second = render();
     await submitCode(second);
     await waitFor(() => {
       expect(second.result.current.blocked).toBe('adultsOnly');
     });
-    expect(ageAssuranceFake.calls).toEqual([{ op: 'blockGate' }]);
+    expect(ageAssuranceFake.calls).toEqual([
+      { op: 'requestStoreSignal' },
+      { op: 'requestStoreSignal' },
+    ]);
     expect(
       verifyBodies().filter(
         (body) => body !== null && typeof body === 'object' && 'signup' in body,
@@ -420,10 +455,7 @@ describe('useSignInViewModel', () => {
     ageAssuranceFake.setStoreSignalSupported(false);
     const hook = render();
     await submitCode(hook);
-    await reachStage(hook, 'ageGate');
-    act(() => {
-      hook.result.current.ageGate?.onSubmit({ year: 1990, month: 4 });
-    });
+    await reachStage(hook, 'agreements');
     agreeAndAnswer(hook, true);
     await reachStage(hook, 'methods');
     expect(hook.result.current.notice).toEqual({
@@ -641,10 +673,7 @@ describe('useSignInViewModel', () => {
     ageAssuranceFake.setStoreSignalSupported(false);
     const hook = render('/settings');
     await submitCode(hook);
-    await reachStage(hook, 'ageGate');
-    act(() => {
-      hook.result.current.ageGate?.onSubmit({ year: 1990, month: 4 });
-    });
+    await reachStage(hook, 'agreements');
     agreeAndAnswer(hook, true);
     await waitFor(() => {
       expect(getSessionPresence()).toBe('present');
@@ -664,7 +693,7 @@ describe('useSignInViewModel', () => {
       ageAssuranceFake.calls,
       routerCalls,
     ]);
-    for (const typed of [EMAIL, CODE, PENDING, '1990', RETURNING.token ?? '']) {
+    for (const typed of [EMAIL, CODE, PENDING, RETURNING.token ?? '']) {
       expect(records.includes(typed)).toBe(false);
     }
   });

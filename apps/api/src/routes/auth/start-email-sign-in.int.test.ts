@@ -18,7 +18,7 @@ const VERIFY = '/v1/auth/email/verify';
 const SECOND_MS = 1000;
 const HOUR_MS = 60 * 60 * SECOND_MS;
 const SIGNUP = {
-  age: { method: 'self_declared', sourceTier: 'self' },
+  age: { method: 'none', sourceTier: null },
   agreements: {
     termsVersion: LEGAL_VERSIONS.terms,
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,

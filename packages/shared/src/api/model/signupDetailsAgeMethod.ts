@@ -7,5 +7,5 @@ export type SignupDetailsAgeMethod =
 
 export const SignupDetailsAgeMethod = {
   store_signal: 'store_signal',
-  self_declared: 'self_declared',
+  none: 'none',
 } as const;

@@ -7,4 +7,5 @@ export type AgeRecordMethod = (typeof AgeRecordMethod)[keyof typeof AgeRecordMet
 export const AgeRecordMethod = {
   store_signal: 'store_signal',
   self_declared: 'self_declared',
+  none: 'none',
 } as const;

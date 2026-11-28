@@ -10,7 +10,6 @@ import { renderWithProviders, setViewport } from '@/test/render';
 import { ToastHost } from '@/ui/components/toast';
 import * as actionRowFixtures from '@/ui/components/action-row.fixtures';
 import * as addressFieldFixtures from '@/ui/components/address-field.fixtures';
-import * as ageGateFixtures from '@/ui/components/age-gate.fixtures';
 import * as avatarFixtures from '@/ui/components/avatar.fixtures';
 import * as bigNumberFixtures from '@/ui/components/big-number.fixtures';
 import * as buttonFixtures from '@/ui/components/button.fixtures';
@@ -158,7 +157,6 @@ const COMPONENTS: readonly { id: string; slug: string; states: readonly string[]
   { id: 'C-Radio', slug: 'radio', states: Object.keys(radioFixtures.STATES) },
   { id: 'C-RadioGroup', slug: 'radio-group', states: Object.keys(radioGroupFixtures.STATES) },
   { id: 'C-Switch', slug: 'switch', states: Object.keys(switchFixtures.STATES) },
-  { id: 'C-AgeGate', slug: 'age-gate', states: Object.keys(ageGateFixtures.STATES) },
   { id: 'C-Progress', slug: 'progress', states: Object.keys(progressFixtures.STATES) },
   { id: 'C-StickyFooter', slug: 'sticky-footer', states: Object.keys(stickyFooterFixtures.STATES) },
   {
@@ -390,7 +388,6 @@ describe('GalleryScreen', { timeout: 20_000 }, () => {
       'C-Radio',
       'C-RadioGroup',
       'C-Switch',
-      'C-AgeGate',
       'C-Progress',
       'C-StickyFooter',
       'C-SectionHeader',

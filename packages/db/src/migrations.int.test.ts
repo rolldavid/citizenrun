@@ -21,6 +21,7 @@ import {
   insertOfficeholder,
   insertPerson,
   insertResult,
+  insertUser,
   resetDb,
 } from './testing/index.ts';
 import { parseStamp } from './testing/names.ts';
@@ -846,9 +847,69 @@ describe('the migrations', () => {
     for (const row of found) {
       expect(row).toMatchObject({
         signup: 'allow',
-        age_method: 'store_signal_or_dob',
+        age_method: 'store_signal_or_none',
         candidate_tools: true,
         updated_by: null,
+      });
+    }
+  });
+
+  it('a state rule takes the two age methods and the earlier name of the default', async () => {
+    const db = getTestDb();
+    for (const method of ['store_signal_required', 'store_signal_or_none', 'store_signal_or_dob']) {
+      await db.execute(sql`update state_rules set age_method = ${method} where state = 'ZZ'`);
+    }
+    const error = await db
+      .execute(sql`update state_rules set age_method = 'date_of_birth' where state = 'ZZ'`)
+      .then(
+        () => null,
+        (caught: unknown) => caught,
+      );
+    expect(databaseError(error)).toMatchObject({
+      code: CHECK_VIOLATION,
+      constraint: 'state_rules_age_method_check',
+    });
+  });
+
+  it('an age record is a store signal with its result, no check with no result, or absent', async () => {
+    const db = getTestDb();
+    const user = await insertUser(db);
+    const checkedAt = '2027-01-15T10:00:00.000Z';
+    type AgeColumns = readonly [string | null, string | null, string | null, string | null];
+    const write = (age: AgeColumns): Promise<unknown> =>
+      db.execute(
+        sql`update users set age_method = ${age[0]}, age_result = ${age[1]}, age_source_tier = ${age[2]},
+              age_checked_at = ${age[3]}::timestamptz
+            where id = ${user.id}`,
+      );
+    const kept: readonly AgeColumns[] = [
+      ['none', null, null, checkedAt],
+      ['store_signal', 'adult', 'confirmed', checkedAt],
+      ['store_signal', 'adult', 'declared', checkedAt],
+      ['self_declared', 'adult', 'self', checkedAt],
+      [null, null, null, null],
+    ];
+    for (const age of kept) {
+      await write(age);
+    }
+    const refused: readonly [AgeColumns, string][] = [
+      [['none', 'adult', null, checkedAt], 'users_age_record_check'],
+      [['none', null, 'self', checkedAt], 'users_age_record_check'],
+      [['none', null, null, null], 'users_age_record_check'],
+      [['store_signal', null, 'confirmed', checkedAt], 'users_age_record_check'],
+      [['store_signal', 'adult', null, checkedAt], 'users_age_record_check'],
+      [['store_signal', 'adult', 'confirmed', null], 'users_age_record_check'],
+      [[null, null, null, checkedAt], 'users_age_record_check'],
+      [['date_of_birth', 'adult', 'self', checkedAt], 'users_age_method_check'],
+    ];
+    for (const [age, constraint] of refused) {
+      const error = await write(age).then(
+        () => null,
+        (caught: unknown) => caught,
+      );
+      expect(databaseError(error), JSON.stringify(age)).toMatchObject({
+        code: CHECK_VIOLATION,
+        constraint,
       });
     }
   });

@@ -43,7 +43,7 @@ export function systemScreenFor(input: {
 }): SystemScreenId | null {
   const guardScreen = input.guard.kind === 'system' ? input.guard.screen : null;
   if (input.upgradeBlocked || guardScreen === 'update') return 'update';
-  if (guardScreen === 'adultsOnly' || input.minorEnded) return 'adultsOnly';
+  if (input.minorEnded) return 'adultsOnly';
   if (agreementsNeeded(input.me, input.path)) return 'agreements';
   return null;
 }

@@ -33,7 +33,7 @@ export async function recordAgeSignal(
   }
 
   if (body.result === 'adult') {
-    // A self_declared record is replaced by the store's.
+    // A record with no signal is replaced by the store's.
     await deps.db
       .update(users)
       .set({

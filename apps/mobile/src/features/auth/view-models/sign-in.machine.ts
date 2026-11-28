@@ -34,10 +34,8 @@ export type SignInEvent =
   | { type: 'chooseEmail' }
   | { type: 'emailCode'; event: EmailCodeEvent }
   | { type: 'signupRequired'; pending: PendingCredential }
-  | { type: 'gateLocked' }
   | { type: 'storeSignal'; outcome: AgeOutcome }
   | { type: 'storeSignalUnsupported' }
-  | { type: 'birthAnswered'; verdict: 'adult' | 'minor' }
   | { type: 'agreed' }
   | { type: 'aiAnswered'; allow: boolean }
   | { type: 'stateRequired' }
@@ -68,7 +66,6 @@ export const INITIAL_SIGN_IN_STATE: SignInMachineState = {
 
 const SIGNING_UP: ReadonlySet<SignInStage> = new Set([
   'checkingAge',
-  'ageGate',
   'state',
   'agreements',
   'aiConsent',
@@ -119,6 +116,9 @@ function finishRefused(
   };
 }
 
+// Sign-up asks no age (D-897): with no store signal it goes on and says that none came.
+const NO_SIGNAL: SignupDetails['age'] = { method: 'none', sourceTier: null };
+
 function storeSignal(state: SignInMachineState, outcome: AgeOutcome): SignInMachineState {
   switch (outcome.kind) {
     case 'adult':
@@ -130,7 +130,7 @@ function storeSignal(state: SignInMachineState, outcome: AgeOutcome): SignInMach
     case 'minor':
       return block(state, 'adultsOnly');
     case 'unavailable':
-      return { ...state, stage: 'ageGate' };
+      return { ...state, stage: 'agreements', age: NO_SIGNAL };
   }
 }
 
@@ -141,12 +141,8 @@ function back(state: SignInMachineState): SignInMachineState {
       return { ...state, stage: 'methods' };
     case 'code':
       return { ...state, stage: 'email', emailCode: INITIAL_EMAIL_CODE_STATE };
-    case 'ageGate':
-      return { ...dropAnswers(state), stage: 'methods' };
     case 'agreements':
-      return state.age?.method === 'self_declared'
-        ? { ...state, stage: 'ageGate' }
-        : { ...dropAnswers(state), stage: 'methods' };
+      return { ...dropAnswers(state), stage: 'methods' };
     case 'aiConsent':
       return { ...state, stage: 'agreements' };
     case 'state':
@@ -181,20 +177,12 @@ export function signInReducer(state: SignInMachineState, event: SignInEvent): Si
         notice: null,
         providersBusy: false,
       };
-    case 'gateLocked':
-      if (state.stage !== 'checkingAge') return state;
-      return block(state, 'adultsOnly');
     case 'storeSignal':
       if (state.stage !== 'checkingAge') return state;
       return storeSignal(state, event.outcome);
     case 'storeSignalUnsupported':
       if (state.stage !== 'checkingAge') return state;
-      return { ...state, stage: 'ageGate' };
-    case 'birthAnswered':
-      if (state.stage !== 'ageGate') return state;
-      return event.verdict === 'adult'
-        ? { ...state, stage: 'agreements', age: { method: 'self_declared', sourceTier: 'self' } }
-        : block(state, 'adultsOnly');
+      return { ...state, stage: 'agreements', age: NO_SIGNAL };
     case 'agreed':
       if (state.stage !== 'agreements') return state;
       return { ...state, stage: 'aiConsent' };

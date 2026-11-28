@@ -36,7 +36,7 @@ const FLAG_CACHE_MS = 30_000;
 const PER_ADDRESS_HOURLY = 60;
 
 type Signup = {
-  age: { method: 'self_declared' | 'store_signal'; sourceTier: 'self' | 'confirmed' | 'declared' };
+  age: { method: 'none' | 'store_signal'; sourceTier: 'confirmed' | 'declared' | null };
   agreements: { termsVersion: string; contentPolicyVersion: string; privacyPolicyVersion: string };
   aiScreening: boolean | null;
   state?: string;
@@ -44,7 +44,7 @@ type Signup = {
 
 function signup(overrides: Partial<Signup> = {}): Signup {
   return {
-    age: { method: 'self_declared', sourceTier: 'self' },
+    age: { method: 'none', sourceTier: null },
     agreements: {
       termsVersion: LEGAL_VERSIONS.terms,
       contentPolicyVersion: LEGAL_VERSIONS.content_policy,
@@ -156,9 +156,9 @@ describe('POST /v1/auth/email/verify', () => {
     const user = await userByEmail(email);
     expect(user).toMatchObject({
       onboardingStep: 'photo',
-      ageMethod: 'self_declared',
-      ageResult: 'adult',
-      ageSourceTier: 'self',
+      ageMethod: 'none',
+      ageResult: null,
+      ageSourceTier: null,
       ageCheckedAt: now,
       email,
       locale: 'en',
@@ -205,7 +205,11 @@ describe('POST /v1/auth/email/verify', () => {
     expect(await testApp.deps.db.select().from(sessions)).toEqual([]);
     const info = await expectSignedIn(await verify({ pendingToken, code, signup: signup() }));
     expect(info.created).toBe(true);
-    expect(info.me.age?.method).toBe('self_declared');
+    expect(info.me.age).toEqual({
+      method: 'none',
+      sourceTier: null,
+      checkedAt: testApp.deps.clock.now().toISOString(),
+    });
   });
 
   it('outdated agreement', async () => {

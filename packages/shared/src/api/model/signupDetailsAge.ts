@@ -6,5 +6,6 @@ import type { SignupDetailsAgeSourceTier } from './signupDetailsAgeSourceTier.ts
 
 export type SignupDetailsAge = {
   method: SignupDetailsAgeMethod;
+  /** @nullable */
   sourceTier: SignupDetailsAgeSourceTier;
 };

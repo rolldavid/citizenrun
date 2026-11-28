@@ -29,7 +29,6 @@ export const signInMethods = {
   },
   email: { status: 'idle', errorCode: null, retryAfterSeconds: null, onSubmit: noop },
   code: null,
-  ageGate: null,
   statePicker: null,
   agreements: null,
   aiConsent: null,
@@ -111,17 +110,6 @@ export const signInFinishing = {
   ...signInMethods,
   stage: 'finishing',
   signingUp: true,
-} satisfies SignInViewModel;
-
-export const signInAgeGate = {
-  ...signInMethods,
-  stage: 'ageGate',
-  signingUp: true,
-  ageGate: { onSubmit: noop, thisYear: 2027 },
-} satisfies SignInViewModel;
-
-export const signInAgeGateIncomplete = {
-  ...signInAgeGate,
 } satisfies SignInViewModel;
 
 export const signInState = {

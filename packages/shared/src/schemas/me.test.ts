@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import * as me from './me.ts';
 import {
   AccountDeletionViewSchema,
+  AgeRecordSchema,
   CheckHandleQuerySchema,
   DataExportStatusSchema,
   ExportFileSchema,
@@ -71,7 +72,7 @@ const NEW_USER_ME = {
   handleChangeAvailableAt: null,
   issues: [],
   locale: 'en',
-  age: { method: 'self_declared', sourceTier: 'self', checkedAt: '2027-01-15T10:00:00.000Z' },
+  age: { method: 'none', sourceTier: null, checkedAt: '2027-01-15T10:00:00.000Z' },
   consents: {
     terms: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
     contentPolicy: { agreedVersion: '2027-01-01', currentVersion: '2027-01-01' },
@@ -131,6 +132,23 @@ describe('Me', () => {
       'session',
       'location',
     ]);
+  });
+
+  it('the age record is a store signal, none, or an earlier self-declared record', () => {
+    const checkedAt = '2027-01-15T10:00:00.000Z';
+    for (const age of [
+      { method: 'none', sourceTier: null, checkedAt },
+      { method: 'store_signal', sourceTier: 'confirmed', checkedAt },
+      { method: 'store_signal', sourceTier: 'declared', checkedAt },
+      { method: 'self_declared', sourceTier: 'self', checkedAt },
+    ]) {
+      expect(AgeRecordSchema.safeParse(age).success, age.method).toBe(true);
+    }
+    expect(Object.keys(AgeRecordSchema.shape)).toEqual(['method', 'sourceTier', 'checkedAt']);
+    expect(AgeRecordSchema.safeParse({ method: 'none', checkedAt }).success).toBe(false);
+    expect(
+      AgeRecordSchema.safeParse({ method: 'date_of_birth', sourceTier: null, checkedAt }).success,
+    ).toBe(false);
   });
 
   it('Me holds location', () => {

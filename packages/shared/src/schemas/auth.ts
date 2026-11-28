@@ -42,14 +42,15 @@ export const NonceResultSchema = z
 export type NonceResult = z.infer<typeof NonceResultSchema>;
 
 /**
- * The sign-up answers sent with a sign-in that may create a user: the adult age result, the agreement
+ * The sign-up answers sent with a sign-in that may create a user: how the age was checked (the store's
+ * adult signal with its tier, or `none` when no signal came: sign-up asks no age, D-897), the agreement
  * versions, the AI-screening answer and, when asked, the state lived in, which is never stored (L-account-link).
  */
 export const SignupDetailsSchema = z
   .object({
     age: z.object({
-      method: z.enum(['store_signal', 'self_declared']),
-      sourceTier: z.enum(['confirmed', 'declared', 'self']),
+      method: z.enum(['store_signal', 'none']),
+      sourceTier: z.enum(['confirmed', 'declared']).nullable(),
     }),
     agreements: z.object({
       termsVersion: z.string().min(1).max(32),
@@ -61,10 +62,8 @@ export const SignupDetailsSchema = z
   })
   .superRefine((details, ctx) => {
     const { method, sourceTier } = details.age;
-    const isPaired =
-      method === 'store_signal'
-        ? sourceTier === 'confirmed' || sourceTier === 'declared'
-        : sourceTier === 'self';
+    // A store signal carries its tier; no signal carries none.
+    const isPaired = method === 'store_signal' ? sourceTier !== null : sourceTier === null;
     if (!isPaired) {
       ctx.addIssue({
         code: 'custom',

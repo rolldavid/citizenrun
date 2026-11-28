@@ -25,7 +25,7 @@ const UNAVAILABLE: AgeOutcome = { kind: 'unavailable' };
 
 let asked = false;
 
-// D-531, CTL-75
+// D-531, D-897, CTL-75
 export function coldStartAgeAction(outcome: AgeOutcome, me: Me): ColdStartAgeAction {
   switch (outcome.kind) {
     case 'minor':
@@ -34,7 +34,8 @@ export function coldStartAgeAction(outcome: AgeOutcome, me: Me): ColdStartAgeAct
         body: { result: outcome.under13 ? 'under_13' : 'under_18', sourceTier: outcome.tier },
       };
     case 'adult':
-      return me.age?.method === 'self_declared'
+      // Only a record that is not the store's is replaced by it (D-897).
+      return me.age !== null && me.age.method !== 'store_signal'
         ? { kind: 'post', body: { result: 'adult', sourceTier: outcome.tier } }
         : NONE;
     case 'unavailable':

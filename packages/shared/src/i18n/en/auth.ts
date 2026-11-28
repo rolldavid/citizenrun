@@ -43,16 +43,6 @@ export const auth = {
   wait: {
     title: 'Setting up your account',
   },
-  age: {
-    title: 'When were you born?',
-    body: 'Month and year only. This stays on your device.',
-    month: 'Month',
-    year: 'Year',
-    monthPlaceholder: 'Pick a month',
-    yearPlaceholder: 'Pick a year',
-    continue: 'Continue',
-    needBoth: 'Pick a month and a year',
-  },
   state: {
     title: 'Which state or territory do you live in?',
     body: 'We use this once to check that {{appName}} is offered there. It is not saved.',

@@ -8,7 +8,7 @@ import { SELECTORS } from '../selectors.ts';
 import { expectNoA11yViolations } from './helpers/a11y.ts';
 import { apiHeaders, operationPath } from './helpers/api.ts';
 import { t } from './helpers/catalog.ts';
-import { E2E_NOW, freezeClock } from './helpers/clock.ts';
+import { freezeClock } from './helpers/clock.ts';
 import { readCode } from './helpers/mailbox.ts';
 import { clientAddress, newRunId } from './helpers/run-id.ts';
 import { shot } from './helpers/shot.ts';
@@ -21,9 +21,6 @@ const { auth, onboarding, feed } = SELECTORS;
 /** BUD-signup-time's regression guard: the machine time of steps 2 to 9. */
 const SIGNUP_BUDGET_MS = 15_000;
 const JOURNEY_TIMEOUT_MS = 120_000;
-/** An adult birth: January, thirty years before the journey's frozen year. */
-const BIRTH_MONTH = '1';
-const BIRTH_YEAR = String(E2E_NOW.getFullYear() - 30);
 /** A handle the seed holds, so the check answers that it is taken. */
 const TAKEN_HANDLE = 'seed_user_01';
 const PICKS = ['rent-housing', 'climate', 'schools'] as const;
@@ -52,7 +49,6 @@ async function signedInMe(page: Page): Promise<Me> {
 
 test('a new person signs up and reaches Home', async ({ page }, testInfo) => {
   test.setTimeout(JOURNEY_TIMEOUT_MS);
-  const compact = testInfo.project.name.startsWith('phone');
   const runId = newRunId();
   const email = `e2e_${testInfo.project.name}_${runId}@example.test`;
   const handle = `e2e${runId}`;
@@ -80,41 +76,13 @@ test('a new person signs up and reaches Home', async ({ page }, testInfo) => {
   await shot(page, 'signup-code');
 
   // Step 3: the code from the dev mailbox; the field sends it at the sixth digit. The web has no
-  // store signal, so the birth question follows, and no session exists yet.
+  // store signal and sign-up asks no age (D-897): the agreements follow, and no session exists yet.
   const code = await readCode(page.request, email);
   await page.getByTestId(auth.codeField).fill(code);
-  await expect(page.getByTestId(onboarding.ageMonth)).toBeVisible();
-  expect((await readMe(page)).status, 'no session before the sign-up details').toBe(401);
-  await expectNoA11yViolations(page);
-
-  // Step 4: an adult month and year, from a phone's sheet or a wide window's list. Each list has
-  // faded out before the next look.
-  const list = compact ? 'sheet' : 'popover';
-  await page.getByTestId(onboarding.ageMonth).click();
-  await page
-    .getByTestId(
-      compact
-        ? onboarding.ageMonthOptionCompact.id(BIRTH_MONTH)
-        : onboarding.ageMonthOption.id(BIRTH_MONTH),
-    )
-    .click();
-  await expect(page.getByTestId(onboarding.ageMonthPart.id(list))).toBeHidden();
-  await page.getByTestId(onboarding.ageYear).click();
-  await page
-    .getByTestId(
-      compact
-        ? onboarding.ageYearOptionCompact.id(BIRTH_YEAR)
-        : onboarding.ageYearOption.id(BIRTH_YEAR),
-    )
-    .click();
-  await expect(page.getByTestId(onboarding.ageYearPart.id(list))).toBeHidden();
-  await expect(page.getByTestId(onboarding.ageContinue)).toBeEnabled();
-  await expectNoA11yViolations(page);
-  await shot(page, 'signup-age');
-
-  // Step 4b: the agreements follow the answer (D-350).
-  await page.getByTestId(onboarding.ageContinue).click();
   await expect(page.getByTestId(onboarding.termsAgree)).toBeVisible();
+  expect((await readMe(page)).status, 'no session before the sign-up details').toBe(401);
+  await expect(page.locator('[data-testid^="onboarding.age"]'), 'no age is asked').toHaveCount(0);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText(t('auth:agree.title'));
   await expectNoA11yViolations(page);
 
   // Step 5: agree, read the AI sentence word for word (CTL-77), allow it. The answers are recorded
@@ -133,6 +101,9 @@ test('a new person signs up and reaches Home', async ({ page }, testInfo) => {
     expect(agreement.agreedVersion).toBe(agreement.currentVersion);
   }
   expect(consented.consents.aiScreening).toBe('granted');
+  // The account records that no age signal came, and claims no result.
+  expect(consented.age?.method).toBe('none');
+  expect(consented.age?.sourceTier).toBeNull();
   await expectNoA11yViolations(page);
 
   // Step 6: skipping is as prominent as going on.

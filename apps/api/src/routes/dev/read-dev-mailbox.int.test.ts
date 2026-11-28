@@ -24,7 +24,7 @@ const DEV_ROUTES = { ENABLE_DEV_ROUTES: 'true' } as const;
 // dev.mailbox allows 120 a minute per address, held in memory at half per replica (D-240).
 const PER_REPLICA_MINUTE = 60;
 const SIGNUP = {
-  age: { method: 'self_declared', sourceTier: 'self' },
+  age: { method: 'none', sourceTier: null },
   agreements: {
     termsVersion: LEGAL_VERSIONS.terms,
     contentPolicyVersion: LEGAL_VERSIONS.content_policy,
