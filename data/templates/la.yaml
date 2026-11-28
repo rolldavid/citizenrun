@@ -989,6 +989,64 @@ special_districts:
       function_names: ['91 - WATER SUPPLY UTILITY']
       name_patterns: ['\bwaterworks district\b']
     offices: []
+  # Five supervisors: three elected (R.S. 3:1206), two appointed by the state commission (R.S. 3:1205).
+  # The name pattern keeps other conservation districts of the same function out of this block.
+  - key: soil-water-conservation-district
+    enabling_statute:
+      value: R.S. 3:1201 and following (Soil and Water Conservation Districts)
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=85724
+      quote: 'A soil and water conservation district organized under the provisions of this Part shall constitute a governmental subdivision of this state, and a public body corporate and politic, exercising public powers'
+      citation: R.S. 3:1208
+    elected:
+      value: true
+      source_url: https://legis.la.gov/legis/LawPrint.aspx?d=85723
+      quote: 'The governing authority of each district shall consist of five supervisors, three elected as provided in R.S. 3:1206 and two appointed as provided in R.S. 3:1205.'
+      citation: R.S. 3:1207(A)
+    classifier:
+      function_names: ['88 - SOIL AND WATER CONSERVATION']
+      name_patterns: ['\bsoil and water conservation district\b']
+    offices:
+      - key: soil-water-supervisor
+        office_type: soil-water-conservation-board
+        applies_to: null
+        title: '{jurisdiction} Supervisor'
+        seats:
+          arrangement: at_large
+          count:
+            value: 3
+            source_url: https://legis.la.gov/legis/LawPrint.aspx?d=85723
+            quote: 'The governing authority of each district shall consist of five supervisors, three elected as provided in R.S. 3:1206 and two appointed as provided in R.S. 3:1205.'
+            citation: R.S. 3:1207(A)
+          district_count: null
+          label_pattern: null
+        # The three elected seats; the two appointed supervisors are not elected.
+        body_size:
+          value: 3
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=85723
+          quote: 'The governing authority of each district shall consist of five supervisors, three elected as provided in R.S. 3:1206 and two appointed as provided in R.S. 3:1205.'
+          citation: R.S. 3:1207(A)
+        # One seat a year (R.S. 3:1207(C)); each district's cycle runs from its own first election.
+        stagger: []
+        term_years:
+          value: 3
+          source_url: https://legis.la.gov/legis/LawPrint.aspx?d=85723
+          quote: 'The term of office of each supervisor shall be three years, except that the supervisors who are first appointed shall be designated to serve terms of one and two years, respectively, from the date of their appointment.'
+          citation: R.S. 3:1207(B)
+        term_limit_terms: null
+        # A private election held by the secretary of state on nominating petitions filed with the
+        # state commission (R.S. 3:1206(A)); no statute fixes its day, so the schedule gives no contest.
+        schedule: la_no_public_election
+        track_set: la_qualifying
+        partisan: null
+        powers: []
+        pay: null
+        pay_range: null
+        benefits: null
+        eligibility: []
+        job_restrictions: []
+        district: null
+        wikidata_position: null
+        roster_url: null
 
 party_committee:
   selection:
