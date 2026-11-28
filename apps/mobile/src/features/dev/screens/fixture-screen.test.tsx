@@ -7,6 +7,7 @@ import type { ScreenRegistryEntry } from '@/features/dev/screen-fixtures';
 import { reauthFixtures, signInFixtures, welcomeFixtures } from '@/features/auth';
 import { homeFixtures } from '@/features/feed';
 import { officeFixtures } from '@/features/office';
+import { personFixtures } from '@/features/profile';
 import {
   handleFixtures,
   issuesFixtures,
@@ -294,6 +295,7 @@ describe('the registry', () => {
       'settings-delete-account': Object.keys(settingsDeleteAccountFixtures).sort(),
       'settings-about': Object.keys(settingsAboutFixtures).sort(),
       'office-slug': Object.keys(officeFixtures).sort(),
+      'c-slug': Object.keys(personFixtures).sort(),
     });
     for (const entry of Object.values(SCREEN_FIXTURES)) {
       expect(entry.fixtures.length).toBeGreaterThan(0);
@@ -312,6 +314,7 @@ describe('the registry', () => {
     expect(SCREEN_FIXTURES['system-update']?.shell).toBeUndefined();
     expect(SCREEN_FIXTURES['system-error']?.shell).toBeUndefined();
     expect(SCREEN_FIXTURES['office-slug']?.shell).toEqual({ mode: 'app', active: null });
+    expect(SCREEN_FIXTURES['c-slug']?.shell).toEqual({ mode: 'app', active: null });
   });
 });
 
