@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SCREEN_FIXTURES } from '@/features/dev/screen-fixtures';
 import { renderWithProviders, setViewport } from '@/test/render';
 import { avatarInitials } from '@/ui/components/avatar';
+import { sourceDomain } from '@/ui/present';
 
 import { FixtureView } from './screens/fixture-screen';
 
@@ -123,7 +124,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /**
  * The strings a fixture carries as data: every string in the props its entry draws the view with,
- * the initials an avatar draws from a person's name and handle (or name alone), and the brand's name.
+ * the initials an avatar draws from a person's name and handle (or name alone), the domain of every https URL, and the brand's name.
  */
 function fixtureData(screen: string, fixture: string): Set<string> {
   const data = new Set<string>([BRAND.displayName]);
@@ -133,6 +134,11 @@ function fixtureData(screen: string, fixture: string): Set<string> {
   const visit = (value: unknown): void => {
     if (typeof value === 'string') {
       data.add(value.trim());
+      // A link drawn as its website's domain shows the fixture's own URL in another form.
+      const domain = sourceDomain(value);
+      if (domain !== null) {
+        data.add(domain);
+      }
       return;
     }
     if (!isRecord(value) || seen.has(value)) {
